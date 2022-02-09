@@ -1,0 +1,44 @@
+config:
+  http:
+    extendedMetrics: true
+  target: "https://api.metadata.staging.cf-deployments.org"
+  phases:
+    - duration: "120"
+      arrivalRate: "32"
+  environments:
+    dev:
+      target: "https://api.metadata.dev.cf-deployments.org"
+      phases:
+        - duration: "120"
+          arrivalRate: "64"
+    qa:
+      target: "https://api.metadata.staging.cf-deployments.org"
+      phases:
+        - duration: "600"
+          arrivalRate: "256"
+  payload:
+    - path: "subjects.csv"
+      cast: false
+      fields:
+        - "subject"
+    - path: "properties.csv"
+      cast: false
+      fields:
+        - "property"
+before:
+  flow:
+    - log: "Starting load testing for environment {{ $environment }}"
+
+scenarios:
+  - name: "Query subjects"
+    weight: 10
+    flow:
+      - get:
+          gzip: true
+          url: "/metadata/{{ subject }}"
+  - name: "Query subjects with properties"
+    weight: 1
+    flow:
+      - get:
+          gzip: true
+          url: "/metadata/{{ subject }}/properties/{{ property }}"
