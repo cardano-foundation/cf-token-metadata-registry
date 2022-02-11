@@ -32,7 +32,7 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: cf-metadata-api
-          path: target/*.jar
+          jacoco-csv-file: java/api/target/*.jar
 
       - name: Generate Jacoco Badge
         id: jacoco
@@ -40,6 +40,7 @@ jobs:
         with:
           badges-directory: badges
           generate-branches-badge: true
+          path: java/api/target/site/jacoco/
       - name: Log coverage percentage
         run: |
           echo "coverage = ${{ steps.jacoco.outputs.coverage }}"
@@ -59,4 +60,4 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: jacoco-report
-          path: target/site/jacoco/
+          path: java/api/target/site/jacoco/
