@@ -226,8 +226,6 @@ resource "aws_s3_bucket_object" "lambda_test_runner_deployment_package" {
 
   key    = "lambda-deployments/test-runner/test-runner.zip"
   source = data.archive_file.lambda_test_runner_archive.output_path
-
-  etag = filemd5(data.archive_file.lambda_test_runner_archive.output_path)
 }
 
 resource "aws_lambda_function" "loadtest_runner" {
@@ -268,7 +266,7 @@ resource "aws_lambda_function" "loadtest_runner" {
 
 resource "aws_iam_role" "test_runner_execution_role" {
   name                = "${local.name_prefix}-runner_lambda_role"
-  managed_policy_arns = [aws_iam_policy.test_runner_policy_custom.arn]
+  managed_policy_arns = [aws_iam_policy.test_runner_policy_custom.arn, "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"]
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -281,11 +279,6 @@ resource "aws_iam_role" "test_runner_execution_role" {
       }
     }]
   })
-}
-
-resource "aws_iam_role_policy_attachment" "test_runner_policy_basic_aws" {
-  role       = aws_iam_role.test_runner_execution_role.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
 resource "aws_iam_policy" "test_runner_policy_custom" {
@@ -347,6 +340,4 @@ resource "aws_s3_bucket_object" "lambda_results_processor_deployment_package" {
 
   key    = "/lambda-deployments/results-processor/results-processor.zip"
   source = data.archive_file.lambda_results_processor_archive.output_path
-
-  etag = filemd5(data.archive_file.lambda_results_processor_archive.output_path)
 }

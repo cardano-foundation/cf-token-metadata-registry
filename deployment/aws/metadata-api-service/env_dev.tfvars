@@ -1,6 +1,7 @@
 region                      = "eu-west-1"
 environment                 = "dev"
 project                     = "cf-metadata-api"
+domain_name                 = "metadata.dev.cf-deployments.org"
 vpc_cidr                    = "10.12.0.0/16"
 aws-profile-name            = "AdministratorAccess"
 aws-account-id              = "747042292633"
@@ -19,18 +20,18 @@ gitsync_image_version       = "latest"
 gitsync_task_cpu            = 2048
 gitsync_task_memory         = 8192
 gitsync_schedule_expression = "rate(6 hours)"
-domain_name                 = "metadata.dev.cf-deployments.org"
 loadtest_image_version      = "latest"
 loadtest_task_cpu           = 4096
 loadtest_task_memory        = 8192
-loadtest_region_config      = "euc1:2,use1:1,apse1:1"
+loadtest_region_config      = "euc1:1,use1:1,apse1:1"
+lb_access_logs_enabled      = false
 
 service_config = {
   "eu1" = {
     rds_instance_type = "db.t4g.micro",
     cpu               = 512,
     memory            = 1024,
-    min_tasks         = 2,
+    min_tasks         = 1,
     max_tasks         = 8,
     region            = "eu-west-1"
   },
@@ -38,7 +39,7 @@ service_config = {
     rds_instance_type = "db.t4g.micro",
     cpu               = 512,
     memory            = 1024,
-    min_tasks         = 2,
+    min_tasks         = 1,
     max_tasks         = 8,
     region            = "us-east-2"
   }

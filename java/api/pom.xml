@@ -6,7 +6,7 @@
     <groupId>org.springframework.boot</groupId>
     <artifactId>spring-boot-starter-parent</artifactId>
     <version>2.6.2</version>
-    <relativePath /> <!-- lookup parent from repository -->
+    <relativePath/>
   </parent>
 
   <groupId>org.cardanofoundation.metadatatools</groupId>
@@ -14,6 +14,24 @@
   <version>0.0.1-SNAPSHOT</version>
   <name>api</name>
   <description>REST API exposing metadata related functionality</description>
+
+  <scm>
+    <connection>scm:git:https://github.com/cardano-foundation/cf-metadata-server</connection>
+    <url>https://github.com/cardano-foundation/cf-metadata-server</url>
+  </scm>
+
+  <issueManagement>
+    <url>https://github.com/cardano-foundation/cf-metadata-server/issues</url>
+    <system>GitHub Issues</system>
+  </issueManagement>
+
+  <licenses>
+    <license>
+      <name>MIT license</name>
+      <url>http://www.opensource.org/licenses/mit-license.php</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
 
   <dependencies>
     <dependency>

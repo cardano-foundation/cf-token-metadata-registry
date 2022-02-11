@@ -39,11 +39,12 @@ resource "aws_lambda_function" "monitor" {
 
   environment {
     variables = {
-      REGION            = var.region
-      BASE_PATH         = var.target_base_path
-      PROBING_SUBJECT   = var.target_subject
-      CONNECT_TIMEOUT   = var.target_connect_timeout
-      CLOUDWATCH_REGION = var.metric_region
+      REGION                 = var.region
+      BASE_PATH              = var.target_base_path
+      PROBING_SUBJECT        = var.target_subject
+      CONNECT_TIMEOUT        = var.target_connect_timeout
+      CLOUDWATCH_REGION      = var.metric_region
+      DEPLOYMENT_ENVIRONMENT = var.environment
     }
   }
 
@@ -52,7 +53,7 @@ resource "aws_lambda_function" "monitor" {
 
 resource "aws_iam_role" "monitor_execution_role" {
   name                = "${local.name_prefix}-lambda_role"
-  managed_policy_arns = [aws_iam_policy.monitor_policy_custom.arn]
+  managed_policy_arns = [aws_iam_policy.monitor_policy_custom.arn, "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"]
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -65,11 +66,6 @@ resource "aws_iam_role" "monitor_execution_role" {
       }
     }]
   })
-}
-
-resource "aws_iam_role_policy_attachment" "monitor_policy_basic_aws" {
-  role       = aws_iam_role.monitor_execution_role.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
 resource "aws_iam_policy" "monitor_policy_custom" {
@@ -109,9 +105,9 @@ resource "aws_cloudwatch_event_target" "monitor_event_target" {
 }
 
 resource "aws_lambda_permission" "monitor_trigger_premission" {
-    statement_id = "${local.name_prefix}-AllowExecutionFromCloudWatch"
-    action = "lambda:InvokeFunction"
-    function_name = "${aws_lambda_function.monitor.function_name}"
-    principal = "events.amazonaws.com"
-    source_arn = "${aws_cloudwatch_event_rule.monitor_event_rule.arn}"
+  statement_id  = "${local.name_prefix}-AllowExecutionFromCloudWatch"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.monitor.function_name
+  principal     = "events.amazonaws.com"
+  source_arn    = aws_cloudwatch_event_rule.monitor_event_rule.arn
 }

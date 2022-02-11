@@ -86,3 +86,8 @@ variable "rds_instance_endpoint" {
 variable "domain_name" {
   description = "Domain name where the API is hosted."
 }
+
+variable "lb_access_logs_enabled" {
+  description = "Activate or deactivate loadbalancer access logging."
+  type        = bool
+}

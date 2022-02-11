@@ -11,7 +11,7 @@ output "loadtest_security_group_id" {
 }
 
 output "target_subnet_ids" {
-  value = "${aws_default_subnet.default_subnet.*.id}"
+  value = [for s in data.aws_subnet.default : s.id]
 }
 
 output "region" {

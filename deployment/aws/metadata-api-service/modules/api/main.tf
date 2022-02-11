@@ -52,6 +52,7 @@ module "api" {
   vpc_cidr                    = var.vpc_cidr
   domain_name                 = var.domain_name
   rds_instance_endpoint       = module.rds.rds_instance_endpoint
+  lb_access_logs_enabled      = var.lb_access_logs_enabled
 }
 
 module "gitsync" {

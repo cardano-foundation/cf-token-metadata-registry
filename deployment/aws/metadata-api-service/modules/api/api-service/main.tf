@@ -30,6 +30,77 @@ resource "aws_ecr_repository" "service_ecr_repo" {
   }
 }
 
+resource "aws_s3_bucket" "lb_log_bucket" {
+  bucket = "cf-metadata-${var.environment}-${var.region}-lb-logs"
+  acl    = "log-delivery-write"
+
+  server_side_encryption_configuration {
+    rule {
+      apply_server_side_encryption_by_default {
+        sse_algorithm = "AES256"
+      }
+    }
+  }
+}
+
+resource "aws_s3_bucket_public_access_block" "lb_log_bucket_blocking" {
+  bucket = aws_s3_bucket.lb_log_bucket.id
+
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+resource "aws_s3_bucket_policy" "lb_log_bucket_policy" {
+  bucket = aws_s3_bucket.lb_log_bucket.id
+  policy = data.aws_iam_policy_document.lb_log_bucket_policy_document.json
+}
+
+data "aws_elb_service_account" "main" {}
+
+data "aws_iam_policy_document" "lb_log_bucket_policy_document" {
+  policy_id = "s3_bucket_lb_logs"
+
+  statement {
+    actions = [
+      "s3:PutObject",
+    ]
+    effect = "Allow"
+    resources = [
+      "${aws_s3_bucket.lb_log_bucket.arn}/*",
+    ]
+
+    principals {
+      identifiers = ["${data.aws_elb_service_account.main.arn}"]
+      type        = "AWS"
+    }
+  }
+
+  statement {
+    actions = [
+      "s3:PutObject"
+    ]
+    effect    = "Allow"
+    resources = ["${aws_s3_bucket.lb_log_bucket.arn}/*"]
+    principals {
+      identifiers = ["delivery.logs.amazonaws.com"]
+      type        = "Service"
+    }
+  }
+
+  statement {
+    actions = [
+      "s3:GetBucketAcl"
+    ]
+    effect    = "Allow"
+    resources = ["${aws_s3_bucket.lb_log_bucket.arn}"]
+    principals {
+      identifiers = ["delivery.logs.amazonaws.com"]
+      type        = "Service"
+    }
+  }
+}
 
 resource "random_password" "service_password" {
   length           = 20
@@ -177,25 +248,6 @@ resource "aws_iam_policy" "ecs_task_role_policy" {
   })
 }
 
-resource "aws_iam_role" "ecs_autoscaling_role" {
-  name                = "${local.iam_name_prefix}-ecs-autoscaling-role"
-  path                = "/"
-  managed_policy_arns = ["arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceAutoscaleRole"]
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17",
-    Statement = [
-      {
-        Action = "sts:AssumeRole",
-        Principal = {
-          Service = "ecs-tasks.amazonaws.com"
-        },
-        Effect = "Allow",
-        Sid    = ""
-      }
-    ]
-  })
-}
-
 resource "aws_ecs_task_definition" "api_service_task_definition" {
   family                   = "${local.name_prefix}-taskdef"
   execution_role_arn       = aws_iam_role.ecs_execution_role.arn
@@ -263,7 +315,6 @@ resource "aws_appautoscaling_target" "ecs_autoscaling_target" {
   resource_id        = "service/${aws_ecs_cluster.api_service_cluster.name}/${aws_ecs_service.api_service.name}"
   scalable_dimension = "ecs:service:DesiredCount"
   service_namespace  = "ecs"
-  role_arn           = aws_iam_role.ecs_autoscaling_role.arn
 }
 
 resource "aws_appautoscaling_policy" "ecs_autoscaling_policy" {
@@ -358,6 +409,11 @@ resource "aws_lb" "api_service_loadbalancer" {
   security_groups    = [aws_security_group.api_service_lb_sg.id]
   subnets            = var.lb_target_subnets
   idle_timeout       = 60
+  access_logs {
+    bucket  = aws_s3_bucket.lb_log_bucket.id
+    prefix  = "lb_logs"
+    enabled = var.lb_access_logs_enabled
+  }
 }
 
 resource "aws_lb_target_group" "api_service_loadbalancer_targetgroup" {

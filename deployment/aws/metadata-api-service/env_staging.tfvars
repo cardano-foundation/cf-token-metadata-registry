@@ -24,6 +24,7 @@ loadtest_image_version      = "latest"
 loadtest_task_cpu           = 4096
 loadtest_task_memory        = 8192
 loadtest_region_config      = "euc1:4,use1:2,apse1:1"
+lb_access_logs_enabled      = true
 
 service_config = {
   "eu1" = {

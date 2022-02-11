@@ -12,6 +12,7 @@ base_path = os.getenv("BASE_PATH")
 probing_subject = os.getenv("PROBING_SUBJECT")
 connect_timeout = os.getenv("CONNECT_TIMEOUT", "5000")
 cloudwatch_region = os.getenv('CLOUDWATCH_REGION')
+deployment_environment = os.getenv("DEPLOYMENT_ENVIRONMENT")
 
 cloudwatch = boto3.client('cloudwatch', cloudwatch_region)
 
@@ -26,6 +27,10 @@ def create_metric_entry(metric_name: str, region: str, request_type: str, unit: 
               {
                   'Name' : 'region',
                   'Value' : region
+              },
+              {
+                  'Name' : 'environment',
+                  'Value' : deployment_environment
               }
             ],
             'Value': value,
@@ -42,6 +47,7 @@ def collect_metric(url: str, request_type: str):
   c.perform()
   buffer.getvalue()
 
+  logging.info("Publishing metrics ...")
   cloudwatch.put_metric_data(
     Namespace = 'metadata-api-monitoring',
     MetricData = [

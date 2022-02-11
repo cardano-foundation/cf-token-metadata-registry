@@ -1,15 +1,18 @@
 locals {
-  name_prefix = "${var.name_prefix}"
+  name_prefix = var.name_prefix
 }
 
-data "aws_availability_zones" "available" {}
-
-resource "aws_default_vpc" "default" {
+data "aws_vpc" "default" {
+  default = true
 }
 
-resource "aws_default_subnet" "default_subnet" {
-  count = length(data.aws_availability_zones.available.names)
-  availability_zone = data.aws_availability_zones.available.names[count.index]
+data "aws_subnet_ids" "default" {
+  vpc_id = data.aws_vpc.default.id
+}
+
+data "aws_subnet" "default" {
+  for_each = data.aws_subnet_ids.default.ids
+  id       = each.value
 }
 
 resource "aws_cloudwatch_log_group" "ecs_lg" {
@@ -38,7 +41,7 @@ resource "aws_ecs_cluster" "cluster" {
 resource "aws_security_group" "task_sg" {
   name        = "${local.name_prefix}-sg"
   description = "Security group for ECS tasks running the laodtest tasks."
-  vpc_id      = aws_default_vpc.default.id
+  vpc_id      = data.aws_vpc.default.id
 
   egress {
     from_port   = 0

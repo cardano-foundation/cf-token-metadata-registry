@@ -67,6 +67,7 @@ module "api-euw1" {
   gitsync_task_memory         = var.gitsync_task_memory
   gitsync_image_version       = var.gitsync_image_version
   gitsync_schedule_expression = var.gitsync_schedule_expression
+  lb_access_logs_enabled      = var.lb_access_logs_enabled
 }
 
 module "api-us1" {
@@ -101,6 +102,7 @@ module "api-us1" {
   gitsync_task_memory         = var.gitsync_task_memory
   gitsync_image_version       = var.gitsync_image_version
   gitsync_schedule_expression = var.gitsync_schedule_expression
+  lb_access_logs_enabled      = var.lb_access_logs_enabled
 }
 
 module "api-ap1" {
@@ -136,6 +138,7 @@ module "api-ap1" {
   gitsync_task_memory         = var.gitsync_task_memory
   gitsync_image_version       = var.gitsync_image_version
   gitsync_schedule_expression = var.gitsync_schedule_expression
+  lb_access_logs_enabled      = var.lb_access_logs_enabled
 }
 
 module "loadtest" {

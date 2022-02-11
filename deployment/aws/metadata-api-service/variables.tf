@@ -107,7 +107,11 @@ variable "loadtest_task_memory" {
 variable "loadtest_region_config" {
   description = "The configuration for the number of loadtest tasks started in each region."
   type        = string
-  default     = "euc1:1,use1:1,apse1:1"
+}
+
+variable "lb_access_logs_enabled" {
+  description = "Activate or deactivate loadbalancer access logging."
+  type        = bool
 }
 
 variable "service_config" {
