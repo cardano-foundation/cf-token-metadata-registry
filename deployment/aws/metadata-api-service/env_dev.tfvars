@@ -47,21 +47,21 @@ service_config = {
 
 monitoring_config = {
   "eu1" = {
-    schedule_expression    = "rate(1 minute)",
+    schedule_expression    = "rate(15 minutes)",
     region                 = "eu-central-1",
     target_base_path       = "https://api.metadata.dev.cf-deployments.org",
     target_subject         = "9a9693a9a37912a5097918f97918d15240c92ab729a0b7c4aa144d7753554e444145",
     target_connect_timeout = 5000
   },
   "us1" = {
-    schedule_expression    = "rate(1 minute)",
+    schedule_expression    = "rate(15 minutes)",
     region                 = "us-east-1",
     target_base_path       = "https://api.metadata.dev.cf-deployments.org",
     target_subject         = "9a9693a9a37912a5097918f97918d15240c92ab729a0b7c4aa144d7753554e444145",
     target_connect_timeout = 5000
   },
   "ap1" = {
-    schedule_expression    = "rate(1 minute)",
+    schedule_expression    = "rate(15 minutes)",
     region                 = "ap-southeast-1",
     target_base_path       = "https://api.metadata.dev.cf-deployments.org",
     target_subject         = "9a9693a9a37912a5097918f97918d15240c92ab729a0b7c4aa144d7753554e444145",

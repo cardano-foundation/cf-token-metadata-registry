@@ -457,6 +457,49 @@ resource "aws_lb_listener" "api_service_loadbalancer_listener" {
   }
 }
 
+resource "aws_wafv2_web_acl" "web_acl_api" {
+  name        = "${local.name_prefix}-webacl"
+  description = "WAF rules for the metadata API."
+  scope       = "REGIONAL"
+
+  default_action {
+    allow {}
+  }
+
+  rule {
+    name     = "ratelimit_ip_based"
+    priority = 1
+
+    action {
+      block {}
+    }
+
+    statement {
+      rate_based_statement {
+        limit              = 10000
+        aggregate_key_type = "IP"
+      }
+    }
+
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "api-request-limit"
+      sampled_requests_enabled   = false
+    }
+  }
+
+  visibility_config {
+    cloudwatch_metrics_enabled = true
+    metric_name                = "api-web-acl"
+    sampled_requests_enabled   = false
+  }
+}
+
+resource "aws_wafv2_web_acl_association" "web_acl_api_assoc" {
+  resource_arn = aws_lb.api_service_loadbalancer.arn
+  web_acl_arn  = aws_wafv2_web_acl.web_acl_api.arn
+}
+
 data "aws_route53_zone" "service_zone" {
   name = var.domain_name
 }
