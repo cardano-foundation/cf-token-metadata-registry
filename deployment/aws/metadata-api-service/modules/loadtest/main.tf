@@ -4,24 +4,37 @@ locals {
 
 resource "aws_s3_bucket" "loadtest_bucket" {
   bucket = "${local.name_prefix}-data"
+}
+
+
+resource "aws_s3_bucket_acl" "loadtest_bucket_acl" {
+  bucket = aws_s3_bucket.loadtest_bucket.id
   acl    = "private"
+}
 
-  versioning {
-    enabled = false
-  }
+resource "aws_s3_bucket_server_side_encryption_configuration" "loadtest_bucket_server_side_encryption_config" {
+  bucket = aws_s3_bucket.loadtest_bucket.id
 
-  logging {
-    target_bucket = var.log_bucket.id
-    target_prefix = "log/"
-  }
-
-  server_side_encryption_configuration {
-    rule {
-      apply_server_side_encryption_by_default {
-        kms_master_key_id = var.default_ops_key.arn
-        sse_algorithm     = "aws:kms"
-      }
+  rule {
+    apply_server_side_encryption_by_default {
+      kms_master_key_id = var.default_ops_key.arn
+      sse_algorithm     = "aws:kms"
     }
+  }
+}
+
+resource "aws_s3_bucket_logging" "loadtest_bucket_logging" {
+  bucket = aws_s3_bucket.loadtest_bucket.id
+
+  target_bucket = var.log_bucket.id
+  target_prefix = "log/"
+}
+
+resource "aws_s3_bucket_versioning" "loadtest_bucket_versioning" {
+  bucket = aws_s3_bucket.loadtest_bucket.id
+
+  versioning_configuration {
+    status = "Enabled"
   }
 }
 
@@ -34,31 +47,8 @@ resource "aws_s3_bucket_public_access_block" "loadtest_bucket_blocking" {
   restrict_public_buckets = true
 }
 
-resource "aws_kms_key" "loadtest_ecr_key" {
-  description = "This key is used to encrypt the ecr repository for loadtesting container images."
-
-  tags = {
-    Name = "${local.name_prefix}-ecr-key"
-  }
-}
-
-resource "aws_kms_alias" "loadtest_ecr_key_alias" {
-  name          = "alias/${local.name_prefix}-ecr-key"
-  target_key_id = aws_kms_key.loadtest_ecr_key.key_id
-}
-
-resource "aws_ecr_repository" "loadtest_ecr_repo" {
-  name                 = "${local.name_prefix}-image-repo"
-  image_tag_mutability = "MUTABLE"
-
-  image_scanning_configuration {
-    scan_on_push = true
-  }
-
-  encryption_configuration {
-    encryption_type = "KMS"
-    kms_key         = aws_kms_key.loadtest_ecr_key.arn
-  }
+data "aws_ecr_repository" "loadtest_ecr_repo" {
+  name = "${var.project}-ecr-${var.environment}-loadtest-image-repo"
 }
 
 resource "aws_iam_role" "ecs_execution_role" {
@@ -165,7 +155,7 @@ module "loadtest-euc1" {
   ecr_image_version    = var.ecr_image_version
   loadtest_bucket      = aws_s3_bucket.loadtest_bucket
   loadtest_kms_key_arn = var.default_ops_key.arn
-  ecr_repository_url   = aws_ecr_repository.loadtest_ecr_repo.repository_url
+  ecr_repository_url   = data.aws_ecr_repository.loadtest_ecr_repo.repository_url
   execution_role_arn   = aws_iam_role.ecs_execution_role.arn
   task_role_arn        = aws_iam_role.ecs_task_role.arn
 }
@@ -187,7 +177,7 @@ module "loadtest-use1" {
   ecr_image_version    = var.ecr_image_version
   loadtest_bucket      = aws_s3_bucket.loadtest_bucket
   loadtest_kms_key_arn = var.default_ops_key.arn
-  ecr_repository_url   = aws_ecr_repository.loadtest_ecr_repo.repository_url
+  ecr_repository_url   = data.aws_ecr_repository.loadtest_ecr_repo.repository_url
   execution_role_arn   = aws_iam_role.ecs_execution_role.arn
   task_role_arn        = aws_iam_role.ecs_task_role.arn
 }
@@ -208,7 +198,7 @@ module "loadtest-apse1" {
   ecr_image_version    = var.ecr_image_version
   loadtest_bucket      = aws_s3_bucket.loadtest_bucket
   loadtest_kms_key_arn = var.default_ops_key.arn
-  ecr_repository_url   = aws_ecr_repository.loadtest_ecr_repo.repository_url
+  ecr_repository_url   = data.aws_ecr_repository.loadtest_ecr_repo.repository_url
   execution_role_arn   = aws_iam_role.ecs_execution_role.arn
   task_role_arn        = aws_iam_role.ecs_task_role.arn
 }
@@ -221,18 +211,19 @@ data "archive_file" "lambda_test_runner_archive" {
   output_path = "${path.module}/.build/test-runner.zip"
 }
 
-resource "aws_s3_bucket_object" "lambda_test_runner_deployment_package" {
+resource "aws_s3_object" "lambda_test_runner_deployment_package" {
   bucket = aws_s3_bucket.loadtest_bucket.id
 
-  key    = "lambda-deployments/test-runner/test-runner.zip"
-  source = data.archive_file.lambda_test_runner_archive.output_path
+  key         = "lambda-deployments/test-runner/test-runner.zip"
+  source      = data.archive_file.lambda_test_runner_archive.output_path
+  source_hash = data.archive_file.lambda_test_runner_archive.output_base64sha256
 }
 
 resource "aws_lambda_function" "loadtest_runner" {
   function_name = "LoadtestRunner-${var.environment}"
 
   s3_bucket   = aws_s3_bucket.loadtest_bucket.id
-  s3_key      = aws_s3_bucket_object.lambda_test_runner_deployment_package.id
+  s3_key      = aws_s3_object.lambda_test_runner_deployment_package.id
   runtime     = "python3.9"
   handler     = "run_loadtest.handler"
   memory_size = 128
@@ -335,9 +326,10 @@ data "archive_file" "lambda_results_processor_archive" {
   output_path = "${path.module}/.build/results-processor.zip"
 }
 
-resource "aws_s3_bucket_object" "lambda_results_processor_deployment_package" {
+resource "aws_s3_object" "lambda_results_processor_deployment_package" {
   bucket = aws_s3_bucket.loadtest_bucket.id
 
-  key    = "/lambda-deployments/results-processor/results-processor.zip"
-  source = data.archive_file.lambda_results_processor_archive.output_path
+  key         = "/lambda-deployments/results-processor/results-processor.zip"
+  source      = data.archive_file.lambda_results_processor_archive.output_path
+  source_hash = data.archive_file.lambda_results_processor_archive.output_base64sha256
 }

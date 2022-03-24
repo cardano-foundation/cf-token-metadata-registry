@@ -33,6 +33,7 @@ target
 .DS_Store
 .idea
 .vscode
+.flattened-pom.xml
 
 # yarn v2
 .yarn/cache

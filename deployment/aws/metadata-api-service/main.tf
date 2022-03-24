@@ -2,6 +2,13 @@ locals {
   name_prefix = "${var.project}-${var.environment}"
 }
 
+# fetch vpc information
+data "aws_vpc" "baseline_vpc" {
+  tags = {
+    Name = "cf-baseline-vpc"
+  }
+}
+
 resource "aws_kms_key" "default_ops_key" {
   description             = "This key is used to encrypt non-functional bucket objects"
   deletion_window_in_days = 10
@@ -14,14 +21,20 @@ resource "aws_kms_alias" "default_ops_key_alias" {
 
 resource "aws_s3_bucket" "log_bucket" {
   bucket = "cf-metadata-${var.environment}-logs"
-  acl    = "log-delivery-write"
+}
 
-  server_side_encryption_configuration {
-    rule {
-      apply_server_side_encryption_by_default {
-        kms_master_key_id = aws_kms_key.default_ops_key.arn
-        sse_algorithm     = "aws:kms"
-      }
+resource "aws_s3_bucket_acl" "log_bucket_acl" {
+  bucket = aws_s3_bucket.log_bucket.id
+  acl    = "log-delivery-write"
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "log_bucket_server_side_encryption_config" {
+  bucket = aws_s3_bucket.log_bucket.id
+
+  rule {
+    apply_server_side_encryption_by_default {
+      kms_master_key_id = aws_kms_key.default_ops_key.arn
+      sse_algorithm     = "aws:kms"
     }
   }
 }
@@ -35,7 +48,7 @@ resource "aws_s3_bucket_public_access_block" "log_bucket_blocking" {
   restrict_public_buckets = true
 }
 
-module "api-euw1" {
+module "api-eu1" {
   source = "./modules/api"
 
   providers = {
@@ -45,7 +58,7 @@ module "api-euw1" {
   project                     = var.project
   environment                 = var.environment
   region                      = var.service_config["eu1"].region
-  vpc_cidr                    = var.vpc_cidr
+  vpc_cidr                    = data.aws_vpc.baseline_vpc.cidr_block
   rds_instance_name           = var.rds_instance_name
   rds_port                    = var.rds_port
   rds_admin_user_name         = var.rds_admin_user_name
@@ -80,7 +93,7 @@ module "api-us1" {
   project                     = var.project
   environment                 = var.environment
   region                      = var.service_config["us1"].region
-  vpc_cidr                    = var.vpc_cidr
+  vpc_cidr                    = data.aws_vpc.baseline_vpc.cidr_block
   rds_instance_name           = var.rds_instance_name
   rds_port                    = var.rds_port
   rds_admin_user_name         = var.rds_admin_user_name
@@ -106,7 +119,7 @@ module "api-us1" {
 }
 
 module "api-ap1" {
-  count  = var.environment != "dev" ? 1 : 0
+  count  = var.environment == "prod" ? 1 : 0
   source = "./modules/api"
 
   providers = {
@@ -116,7 +129,7 @@ module "api-ap1" {
   project                     = var.project
   environment                 = var.environment
   region                      = var.service_config["ap1"].region
-  vpc_cidr                    = var.vpc_cidr
+  vpc_cidr                    = data.aws_vpc.baseline_vpc.cidr_block
   rds_instance_name           = var.rds_instance_name
   rds_port                    = var.rds_port
   rds_admin_user_name         = var.rds_admin_user_name

@@ -39,6 +39,7 @@ module "monitor-us1" {
 }
 
 module "monitor-ap1" {
+  count  = var.environment == "prod" ? 1 : 0
   source = "./monitor"
 
   providers = {

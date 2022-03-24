@@ -2,7 +2,7 @@ package org.cardanofoundation.metadatatools.api;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.extern.slf4j.Slf4j;
+import lombok.extern.log4j.Log4j2;
 import org.cardanofoundation.metadatatools.api.controller.MetadataApiDelegate;
 import org.cardanofoundation.metadatatools.api.model.BatchRequest;
 import org.cardanofoundation.metadatatools.api.model.BatchResponse;
@@ -24,7 +24,7 @@ import java.util.Map;
 import static java.util.Map.entry;
 
 @Service
-@Slf4j
+@Log4j2
 public class MetadataApiDelegateImpl implements MetadataApiDelegate {
 
     @Autowired

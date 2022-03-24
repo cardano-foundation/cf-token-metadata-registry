@@ -3,7 +3,7 @@ package org.cardanofoundation.metadatatools.api;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.*;
-import lombok.extern.slf4j.Slf4j;
+import lombok.extern.log4j.Log4j2;
 import org.cardanofoundation.metadatatools.api.model.Property;
 import org.postgresql.util.PGobject;
 
@@ -20,7 +20,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @ToString
-@Slf4j
+@Log4j2
 public class MetadataQueryResult {
     static final String DEFAULT_QUERY_STRING = "SELECT subject, properties FROM metadata";
     static final List<String> DEFAULT_PROPERTY_NAMES = Arrays.asList("name", "ticker", "url", "description", "logo", "decimals", "tools");

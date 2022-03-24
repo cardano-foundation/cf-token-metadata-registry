@@ -3,42 +3,25 @@ locals {
   iam_name_prefix = "${var.name_prefix}-${var.region}-service"
 }
 
-resource "aws_kms_key" "ecr_key" {
-  description = "This key is used to encrypt the ecr repository of the service API."
-
-  tags = {
-    Name = "${local.name_prefix}-ecr-key"
-  }
-}
-
-resource "aws_kms_alias" "ecr_key_alias" {
-  name          = "alias/${local.name_prefix}-ecr-key"
-  target_key_id = aws_kms_key.ecr_key.key_id
-}
-
-resource "aws_ecr_repository" "service_ecr_repo" {
-  name                 = "${local.name_prefix}-image-repo"
-  image_tag_mutability = "MUTABLE"
-
-  image_scanning_configuration {
-    scan_on_push = true
-  }
-
-  encryption_configuration {
-    encryption_type = "KMS"
-    kms_key         = aws_kms_key.ecr_key.arn
-  }
+data "aws_ecr_repository" "service_ecr_repo" {
+  name = "${var.project}-ecr-${var.environment}-service-image-repo"
 }
 
 resource "aws_s3_bucket" "lb_log_bucket" {
   bucket = "cf-metadata-${var.environment}-${var.region}-lb-logs"
-  acl    = "log-delivery-write"
+}
 
-  server_side_encryption_configuration {
-    rule {
-      apply_server_side_encryption_by_default {
-        sse_algorithm = "AES256"
-      }
+resource "aws_s3_bucket_acl" "lb_log_bucket_acl" {
+  bucket = aws_s3_bucket.lb_log_bucket.id
+  acl    = "log-delivery-write"
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "lb_log_bucket_server_side_encryption_config" {
+  bucket = aws_s3_bucket.lb_log_bucket.id
+
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
     }
   }
 }
@@ -259,7 +242,7 @@ resource "aws_ecs_task_definition" "api_service_task_definition" {
   container_definitions = jsonencode([
     {
       essential = true
-      image     = "${aws_ecr_repository.service_ecr_repo.repository_url}:${var.service_image_version}"
+      image     = "${data.aws_ecr_repository.service_ecr_repo.repository_url}:${var.service_image_version}"
       name      = "${local.name_prefix}-container-definition"
       logConfiguration = {
         logDriver = "awslogs"

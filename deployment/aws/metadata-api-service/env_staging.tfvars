@@ -2,7 +2,6 @@ region                      = "eu-west-1"
 environment                 = "qa"
 project                     = "cf-metadata-api"
 domain_name                 = "metadata.staging.cf-deployments.org"
-vpc_cidr                    = "10.15.0.0/16"
 aws-profile-name            = "AdministratorAccess"
 aws-account-id              = "747042292633"
 rds_instance_name           = "metadata-cf"
@@ -29,27 +28,19 @@ lb_access_logs_enabled      = true
 service_config = {
   "eu1" = {
     rds_instance_type = "db.t4g.small",
-    cpu               = 512,
-    memory            = 1024,
-    min_tasks         = 1,
+    cpu               = 1024,
+    memory            = 2048,
+    min_tasks         = 2,
     max_tasks         = 32,
     region            = "eu-west-1"
   },
   "us1" = {
     rds_instance_type = "db.t4g.small",
-    cpu               = 512,
-    memory            = 1024,
+    cpu               = 1024,
+    memory            = 2048,
     min_tasks         = 1,
-    max_tasks         = 32,
+    max_tasks         = 8,
     region            = "us-east-2"
-  },
-  "ap1" = {
-    rds_instance_type = "db.t4g.small",
-    cpu               = 512,
-    memory            = 1024,
-    min_tasks         = 1,
-    max_tasks         = 32,
-    region            = "ap-south-1"
   }
 }
 

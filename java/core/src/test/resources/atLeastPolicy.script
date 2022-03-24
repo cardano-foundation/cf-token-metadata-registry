@@ -1,0 +1,20 @@
+{
+  "type": "atLeast",
+  "required": 1,
+  "scripts":
+  [
+    {
+      "type": "before",
+      "slot": 600
+    },
+    {
+      "type": "sig",
+      "keyHash": "fb864e59bf8620349c3ebe29af5ad0f9ca2e319d39e115eb93aa58a4"
+    },
+    {
+      "type": "after",
+      "slot": 500
+    }
+  ]
+}
+

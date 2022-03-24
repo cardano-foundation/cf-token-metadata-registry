@@ -6,34 +6,112 @@
 
     <groupId>org.cardanofoundation.metadatatools</groupId>
     <artifactId>metadatatools</artifactId>
-    <version>1.0-SNAPSHOT</version>
-
+    <version>${revision}</version>
     <packaging>pom</packaging>
 
     <scm>
-      <connection>scm:git:https://github.com/cardano-foundation/cf-metadata-server</connection>
-      <url>https://github.com/cardano-foundation/cf-metadata-server</url>
+        <connection>scm:git:https://github.com/cardano-foundation/cf-metadata-server</connection>
+        <url>https://github.com/cardano-foundation/cf-metadata-server</url>
     </scm>
 
     <issueManagement>
-      <url>https://github.com/cardano-foundation/cf-metadata-server/issues</url>
-      <system>GitHub Issues</system>
+        <url>https://github.com/cardano-foundation/cf-metadata-server/issues</url>
+        <system>GitHub Issues</system>
     </issueManagement>
 
     <licenses>
-      <license>
-        <name>MIT license</name>
-        <url>http://www.opensource.org/licenses/mit-license.php</url>
-        <distribution>repo</distribution>
-      </license>
+        <license>
+            <name>MIT license</name>
+            <url>http://www.opensource.org/licenses/mit-license.php</url>
+            <distribution>repo</distribution>
+        </license>
     </licenses>
 
     <properties>
-        <java.version>17</java.version>
+        <revision>1.0.0-SNAPSHOT</revision>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <version.openapi-generator-maven-plugin>5.4.0</version.openapi-generator-maven-plugin>
+        <version.maven-compiler-plugin>3.10.0</version.maven-compiler-plugin>
+        <verison.maven-surefire-plugin>3.0.0-M5</verison.maven-surefire-plugin>
+        <verison.jacoco-maven-plugin>0.8.7</verison.jacoco-maven-plugin>
+        <version.flatten-maven-plugin>1.2.7</version.flatten-maven-plugin>
+        <version.spring-boot>2.6.3</version.spring-boot>
+        <version.lombok>1.18.22</version.lombok>
+        <version.awssdk>2.17.121</version.awssdk>
+        <version.springdoc-openapi-ui>1.6.6</version.springdoc-openapi-ui>
+        <version.swagger-annotations>2.1.13</version.swagger-annotations>
+        <version.validation-api>2.0.1.Final</version.validation-api>
+        <version.bouncycastle>1.70</version.bouncycastle>
+        <version.log4j>2.17.2</version.log4j>
     </properties>
 
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-dependencies</artifactId>
+                <type>pom</type>
+                <version>${version.spring-boot}</version>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.projectlombok</groupId>
+                <artifactId>lombok</artifactId>
+                <version>${version.lombok}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.cardanofoundation.metadatatools</groupId>
+                <artifactId>core</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.bouncycastle</groupId>
+                <artifactId>bcprov-jdk15on</artifactId>
+                <version>${version.bouncycastle}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.logging.log4j</groupId>
+                <artifactId>log4j-core</artifactId>
+                <version>${version.log4j}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>flatten-maven-plugin</artifactId>
+                <version>${version.flatten-maven-plugin}</version>
+                <configuration>
+                    <updatePomFile>true</updatePomFile>
+                    <flattenMode>resolveCiFriendliesOnly</flattenMode>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>flatten</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>flatten</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>flatten.clean</id>
+                        <phase>clean</phase>
+                        <goals>
+                            <goal>clean</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
     <modules>
+        <module>core</module>
         <module>api</module>
+        <module>metafides</module>
     </modules>
 
 </project>

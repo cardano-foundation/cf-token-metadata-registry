@@ -2,37 +2,14 @@ locals {
   name_prefix = "${var.name_prefix}-${var.region}"
 }
 
-resource "aws_kms_key" "monitoring_kms_key" {
-  description = "This key is used to encrypt the S3 bucket used for lambda deployments."
-
-  tags = {
-    Name = "${local.name_prefix}-kms-key"
-  }
-}
-
-resource "aws_kms_alias" "monitoring_kms_key_alias" {
-  name          = "alias/${local.name_prefix}-key"
-  target_key_id = aws_kms_key.monitoring_kms_key.key_id
-}
-
-resource "aws_ecr_repository" "lambda_ecr_repo" {
-  name                 = "${local.name_prefix}-image-repo"
-  image_tag_mutability = "MUTABLE"
-
-  image_scanning_configuration {
-    scan_on_push = true
-  }
-
-  encryption_configuration {
-    encryption_type = "KMS"
-    kms_key         = aws_kms_key.monitoring_kms_key.arn
-  }
+data "aws_ecr_repository" "lambda_ecr_repo" {
+  name = "${var.project}-ecr-${var.environment}-monitoring-${var.region}-image-repo"
 }
 
 resource "aws_lambda_function" "monitor" {
   function_name = "ApiMonitor-${var.environment}"
 
-  image_uri    = "${aws_ecr_repository.lambda_ecr_repo.repository_url}:latest"
+  image_uri    = "${data.aws_ecr_repository.lambda_ecr_repo.repository_url}:latest"
   memory_size  = 128
   timeout      = 45
   package_type = "Image"

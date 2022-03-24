@@ -3,7 +3,7 @@
 --changeset cf:1
 create table "metadata" (
 	"subject" varchar(255) primary key,
-	"policy" varchar(255),
+	"policy" text,
   "name" varchar(255),
   "ticker" varchar(32),
   "url" varchar(255),

@@ -9,4 +9,4 @@ if [[ -z "${ENVIRONMENT}" ]]; then
   ENVIRONMENT="dev"
 fi
 
-./push_to_ecr.sh --region ${REGION} --accountid ${AWS_ACCOUNT_ID} --dockerfolder "./loadtest-task" --reponame "cf-metadata-api-${ENVIRONMENT}-loadtest-image-repo"
+./push_to_ecr.sh --region ${REGION} --accountid ${AWS_ACCOUNT_ID} --dockerfolder "images/loadtest-task" --reponame "cf-metadata-api-ecr-${ENVIRONMENT}-loadtest-image-repo"

@@ -15,6 +15,6 @@ if [[ -z "${REGION3}" ]]; then
   REGION3="ap-southeast-1"
 fi
 
-./push_to_ecr.sh --region ${REGION1} --accountid ${AWS_ACCOUNT_ID} --dockerfolder "./monitoring-lambda" --reponame "cf-metadata-api-${ENVIRONMENT}-monitoring-${REGION1}-image-repo"
-./push_to_ecr.sh --region ${REGION2} --accountid ${AWS_ACCOUNT_ID} --dockerfolder "./monitoring-lambda" --reponame "cf-metadata-api-${ENVIRONMENT}-monitoring-${REGION2}-image-repo"
-./push_to_ecr.sh --region ${REGION3} --accountid ${AWS_ACCOUNT_ID} --dockerfolder "./monitoring-lambda" --reponame "cf-metadata-api-${ENVIRONMENT}-monitoring-${REGION3}-image-repo"
+./push_to_ecr.sh --region ${REGION1} --accountid ${AWS_ACCOUNT_ID} --dockerfolder "images/monitoring-lambda" --reponame "cf-metadata-api-ecr-${ENVIRONMENT}-monitoring-${REGION1}-image-repo"
+./push_to_ecr.sh --region ${REGION2} --accountid ${AWS_ACCOUNT_ID} --dockerfolder "images/monitoring-lambda" --reponame "cf-metadata-api-ecr-${ENVIRONMENT}-monitoring-${REGION2}-image-repo"
+./push_to_ecr.sh --region ${REGION3} --accountid ${AWS_ACCOUNT_ID} --dockerfolder "images/monitoring-lambda" --reponame "cf-metadata-api-ecr-${ENVIRONMENT}-monitoring-${REGION3}-image-repo"

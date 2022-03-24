@@ -1,6 +1,6 @@
 package org.cardanofoundation.metadatatools.api;
 
-import lombok.extern.slf4j.Slf4j;
+import lombok.extern.log4j.Log4j2;
 import org.cardanofoundation.metadatatools.api.controller.V2ApiDelegate;
 import org.cardanofoundation.metadatatools.api.model.FilterOperand;
 import org.cardanofoundation.metadatatools.api.model.Property;
@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
@@ -21,7 +22,7 @@ import java.util.*;
 import static java.util.Map.entry;
 
 @Service
-@Slf4j
+@Log4j2
 public class V2ApiDelegateImpl implements V2ApiDelegate {
 
     private static final int DEFAULT_PAGE_SIZE = 20;
@@ -60,15 +61,19 @@ public class V2ApiDelegateImpl implements V2ApiDelegate {
     );
 
     @Autowired
-    private NamedParameterJdbcTemplate jdbcTemplate;
+    private NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
-    @Override
-    public ResponseEntity<Property> deleteSubjectV2(String subject, String signature, String vkey) {
-        return V2ApiDelegate.super.deleteSubjectV2(subject, signature, vkey);
-    }
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
 
     @Override
     public ResponseEntity<Void> getHealthV2() {
+        try {
+            jdbcTemplate.execute("SELECT 1");
+        } catch (final DataAccessException e) {
+            log.error("Database connection is unhealthy", e);
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
@@ -76,7 +81,7 @@ public class V2ApiDelegateImpl implements V2ApiDelegate {
     public ResponseEntity<Property> getSubjectV2(String subject, String fields) {
         try {
             final SqlParameterSource params = new MapSqlParameterSource(Map.ofEntries(entry("subject", subject)));
-            final List<MetadataQueryResult> queryResults = jdbcTemplate.query(String.format("%s WHERE subject = :subject", MetadataQueryResult.DEFAULT_QUERY_STRING), params, (rs, rowNum) -> MetadataQueryResult.fromSubjectAndPropertiesResultSet(rs));
+            final List<MetadataQueryResult> queryResults = namedParameterJdbcTemplate.query(String.format("%s WHERE subject = :subject", MetadataQueryResult.DEFAULT_QUERY_STRING), params, (rs, rowNum) -> MetadataQueryResult.fromSubjectAndPropertiesResultSet(rs));
             if (queryResults.isEmpty()) {
                 return new ResponseEntity<>(HttpStatus.NOT_FOUND);
             } else if (queryResults.size() > 1) {
@@ -126,8 +131,8 @@ public class V2ApiDelegateImpl implements V2ApiDelegate {
 
             return (VALID_SORTING_CRITERIA_NAMES.contains(sortCriteria))
                     ? ((sortCriteria.equals("subject"))
-                        ? String.format("%s %s", columnNameFromCriteriaName(sortCriteria), direction)
-                        : String.format("%s %s, subject ASC", columnNameFromCriteriaName(sortCriteria), direction))
+                    ? String.format("%s %s", columnNameFromCriteriaName(sortCriteria), direction)
+                    : String.format("%s %s, subject ASC", columnNameFromCriteriaName(sortCriteria), direction))
                     : DEFAULT_ORDER_CLAUSE;
         }
     }
@@ -151,7 +156,7 @@ public class V2ApiDelegateImpl implements V2ApiDelegate {
         if (pivotId != null) {
             try {
                 final SqlParameterSource params = new MapSqlParameterSource(Map.ofEntries(entry("pivotid", pivotId)));
-                final List<MetadataQueryResult> pivotElements = jdbcTemplate.query("SELECT * FROM metadata WHERE subject = :pivotid", params, (rs, rowNum) -> MetadataQueryResult.fromSqlResultSet(rs));
+                final List<MetadataQueryResult> pivotElements = namedParameterJdbcTemplate.query("SELECT * FROM metadata WHERE subject = :pivotid", params, (rs, rowNum) -> MetadataQueryResult.fromSqlResultSet(rs));
                 if (!pivotElements.isEmpty()) {
                     final String orderCriteriaNormalized;
                     final String orderDirectionOperator;
@@ -264,7 +269,7 @@ public class V2ApiDelegateImpl implements V2ApiDelegate {
                     name, nameOp, ticker, tickerOp, description, descriptionOp, url, urlOp, policy, policyOp, updated,
                     updatedOp, updatedBy, updatedbyOp, decimals, decimalsOp, q, afterId, sortBy, sqlParamsSource);
             final SqlParameterSource params = new MapSqlParameterSource(sqlParamsSource);
-            final List<MetadataQueryResult> queryResults = jdbcTemplate.query(String.format("SELECT * FROM metadata %s ORDER BY %s LIMIT %d", filterClause, orderByClause, pageSize), params, (rs, rowNum) -> MetadataQueryResult.fromSubjectAndPropertiesResultSet(rs));
+            final List<MetadataQueryResult> queryResults = namedParameterJdbcTemplate.query(String.format("SELECT * FROM metadata %s ORDER BY %s LIMIT %d", filterClause, orderByClause, pageSize), params, (rs, rowNum) -> MetadataQueryResult.fromSubjectAndPropertiesResultSet(rs));
             if (queryResults.isEmpty()) {
                 return new ResponseEntity<>(HttpStatus.NO_CONTENT);
             } else {
@@ -294,11 +299,45 @@ public class V2ApiDelegateImpl implements V2ApiDelegate {
 
     @Override
     public ResponseEntity<Property> postSubjectV2(String subject, Property property) {
+        // 1. verfiy data
+        // 2. submit as PR to Github or where-ever
         return V2ApiDelegate.super.postSubjectV2(subject, property);
     }
 
+    private boolean propertyHasRequiredFields(final Property property) {
+        return true;
+    }
     @Override
     public ResponseEntity<Void> verifySubjectV2(String subject, Property property) {
+        // apply validation rules
+
+        // 0. subject must match subject in property
+        if (!property.getSubject().equals(subject)) {
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
+
+        // 1. first bytes of subject should match the policyId (if any)
+        if (property.getPolicy() != null && !property.getSubject().startsWith(property.getPolicy())) {
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
+
+        // 2. ticker name is not too long
+        if (property.getTicker() != null) {
+            //if (if (property.getTicker().getValue().isEmpty()) || property.getTicker().getValue().isEmpty())
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
+        // 3. name is not too long
+        // 4. description is not too long
+        // 5. logo size is not too big
+        // 6. decimals is a sane value (>= 0 < X)
+        // 7. url makes sense
+        // 8. validate given signatures
         return V2ApiDelegate.super.verifySubjectV2(subject, property);
+    }
+
+    @Override
+    public ResponseEntity<Property> deleteSubjectV2(String subject, String signature, String vkey) {
+        // 1. verify signature (which is sig(subject | "VOID")) with given vkey
+        return V2ApiDelegate.super.deleteSubjectV2(subject, signature, vkey);
     }
 }

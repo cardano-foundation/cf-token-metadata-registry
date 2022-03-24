@@ -9,4 +9,4 @@ if [[ -z "${ENVIRONMENT}" ]]; then
   ENVIRONMENT="dev"
 fi
 
-./push_to_ecr.sh --region ${REGION} --accountid ${AWS_ACCOUNT_ID} --dockerfolder "gitsync-task/" --reponame "cf-metadata-api-${ENVIRONMENT}-gitsync-image-repo"
+./push_to_ecr.sh --region ${REGION} --accountid ${AWS_ACCOUNT_ID} --dockerfolder "images/gitsync-task/" --reponame "cf-metadata-api-ecr-${ENVIRONMENT}-gitsync-image-repo"

@@ -1,6 +1,6 @@
 package org.cardanofoundation.metadatatools.api;
 
-import lombok.extern.slf4j.Slf4j;
+import lombok.extern.log4j.Log4j2;
 import org.springframework.boot.jdbc.DataSourceBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -12,7 +12,7 @@ import software.amazon.awssdk.services.ssm.model.SsmException;
 
 import javax.sql.DataSource;
 
-@Slf4j
+@Log4j2
 @Configuration
 public class DatasourceConfig {
     private enum DatabaseConnectionParametersProviderType {

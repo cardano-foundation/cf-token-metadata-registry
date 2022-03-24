@@ -41,7 +41,7 @@ done
 
 set -- "${POSITIONAL_ARGS[@]}" # restore positional parameters
 
-BASTION_INSTANCE_ID="$(AWS_REGION=${REGION} aws ec2 describe-instances | jq .Reservations[].Instances | jq -r -c 'map(select(.Tags[].Value | contains("'${ENVIRONMENT}'-bastionhost"))) | .[].InstanceId')"
+BASTION_INSTANCE_ID="$(AWS_REGION=${REGION} aws ec2 describe-instances | jq .Reservations[].Instances | jq -r -c 'map(select(.Tags[].Value | contains("cf-metadata-api-'${ENVIRONMENT}'-bastionhost"))) | .[].InstanceId')"
 RDS_INSTANCE_ID_ADDRESS="$(AWS_REGION=${REGION} aws rds describe-db-instances | jq .DBInstances | jq -c 'map(select(.DBInstanceIdentifier | contains("metadata-cf-'${ENVIRONMENT}'")))' | jq .[0].Endpoint | jq -r .Address)"
 RDS_INSTANCE_ID_PORT="$(AWS_REGION=${REGION} aws rds describe-db-instances | jq .DBInstances | jq -c 'map(select(.DBInstanceIdentifier | contains("metadata-cf-'${ENVIRONMENT}'")))' | jq .[0].Endpoint | jq -r .Port)"
 AWS_REGION=${REGION} ssh -i ${BASTION_KEYS_PATH} ec2-user@${BASTION_INSTANCE_ID} -L ${LOCAL_PORT}:${RDS_INSTANCE_ID_ADDRESS}:${RDS_INSTANCE_ID_PORT}
