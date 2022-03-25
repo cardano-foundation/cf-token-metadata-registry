@@ -34,3 +34,7 @@ variable "target_connect_timeout" {
 variable "metric_region" {
   description = "The region the gathered cloudwatch metrics shall be published to."
 }
+
+variable "ops_bucket" {
+  description = "The S3 bucket used for deployments or other non functional tasks like logging."
+}

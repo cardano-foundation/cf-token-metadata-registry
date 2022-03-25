@@ -26,7 +26,7 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "loadtest_bucket_s
 resource "aws_s3_bucket_logging" "loadtest_bucket_logging" {
   bucket = aws_s3_bucket.loadtest_bucket.id
 
-  target_bucket = var.log_bucket.id
+  target_bucket = var.ops_bucket.id
   target_prefix = "log/"
 }
 

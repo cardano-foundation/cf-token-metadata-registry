@@ -18,6 +18,7 @@ module "monitor-eu1" {
   target_subject         = var.config["eu1"].target_subject
   target_connect_timeout = var.config["eu1"].target_connect_timeout
   metric_region          = var.metric_region
+  ops_bucket             = var.ops_bucket
 }
 
 module "monitor-us1" {
@@ -36,6 +37,7 @@ module "monitor-us1" {
   target_subject         = var.config["us1"].target_subject
   target_connect_timeout = var.config["us1"].target_connect_timeout
   metric_region          = var.metric_region
+  ops_bucket             = var.ops_bucket
 }
 
 module "monitor-ap1" {
@@ -55,5 +57,6 @@ module "monitor-ap1" {
   target_subject         = var.config["ap1"].target_subject
   target_connect_timeout = var.config["ap1"].target_connect_timeout
   metric_region          = var.metric_region
+  ops_bucket             = var.ops_bucket
 }
 

@@ -1,5 +1,5 @@
 locals {
-  name_prefix = "${var.name_prefix}-${var.region}"
+  name_prefix                                  = "${var.name_prefix}-${var.region}"
 }
 
 data "aws_ecr_repository" "lambda_ecr_repo" {

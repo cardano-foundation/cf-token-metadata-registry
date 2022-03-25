@@ -37,6 +37,6 @@ variable "default_ops_key" {
   description = "The default KMS key used for non functional tasks like loadtests."
 }
 
-variable "log_bucket" {
+variable "ops_bucket" {
   description = "The bucket used for logging of S3 events."
 }

@@ -2,7 +2,6 @@ locals {
   name_prefix = "${var.project}-${var.environment}"
 }
 
-# fetch vpc information
 data "aws_vpc" "baseline_vpc" {
   tags = {
     Name = "cf-baseline-vpc"
@@ -19,17 +18,17 @@ resource "aws_kms_alias" "default_ops_key_alias" {
   target_key_id = aws_kms_key.default_ops_key.key_id
 }
 
-resource "aws_s3_bucket" "log_bucket" {
-  bucket = "cf-metadata-${var.environment}-logs"
+resource "aws_s3_bucket" "ops_bucket" {
+  bucket = "cf-metadata-${var.environment}-ops"
 }
 
-resource "aws_s3_bucket_acl" "log_bucket_acl" {
-  bucket = aws_s3_bucket.log_bucket.id
-  acl    = "log-delivery-write"
+resource "aws_s3_bucket_acl" "ops_bucket_acl" {
+  bucket = aws_s3_bucket.ops_bucket.id
+  acl    = "private"
 }
 
-resource "aws_s3_bucket_server_side_encryption_configuration" "log_bucket_server_side_encryption_config" {
-  bucket = aws_s3_bucket.log_bucket.id
+resource "aws_s3_bucket_server_side_encryption_configuration" "ops_bucket_server_side_encryption_config" {
+  bucket = aws_s3_bucket.ops_bucket.id
 
   rule {
     apply_server_side_encryption_by_default {
@@ -39,8 +38,8 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "log_bucket_server
   }
 }
 
-resource "aws_s3_bucket_public_access_block" "log_bucket_blocking" {
-  bucket = aws_s3_bucket.log_bucket.id
+resource "aws_s3_bucket_public_access_block" "ops_bucket_blocking" {
+  bucket = aws_s3_bucket.ops_bucket.id
 
   block_public_acls       = true
   block_public_policy     = true
@@ -172,7 +171,7 @@ module "loadtest" {
   ecr_image_version      = var.loadtest_image_version
   loadtest_region_config = var.loadtest_region_config
   default_ops_key        = aws_kms_key.default_ops_key
-  log_bucket             = aws_s3_bucket.log_bucket
+  ops_bucket             = aws_s3_bucket.ops_bucket
 }
 
 module "monitoring" {
@@ -190,4 +189,5 @@ module "monitoring" {
   config        = var.monitoring_config
   name_prefix   = local.name_prefix
   metric_region = var.region
+  ops_bucket    = aws_s3_bucket.ops_bucket
 }
