@@ -1,14 +1,9 @@
 package org.cardanofoundation.metadatatools.api;
 
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-import lombok.ToString;
+import lombok.*;
 
-@Getter
-@Setter
+@Data
 @NoArgsConstructor
-@ToString
 public class DatabaseConnectionParameters {
     private String username;
     private String password;

@@ -359,6 +359,52 @@ paths:
                 $ref: '#/components/schemas/SubjectsResponse'
         204:
           description: "If no metadata has been found that matches the given filter criteria."
+  /v2/forensics/wallet/{addresshash}:
+    get:
+      summary: "Check if there are any scam or other fraud incidents related to this SHA-256 wallet address hash."
+      tags:
+        - v2 queries
+      operationId: "v2_forensics_wallet"
+      parameters:
+        - name: addresshash
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: "Detailed information about fraud incidents."
+          content:
+            application/json;charset=utf-8:
+              schema:
+                $ref: '#/components/schemas/WalletTrustCheckResponse'
+        204:
+          description: "If there are no fraud incidents related to this address hash."
+        500:
+          description: 'If anything internal went wrong.'
+  /v2/forensics/wallet:
+    post:
+      summary: "Check if there are any scam or other fraud incidents related to the given SHA-256 wallet address hashes."
+      tags:
+        - v2 queries
+      operationId: "v2_forensics_wallets"
+      requestBody:
+        content:
+          application/json;charset=utf-8:
+            schema:
+              $ref: '#/components/schemas/WalletHashes'
+        required: true
+      responses:
+        200:
+          description: "Detailed information about fraud incidents related to the given address hashes."
+          content:
+            application/json;charset=utf-8:
+              schema:
+                $ref: '#/components/schemas/WalletTrustCheckResponse'
+        204:
+          description: "If there are no fraud incidents related to the given address hashes."
+        500:
+          description: 'If anything internal went wrong.'
 components:
   schemas:
     FilterOperand:
@@ -541,6 +587,43 @@ components:
           type: array
           items:
             type: string
+    WalletHashes:
+      required:
+        - addressHashes
+      type: object
+      properties:
+        addressHashes:
+          type: array
+          items:
+            type: string
+    WalletTrustCheckResponse:
+      type: object
+      required:
+        - incidents
+      properties:
+        incidents:
+          type: array
+          items:
+            $ref: '#/components/schemas/WalletFraudIncident'
+    WalletFraudIncident:
+      type: object
+      required:
+        - addressHash
+        - incidentId
+        - scamSiteDomain
+        - reportedDate
+      properties:
+        addressHash:
+          type: string
+          example: "b377d03a568dde663534e040fc32a57323ec00970df0e863eba3f098717569640a"
+        incidentId:
+          type: integer
+        scamSiteDomain:
+          type: string
+          example: "adagain.com"
+        reportedDate:
+          type: string
+          format: date
     Property:
       type: object
       required:

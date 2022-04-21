@@ -36,13 +36,16 @@
         <verison.jacoco-maven-plugin>0.8.7</verison.jacoco-maven-plugin>
         <version.flatten-maven-plugin>1.2.7</version.flatten-maven-plugin>
         <version.spring-boot>2.6.3</version.spring-boot>
+        <version.spring-data-r2dbc>1.4.3</version.spring-data-r2dbc>
         <version.lombok>1.18.22</version.lombok>
-        <version.awssdk>2.17.121</version.awssdk>
+        <version.awssdk>2.17.155</version.awssdk>
         <version.springdoc-openapi-ui>1.6.6</version.springdoc-openapi-ui>
         <version.swagger-annotations>2.1.13</version.swagger-annotations>
         <version.validation-api>2.0.1.Final</version.validation-api>
         <version.bouncycastle>1.70</version.bouncycastle>
         <version.log4j>2.17.2</version.log4j>
+        <version.nimbusds>9.21</version.nimbusds>
+        <version.r2dbc-postgresql>0.8.12.RELEASE</version.r2dbc-postgresql>
     </properties>
 
     <dependencyManagement>
@@ -53,6 +56,21 @@
                 <type>pom</type>
                 <version>${version.spring-boot}</version>
                 <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework.data</groupId>
+                <artifactId>spring-data-r2dbc</artifactId>
+                <version>${version.spring-data-r2dbc}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springdoc</groupId>
+                <artifactId>springdoc-openapi-webflux-ui</artifactId>
+                <version>${version.springdoc-openapi-ui}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springdoc</groupId>
+                <artifactId>springdoc-openapi-ui</artifactId>
+                <version>${version.springdoc-openapi-ui}</version>
             </dependency>
             <dependency>
                 <groupId>org.projectlombok</groupId>
@@ -74,6 +92,26 @@
                 <groupId>org.apache.logging.log4j</groupId>
                 <artifactId>log4j-core</artifactId>
                 <version>${version.log4j}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.nimbusds</groupId>
+                <artifactId>nimbus-jose-jwt</artifactId>
+                <version>${version.nimbusds}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.r2dbc</groupId>
+                <artifactId>r2dbc-postgresql</artifactId>
+                <version>${version.r2dbc-postgresql}</version>
+            </dependency>
+            <dependency>
+                <groupId>software.amazon.awssdk</groupId>
+                <artifactId>ssm</artifactId>
+                <version>${version.awssdk}</version>
+            </dependency>
+            <dependency>
+                <groupId>software.amazon.awssdk</groupId>
+                <artifactId>regions</artifactId>
+                <version>${version.awssdk}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -109,6 +147,7 @@
     </build>
 
     <modules>
+        <module>spec</module>
         <module>core</module>
         <module>api</module>
         <module>metafides</module>
