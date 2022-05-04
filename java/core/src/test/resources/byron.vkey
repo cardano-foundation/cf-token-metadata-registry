@@ -1,5 +1,0 @@
-{
-    "type": "PaymentVerificationKeyByron_ed25519_bip32",
-    "description": "Payment Verification Key",
-    "cborHex": "5840b5940fab6a21381e432698c60ae280df315731acf8db2576b42c3cf1eb58dac447400a247b4eafe920057ede331de9ec578cf6511e59bab66db0bb856df25b01"
-}

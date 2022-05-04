@@ -1,3 +1,0 @@
-SQLAlchemy==1.4.31
-psycopg2-binary==2.9.3
-boto3==1.20.46

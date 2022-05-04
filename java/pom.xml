@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>org.cardanofoundation.metadatatools</groupId>
-    <artifactId>metadatatools</artifactId>
+    <artifactId>api-base</artifactId>
     <version>${revision}</version>
     <packaging>pom</packaging>
 
@@ -30,6 +30,7 @@
     <properties>
         <revision>1.0.0-SNAPSHOT</revision>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <version.cf-metadatatools-core>1.0.0-SNAPSHOT</version.cf-metadatatools-core>
         <version.openapi-generator-maven-plugin>5.4.0</version.openapi-generator-maven-plugin>
         <version.maven-compiler-plugin>3.10.0</version.maven-compiler-plugin>
         <verison.maven-surefire-plugin>3.0.0-M5</verison.maven-surefire-plugin>
@@ -58,16 +59,6 @@
                 <scope>import</scope>
             </dependency>
             <dependency>
-                <groupId>org.springframework.data</groupId>
-                <artifactId>spring-data-r2dbc</artifactId>
-                <version>${version.spring-data-r2dbc}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.springdoc</groupId>
-                <artifactId>springdoc-openapi-webflux-ui</artifactId>
-                <version>${version.springdoc-openapi-ui}</version>
-            </dependency>
-            <dependency>
                 <groupId>org.springdoc</groupId>
                 <artifactId>springdoc-openapi-ui</artifactId>
                 <version>${version.springdoc-openapi-ui}</version>
@@ -81,7 +72,7 @@
             <dependency>
                 <groupId>org.cardanofoundation.metadatatools</groupId>
                 <artifactId>core</artifactId>
-                <version>${project.version}</version>
+                <version>${version.cf-metadatatools-core}</version>
             </dependency>
             <dependency>
                 <groupId>org.bouncycastle</groupId>
@@ -113,8 +104,26 @@
                 <artifactId>regions</artifactId>
                 <version>${version.awssdk}</version>
             </dependency>
+            <dependency>
+                <groupId>io.swagger.core.v3</groupId>
+                <artifactId>swagger-annotations</artifactId>
+                <version>${version.swagger-annotations}</version>
+            </dependency>
+            <dependency>
+                <groupId>javax.validation</groupId>
+                <artifactId>validation-api</artifactId>
+                <version>${version.validation-api}</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
+
+    <distributionManagement>
+        <repository>
+            <id>github</id>
+            <name>cardano-foundation</name>
+            <url>https://maven.pkg.github.com/cardano-foundation/cf-metadata-server</url>
+        </repository>
+    </distributionManagement>
 
     <build>
         <plugins>
@@ -147,10 +156,7 @@
     </build>
 
     <modules>
-        <module>spec</module>
-        <module>core</module>
         <module>api</module>
-        <module>metafides</module>
     </modules>
 
 </project>
