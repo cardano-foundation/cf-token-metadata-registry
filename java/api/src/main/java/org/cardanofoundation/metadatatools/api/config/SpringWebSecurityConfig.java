@@ -13,6 +13,7 @@ public class SpringWebSecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(final HttpSecurity http) throws Exception {
         http
+                .csrf((csrf) -> csrf.disable())
                 .authorizeHttpRequests((matcherRegistry) -> matcherRegistry
                         .anyRequest().permitAll())
                 .headers((headers) -> headers

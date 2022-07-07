@@ -1,10 +1,11 @@
 package org.cardanofoundation.metadatatools.api.model.data;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.*;
 import lombok.extern.log4j.Log4j2;
-import org.cardanofoundation.metadatatools.api.model.rest.Property;
+import org.cardanofoundation.metadatatools.api.model.rest.TokenMetadata;
 import org.postgresql.util.PGobject;
 
 import javax.validation.constraints.NotNull;
@@ -14,13 +15,14 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import java.util.function.Consumer;
 
+@Log4j2
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Data
-@Log4j2
 public class MetadataQueryResult {
-    public static final String DEFAULT_QUERY_STRING = "SELECT subject, properties FROM metadata";
+    public static final String DEFAULT_QUERY_STRING = "SELECT subject, properties, updated, updated_by FROM metadata";
     public static final List<String> DEFAULT_PROPERTY_NAMES = Arrays.asList("name", "ticker", "url", "description", "logo", "decimals", "tools");
     static final ObjectMapper VALUE_MAPPER = new ObjectMapper();
 
@@ -36,31 +38,34 @@ public class MetadataQueryResult {
     private String updatedBy;
     private String properties;
 
-    public final Property toProperty() {
-        return this.toProperty(new ArrayList<>());
+    public final TokenMetadata toTokenMetadata() {
+        return this.toTokenMetadata(new ArrayList<>());
     }
 
-    public final Property toProperty(@NotNull final List<String> fieldsToExclude) {
+    public final TokenMetadata toTokenMetadata(@NotNull final List<String> fieldsToExclude) {
         if (this.properties != null) {
             try {
-                final Property property = VALUE_MAPPER.readValue(this.properties, Property.class);
+                final JsonNode node = VALUE_MAPPER.readTree(this.properties);
+                node.fieldNames().forEachRemaining(log::info);
+                final TokenMetadata tokenMetadata = VALUE_MAPPER.readValue(this.properties, TokenMetadata.class);
                 for (final String fieldName : fieldsToExclude) {
                     switch (fieldName) {
-                        case "name" -> property.setName(null);
-                        case "ticker" -> property.setTicker(null);
-                        case "url" -> property.setUrl(null);
-                        case "description" -> property.setDescription(null);
-                        case "decimals" -> property.setDecimals(null);
-                        case "logo" -> property.setLogo(null);
+                        case "name" -> tokenMetadata.setName(null);
+                        case "ticker" -> tokenMetadata.setTicker(null);
+                        case "url" -> tokenMetadata.setUrl(null);
+                        case "description" -> tokenMetadata.setDescription(null);
+                        case "decimals" -> tokenMetadata.setDecimals(null);
+                        case "logo" -> tokenMetadata.setLogo(null);
+                        default -> tokenMetadata.removeProperty(fieldName);
                     }
                 }
                 if (!fieldsToExclude.contains("updated")) {
-                    property.setUpdated(this.updated);
+                    tokenMetadata.setUpdated(this.updated);
                 }
                 if (!fieldsToExclude.contains("updatedBy")) {
-                    property.setUpdatedBy(this.updatedBy);
+                    tokenMetadata.setUpdatedBy(this.updatedBy);
                 }
-                return property;
+                return tokenMetadata;
             } catch (final JsonProcessingException e) {
                 throw new IllegalStateException(String.format("Properties object of record related to subject %s is invalid.", this.subject), e);
             }
@@ -79,6 +84,8 @@ public class MetadataQueryResult {
         final MetadataQueryResult queryResult = new MetadataQueryResult();
         queryResult.setSubject(getColumnValue(resultSet, "subject", null, String.class));
         queryResult.setProperties(getColumnValue(resultSet, "properties", null, PGobject.class).getValue());
+        queryResult.setUpdated(getColumnValue(resultSet, "updated", null, Date.class));
+        queryResult.setUpdatedBy(getColumnValue(resultSet, "updated_by", null, String.class));
         return queryResult;
     }
 

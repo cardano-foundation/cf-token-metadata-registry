@@ -8,7 +8,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.cardanofoundation.metadatatools.api.model.rest.BatchRequest;
 import org.cardanofoundation.metadatatools.api.model.rest.BatchResponse;
-import org.cardanofoundation.metadatatools.api.model.rest.Property;
+import org.cardanofoundation.metadatatools.api.model.rest.TokenMetadata;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -21,11 +21,6 @@ import javax.validation.Valid;
 @Validated
 @Tag(name = "v1-api", description = "The Cardano offchain metadata API")
 public interface MetadataApi {
-
-    default MetadataApiDelegate getDelegate() {
-        return new MetadataApiDelegate() {};
-    }
-
     /**
      * GET /metadata/{subject} : Query all properties of a single subject.
      *
@@ -37,7 +32,7 @@ public interface MetadataApi {
         operationId = "getAllPropertiesForSubject",
         summary = "Query all properties of the single subject specified by the given subject id.",
         responses = {
-            @ApiResponse(responseCode = "200", description = "", content = @Content(mediaType = "application/json", schema = @Schema(implementation =  Property.class))),
+            @ApiResponse(responseCode = "200", description = "", content = @Content(mediaType = "application/json", schema = @Schema(implementation =  TokenMetadata.class))),
             @ApiResponse(responseCode = "404", description = "`subject` not found")
         }
     )
@@ -46,12 +41,9 @@ public interface MetadataApi {
         value = "/metadata/{subject}",
         produces = { "application/json;charset=utf-8" }
     )
-    default ResponseEntity<Property> getAllPropertiesForSubject(
+    ResponseEntity<TokenMetadata> getAllPropertiesForSubject(
         @Parameter(name = "subject", description = "", required = true, schema = @Schema(description = "")) @PathVariable("subject") final String subject
-    ) {
-        return getDelegate().getAllPropertiesForSubject(subject);
-    }
-
+    );
 
     /**
      * GET /metadata/{subject}/properties/{properties} : Query a single property of a single subject
@@ -65,7 +57,7 @@ public interface MetadataApi {
         operationId = "getPropertyForSubject",
         summary = "Query a specific property of a single subject specified by the given subject id.",
         responses = {
-            @ApiResponse(responseCode = "200", description = "", content = @Content(mediaType = "application/json", schema = @Schema(implementation =  Property.class))),
+            @ApiResponse(responseCode = "200", description = "", content = @Content(mediaType = "application/json", schema = @Schema(implementation =  TokenMetadata.class))),
             @ApiResponse(responseCode = "404", description = "`subject` or `properties` not found")
         }
     )
@@ -74,12 +66,10 @@ public interface MetadataApi {
         value = "/metadata/{subject}/properties/{properties}",
         produces = { "application/json;charset=utf-8" }
     )
-    default ResponseEntity<Property> getPropertyForSubject(
+    ResponseEntity<TokenMetadata> getPropertyForSubject(
         @Parameter(name = "subject", description = "", required = true, schema = @Schema(description = "")) @PathVariable("subject") final String subject,
         @Parameter(name = "properties", description = "", required = true, schema = @Schema(description = "")) @PathVariable("properties") final String properties
-    ) {
-        return getDelegate().getPropertyForSubject(subject, properties);
-    }
+    );
 
 
     /**
@@ -103,9 +93,7 @@ public interface MetadataApi {
         produces = { "application/json;charset=utf-8" },
         consumes = { "application/json;charset=utf-8" }
     )
-    default ResponseEntity<BatchResponse> getSubjects(
+    ResponseEntity<BatchResponse> getSubjects(
         @Parameter(name = "body", description = "", required = true, schema = @Schema(description = "")) @Valid @RequestBody final BatchRequest body
-    ) {
-        return getDelegate().getSubjects(body);
-    }
+    );
 }

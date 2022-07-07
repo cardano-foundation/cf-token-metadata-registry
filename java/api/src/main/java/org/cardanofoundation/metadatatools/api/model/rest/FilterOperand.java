@@ -20,25 +20,25 @@ public enum FilterOperand {
   
   GTE("gte");
 
-  private String value;
+  private final String value;
 
-  FilterOperand(String value) {
+  FilterOperand(final String value) {
     this.value = value;
   }
 
   @JsonValue
-  public String getValue() {
+  public final String getValue() {
     return value;
   }
 
   @Override
-  public String toString() {
+  public final String toString() {
     return String.valueOf(value);
   }
 
   @JsonCreator
-  public static FilterOperand fromValue(String value) {
-    for (FilterOperand b : FilterOperand.values()) {
+  public static FilterOperand fromValue(final String value) {
+    for (final FilterOperand b : FilterOperand.values()) {
       if (b.value.equals(value)) {
         return b;
       }
@@ -46,4 +46,3 @@ public enum FilterOperand {
     throw new IllegalArgumentException("Unexpected value '" + value + "'");
   }
 }
-

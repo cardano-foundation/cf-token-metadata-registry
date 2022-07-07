@@ -3,9 +3,6 @@ package org.cardanofoundation.metadatatools.api.model.rest;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 
-/**
- * Defines the direction of pivoting
- */
 public enum PivotDirection {
 
   BEFORE("before"),
@@ -19,18 +16,18 @@ public enum PivotDirection {
   }
 
   @JsonValue
-  public String getValue() {
+  public final String getValue() {
     return value;
   }
 
   @Override
-  public String toString() {
+  public final String toString() {
     return String.valueOf(value);
   }
 
   @JsonCreator
-  public static PivotDirection fromValue(String value) {
-    for (PivotDirection b : PivotDirection.values()) {
+  public static PivotDirection fromValue(final String value) {
+    for (final PivotDirection b : PivotDirection.values()) {
       if (b.value.equals(value)) {
         return b;
       }
@@ -38,4 +35,3 @@ public enum PivotDirection {
     throw new IllegalArgumentException("Unexpected value '" + value + "'");
   }
 }
-
