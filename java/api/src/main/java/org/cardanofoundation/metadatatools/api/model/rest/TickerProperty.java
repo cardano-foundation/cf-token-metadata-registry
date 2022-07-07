@@ -1,4 +1,4 @@
-package org.cardanofoundation.metadatatools.api.model;
+package org.cardanofoundation.metadatatools.api.model.rest;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -13,9 +13,9 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * NameProperty
+ * TickerProperty
  */
-public class NameProperty   {
+public class TickerProperty   {
 
   @JsonProperty("signatures")
   @Valid
@@ -27,12 +27,12 @@ public class NameProperty   {
   @JsonProperty("value")
   private String value;
 
-  public NameProperty signatures(List<AnnotatedSignature> signatures) {
+  public TickerProperty signatures(List<AnnotatedSignature> signatures) {
     this.signatures = signatures;
     return this;
   }
 
-  public NameProperty addSignaturesItem(AnnotatedSignature signaturesItem) {
+  public TickerProperty addSignaturesItem(AnnotatedSignature signaturesItem) {
     if (this.signatures == null) {
       this.signatures = new ArrayList<>();
     }
@@ -54,7 +54,7 @@ public class NameProperty   {
     this.signatures = signatures;
   }
 
-  public NameProperty sequenceNumber(BigDecimal sequenceNumber) {
+  public TickerProperty sequenceNumber(BigDecimal sequenceNumber) {
     this.sequenceNumber = sequenceNumber;
     return this;
   }
@@ -74,7 +74,7 @@ public class NameProperty   {
     this.sequenceNumber = sequenceNumber;
   }
 
-  public NameProperty value(String value) {
+  public TickerProperty value(String value) {
     this.value = value;
     return this;
   }
@@ -83,8 +83,8 @@ public class NameProperty   {
    * Get value
    * @return value
   */
-  @NotNull @Size(min = 1, max = 50) 
-  @Schema(name = "value", required = true)
+  @NotNull @Size(min = 2, max = 5) 
+  @Schema(name = "value", example = "QUID", required = true)
   public String getValue() {
     return value;
   }
@@ -101,10 +101,10 @@ public class NameProperty   {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    NameProperty nameProperty = (NameProperty) o;
-    return Objects.equals(this.signatures, nameProperty.signatures) &&
-        Objects.equals(this.sequenceNumber, nameProperty.sequenceNumber) &&
-        Objects.equals(this.value, nameProperty.value);
+    TickerProperty tickerProperty = (TickerProperty) o;
+    return Objects.equals(this.signatures, tickerProperty.signatures) &&
+        Objects.equals(this.sequenceNumber, tickerProperty.sequenceNumber) &&
+        Objects.equals(this.value, tickerProperty.value);
   }
 
   @Override
@@ -115,7 +115,7 @@ public class NameProperty   {
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
-    sb.append("class NameProperty {\n");
+    sb.append("class TickerProperty {\n");
     sb.append("    signatures: ").append(toIndentedString(signatures)).append("\n");
     sb.append("    sequenceNumber: ").append(toIndentedString(sequenceNumber)).append("\n");
     sb.append("    value: ").append(toIndentedString(value)).append("\n");

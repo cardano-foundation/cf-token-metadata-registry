@@ -6,9 +6,9 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.cardanofoundation.metadatatools.api.model.BatchRequest;
-import org.cardanofoundation.metadatatools.api.model.BatchResponse;
-import org.cardanofoundation.metadatatools.api.model.Property;
+import org.cardanofoundation.metadatatools.api.model.rest.BatchRequest;
+import org.cardanofoundation.metadatatools.api.model.rest.BatchResponse;
+import org.cardanofoundation.metadatatools.api.model.rest.Property;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -36,7 +36,6 @@ public interface MetadataApi {
     @Operation(
         operationId = "getAllPropertiesForSubject",
         summary = "Query all properties of the single subject specified by the given subject id.",
-        tags = { "v1 queries" },
         responses = {
             @ApiResponse(responseCode = "200", description = "", content = @Content(mediaType = "application/json", schema = @Schema(implementation =  Property.class))),
             @ApiResponse(responseCode = "404", description = "`subject` not found")
@@ -65,7 +64,6 @@ public interface MetadataApi {
     @Operation(
         operationId = "getPropertyForSubject",
         summary = "Query a specific property of a single subject specified by the given subject id.",
-        tags = { "v1 queries" },
         responses = {
             @ApiResponse(responseCode = "200", description = "", content = @Content(mediaType = "application/json", schema = @Schema(implementation =  Property.class))),
             @ApiResponse(responseCode = "404", description = "`subject` or `properties` not found")
@@ -94,7 +92,6 @@ public interface MetadataApi {
     @Operation(
         operationId = "getSubjects",
         summary = "Query multiple properties of multiple subjects.",
-        tags = { "v1 queries" },
         responses = {
             @ApiResponse(responseCode = "200", description = "", content = @Content(mediaType = "application/json", schema = @Schema(implementation =  BatchResponse.class))),
             @ApiResponse(responseCode = "400", description = "Invalid `body`")

@@ -2,12 +2,14 @@ package org.cardanofoundation.metadatatools.api.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 import javax.annotation.Generated;
 import java.util.Optional;
 
 @Controller
+@CrossOrigin(exposedHeaders={"X-Total-Count"})
 @RequestMapping("${openapi.metadataServer.base-path:}")
 public class V2ApiController implements V2Api {
 

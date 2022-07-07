@@ -1,10 +1,10 @@
-package org.cardanofoundation.metadatatools.api.controller;
+package org.cardanofoundation.metadatatools.api.model.data;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.*;
 import lombok.extern.log4j.Log4j2;
-import org.cardanofoundation.metadatatools.api.model.Property;
+import org.cardanofoundation.metadatatools.api.model.rest.Property;
 import org.postgresql.util.PGobject;
 
 import javax.validation.constraints.NotNull;
@@ -15,15 +15,13 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
-@Getter(AccessLevel.PUBLIC)
-@Setter(AccessLevel.PUBLIC)
 @NoArgsConstructor
 @AllArgsConstructor
-@ToString
+@Data
 @Log4j2
 public class MetadataQueryResult {
-    static final String DEFAULT_QUERY_STRING = "SELECT subject, properties FROM metadata";
-    static final List<String> DEFAULT_PROPERTY_NAMES = Arrays.asList("name", "ticker", "url", "description", "logo", "decimals", "tools");
+    public static final String DEFAULT_QUERY_STRING = "SELECT subject, properties FROM metadata";
+    public static final List<String> DEFAULT_PROPERTY_NAMES = Arrays.asList("name", "ticker", "url", "description", "logo", "decimals", "tools");
     static final ObjectMapper VALUE_MAPPER = new ObjectMapper();
 
     private String subject;
@@ -38,11 +36,11 @@ public class MetadataQueryResult {
     private String updatedBy;
     private String properties;
 
-    final Property toProperty() {
+    public final Property toProperty() {
         return this.toProperty(new ArrayList<>());
     }
 
-    final Property toProperty(@NotNull final List<String> fieldsToExclude) {
+    public final Property toProperty(@NotNull final List<String> fieldsToExclude) {
         if (this.properties != null) {
             try {
                 final Property property = VALUE_MAPPER.readValue(this.properties, Property.class);
@@ -55,6 +53,12 @@ public class MetadataQueryResult {
                         case "decimals" -> property.setDecimals(null);
                         case "logo" -> property.setLogo(null);
                     }
+                }
+                if (!fieldsToExclude.contains("updated")) {
+                    property.setUpdated(this.updated);
+                }
+                if (!fieldsToExclude.contains("updatedBy")) {
+                    property.setUpdatedBy(this.updatedBy);
                 }
                 return property;
             } catch (final JsonProcessingException e) {

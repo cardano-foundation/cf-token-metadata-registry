@@ -1,4 +1,4 @@
-package org.cardanofoundation.metadatatools.api;
+package org.cardanofoundation.metadatatools.api.config;
 
 import lombok.*;
 

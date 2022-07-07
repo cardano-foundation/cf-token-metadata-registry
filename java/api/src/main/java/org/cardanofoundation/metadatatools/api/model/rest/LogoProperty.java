@@ -1,21 +1,21 @@
-package org.cardanofoundation.metadatatools.api.model;
+package org.cardanofoundation.metadatatools.api.model.rest;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import javax.validation.Valid;
-import javax.validation.constraints.DecimalMax;
 import javax.validation.constraints.DecimalMin;
 import javax.validation.constraints.NotNull;
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
 /**
- * DecimalsProperty
+ * LogoProperty
  */
-public class DecimalsProperty   {
+public class LogoProperty   {
 
   @JsonProperty("signatures")
   @Valid
@@ -25,14 +25,14 @@ public class DecimalsProperty   {
   private BigDecimal sequenceNumber;
 
   @JsonProperty("value")
-  private BigDecimal value;
+  private byte[] value;
 
-  public DecimalsProperty signatures(List<AnnotatedSignature> signatures) {
+  public LogoProperty signatures(List<AnnotatedSignature> signatures) {
     this.signatures = signatures;
     return this;
   }
 
-  public DecimalsProperty addSignaturesItem(AnnotatedSignature signaturesItem) {
+  public LogoProperty addSignaturesItem(AnnotatedSignature signaturesItem) {
     if (this.signatures == null) {
       this.signatures = new ArrayList<>();
     }
@@ -54,7 +54,7 @@ public class DecimalsProperty   {
     this.signatures = signatures;
   }
 
-  public DecimalsProperty sequenceNumber(BigDecimal sequenceNumber) {
+  public LogoProperty sequenceNumber(BigDecimal sequenceNumber) {
     this.sequenceNumber = sequenceNumber;
     return this;
   }
@@ -74,24 +74,22 @@ public class DecimalsProperty   {
     this.sequenceNumber = sequenceNumber;
   }
 
-  public DecimalsProperty value(BigDecimal value) {
+  public LogoProperty value(byte[] value) {
     this.value = value;
     return this;
   }
 
   /**
    * Get value
-   * minimum: 0
-   * maximum: 255
    * @return value
   */
-  @NotNull @Valid @DecimalMin("0") @DecimalMax("255") 
-  @Schema(name = "value", example = "1", required = true)
-  public BigDecimal getValue() {
+  @NotNull 
+  @Schema(name = "value", required = true)
+  public byte[] getValue() {
     return value;
   }
 
-  public void setValue(BigDecimal value) {
+  public void setValue(byte[] value) {
     this.value = value;
   }
 
@@ -103,21 +101,21 @@ public class DecimalsProperty   {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    DecimalsProperty decimalsProperty = (DecimalsProperty) o;
-    return Objects.equals(this.signatures, decimalsProperty.signatures) &&
-        Objects.equals(this.sequenceNumber, decimalsProperty.sequenceNumber) &&
-        Objects.equals(this.value, decimalsProperty.value);
+    LogoProperty logoProperty = (LogoProperty) o;
+    return Objects.equals(this.signatures, logoProperty.signatures) &&
+        Objects.equals(this.sequenceNumber, logoProperty.sequenceNumber) &&
+        Arrays.equals(this.value, logoProperty.value);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(signatures, sequenceNumber, value);
+    return Objects.hash(signatures, sequenceNumber, Arrays.hashCode(value));
   }
 
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
-    sb.append("class DecimalsProperty {\n");
+    sb.append("class LogoProperty {\n");
     sb.append("    signatures: ").append(toIndentedString(signatures)).append("\n");
     sb.append("    sequenceNumber: ").append(toIndentedString(sequenceNumber)).append("\n");
     sb.append("    value: ").append(toIndentedString(value)).append("\n");

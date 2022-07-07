@@ -1,8 +1,8 @@
 package org.cardanofoundation.metadatatools.api.controller;
 
-import org.cardanofoundation.metadatatools.api.model.BatchRequest;
-import org.cardanofoundation.metadatatools.api.model.BatchResponse;
-import org.cardanofoundation.metadatatools.api.model.Property;
+import org.cardanofoundation.metadatatools.api.model.rest.BatchRequest;
+import org.cardanofoundation.metadatatools.api.model.rest.BatchResponse;
+import org.cardanofoundation.metadatatools.api.model.rest.Property;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.context.request.NativeWebRequest;

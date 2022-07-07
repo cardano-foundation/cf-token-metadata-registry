@@ -1,28 +1,20 @@
-package org.cardanofoundation.metadatatools.api.model;
+package org.cardanofoundation.metadatatools.api.model.rest;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 
 /**
- * Gets or Sets FilterOperand
+ * Defines the direction of pivoting
  */
-public enum FilterOperand {
-  
-  EQ("eq"),
-  
-  NEQ("neq"),
-  
-  LT("lt"),
-  
-  LTE("lte"),
-  
-  GT("gt"),
-  
-  GTE("gte");
+public enum PivotDirection {
 
-  private String value;
+  BEFORE("before"),
 
-  FilterOperand(String value) {
+  AFTER("after");
+
+  private final String value;
+
+  PivotDirection(final String value) {
     this.value = value;
   }
 
@@ -37,8 +29,8 @@ public enum FilterOperand {
   }
 
   @JsonCreator
-  public static FilterOperand fromValue(String value) {
-    for (FilterOperand b : FilterOperand.values()) {
+  public static PivotDirection fromValue(String value) {
+    for (PivotDirection b : PivotDirection.values()) {
       if (b.value.equals(value)) {
         return b;
       }

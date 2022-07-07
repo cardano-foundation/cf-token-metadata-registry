@@ -1,4 +1,4 @@
-package org.cardanofoundation.metadatatools.api.model;
+package org.cardanofoundation.metadatatools.api.model.rest;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -6,16 +6,16 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import javax.validation.Valid;
 import javax.validation.constraints.DecimalMin;
 import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Size;
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
 /**
- * LogoProperty
+ * DescriptionProperty
  */
-public class LogoProperty   {
+public class DescriptionProperty   {
 
   @JsonProperty("signatures")
   @Valid
@@ -25,14 +25,14 @@ public class LogoProperty   {
   private BigDecimal sequenceNumber;
 
   @JsonProperty("value")
-  private byte[] value;
+  private String value;
 
-  public LogoProperty signatures(List<AnnotatedSignature> signatures) {
+  public DescriptionProperty signatures(List<AnnotatedSignature> signatures) {
     this.signatures = signatures;
     return this;
   }
 
-  public LogoProperty addSignaturesItem(AnnotatedSignature signaturesItem) {
+  public DescriptionProperty addSignaturesItem(AnnotatedSignature signaturesItem) {
     if (this.signatures == null) {
       this.signatures = new ArrayList<>();
     }
@@ -54,7 +54,7 @@ public class LogoProperty   {
     this.signatures = signatures;
   }
 
-  public LogoProperty sequenceNumber(BigDecimal sequenceNumber) {
+  public DescriptionProperty sequenceNumber(BigDecimal sequenceNumber) {
     this.sequenceNumber = sequenceNumber;
     return this;
   }
@@ -74,7 +74,7 @@ public class LogoProperty   {
     this.sequenceNumber = sequenceNumber;
   }
 
-  public LogoProperty value(byte[] value) {
+  public DescriptionProperty value(String value) {
     this.value = value;
     return this;
   }
@@ -83,13 +83,13 @@ public class LogoProperty   {
    * Get value
    * @return value
   */
-  @NotNull 
+  @NotNull @Size(max = 500) 
   @Schema(name = "value", required = true)
-  public byte[] getValue() {
+  public String getValue() {
     return value;
   }
 
-  public void setValue(byte[] value) {
+  public void setValue(String value) {
     this.value = value;
   }
 
@@ -101,21 +101,21 @@ public class LogoProperty   {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    LogoProperty logoProperty = (LogoProperty) o;
-    return Objects.equals(this.signatures, logoProperty.signatures) &&
-        Objects.equals(this.sequenceNumber, logoProperty.sequenceNumber) &&
-        Arrays.equals(this.value, logoProperty.value);
+    DescriptionProperty descriptionProperty = (DescriptionProperty) o;
+    return Objects.equals(this.signatures, descriptionProperty.signatures) &&
+        Objects.equals(this.sequenceNumber, descriptionProperty.sequenceNumber) &&
+        Objects.equals(this.value, descriptionProperty.value);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(signatures, sequenceNumber, Arrays.hashCode(value));
+    return Objects.hash(signatures, sequenceNumber, value);
   }
 
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
-    sb.append("class LogoProperty {\n");
+    sb.append("class DescriptionProperty {\n");
     sb.append("    signatures: ").append(toIndentedString(signatures)).append("\n");
     sb.append("    sequenceNumber: ").append(toIndentedString(sequenceNumber)).append("\n");
     sb.append("    value: ").append(toIndentedString(value)).append("\n");

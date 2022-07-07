@@ -1,10 +1,11 @@
-package org.cardanofoundation.metadatatools.api.model;
+package org.cardanofoundation.metadatatools.api.model.rest;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
+import java.util.Date;
 import java.util.Objects;
 
 /**
@@ -38,6 +39,12 @@ public class Property   {
 
   @JsonProperty("tool")
   private ToolProperty tool;
+
+  @JsonProperty("updated")
+  private Date updated;
+
+  @JsonProperty("updatedBy")
+  private String updatedBy;
 
   public Property subject(String subject) {
     this.subject = subject;
@@ -210,6 +217,37 @@ public class Property   {
     this.tool = tool;
   }
 
+
+  @Valid
+  @Schema(name = "updated", required = false)
+  public Date getUpdated() {
+    return updated;
+  }
+
+  public void setUpdated(final Date updated) {
+    this.updated = updated;
+  }
+
+  public Property updated(final Date updated) {
+    this.updated = updated;
+    return this;
+  }
+
+  @Valid
+  @Schema(name = "updatedBy", required = false)
+  public String getUpdatedBy() {
+    return updatedBy;
+  }
+
+  public void setUpdatedBy(final String updatedBy) {
+    this.updatedBy = updatedBy;
+  }
+
+  public Property updatedBy(final String updatedBy) {
+    this.updatedBy = updatedBy;
+    return this;
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) {
@@ -227,7 +265,9 @@ public class Property   {
         Objects.equals(this.ticker, property.ticker) &&
         Objects.equals(this.decimals, property.decimals) &&
         Objects.equals(this.logo, property.logo) &&
-        Objects.equals(this.tool, property.tool);
+        Objects.equals(this.tool, property.tool) &&
+        Objects.equals(this.updated, property.updated) &&
+        Objects.equals(this.updatedBy, property.updatedBy);
   }
 
   @Override
@@ -237,7 +277,7 @@ public class Property   {
 
   @Override
   public String toString() {
-    StringBuilder sb = new StringBuilder();
+    final StringBuilder sb = new StringBuilder();
     sb.append("class Property {\n");
     sb.append("    subject: ").append(toIndentedString(subject)).append("\n");
     sb.append("    policy: ").append(toIndentedString(policy)).append("\n");
@@ -248,6 +288,8 @@ public class Property   {
     sb.append("    decimals: ").append(toIndentedString(decimals)).append("\n");
     sb.append("    logo: ").append(toIndentedString(logo)).append("\n");
     sb.append("    tool: ").append(toIndentedString(tool)).append("\n");
+    sb.append("    updated: ").append(toIndentedString(updated)).append("\n");
+    sb.append("    updatedBy: ").append(toIndentedString(updatedBy)).append("\n");
     sb.append("}");
     return sb.toString();
   }

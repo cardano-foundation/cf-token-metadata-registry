@@ -34,9 +34,9 @@
         <version.openapi-generator-maven-plugin>5.4.0</version.openapi-generator-maven-plugin>
         <version.maven-compiler-plugin>3.10.0</version.maven-compiler-plugin>
         <verison.maven-surefire-plugin>3.0.0-M5</verison.maven-surefire-plugin>
-        <verison.jacoco-maven-plugin>0.8.7</verison.jacoco-maven-plugin>
+        <verison.jacoco-maven-plugin>0.8.8</verison.jacoco-maven-plugin>
         <version.flatten-maven-plugin>1.2.7</version.flatten-maven-plugin>
-        <version.spring-boot>2.6.3</version.spring-boot>
+        <version.spring-boot>2.6.8</version.spring-boot>
         <version.spring-data-r2dbc>1.4.3</version.spring-data-r2dbc>
         <version.lombok>1.18.22</version.lombok>
         <version.awssdk>2.17.155</version.awssdk>

@@ -1,9 +1,12 @@
 package org.cardanofoundation.metadatatools.api.controller;
 
 import lombok.extern.log4j.Log4j2;
-import org.cardanofoundation.metadatatools.api.model.*;
+import org.cardanofoundation.metadatatools.api.model.data.MetadataQueryResult;
+import org.cardanofoundation.metadatatools.api.model.data.WalletScamLookupQueryResult;
+import org.cardanofoundation.metadatatools.api.model.rest.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -27,6 +30,7 @@ public class V2ApiDelegateImpl implements V2ApiDelegate {
     private static final int MIN_PAGE_SIZE = 1;
     private static final int MAX_PAGE_SIZE = 200;
     private static final String DEFAULT_ORDER_CLAUSE = "subject ASC";
+    private static final String DEFAULT_ORDER_CLAUSE_FLIPPED = "subject DESC";
     private static final List<String> VALID_SORTING_CRITERIA_NAMES = Arrays.asList(
             "subject",
             "policy",
@@ -70,9 +74,9 @@ public class V2ApiDelegateImpl implements V2ApiDelegate {
             jdbcTemplate.execute("SELECT 1");
         } catch (final DataAccessException e) {
             log.error("Database connection is unhealthy", e);
-            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseEntity.internalServerError().build();
         }
-        return new ResponseEntity<>(HttpStatus.OK);
+        return ResponseEntity.ok().build();
     }
 
     @Override
@@ -110,28 +114,28 @@ public class V2ApiDelegateImpl implements V2ApiDelegate {
         }
     }
 
-    private static String orderClauseFromQueryParam(final String sortBy) {
+    private static String orderClauseFromQueryParam(final String sortBy, final boolean flipOrdering) {
         if (sortBy == null || sortBy.isBlank()) {
-            return DEFAULT_ORDER_CLAUSE;
+            return (flipOrdering) ? DEFAULT_ORDER_CLAUSE_FLIPPED : DEFAULT_ORDER_CLAUSE;
         } else {
             final String direction;
             final String sortCriteria;
             if (sortBy.startsWith("-")) {
-                direction = "DESC";
+                direction = (flipOrdering) ? "ASC" : "DESC";
                 sortCriteria = sortBy.toLowerCase().substring(1);
             } else if (sortBy.startsWith("+")) {
-                direction = "ASC";
+                direction = (flipOrdering) ? "DESC" : "ASC";
                 sortCriteria = sortBy.toLowerCase().substring(1);
             } else {
-                direction = "ASC";
+                direction = (flipOrdering) ? "DESC" : "ASC";
                 sortCriteria = sortBy.toLowerCase();
             }
 
             return (VALID_SORTING_CRITERIA_NAMES.contains(sortCriteria))
                     ? ((sortCriteria.equals("subject"))
                     ? String.format("%s %s", columnNameFromCriteriaName(sortCriteria), direction)
-                    : String.format("%s %s, subject ASC", columnNameFromCriteriaName(sortCriteria), direction))
-                    : DEFAULT_ORDER_CLAUSE;
+                    : String.format("%s %s, %s", columnNameFromCriteriaName(sortCriteria), direction, (flipOrdering) ? DEFAULT_ORDER_CLAUSE_FLIPPED : DEFAULT_ORDER_CLAUSE))
+                    : (flipOrdering) ? DEFAULT_ORDER_CLAUSE_FLIPPED : DEFAULT_ORDER_CLAUSE;
         }
     }
 
@@ -140,14 +144,11 @@ public class V2ApiDelegateImpl implements V2ApiDelegate {
     }
 
     private static int pageSizeFromLimitQueryParam(final Integer limit) {
-        if (limit == null) {
-            return DEFAULT_PAGE_SIZE;
-        } else {
-            return Math.max(MIN_PAGE_SIZE, Math.min(limit, MAX_PAGE_SIZE));
-        }
+        return (limit == null) ? DEFAULT_PAGE_SIZE : Math.max(MIN_PAGE_SIZE, Math.min(limit, MAX_PAGE_SIZE));
     }
 
     private void computePageOffsetClause(final String pivotId,
+                                         final PivotDirection pivotDirection,
                                          final String orderCriteriaParameter,
                                          @NotNull final Map<String, Object> sqlParamsSource,
                                          @NotNull final List<String> filterClauses) {
@@ -158,20 +159,40 @@ public class V2ApiDelegateImpl implements V2ApiDelegate {
                 if (!pivotElements.isEmpty()) {
                     final String orderCriteriaNormalized;
                     final String orderDirectionOperator;
-                    if (orderCriteriaParameter.startsWith("-")) {
-                        orderDirectionOperator = "<=";
-                        orderCriteriaNormalized = orderCriteriaParameter.toLowerCase().substring(1);
-                    } else if (orderCriteriaParameter.startsWith("+")) {
-                        orderDirectionOperator = ">=";
-                        orderCriteriaNormalized = orderCriteriaParameter.toLowerCase().substring(1);
-                    } else {
-                        orderDirectionOperator = ">=";
-                        orderCriteriaNormalized = orderCriteriaParameter.toLowerCase();
+                    if (orderCriteriaParameter != null) {
+                        if (orderCriteriaParameter.startsWith("-")) {
+                            if (pivotDirection == PivotDirection.BEFORE) {
+                                orderDirectionOperator = ">=";
+                            } else {
+                                orderDirectionOperator = "<=";
+                            }
+                            orderCriteriaNormalized = orderCriteriaParameter.toLowerCase().substring(1);
+                        } else if (orderCriteriaParameter.startsWith("+")) {
+                            if (pivotDirection == PivotDirection.AFTER) {
+                                orderDirectionOperator = ">=";
+                            } else {
+                                orderDirectionOperator = "<=";
+                            }
+                            orderCriteriaNormalized = orderCriteriaParameter.toLowerCase().substring(1);
+                        } else {
+                            if (pivotDirection == PivotDirection.AFTER) {
+                                orderDirectionOperator = ">=";
+                            } else {
+                                orderDirectionOperator = "<=";
+                            }
+                            orderCriteriaNormalized = orderCriteriaParameter.toLowerCase();
+                        }
+
+                        final String sortingColumnName = columnNameFromCriteriaName(orderCriteriaNormalized);
+                        filterClauses.add(String.format("%s %s :afterid", sortingColumnName, orderDirectionOperator));
+                        sqlParamsSource.put("afterid", computePivotCriteriaValue(pivotElements.get(0), sortingColumnName));
                     }
-                    final String sortingColumnName = columnNameFromCriteriaName(orderCriteriaNormalized);
-                    filterClauses.add(String.format("%s %s :afterid", sortingColumnName, orderDirectionOperator));
-                    filterClauses.add("subject > :pivotid");
-                    sqlParamsSource.put("afterid", computePivotCriteriaValue(pivotElements.get(0), sortingColumnName));
+
+                    if (pivotDirection == PivotDirection.AFTER) {
+                        filterClauses.add("subject > :pivotid");
+                    } else {
+                        filterClauses.add("subject < :pivotid");
+                    }
                     sqlParamsSource.put("pivotid", pivotId);
                 } else {
                     log.warn("Cannot find pivot element for pagination.");
@@ -221,11 +242,15 @@ public class V2ApiDelegateImpl implements V2ApiDelegate {
                                               final Integer decimals,
                                               final FilterOperand decimalsOp,
                                               final String q,
-                                              final String afterId,
+                                              final String pivotId,
+                                              final PivotDirection pivotDirection,
                                               final String orderCriteria,
-                                              final Map<String, Object> sqlParamsSource) {
+                                              final Map<String, Object> sqlParamsSource,
+                                              final boolean noPageOffsetClause) {
         final List<String> filterClauses = new ArrayList<>();
-        computePageOffsetClause(afterId, orderCriteria, sqlParamsSource, filterClauses);
+        if (!noPageOffsetClause) {
+            computePageOffsetClause(pivotId, pivotDirection, orderCriteria, sqlParamsSource, filterClauses);
+        }
         if (q != null && !q.isBlank()) {
             computeFulltextSearchClause(q, sqlParamsSource, filterClauses);
         } else {
@@ -258,16 +283,49 @@ public class V2ApiDelegateImpl implements V2ApiDelegate {
     }
 
     @Override
-    public ResponseEntity<SubjectsResponse> getSubjectsV2(String fields, String sortBy, String name, FilterOperand nameOp, String ticker, FilterOperand tickerOp, String description, FilterOperand descriptionOp, String url, FilterOperand urlOp, String policy, FilterOperand policyOp, LocalDate updated, FilterOperand updatedOp, String updatedBy, FilterOperand updatedbyOp, Integer decimals, FilterOperand decimalsOp, String q, String vkey, Integer limit, String afterId) {
+    public ResponseEntity<SubjectsResponse> getSubjectsV2(
+            final String fields,
+            final String sortBy,
+            final String name,
+            final FilterOperand nameOp,
+            final String ticker,
+            final FilterOperand tickerOp,
+            final String description,
+            final FilterOperand descriptionOp,
+            final String url,
+            final FilterOperand urlOp,
+            final String policy,
+            final FilterOperand policyOp,
+            final LocalDate updated,
+            final FilterOperand updatedOp,
+            final String updatedBy,
+            final FilterOperand updatedbyOp,
+            final Integer decimals,
+            final FilterOperand decimalsOp,
+            final String q,
+            final String vkey,
+            final Integer limit,
+            final Long page,
+            final String pivotId,
+            final PivotDirection pivotDirection) {
         try {
+            final PivotDirection pivotDirectionSanitized = (pivotId != null && pivotDirection == null) ? PivotDirection.AFTER : pivotDirection;
             final int pageSize = pageSizeFromLimitQueryParam(limit);
-            final String orderByClause = orderClauseFromQueryParam(sortBy);
+            final Map<String, Object> sqlParamsSourceTotalCount = new HashMap<>();
+            final String filterClauseTotalCount = whereClauseFromQueryParams(
+                    name, nameOp, ticker, tickerOp, description, descriptionOp, url, urlOp, policy, policyOp, updated,
+                    updatedOp, updatedBy, updatedbyOp, decimals, decimalsOp, q, pivotId, pivotDirectionSanitized, sortBy, sqlParamsSourceTotalCount, true);
+            final SqlParameterSource paramsTotalCountParameters = new MapSqlParameterSource(sqlParamsSourceTotalCount);
+            final List<Long> totalResultSetCountQueryResult = namedParameterJdbcTemplate.query(String.format("SELECT count(*) as cnt FROM metadata %s", filterClauseTotalCount), paramsTotalCountParameters, (rs, rowNum) -> rs.getLong("cnt"));
+            final long totalResultSetCount = (totalResultSetCountQueryResult.isEmpty()) ? 0 : totalResultSetCountQueryResult.get(0);
+            final long pageSanitized = (page != null) ? Math.min(totalResultSetCount / pageSize, Math.max(page, 0)) : 0;
+            final String orderByClause = orderClauseFromQueryParam(sortBy, (pivotId != null && pivotDirectionSanitized == PivotDirection.BEFORE));
             final Map<String, Object> sqlParamsSource = new HashMap<>();
             final String filterClause = whereClauseFromQueryParams(
                     name, nameOp, ticker, tickerOp, description, descriptionOp, url, urlOp, policy, policyOp, updated,
-                    updatedOp, updatedBy, updatedbyOp, decimals, decimalsOp, q, afterId, sortBy, sqlParamsSource);
+                    updatedOp, updatedBy, updatedbyOp, decimals, decimalsOp, q, pivotId, pivotDirectionSanitized, sortBy, sqlParamsSource, false);
             final SqlParameterSource params = new MapSqlParameterSource(sqlParamsSource);
-            final List<MetadataQueryResult> queryResults = namedParameterJdbcTemplate.query(String.format("SELECT * FROM metadata %s ORDER BY %s LIMIT %d", filterClause, orderByClause, pageSize), params, (rs, rowNum) -> MetadataQueryResult.fromSubjectAndPropertiesResultSet(rs));
+            final List<MetadataQueryResult> queryResults = namedParameterJdbcTemplate.query(String.format("SELECT * FROM metadata %s ORDER BY %s LIMIT %d OFFSET %d", filterClause, orderByClause, pageSize, pageSanitized * pageSize), params, (rs, rowNum) -> MetadataQueryResult.fromSqlResultSet(rs));
             if (queryResults.isEmpty()) {
                 return new ResponseEntity<>(HttpStatus.NO_CONTENT);
             } else {
@@ -277,14 +335,22 @@ public class V2ApiDelegateImpl implements V2ApiDelegate {
                 if (fields != null && !fields.isBlank()) {
                     fieldsToExclude.removeAll(List.of(fields.split(",")));
                 }
-
                 final List<Property> properties = new ArrayList<>();
                 for (final MetadataQueryResult metadataQueryResult : queryResults) {
                     properties.add(metadataQueryResult.toProperty(fieldsToExclude));
                 }
+
+                // reverse the order for backwards pagination
+                if (pivotId != null && pivotDirectionSanitized == PivotDirection.BEFORE) {
+                    Collections.reverse(properties);
+                }
+
                 final SubjectsResponse subjectsResponse = new SubjectsResponse();
                 subjectsResponse.setSubjects(properties);
-                return new ResponseEntity<>(subjectsResponse, HttpStatus.OK);
+
+                final HttpHeaders headers = new HttpHeaders();
+                headers.add("X-Total-Count", String.valueOf(totalResultSetCount));
+                return new ResponseEntity<>(subjectsResponse, headers, HttpStatus.OK);
             }
         } catch (final IllegalArgumentException e) {
             log.error("Could not query result.");
@@ -305,6 +371,7 @@ public class V2ApiDelegateImpl implements V2ApiDelegate {
     private boolean propertyHasRequiredFields(final Property property) {
         return true;
     }
+
     @Override
     public ResponseEntity<Void> verifySubjectV2(String subject, Property property) {
         // apply validation rules

@@ -1,4 +1,4 @@
-package org.cardanofoundation.metadatatools.api.model;
+package org.cardanofoundation.metadatatools.api.model.rest;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -10,20 +10,20 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * SubjectsResponse
+ * BatchResponse
  */
-public class SubjectsResponse   {
+public class BatchResponse   {
 
   @JsonProperty("subjects")
   @Valid
   private List<Property> subjects = new ArrayList<>();
 
-  public SubjectsResponse subjects(List<Property> subjects) {
+  public BatchResponse subjects(List<Property> subjects) {
     this.subjects = subjects;
     return this;
   }
 
-  public SubjectsResponse addSubjectsItem(Property subjectsItem) {
+  public BatchResponse addSubjectsItem(Property subjectsItem) {
     if (this.subjects == null) {
       this.subjects = new ArrayList<>();
     }
@@ -53,8 +53,8 @@ public class SubjectsResponse   {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    SubjectsResponse subjectsResponse = (SubjectsResponse) o;
-    return Objects.equals(this.subjects, subjectsResponse.subjects);
+    BatchResponse batchResponse = (BatchResponse) o;
+    return Objects.equals(this.subjects, batchResponse.subjects);
   }
 
   @Override
@@ -65,7 +65,7 @@ public class SubjectsResponse   {
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
-    sb.append("class SubjectsResponse {\n");
+    sb.append("class BatchResponse {\n");
     sb.append("    subjects: ").append(toIndentedString(subjects)).append("\n");
     sb.append("}");
     return sb.toString();

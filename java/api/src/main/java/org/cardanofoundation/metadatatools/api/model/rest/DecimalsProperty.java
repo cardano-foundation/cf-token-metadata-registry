@@ -1,22 +1,21 @@
-package org.cardanofoundation.metadatatools.api.model;
+package org.cardanofoundation.metadatatools.api.model.rest;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import javax.validation.Valid;
+import javax.validation.constraints.DecimalMax;
 import javax.validation.constraints.DecimalMin;
 import javax.validation.constraints.NotNull;
-import javax.validation.constraints.Pattern;
-import javax.validation.constraints.Size;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
 /**
- * UrlProperty
+ * DecimalsProperty
  */
-public class UrlProperty   {
+public class DecimalsProperty   {
 
   @JsonProperty("signatures")
   @Valid
@@ -26,14 +25,14 @@ public class UrlProperty   {
   private BigDecimal sequenceNumber;
 
   @JsonProperty("value")
-  private String value;
+  private BigDecimal value;
 
-  public UrlProperty signatures(List<AnnotatedSignature> signatures) {
+  public DecimalsProperty signatures(List<AnnotatedSignature> signatures) {
     this.signatures = signatures;
     return this;
   }
 
-  public UrlProperty addSignaturesItem(AnnotatedSignature signaturesItem) {
+  public DecimalsProperty addSignaturesItem(AnnotatedSignature signaturesItem) {
     if (this.signatures == null) {
       this.signatures = new ArrayList<>();
     }
@@ -55,7 +54,7 @@ public class UrlProperty   {
     this.signatures = signatures;
   }
 
-  public UrlProperty sequenceNumber(BigDecimal sequenceNumber) {
+  public DecimalsProperty sequenceNumber(BigDecimal sequenceNumber) {
     this.sequenceNumber = sequenceNumber;
     return this;
   }
@@ -75,22 +74,24 @@ public class UrlProperty   {
     this.sequenceNumber = sequenceNumber;
   }
 
-  public UrlProperty value(String value) {
+  public DecimalsProperty value(BigDecimal value) {
     this.value = value;
     return this;
   }
 
   /**
    * Get value
+   * minimum: 0
+   * maximum: 255
    * @return value
   */
-  @NotNull @Pattern(regexp = "^https://") @Size(max = 250) 
-  @Schema(name = "value", example = "https://www.iohk.io", required = true)
-  public String getValue() {
+  @NotNull @Valid @DecimalMin("0") @DecimalMax("255") 
+  @Schema(name = "value", example = "1", required = true)
+  public BigDecimal getValue() {
     return value;
   }
 
-  public void setValue(String value) {
+  public void setValue(BigDecimal value) {
     this.value = value;
   }
 
@@ -102,10 +103,10 @@ public class UrlProperty   {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    UrlProperty urlProperty = (UrlProperty) o;
-    return Objects.equals(this.signatures, urlProperty.signatures) &&
-        Objects.equals(this.sequenceNumber, urlProperty.sequenceNumber) &&
-        Objects.equals(this.value, urlProperty.value);
+    DecimalsProperty decimalsProperty = (DecimalsProperty) o;
+    return Objects.equals(this.signatures, decimalsProperty.signatures) &&
+        Objects.equals(this.sequenceNumber, decimalsProperty.sequenceNumber) &&
+        Objects.equals(this.value, decimalsProperty.value);
   }
 
   @Override
@@ -116,7 +117,7 @@ public class UrlProperty   {
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
-    sb.append("class UrlProperty {\n");
+    sb.append("class DecimalsProperty {\n");
     sb.append("    signatures: ").append(toIndentedString(signatures)).append("\n");
     sb.append("    sequenceNumber: ").append(toIndentedString(sequenceNumber)).append("\n");
     sb.append("    value: ").append(toIndentedString(value)).append("\n");

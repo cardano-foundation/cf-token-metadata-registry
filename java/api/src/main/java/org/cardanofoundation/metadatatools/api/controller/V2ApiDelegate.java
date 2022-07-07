@@ -1,6 +1,6 @@
 package org.cardanofoundation.metadatatools.api.controller;
 
-import org.cardanofoundation.metadatatools.api.model.*;
+import org.cardanofoundation.metadatatools.api.model.rest.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.context.request.NativeWebRequest;
@@ -51,7 +51,9 @@ public interface V2ApiDelegate {
                                                            final String q,
                                                            final String vkey,
                                                            final Integer limit,
-                                                           final String afterId) {
+                                                           final Long page,
+                                                           final String pivotId,
+                                                           final PivotDirection pivotDirection) {
         return new ResponseEntity<>(HttpStatus.NOT_IMPLEMENTED);
     }
 
