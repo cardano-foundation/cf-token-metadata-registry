@@ -27,10 +27,10 @@ jobs:
           cache: maven
 
       - name: Build with Maven
-        run: mvn -X -s $GITHUB_WORKSPACE/.github/workflows/maven-settings.xml --batch-mode --update-snapshots package --file ./pom.xml
+        run: mvn -s $GITHUB_WORKSPACE/.github/workflows/maven-settings.xml --batch-mode --update-snapshots package --file ./pom.xml
         env:
-          USER_NAME: ${{ secrets.GH_PACKAGES_USER_NAME }}
-          ACCESS_TOKEN: ${{ secrets.GH_PACKAGES_ACCESS_TOKEN }}
+          GH_PACKAGES_USER_NAME: ${{ secrets.GH_PACKAGES_USER_NAME }}
+          GH_PACKAGES_ACCESS_TOKEN: ${{ secrets.GH_PACKAGES_ACCESS_TOKEN }}
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
