@@ -27,7 +27,7 @@ jobs:
           cache: maven
 
       - name: Build with Maven
-        run: mvn -s $GITHUB_WORKSPACE/.github/workflows/maven-settings.xml --batch-mode --update-snapshots package --file java/pom.xml
+        run: mvn -s $GITHUB_WORKSPACE/.github/workflows/maven-settings.xml --batch-mode --update-snapshots package --file ./pom.xml
         env:
           USER_NAME: ${{ secrets.GH_PACKAGES_USER_NAME }}
           ACCESS_TOKEN: ${{ secrets.GH_PACKAGES_ACCESS_TOKEN }}
@@ -36,7 +36,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: cf-metadata-api
-          path: java/api/target/*.jar
+          path: api/target/*.jar
 
       - name: Generate Jacoco Badge
         id: jacoco
@@ -44,7 +44,7 @@ jobs:
         with:
           badges-directory: badges
           generate-branches-badge: true
-          jacoco-csv-file: java/api/target/site/jacoco/jacoco.csv
+          jacoco-csv-file: api/target/site/jacoco/jacoco.csv
       - name: Log coverage percentage
         run: |
           echo "coverage = ${{ steps.jacoco.outputs.coverage }}"
@@ -64,4 +64,4 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: jacoco-report
-          path: java/api/target/site/jacoco/
+          path: api/target/site/jacoco/
