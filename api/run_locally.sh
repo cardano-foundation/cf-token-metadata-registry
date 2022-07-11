@@ -107,7 +107,6 @@ else
 fi
 
 export REGISTRY_CLONE_FOLDER="${TEMP_FOLDER}cardano-token-registry/"
-pwd
 DB_MIGRATION_SCRIPTS_FOLDER=${DATAPOPULATE_SCRIPTS_FOLDER} ${DATAPOPULATE_SCRIPTS_FOLDER}populate_data.sh
 
 if [ "${DB_ONLY_MODE}" == "TRUE" ]
