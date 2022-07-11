@@ -1,9 +1,10 @@
-FROM openjdk:17-jdk-alpine
-
-RUN addgroup -S spring && adduser -S spring -G spring
-USER spring:spring
+FROM --platform=linux/arm64 arm64v8/openjdk:18-jdk-slim-bullseye
 
 WORKDIR /cf-metadata-api/
+
+RUN addgroup --system spring && adduser --system --ingroup spring spring
+RUN chown spring:spring /cf-metadata-api
+USER spring:spring
 
 ARG JAR_FILE=target/*.jar
 COPY ${JAR_FILE} /cf-metadata-api/app.jar

@@ -45,8 +45,6 @@ public class MetadataQueryResult {
     public final TokenMetadata toTokenMetadata(@NotNull final List<String> fieldsToExclude) {
         if (this.properties != null) {
             try {
-                final JsonNode node = VALUE_MAPPER.readTree(this.properties);
-                node.fieldNames().forEachRemaining(log::info);
                 final TokenMetadata tokenMetadata = VALUE_MAPPER.readValue(this.properties, TokenMetadata.class);
                 for (final String fieldName : fieldsToExclude) {
                     switch (fieldName) {

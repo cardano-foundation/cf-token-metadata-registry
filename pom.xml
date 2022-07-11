@@ -10,22 +10,37 @@
     <packaging>pom</packaging>
 
     <scm>
-        <connection>scm:git:https://github.com/cardano-foundation/cf-metadata-server</connection>
+        <connection>scm:git:git://github.com/cardano-foundation/cf-metadata-server.git</connection>
         <url>https://github.com/cardano-foundation/cf-metadata-server</url>
+        <developerConnection>scm:git:git://github.com/cardano-foundation/cf-metadata-server.git</developerConnection>
+        <tag>HEAD</tag>
     </scm>
 
     <issueManagement>
         <url>https://github.com/cardano-foundation/cf-metadata-server/issues</url>
-        <system>GitHub Issues</system>
+        <system>GitHub issues</system>
     </issueManagement>
 
     <licenses>
         <license>
-            <name>MIT license</name>
-            <url>http://www.opensource.org/licenses/mit-license.php</url>
+            <name>MPL 2.0</name>
+            <url>https://www.mozilla.org/en-US/MPL/2.0/</url>
             <distribution>repo</distribution>
         </license>
     </licenses>
+
+    <developers>
+        <developer>
+            <name>CF Metadata Team</name>
+            <organization>Cardano Foundation</organization>
+            <organizationUrl>https://cardanofoundation.org</organizationUrl>
+        </developer>
+    </developers>
+
+    <organization>
+        <name>Cardano Foundation</name>
+        <url>https://cardanofoundation.org</url>
+    </organization>
 
     <properties>
         <revision>1.0.0-SNAPSHOT</revision>

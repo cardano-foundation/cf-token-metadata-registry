@@ -20,9 +20,8 @@ export SERVICE_USER_NAME="metadataservice"
 export SERVICE_USER_SECRET="metadata1337_"
 export METADATA_DB_NAME="cf_metadata"
 export DEFAULT_DB_NAME="postgres"
-export DB_MIGRATION_SCRIPTS_FOLDER="../../database/scripts/"
-export DATAPOPULATE_SCRIPTS_FOLDER="../../deployment/aws/gitsync-task/"
-export DB_MIGRATION_LIQUIBASE_ROOT_CHANGELOG="../../database/liquibase/metadata.root-changelog.yaml"
+export DB_MIGRATION_SCRIPTS_FOLDER="../../cf-metadata-deployment/database/scripts/"
+export DATAPOPULATE_SCRIPTS_FOLDER="../../cf-metadata-deployment/deployment/aws/images/gitsync-task/"
 export DB_HOST='localhost'
 export DB_PORT='5432'
 export API_EXPOSED_PORT='8080'
@@ -84,10 +83,12 @@ do
 done
 
 echo "Bootstrapping the database ..."
-${DB_MIGRATION_SCRIPTS_FOLDER}bootstrap_database.sh
+pushd ${DB_MIGRATION_SCRIPTS_FOLDER}
+./bootstrap_database.sh
 
 echo "Applying schema to database ..."
-${DB_MIGRATION_SCRIPTS_FOLDER}migrate_database.sh
+./migrate_database.sh
+popd
 
 echo "Populating data from Github into the database ..."
 if [ "${SKIP_CLONE}" == "TRUE" ]
@@ -106,6 +107,7 @@ else
 fi
 
 export REGISTRY_CLONE_FOLDER="${TEMP_FOLDER}cardano-token-registry/"
+pwd
 DB_MIGRATION_SCRIPTS_FOLDER=${DATAPOPULATE_SCRIPTS_FOLDER} ${DATAPOPULATE_SCRIPTS_FOLDER}populate_data.sh
 
 if [ "${DB_ONLY_MODE}" == "TRUE" ]
@@ -114,5 +116,5 @@ then
 else
   echo "Starting up API container ..."
   DB_URL="jdbc:postgresql://${DOCKER_PG_CONTAINER_NAME}:${DB_PORT}/${METADATA_DB_NAME}"
-  docker run -p ${API_LOCAL_BIND_PORT}:${API_EXPOSED_PORT} --name ${DOCKER_API_CONTAINER_NAME} --net ${DOCKER_NETWORK_NAME} -e DB_CONNECTION_PARAMS_PROVIDER_TYPE=${DB_CONNECTION_PARAMS_PROVIDER_TYPE} -e DB_URL="${DB_URL}" -e DB_USER="${SERVICE_USER_NAME}" -e DB_SECRET="${SERVICE_USER_SECRET}" -e DB_DRIVER_CLASS_NAME="${DB_DRIVER_CLASS_NAME}" cardanofoundation.org/metadata-server-api
+  docker run --platform linux/arm64 -p ${API_LOCAL_BIND_PORT}:${API_EXPOSED_PORT} --name ${DOCKER_API_CONTAINER_NAME} --net ${DOCKER_NETWORK_NAME} -e DB_CONNECTION_PARAMS_PROVIDER_TYPE=${DB_CONNECTION_PARAMS_PROVIDER_TYPE} -e DB_URL="${DB_URL}" -e DB_USER="${SERVICE_USER_NAME}" -e DB_SECRET="${SERVICE_USER_SECRET}" -e DB_DRIVER_CLASS_NAME="${DB_DRIVER_CLASS_NAME}" cardanofoundation.org/metadata-server-api
 fi
