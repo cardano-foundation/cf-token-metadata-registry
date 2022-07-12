@@ -4,7 +4,10 @@
 ![branches](https://github.com/cardano-foundation/cf-metadata-server/blob/badges/branches.svg)
 [![Issues](https://img.shields.io/github/issues/cardano-foundation/cf-metadata-server)](https://github.com/cardano-foundation/cf-metadata-server/issues)
 
+---
+
 # Cardano offchain metadata registry
+
 A reference implementation of a Cardano [CIP-26](https://github.com/cardano-foundation/CIPs/tree/master/CIP-0026) compliant offchain metadata registry.
 
 ## Introduction
@@ -16,72 +19,85 @@ Implementation of client tools for metadata creation can be found [here](https:/
 ## Getting started
 
 ### Prerequisites
-At the moment the application needs a Postgres database as a storage layer. This will change in the future. However, you can use the [liquibase](https://www.liquibase.org/) database migration scripts provided in our [deployment repository](https://github.com/cardano-foundation/cf-metadata-deployment/tree/main/database/liquibase) to initialize the database.
+In order to use the scripts that populate data from the registry Github repository into the database you need [Python v3](https://www.python.org/downloads/).
+
+At the moment the application needs a PostgreSQL database as a storage layer. This will change in the future. However, you can use the [liquibase](https://www.liquibase.org/) database migration scripts provided in our [deployment repository](https://github.com/cardano-foundation/cf-metadata-deployment/tree/main/database/liquibase) to initialize this database.
 
 If you are not familiar with PostgreSQL here are the few steps needed to spin up an instance using Docker and use some of our deployment scripts to populate the correct schema, create a user which can be used by the REST service.
 
-REMARK: In order to use the populate_data script you need [Python3](https://www.python.org/downloads/).
-
-```sh
-# spin up a dockerized postgres instance, set the admin credentials and default database name
-docker run -p 5432:5432 -e POSTGRES_PASSWORD=n0tr3allyS3cuR3 -e POSTGRES_USER=cardano_admin -d postgres
-
-# clone the deployment repository
-git clone git@github.com:cardano-foundation/cf-metadata-deployment.git
-
-# enter the database migration folder within the deployment repository
-pushd cf-metadata-deployment/database/scripts
-
-# rollout the schema and create a user that can later be used by the REST API service
-DBA_USER_SECRET=n0tr3allyS3cuR3 DBA_USER_NAME=cardano_admin METADATA_DB_NAME=cf_metadata SERVICE_USER_SECRET=again3asy2hack SERVICE_USER_NAME=cardano_service ./bootstrap_database.sh
-DBA_USER_SECRET=n0tr3allyS3cuR3 DBA_USER_NAME=cardano_admin METADATA_DB_NAME=cf_metadata SERVICE_USER_SECRET=again3asy2hack SERVICE_USER_NAME=cardano_service ./migrate_database.sh
-
-# populate some data into the database using our own deployment scripts hosted at https://github.com/cardano-foundation/cf-metadata-deployment
-popd
-mkdir tmp
-pushd tmp
-git clone git@github.com:cardano-foundation/cardano-token-registry.git
-pushd cardano-token-registry
-git checkout master
-git pull
-export REGISTRY_CLONE_FOLDER="`pwd`/"
-popd
-popd
-pushd cf-metadata-deployment/deployment/aws/images/gitsync-task
-DBA_USER_SECRET=n0tr3allyS3cuR3 DBA_USER_NAME=cardano_admin METADATA_DB_NAME=cf_metadata SERVICE_USER_SECRET=again3asy2hack SERVICE_USER_NAME=cardano_service ./populate_data.sh
-popd
-rm -Rf tmp
+**Step 1** Start a dockerized PostgeSQL instance listening on port 5432 for new connections and specify some access credentials for the database administrator:
+```console
+$ docker run -p 5432:5432 -e POSTGRES_PASSWORD=n0tr3allyS3cuR3 -e POSTGRES_USER=cardano_admin -d postgres
 ```
 
-### How to build?
+**Step 2** Rollout the database schema and create a user that will be facilitated by the REST API to access the database:
+```console
+# clone the deployment repository
+$ git clone git@github.com:cardano-foundation/cf-metadata-deployment.git
 
-Clone this repo
-```sh
-git clone git@github.com:cardano-foundation/cf-metadata-server.git
+# enter the database migration folder within the deployment repository
+$ cd cf-metadata-deployment/database/scripts
+
+# rollout the schema and create a user that can later be used by the REST API service
+$ DBA_USER_SECRET=n0tr3allyS3cuR3 DBA_USER_NAME=cardano_admin METADATA_DB_NAME=cf_metadata SERVICE_USER_SECRET=again3asy2hack SERVICE_USER_NAME=cardano_service ./bootstrap_database.sh
+$ DBA_USER_SECRET=n0tr3allyS3cuR3 DBA_USER_NAME=cardano_admin METADATA_DB_NAME=cf_metadata SERVICE_USER_SECRET=again3asy2hack SERVICE_USER_NAME=cardano_service ./migrate_database.sh
+```
+
+**Step 3** Populate data into the database based on the latest revision of the metadata registry:
+```console
+$ mkdir tmp
+$ pushd tmp
+$ git clone git@github.com:cardano-foundation/cardano-token-registry.git
+$ pushd cardano-token-registry
+$ git checkout master
+$ git pull
+$ export REGISTRY_CLONE_FOLDER="`pwd`/"
+$ popd
+$ popd
+$ pushd cf-metadata-deployment/deployment/aws/images/gitsync-task
+$ DBA_USER_SECRET=n0tr3allyS3cuR3 DBA_USER_NAME=cardano_admin METADATA_DB_NAME=cf_metadata SERVICE_USER_SECRET=again3asy2hack SERVICE_USER_NAME=cardano_service ./populate_data.sh
+$ popd
+$ rm -Rf tmp
+```
+
+## How to build?
+
+Clone this repository
+```console
+$ git clone git@github.com:cardano-foundation/cf-metadata-server.git
 ```
 
 `cd` into the directory where `git` did clone the sources into and build the application via Maven
-```sh
-cd cf-metadata-server
-mvn package
+```console
+$ cd cf-metadata-server
+$ mvn package
 ```
 
-Run the application (assuming we are using the database setup in the section above)
-```sh
-java -DdbUser="cardano_service" -DdbSecret="again3asy2hack" -jar api/target/api-1.0.0-SNAPSHOT.jar
+## How to run?
+
+### Run the JAR directly
+Run the application (assuming we are using the database setup in the section above):
+```console
+$ java -DdbUser="cardano_service" -DdbSecret="again3asy2hack" -jar api/target/api-1.0.0-SNAPSHOT.jar
 ```
 
-Check if the application is running and connectivity to the database is given
-```sh
-curl http://localhost:8080/v2/health
+Check if the application is running and connectivity to the database is given:
+```console
+$ curl http://localhost:8080/v2/health
 ```
 
-### How to run?
+### Run in a local Docker container
 There exists a [shell script](./api/run_locally.sh) in this repository that can be used to spin up the application including a dockerized PostgreSQL instance, have the latest schema deployed, the latest data from the [registry GitHub](https://github.com/cardano-foundation/cardano-token-registry) populated and the application initialized to run on port 8081 listening for http connections.
-```sh
-./run_local.sh -b
+```console
+$ ./run_local.sh -b
 ```
 
+Check if the application is running and connectivity to the database is given:
+```console
+$ curl http://localhost:8081/v2/health
+```
+
+### Configuration
 Following parameters can be used to configure the application:
 | Parameter name | Description | Default |
 | ----------- | ----------- | ----------- |
