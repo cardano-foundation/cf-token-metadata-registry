@@ -59,7 +59,7 @@ public class DatasourceConfig {
     }
 
     private static String getEncryptedSsmParameter(final String parameterName, final Region region) {
-        try (final SsmClient ssmClient = SsmClient.builder().region(region).build()) {
+        try (SsmClient ssmClient = SsmClient.builder().region(region).build()) {
             final GetParameterRequest parameterRequest = GetParameterRequest.builder()
                     .name(parameterName)
                     .withDecryption(true)

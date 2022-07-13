@@ -1,7 +1,6 @@
 package org.cardanofoundation.metadatatools.api.model.data;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.*;
 import lombok.extern.log4j.Log4j2;
@@ -15,7 +14,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
-import java.util.function.Consumer;
 
 @Log4j2
 @Data

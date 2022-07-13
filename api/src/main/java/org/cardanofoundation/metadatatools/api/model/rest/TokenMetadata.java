@@ -26,7 +26,7 @@ public class TokenMetadata {
   private String subject;
 
   @JsonProperty("policy")
-  @Schema(name = "policy", example = "82008200581ce62601e8eeec975f3f124a288cd0ecb2973f5fc225629f1401a79b16", required = false)
+  @Schema(name = "policy", example = "82008200581ce62601e8eeec975f3f124a288cd0ecb2973f5fc225629f1401a79b16")
   private String policy;
 
   @JsonProperty("name")
@@ -41,47 +41,38 @@ public class TokenMetadata {
 
   @JsonProperty("url")
   @Valid
-  @Schema(name = "url", required = false)
+  @Schema(name = "url")
   private UrlProperty url;
 
   @JsonProperty("ticker")
   @Valid
-  @Schema(name = "ticker", required = false)
+  @Schema(name = "ticker")
   private TickerProperty ticker;
 
   @JsonProperty("decimals")
   @Valid
-  @Schema(name = "decimals", required = false)
+  @Schema(name = "decimals")
   private DecimalsProperty decimals;
 
   @JsonProperty("logo")
   @Valid
-  @Schema(name = "logo", required = false)
+  @Schema(name = "logo")
   private LogoProperty logo;
 
   @JsonProperty("updated")
   @Valid
-  @Schema(name = "updated", required = false)
+  @Schema(name = "updated")
   private Date updated;
 
   @JsonProperty("updatedBy")
   @Valid
-  @Schema(name = "updatedBy", required = false)
+  @Schema(name = "updatedBy")
   private String updatedBy;
 
-  private Map<String, TokenMetadataProperty<?>> properties = new HashMap<>();
+  private Map<String, TokenMetadataProperty<?>> additionalProperties = new HashMap<>();
 
   @JsonAnySetter
-  public void setRequiredProperties(final String key, final TokenMetadataProperty<?> value) {
-    addProperty(key, value);
-  }
-
-  @JsonAnyGetter
-  public Map<String, TokenMetadataProperty<?>> getProperties() {
-    return this.properties;
-  }
-
-  public void addProperty(final String propertyName, final TokenMetadataProperty<?> property) {
+  public void propertiesSetter(final String propertyName, final TokenMetadataProperty<?> property) {
     if (propertyName == null) {
       throw new IllegalArgumentException("propertyName cannot be null.");
     }
@@ -92,10 +83,15 @@ public class TokenMetadata {
     }
 
     if (property != null) {
-      this.properties.put(propertyNameSanitized, property);
+      this.additionalProperties.put(propertyNameSanitized, property);
     } else {
-      this.properties.remove(propertyNameSanitized);
+      this.additionalProperties.remove(propertyNameSanitized);
     }
+  }
+
+  @JsonAnyGetter
+  public Map<String, TokenMetadataProperty<?>> propertiesGetter() {
+    return getAdditionalProperties();
   }
 
   public void removeProperty(final String propertyName) {
@@ -108,7 +104,7 @@ public class TokenMetadata {
       throw new IllegalArgumentException("propertyName cannot be empty or blank.");
     }
 
-    this.properties.remove(propertyNameSanitized);
+    this.additionalProperties.remove(propertyNameSanitized);
   }
 
   private static String sanitizePropertyName(final String propertyName) {

@@ -21,7 +21,7 @@ Implementation of client tools for metadata creation can be found [here](https:/
 ### Prerequisites
 In order to use the scripts that populate data from the registry Github repository into the database you need [Python v3](https://www.python.org/downloads/).
 
-At the moment the application needs a PostgreSQL database as a storage layer. This will change in the future. However, you can use the [liquibase](https://www.liquibase.org/) database migration scripts provided in our [deployment repository](https://github.com/cardano-foundation/cf-metadata-deployment/tree/main/database/liquibase) to initialize this database.
+At the moment the application needs a PostgreSQL database as a storage layer. This will change in the future. However, you can use the [liquibase](https://www.liquibase.org/) database migration scripts provided in our [deployment repository](https://github.com/cardano-foundation/cf-metadata-deployment/tree/main/database) to initialize this database.
 
 If you are not familiar with PostgreSQL here are the few steps needed to spin up an instance using Docker and use some of our deployment scripts to populate the correct schema, create a user which can be used by the REST service.
 
@@ -36,7 +36,7 @@ $ docker run -p 5432:5432 -e POSTGRES_PASSWORD=n0tr3allyS3cuR3 -e POSTGRES_USER=
 $ git clone git@github.com:cardano-foundation/cf-metadata-deployment.git
 
 # enter the database migration folder within the deployment repository
-$ cd cf-metadata-deployment/database/scripts
+$ cd cf-metadata-deployment/database/postgres/scripts
 
 # rollout the schema and create a user that can later be used by the REST API service
 $ DBA_USER_SECRET=n0tr3allyS3cuR3 DBA_USER_NAME=cardano_admin METADATA_DB_NAME=cf_metadata SERVICE_USER_SECRET=again3asy2hack SERVICE_USER_NAME=cardano_service ./bootstrap_database.sh

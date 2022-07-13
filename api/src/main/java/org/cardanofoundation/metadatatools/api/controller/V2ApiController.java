@@ -120,26 +120,26 @@ public class V2ApiController implements V2Api {
 
     private static String orderClauseFromQueryParam(final String sortBy, final boolean flipOrdering) {
         if (sortBy == null || sortBy.isBlank()) {
-            return (flipOrdering) ? DEFAULT_ORDER_CLAUSE_FLIPPED : DEFAULT_ORDER_CLAUSE;
+            return flipOrdering ? DEFAULT_ORDER_CLAUSE_FLIPPED : DEFAULT_ORDER_CLAUSE;
         } else {
             final String direction;
             final String sortCriteria;
             if (sortBy.startsWith("-")) {
-                direction = (flipOrdering) ? "ASC" : "DESC";
+                direction = flipOrdering ? "ASC" : "DESC";
                 sortCriteria = sortBy.toLowerCase().substring(1);
             } else if (sortBy.startsWith("+")) {
-                direction = (flipOrdering) ? "DESC" : "ASC";
+                direction = flipOrdering ? "DESC" : "ASC";
                 sortCriteria = sortBy.toLowerCase().substring(1);
             } else {
-                direction = (flipOrdering) ? "DESC" : "ASC";
+                direction = flipOrdering ? "DESC" : "ASC";
                 sortCriteria = sortBy.toLowerCase();
             }
 
-            return (VALID_SORTING_CRITERIA_NAMES.contains(sortCriteria))
-                    ? ((sortCriteria.equals("subject"))
+            return VALID_SORTING_CRITERIA_NAMES.contains(sortCriteria)
+                    ? (sortCriteria.equals("subject")
                     ? String.format("%s %s", columnNameFromCriteriaName(sortCriteria), direction)
-                    : String.format("%s %s, %s", columnNameFromCriteriaName(sortCriteria), direction, (flipOrdering) ? DEFAULT_ORDER_CLAUSE_FLIPPED : DEFAULT_ORDER_CLAUSE))
-                    : (flipOrdering) ? DEFAULT_ORDER_CLAUSE_FLIPPED : DEFAULT_ORDER_CLAUSE;
+                    : String.format("%s %s, %s", columnNameFromCriteriaName(sortCriteria), direction, flipOrdering ? DEFAULT_ORDER_CLAUSE_FLIPPED : DEFAULT_ORDER_CLAUSE))
+                    : flipOrdering ? DEFAULT_ORDER_CLAUSE_FLIPPED : DEFAULT_ORDER_CLAUSE;
         }
     }
 
@@ -321,9 +321,9 @@ public class V2ApiController implements V2Api {
                     updatedOp, updatedBy, updatedbyOp, decimals, decimalsOp, q, pivotId, pivotDirectionSanitized, sortBy, sqlParamsSourceTotalCount, true);
             final SqlParameterSource paramsTotalCountParameters = new MapSqlParameterSource(sqlParamsSourceTotalCount);
             final List<Long> totalResultSetCountQueryResult = namedParameterJdbcTemplate.query(String.format("SELECT count(*) as cnt FROM metadata %s", filterClauseTotalCount), paramsTotalCountParameters, (rs, rowNum) -> rs.getLong("cnt"));
-            final long totalResultSetCount = (totalResultSetCountQueryResult.isEmpty()) ? 0 : totalResultSetCountQueryResult.get(0);
+            final long totalResultSetCount = totalResultSetCountQueryResult.isEmpty() ? 0 : totalResultSetCountQueryResult.get(0);
             final long pageSanitized = (page != null) ? Math.min(totalResultSetCount / pageSize, Math.max(page, 0)) : 0;
-            final String orderByClause = orderClauseFromQueryParam(sortBy, (pivotId != null && pivotDirectionSanitized == PivotDirection.BEFORE));
+            final String orderByClause = orderClauseFromQueryParam(sortBy, pivotId != null && pivotDirectionSanitized == PivotDirection.BEFORE);
             final Map<String, Object> sqlParamsSource = new HashMap<>();
             final String filterClause = whereClauseFromQueryParams(
                     name, nameOp, ticker, tickerOp, description, descriptionOp, url, urlOp, policy, policyOp, updated,
@@ -335,7 +335,7 @@ public class V2ApiController implements V2Api {
             } else {
                 final List<String> fieldsToExclude = (fields == null)
                         ? new ArrayList<>()
-                        : (new ArrayList<>(MetadataQueryResult.DEFAULT_PROPERTY_NAMES));
+                        : new ArrayList<>(MetadataQueryResult.DEFAULT_PROPERTY_NAMES);
                 if (fields != null && !fields.isBlank()) {
                     fieldsToExclude.removeAll(List.of(fields.split(",")));
                 }
@@ -378,14 +378,26 @@ public class V2ApiController implements V2Api {
     }
 
     private boolean propertyHasRequiredFields(final TokenMetadata property) {
-        return true;
+        return property.getSubject() != null
+                && !property.getSubject().isBlank()
+                && property.getName() != null
+                && property.getName().getValue() != null
+                && !property.getName().getValue().isBlank()
+                && property.getDescription() != null
+                && property.getDescription().getValue() != null
+                && !property.getDescription().getValue().isBlank();
     }
 
     @Override
-    public ResponseEntity<Void> verifySubjectV2(String subject, TokenMetadata property) {
+    public ResponseEntity<Void> verifySubjectV2(final String subject, final TokenMetadata property) {
         // apply validation rules
 
-        // 0. subject must match subject in property
+        // property has required fields
+        if (!propertyHasRequiredFields(property)) {
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
+
+        // subject must match subject in property
         if (!property.getSubject().equals(subject)) {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
@@ -395,7 +407,7 @@ public class V2ApiController implements V2Api {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
 
-        // 2. ticker name is not too long
+        // 3. ticker name is not too long
         if (property.getTicker() != null) {
             //if (if (property.getTicker().getValue().isEmpty()) || property.getTicker().getValue().isEmpty())
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
