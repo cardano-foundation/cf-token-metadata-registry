@@ -107,7 +107,7 @@ public interface V2Api {
      */
     @Operation(operationId = "postSubjectV2", summary = "Post a new token metadata submission.", responses = {@ApiResponse(responseCode = "200", description = "Returns the complete metadata after a successfull request.", content = @Content(mediaType = "application/json", schema = @Schema(implementation = TokenMetadata.class))), @ApiResponse(responseCode = "400", description = "Returned if validation of the given metadata object failed.", content = @Content(mediaType = "application/json", schema = @Schema(implementation = VerifyFailureResponse.class)))})
     @RequestMapping(method = RequestMethod.POST, value = "/v2/subjects/{subject}", produces = {"application/json;charset=utf-8"}, consumes = {"application/json;charset=utf-8"})
-    ResponseEntity<TokenMetadata> postSubjectV2(@Parameter(name = "subject", description = "", required = true, schema = @Schema(description = "")) @PathVariable("subject") final String subject, @Parameter(name = "Property", description = "", required = true, schema = @Schema(description = "")) @Valid @RequestBody final TokenMetadata property);
+    ResponseEntity<?> postSubjectV2(@Parameter(name = "subject", description = "", required = true, schema = @Schema(description = "")) @PathVariable("subject") final String subject, @Parameter(name = "Property", description = "", required = true, schema = @Schema(description = "")) @Valid @RequestBody final TokenMetadata property);
 
     /**
      * POST /v2/subjects/{subject}/sign : Sign properties of a subject. A property is identified by the property name and the sequence number.

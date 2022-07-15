@@ -107,6 +107,16 @@
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
         </dependency>
+        <!-- https://mvnrepository.com/artifact/org.eclipse.jgit/org.eclipse.jgit -->
+        <dependency>
+            <groupId>org.eclipse.jgit</groupId>
+            <artifactId>org.eclipse.jgit</artifactId>
+            <version>5.10.0.202012080955-r</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpclient</artifactId>
+        </dependency>
     </dependencies>
 
     <build>
@@ -154,8 +164,8 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>${version.maven-compiler-plugin}</version>
                 <configuration>
-                    <source>18</source>
-                    <target>18</target>
+                    <source>14</source>
+                    <target>14</target>
                     <annotationProcessorPaths>
                         <path>
                             <groupId>org.projectlombok</groupId>
@@ -163,6 +173,9 @@
                             <version>${version.lombok}</version>
                         </path>
                     </annotationProcessorPaths>
+                    <compilerArgs>
+                        --enable-preview
+                    </compilerArgs>
                 </configuration>
             </plugin>
             <plugin>
@@ -177,6 +190,7 @@
                         <include>**/*Test.java</include>
                         <include>**/Test*.java</include>
                     </includes>
+                    <argLine>--enable-preview</argLine>
                 </configuration>
             </plugin>
             <plugin>
