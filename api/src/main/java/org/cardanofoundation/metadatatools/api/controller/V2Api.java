@@ -154,7 +154,7 @@ public interface V2Api {
      *
      * @param subject  (required)
      * @param tokenMetadata (required)
-     * @return Returned on successfull verification and validation. (status code 200)
+     * @return Returned on successful verification and validation. (status code 200)
      * or Returns a list of errors found during the validation (status code 400)
      */
     @Operation(operationId = "verifySubjectV2", summary = "Verifies and validates the given metadata object.", responses = {@ApiResponse(responseCode = "200", description = "Returned on successfull verification and validation."), @ApiResponse(responseCode = "400", description = "Returns a list of errors found during the validation", content = @Content(mediaType = "application/json", schema = @Schema(implementation = VerifyFailureResponse.class)))})

@@ -1,0 +1,155 @@
+{
+	"info": {
+		"_postman_id": "98c51610-c97b-466e-9375-c8e983f5985f",
+		"name": "token registry",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "legacy get subject",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseurl}}metadata/8a60b9a2aeb22c0f0a2a70cac8cd16dd99dc0542a31f3bc075551be35354414441",
+					"host": [
+						"{{baseurl}}metadata"
+					],
+					"path": [
+						"8a60b9a2aeb22c0f0a2a70cac8cd16dd99dc0542a31f3bc075551be35354414441"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "legacy get by subject and property",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseurl}}metadata/551cc2a7fa623c51f92c2f37680b8b7adfe5528c8ec1a1c75692b643474c50/properties/name",
+					"host": [
+						"{{baseurl}}metadata"
+					],
+					"path": [
+						"551cc2a7fa623c51f92c2f37680b8b7adfe5528c8ec1a1c75692b643474c50",
+						"properties",
+						"name"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "legacy bulk query",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"subjects\": [\n        \"551cc2a7fa623c51f92c2f37680b8b7adfe5528c8ec1a1c75692b643474c50\"\n    ],\n    \"properties\": [\n        \"name\", \"url\", \"ticker\", \"decimals\"\n    ]\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{baseurl}}metadata/query",
+					"host": [
+						"{{baseurl}}metadata"
+					],
+					"path": [
+						"query"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "v2 health",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseurl}}v2/health",
+					"host": [
+						"{{baseurl}}v2"
+					],
+					"path": [
+						"health"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "v2 single subject",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseurl}}v2/subjects/551cc2a7fa623c51f92c2f37680b8b7adfe5528c8ec1a1c75692b643474c50",
+					"host": [
+						"{{baseurl}}v2"
+					],
+					"path": [
+						"subjects",
+						"551cc2a7fa623c51f92c2f37680b8b7adfe5528c8ec1a1c75692b643474c50"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "v2 multiple subjects query",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseurl}}v2/subjects?fields=decimals&decimals_op=LT&limit=5&page=0&decimals=4",
+					"host": [
+						"{{baseurl}}v2"
+					],
+					"path": [
+						"subjects"
+					],
+					"query": [
+						{
+							"key": "q",
+							"value": "token",
+							"disabled": true
+						},
+						{
+							"key": "fields",
+							"value": "decimals"
+						},
+						{
+							"key": "sort_by",
+							"value": "subject",
+							"disabled": true
+						},
+						{
+							"key": "decimals_op",
+							"value": "LT"
+						},
+						{
+							"key": "limit",
+							"value": "5"
+						},
+						{
+							"key": "page",
+							"value": "0"
+						},
+						{
+							"key": "decimals",
+							"value": "4"
+						}
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
