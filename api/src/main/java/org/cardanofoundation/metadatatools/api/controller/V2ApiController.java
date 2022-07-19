@@ -8,11 +8,8 @@ import org.cardanofoundation.metadatatools.api.model.data.WalletScamLookupQueryR
 import org.cardanofoundation.metadatatools.api.model.rest.*;
 import org.cardanofoundation.metadatatools.core.TokenMetadataCreator;
 import org.cardanofoundation.metadatatools.core.ValidationResult;
-import org.cardanofoundation.metadatatools.core.model.PolicyScript;
 import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.api.PushCommand;
 import org.eclipse.jgit.api.errors.GitAPIException;
-import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.lib.TextProgressMonitor;
 import org.eclipse.jgit.transport.PushResult;
 import org.eclipse.jgit.transport.RemoteRefUpdate;
@@ -49,8 +46,16 @@ public class V2ApiController implements V2Api {
 
     @Value("${git.local.repository.path}")
     private String gitLocalRepoPath;
-    @Value("${git.repository.url}")
-    private String gitRepoUrl;
+    @Value("${git.personal.repository.url}")
+    private String gitPersonalRepoUrl;
+    @Value("${git.personal.token}")
+    private String gitPersonalToken;
+    @Value("${git.username}")
+    private String gitUsername;
+    @Value("${git.main.branch}")
+    private String gitMainBranch;
+    @Value("${git.cardano.repository.url}")
+    private String gitCardanoRepoUrl;
 
     @Autowired
     private RestTemplate restTemplate;
@@ -403,7 +408,7 @@ public class V2ApiController implements V2Api {
         if(localRepoDir.exists()) {
             log.info("Exist local repo");
             try {
-                // valid metadata
+                // validate metadata
                 String metadata = "{\"subject\":\"84e7bef00924708ab746b79b94a3e3659244854c1acf9119c288e581436654657374436f696e\",\"policy\":\"82018303028382051902588200581cc04cc33b367f233e6ef0f15b05e2225b1974f4980611fb5852f6d01e82041901f4\",\"ticker\":{\"value\":\"CfTstCn\",\"sequenceNumber\":0,\"signatures\":[{\"signature\":\"a0b6d52b4b80fdc1b7747e2338c84c925f9b579003b51fb58c8956a8efa2dcdec4c154c4a0e60f88dd2cf58814e8535e1c3fa57d5403c513e45126af21840d0d\",\"publicKey\":\"8f26099728b91992ba5a06d8d91152ea6bd9aa1d944334fa96a4541b583c2634\"}]},\"decimals\":{\"value\":6,\"sequenceNumber\":0,\"signatures\":[{\"signature\":\"1d2814a737e4ce9b3c32d3c86054cfcc2fad5813df35ce0b391da5b484823085c64ddf4eac2a7765a26590b44c226116acea949ae5580a52d4665dfd179ad200\",\"publicKey\":\"8f26099728b91992ba5a06d8d91152ea6bd9aa1d944334fa96a4541b583c2634\"}]},\"description\":{\"value\":\"We test with CfTestCoin.\",\"sequenceNumber\":0,\"signatures\":[{\"signature\":\"2d63c19d09c744117790af59f157a6e89c3524a0d5eceac2325d78d30df687df9abc91dbac12555514bc477c2153d694ca9a33910a1799b20eed28f1c63a180d\",\"publicKey\":\"8f26099728b91992ba5a06d8d91152ea6bd9aa1d944334fa96a4541b583c2634\"}]},\"name\":{\"value\":\"CfTestCoin\",\"sequenceNumber\":0,\"signatures\":[{\"signature\":\"9ffed8027e3c15df29c4db11f451d3eabb4fb17574cff0d6996aec84f3980aaeb498d49c447345c5eae3329e1d988711180cad6ecd453815ee3fff396cc97c09\",\"publicKey\":\"8f26099728b91992ba5a06d8d91152ea6bd9aa1d944334fa96a4541b583c2634\"}]}}";
                 org.cardanofoundation.metadatatools.core.model.TokenMetadata tokenMetadataDeserialized = mapper.readValue(metadata, org.cardanofoundation.metadatatools.core.model.TokenMetadata.class);
                 ValidationResult validationResult = TokenMetadataCreator.validateTokenMetadata(tokenMetadataDeserialized);
@@ -420,7 +425,7 @@ public class V2ApiController implements V2Api {
                 git.add().addFilepattern("mappings/").call();
                 git.commit().setMessage("Add new metadata json file: " + tokenMetadataDeserialized.getSubject()).call();
                 TextProgressMonitor consoleProgressMonitor = new TextProgressMonitor(new PrintWriter(System.out));
-                Iterable<PushResult> pushResults = git.push().setProgressMonitor(consoleProgressMonitor).setCredentialsProvider(new UsernamePasswordCredentialsProvider("hoang.nguyen9@sotatek.com", "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")).setRemote("origin").add("master").call();
+                Iterable<PushResult> pushResults = git.push().setProgressMonitor(consoleProgressMonitor).setCredentialsProvider(new UsernamePasswordCredentialsProvider(gitUsername, gitPersonalToken)).setRemote("origin").add(gitMainBranch).call();
                 boolean pushFailed = false;
                 for (final PushResult pushResult : pushResults) {
                     for (RemoteRefUpdate refUpdate : pushResult.getRemoteUpdates()) {
@@ -440,11 +445,11 @@ public class V2ApiController implements V2Api {
 //                HttpHeaders headers = new HttpHeaders();
 //                headers.setAccept(Collections.singletonList( new MediaType("application", "vnd.github+json")));
 //                headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-//                headers.add("Authorization", "token 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");
+//                headers.add("Authorization", "token " + gitPersonalToken);
 //                String pullBody = "{\"title\":\"Submit new metadata\",\"body\":\"Please pull these awesome changes in!\",\"head\":\"Sotatek-HoangNguyen9:master\",\"base\":\"master\"}";
 //                Object object = mapper.readValue(pullBody, Object.class);
 //                HttpEntity<Object> entity = new HttpEntity<>(object, headers);
-//                response = restTemplate.exchange("https://api.github.com/repos/cardano-foundation/cardano-token-registry/pulls", HttpMethod.POST, entity, Object.class);
+//                response = restTemplate.exchange(gitCardanoRepoUrl + "/pulls", HttpMethod.POST, entity, Object.class);
 //                HttpStatus httpStatus = response.getStatusCode();
 //                if (httpStatus.value() == 201){
 //                    log.info("Create pull request successful!");
@@ -464,7 +469,7 @@ public class V2ApiController implements V2Api {
         // 2.2 Create json file and move to mappings folder
         // 2.3 Using github account to create personal token and use for create pull request
 
-        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }
 
     @Override
