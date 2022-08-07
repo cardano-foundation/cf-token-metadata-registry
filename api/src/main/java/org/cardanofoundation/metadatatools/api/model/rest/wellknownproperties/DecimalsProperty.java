@@ -14,10 +14,10 @@ import java.math.BigDecimal;
 @Data
 @EqualsAndHashCode(callSuper = true)
 @NoArgsConstructor
-public class DecimalsProperty extends TokenMetadataProperty<BigDecimal> {
+public class DecimalsProperty extends TokenMetadataProperty<Integer> {
   @Valid @DecimalMin("0") @DecimalMax("255")
   @Schema(name = "value", example = "1", required = true)
-  public BigDecimal getValue() {
+  public Integer getValue() {
     return super.getValue();
   }
 }

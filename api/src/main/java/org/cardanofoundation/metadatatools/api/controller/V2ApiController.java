@@ -1,13 +1,18 @@
 package org.cardanofoundation.metadatatools.api.controller;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.log4j.Log4j2;
 import org.cardanofoundation.metadatatools.api.model.data.MetadataQueryResult;
+import org.cardanofoundation.metadatatools.api.model.data.SubmitToken;
 import org.cardanofoundation.metadatatools.api.model.data.WalletScamLookupQueryResult;
 import org.cardanofoundation.metadatatools.api.model.rest.*;
+import org.cardanofoundation.metadatatools.api.repository.SubmitTokenRepo;
 import org.cardanofoundation.metadatatools.core.TokenMetadataCreator;
 import org.cardanofoundation.metadatatools.core.ValidationResult;
+import org.cardanofoundation.metadatatools.core.crypto.keys.Key;
+import org.cardanofoundation.metadatatools.core.crypto.keys.KeyType;
+import org.cardanofoundation.metadatatools.core.model.KeyTextEnvelope;
+import org.cardanofoundation.metadatatools.core.model.PolicyScript;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.lib.TextProgressMonitor;
@@ -22,9 +27,9 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
 
 import javax.validation.constraints.NotNull;
@@ -38,14 +43,14 @@ import java.util.*;
 import static java.util.Map.entry;
 
 @Log4j2
-@Controller
+@RestController
 @CrossOrigin(exposedHeaders={"X-Total-Count"})
 @RequestMapping("${openapi.metadataServer.base-path:}")
 public class V2ApiController implements V2Api {
 
 
-    @Value("${git.local.repository.path}")
-    private String gitLocalRepoPath;
+    @Value("${git.fork.repository.path}")
+    private String gitForkRepoPath;
     @Value("${git.personal.repository.url}")
     private String gitPersonalRepoUrl;
     @Value("${git.personal.token}")
@@ -59,6 +64,8 @@ public class V2ApiController implements V2Api {
 
     @Autowired
     private RestTemplate restTemplate;
+    @Autowired
+    private SubmitTokenRepo submitTokenRepo;
 
     private static final int DEFAULT_PAGE_SIZE = 20;
     private static final int MIN_PAGE_SIZE = 1;
@@ -96,6 +103,7 @@ public class V2ApiController implements V2Api {
             entry(FilterOperand.GTE, ">=")
     );
 
+    private final ObjectMapper mapper = new ObjectMapper();
     @Autowired
     private NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
@@ -396,34 +404,93 @@ public class V2ApiController implements V2Api {
     }
 
     @Override
-    public ResponseEntity<?> postSubjectV2(String subject, TokenMetadata property) {
+    public ResponseEntity<List<SubmitToken>> getSubjectsByWallet(String updatedBy) {
+        return ResponseEntity.status(HttpStatus.OK).body(submitTokenRepo.findAllByUpdatedBy(updatedBy));
+    }
+
+    @Override
+    public ResponseEntity<?> postSubjectV2(SubmitToken submitToken) throws IOException {
         // 1. verfiy data
+        PolicyScript policyScript;
+        if (submitToken.getPolicyScript() != null) {
+            try {
+                policyScript = mapper.readValue(submitToken.getPolicyScript().getInputStream(), PolicyScript.class);
+            } catch (IOException exception) {
+                exception.printStackTrace();
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Policy.script invalid format");
+            }
+        } else {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Policy.script are required!");
+        }
+        org.cardanofoundation.metadatatools.core.model.TokenMetadata tokenMetadataSubmit = new org.cardanofoundation.metadatatools.core.model.TokenMetadata(submitToken.getAssetName() == null ? "" : submitToken.getAssetName(), policyScript);
+        if(submitToken.getName() != null) {
+            tokenMetadataSubmit.addProperty("name", new org.cardanofoundation.metadatatools.core.model.TokenMetadataProperty<>(submitToken.getName(), 0, null));
+        } else {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Name are required!");
+        }
+        if(submitToken.getDescription() != null) {
+            tokenMetadataSubmit.addProperty("description", new org.cardanofoundation.metadatatools.core.model.TokenMetadataProperty<>(submitToken.getDescription(), 0, null));
+        } else {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Description are required!");
+        }
+        if(submitToken.getDecimals() != null && submitToken.getDecimals() >= 0 && submitToken.getDecimals() <= 255) {
+            tokenMetadataSubmit.addProperty("decimals", new org.cardanofoundation.metadatatools.core.model.TokenMetadataProperty<>(submitToken.getDecimals(), 0, null));
+        } else if (submitToken.getDecimals() != null) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Decimals must be between 0 and 255!");
+        }
+        if(submitToken.getUrl() != null && !submitToken.getUrl().isEmpty() && submitToken.getUrl().matches("^https://")) {
+            tokenMetadataSubmit.addProperty("url", new org.cardanofoundation.metadatatools.core.model.TokenMetadataProperty<>(submitToken.getUrl(), 0, null));
+        } else if (submitToken.getUrl() != null && !submitToken.getUrl().isEmpty()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Url must be start with https://");
+        }
+        if(submitToken.getTicker() != null && submitToken.getTicker().length() >= 2 && submitToken.getTicker().length() <= 9) {
+            tokenMetadataSubmit.addProperty("ticker", new org.cardanofoundation.metadatatools.core.model.TokenMetadataProperty<>(submitToken.getTicker(), 0, null));
+        } else if (submitToken.getTicker() != null && !submitToken.getTicker().isEmpty()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Ticker's length must be >= 2 and <= 9 characters");
+        }
+        if(!submitToken.getLogo().isEmpty() && submitToken.getLogo() != null) {
+            tokenMetadataSubmit.addProperty("logo", new org.cardanofoundation.metadatatools.core.model.TokenMetadataProperty<>(submitToken.getLogo(), 0, null));
+        }
+        KeyTextEnvelope signingEnvelope;
+        if (submitToken.getPolicySkey() != null) {
+            try {
+                signingEnvelope = mapper.readValue(submitToken.getPolicySkey().getInputStream(), KeyTextEnvelope.class);
+            } catch (IOException exception) {
+                exception.printStackTrace();
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Policy.skey invalid format");
+            }
+        } else {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Policy.skey are required!");
+        }
+        Key signingKey = Key.fromTextEnvelope(signingEnvelope, KeyType.POLICY_SIGNING_KEY_ED25519);
+        TokenMetadataCreator.signTokenMetadata(tokenMetadataSubmit, signingKey);
+        // Verify tokenMetadata
+        Key verificationKey = signingKey.generateVerificationKey();
+        ValidationResult validationResult = TokenMetadataCreator.validateTokenMetadata(tokenMetadataSubmit, verificationKey);
+        if(!validationResult.isValid() && validationResult.getValidationErrors().size() > 0) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(validationResult.getValidationErrors().get(0));
+        };
         // 2. submit as PR to Github or where-ever
         // 2.1 Fork and clone Cardano Token Registry Repository to github account
         // 2.1.1 First we need have to Fork Cardano Token Registry Repository to a github account, maybe set in config
         // 2.1.2 Clone repo to specific config folder if it is first time
-        File localRepoDir = new File(gitLocalRepoPath + "/mappings");
-        ObjectMapper mapper = new ObjectMapper();
-        // Repository must be cloned first
+        File localRepoDir = new File(gitForkRepoPath + "/mappings");
+
+        // Repository must be cloned before
         if(localRepoDir.exists()) {
             log.info("Exist local repo");
             try {
                 // validate metadata
-                String metadata = "{\"subject\":\"84e7bef00924708ab746b79b94a3e3659244854c1acf9119c288e581436654657374436f696e\",\"policy\":\"82018303028382051902588200581cc04cc33b367f233e6ef0f15b05e2225b1974f4980611fb5852f6d01e82041901f4\",\"ticker\":{\"value\":\"CfTstCn\",\"sequenceNumber\":0,\"signatures\":[{\"signature\":\"a0b6d52b4b80fdc1b7747e2338c84c925f9b579003b51fb58c8956a8efa2dcdec4c154c4a0e60f88dd2cf58814e8535e1c3fa57d5403c513e45126af21840d0d\",\"publicKey\":\"8f26099728b91992ba5a06d8d91152ea6bd9aa1d944334fa96a4541b583c2634\"}]},\"decimals\":{\"value\":6,\"sequenceNumber\":0,\"signatures\":[{\"signature\":\"1d2814a737e4ce9b3c32d3c86054cfcc2fad5813df35ce0b391da5b484823085c64ddf4eac2a7765a26590b44c226116acea949ae5580a52d4665dfd179ad200\",\"publicKey\":\"8f26099728b91992ba5a06d8d91152ea6bd9aa1d944334fa96a4541b583c2634\"}]},\"description\":{\"value\":\"We test with CfTestCoin.\",\"sequenceNumber\":0,\"signatures\":[{\"signature\":\"2d63c19d09c744117790af59f157a6e89c3524a0d5eceac2325d78d30df687df9abc91dbac12555514bc477c2153d694ca9a33910a1799b20eed28f1c63a180d\",\"publicKey\":\"8f26099728b91992ba5a06d8d91152ea6bd9aa1d944334fa96a4541b583c2634\"}]},\"name\":{\"value\":\"CfTestCoin\",\"sequenceNumber\":0,\"signatures\":[{\"signature\":\"9ffed8027e3c15df29c4db11f451d3eabb4fb17574cff0d6996aec84f3980aaeb498d49c447345c5eae3329e1d988711180cad6ecd453815ee3fff396cc97c09\",\"publicKey\":\"8f26099728b91992ba5a06d8d91152ea6bd9aa1d944334fa96a4541b583c2634\"}]}}";
-                org.cardanofoundation.metadatatools.core.model.TokenMetadata tokenMetadataDeserialized = mapper.readValue(metadata, org.cardanofoundation.metadatatools.core.model.TokenMetadata.class);
-                ValidationResult validationResult = TokenMetadataCreator.validateTokenMetadata(tokenMetadataDeserialized);
-                if (!validationResult.isValid()) {
-                    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(validationResult.getValidationErrors());
-                }
+                // 2.2 Create json file and move to mappings folder
                 //save new file to mappings folder
-                StringBuilder filePath = new StringBuilder(gitLocalRepoPath + "/mappings/" + tokenMetadataDeserialized.getSubject() + ".json");
-                mapper.writeValue(new File(filePath.toString()), tokenMetadataDeserialized);
+                StringBuilder filePath = new StringBuilder(gitForkRepoPath + "/mappings/" + tokenMetadataSubmit.getSubject() + ".json");
+                mapper.writerWithDefaultPrettyPrinter().writeValue(new File(filePath.toString()), tokenMetadataSubmit);
                 // Push to account github repository
                 log.info("Starting push new file to origin remote");
-                Git git = Git.open(new File(gitLocalRepoPath));
+                Git git = Git.open(new File(gitForkRepoPath));
                 // Repository exsistRepo = git.getRepository();
-                git.add().addFilepattern("mappings/").call();
-                git.commit().setMessage("Add new metadata json file: " + tokenMetadataDeserialized.getSubject()).call();
+                git.add().addFilepattern("mappings/" + tokenMetadataSubmit.getSubject() + ".json").call();
+                git.commit().setMessage("Add new metadata json file: " + tokenMetadataSubmit.getSubject()).call();
                 TextProgressMonitor consoleProgressMonitor = new TextProgressMonitor(new PrintWriter(System.out));
                 Iterable<PushResult> pushResults = git.push().setProgressMonitor(consoleProgressMonitor).setCredentialsProvider(new UsernamePasswordCredentialsProvider(gitUsername, gitPersonalToken)).setRemote("origin").add(gitMainBranch).call();
                 boolean pushFailed = false;
@@ -436,40 +503,52 @@ public class V2ApiController implements V2Api {
                         }
                     }
                 }
-                log.info("Pushing done!");
                 if(pushFailed) {
+                    log.error("Pushing failed!");
                     return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
                 }
+                log.info("Pushing done!");
+                // 2.3 Using github account to create personal token and use for create pull request
                 // Create pull request to merge repository with cardano foundation registry
-//                ResponseEntity<Object> response;
-//                HttpHeaders headers = new HttpHeaders();
-//                headers.setAccept(Collections.singletonList( new MediaType("application", "vnd.github+json")));
-//                headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-//                headers.add("Authorization", "token " + gitPersonalToken);
-//                String pullBody = "{\"title\":\"Submit new metadata\",\"body\":\"Please pull these awesome changes in!\",\"head\":\"Sotatek-HoangNguyen9:master\",\"base\":\"master\"}";
-//                Object object = mapper.readValue(pullBody, Object.class);
-//                HttpEntity<Object> entity = new HttpEntity<>(object, headers);
-//                response = restTemplate.exchange(gitCardanoRepoUrl + "/pulls", HttpMethod.POST, entity, Object.class);
-//                HttpStatus httpStatus = response.getStatusCode();
-//                if (httpStatus.value() == 201){
-//                    log.info("Create pull request successful!");
-//                    return new ResponseEntity<>(tokenMetadataDeserialized, HttpStatus.OK);
-//                } else {
-//                    log.error("Create pull request failed!");
-//                    return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
-//                }
+                ResponseEntity<Object> response;
+                HttpHeaders headers = new HttpHeaders();
+                headers.setAccept(Collections.singletonList( new MediaType("application", "vnd.github+json")));
+                headers.setContentType(MediaType.APPLICATION_JSON);
+                headers.add("Authorization", "token " + gitPersonalToken);
+                String pullBody = "{\"title\":\"Submit new changes for metadata\",\"body\":\"Please pull these awesome changes in!\",\"head\":\""+gitUsername+":master\",\"base\":\"master\"}";
+                Object object = mapper.readValue(pullBody, Object.class);
+                HttpEntity<Object> entity = new HttpEntity<>(object, headers);
+                // Save submitted token
+                submitToken.setSubject(tokenMetadataSubmit.getSubject());
+                submitToken.setPolicy(tokenMetadataSubmit.getPolicy());
+                submitToken.setStatus("to_approve");
+                submitToken.setUpdated(new Date());
+                String tokenMetadataSubmitStr = mapper.writeValueAsString(tokenMetadataSubmit);
+                submitToken.setProperties(mapper.readValue(tokenMetadataSubmitStr , TokenMetadata.class));
+                try {
+                    response = restTemplate.exchange(gitCardanoRepoUrl + "/pulls", HttpMethod.POST, entity, Object.class);
+                    HttpStatus httpStatus = response.getStatusCode();
+                    System.out.println(httpStatus.value());
+                    if (httpStatus.value() == 201) {
+                        log.info("Create pull request successful!");
+                    } else {
+                        log.info("Pull request already exsist!");
+                    }
+                    submitTokenRepo.save(submitToken);
+                    return new ResponseEntity<>(submitToken.getSubject(), HttpStatus.OK);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+
+                log.error("Create pull request failed!");
+                return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
             } catch (GitAPIException | IOException ex) {
                 log.error("Failed!" , ex);
-                return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
             }
         } else {
             log.error("Empty mappings folder from Git repositoty !");
-            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
-        // 2.2 Create json file and move to mappings folder
-        // 2.3 Using github account to create personal token and use for create pull request
-
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
     @Override
@@ -525,6 +604,100 @@ public class V2ApiController implements V2Api {
     public ResponseEntity<TokenMetadata> deleteSubjectV2(String subject, String signature, String vkey) {
         // 1. verify signature (which is sig(subject | "VOID")) with given vkey
         return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
+    }
+
+    @Override
+    public ResponseEntity<?> deleteSubjectV2(SubmitToken submitToken) throws IOException {
+        // 1. Check token exists by the wallet address - updated by
+        SubmitToken submitTokenExists = submitTokenRepo.findBySubjectAndUpdatedBy(submitToken.getSubject(), "test");
+        // 1. Check token metadata json file in mappings folder
+        StringBuilder filePath = new StringBuilder(gitForkRepoPath + "/mappings/" + submitToken.getSubject() + ".json");
+        File jsonFile = new File(filePath.toString());
+        if(!jsonFile.exists() || submitTokenExists == null){
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Token did not exists !");
+        }
+        try {
+            org.cardanofoundation.metadatatools.core.model.TokenMetadata tokenMetadataMapping = mapper.readValue(new File(filePath.toString()), org.cardanofoundation.metadatatools.core.model.TokenMetadata.class);
+            KeyTextEnvelope signingEnvelope;
+            if (submitToken.getPolicySkey() != null) {
+                try {
+                    signingEnvelope = mapper.readValue(submitToken.getPolicySkey().getInputStream(), KeyTextEnvelope.class);
+                } catch (IOException exception) {
+                    exception.printStackTrace();
+                    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Policy.skey invalid format");
+                }
+            } else {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Policy.skey are required!");
+            }
+            Key signingKey = Key.fromTextEnvelope(signingEnvelope, KeyType.POLICY_SIGNING_KEY_ED25519);
+            String oldPublicKey = tokenMetadataMapping.getProperties().get("name").getSignatures().get(0).getPublicKey();
+            tokenMetadataMapping.addProperty("name", new org.cardanofoundation.metadatatools.core.model.TokenMetadataProperty<>("VOID", tokenMetadataMapping.getProperties().get("name").getSequenceNumber() + 1, null));
+            tokenMetadataMapping.addProperty("description", new org.cardanofoundation.metadatatools.core.model.TokenMetadataProperty<>("VOID", tokenMetadataMapping.getProperties().get("description").getSequenceNumber() + 1, null));
+            TokenMetadataCreator.signTokenMetadata(tokenMetadataMapping, signingKey );
+            String newPublicKey = tokenMetadataMapping.getProperties().get("name").getSignatures().get(0).getPublicKey();
+
+            if(!oldPublicKey.equals(newPublicKey)) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Incorrect policy.skey for this token!");
+            }
+            // Verify tokenMetadata
+            Key verificationKey = signingKey.generateVerificationKey();
+            ValidationResult validationResult = TokenMetadataCreator.validateTokenMetadata(tokenMetadataMapping, verificationKey);
+            if(!validationResult.isValid() && validationResult.getValidationErrors().size() > 0) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(validationResult.getValidationErrors().get(0));
+            };
+
+            mapper.writerWithDefaultPrettyPrinter().writeValue(new File(filePath.toString()), tokenMetadataMapping);
+            log.info("Starting push new file to origin remote");
+            Git git = Git.open(new File(gitForkRepoPath));
+            git.add().addFilepattern("mappings/" + tokenMetadataMapping.getSubject() + ".json").call();
+            git.commit().setMessage("Delete token by subject: " + tokenMetadataMapping.getSubject()).call();
+            TextProgressMonitor consoleProgressMonitor = new TextProgressMonitor(new PrintWriter(System.out));
+            Iterable<PushResult> pushResults = git.push().setProgressMonitor(consoleProgressMonitor).setCredentialsProvider(new UsernamePasswordCredentialsProvider(gitUsername, gitPersonalToken)).setRemote("origin").add(gitMainBranch).call();
+            boolean pushFailed = false;
+            for (final PushResult pushResult : pushResults) {
+                for (RemoteRefUpdate refUpdate : pushResult.getRemoteUpdates()) {
+                    if (refUpdate.getStatus() != RemoteRefUpdate.Status.OK) {
+                        // Push was rejected
+                        log.error("Push failed!" , pushResult.getMessages());
+                        pushFailed = true;
+                    }
+                }
+            }
+            if(pushFailed) {
+                log.error("Pushing failed!");
+                return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+            }
+            log.info("Pushing done!");
+            // Create pull request to merge repository with cardano foundation registry
+            ResponseEntity<Object> response;
+            HttpHeaders headers = new HttpHeaders();
+            headers.setAccept(Collections.singletonList( new MediaType("application", "vnd.github+json")));
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.add("Authorization", "token " + gitPersonalToken);
+            String pullBody = "{\"title\":\"Submit new changes for metadata\",\"body\":\"Please pull these awesome changes in!\",\"head\":\""+gitUsername+":master\",\"base\":\"master\"}";
+            Object object = mapper.readValue(pullBody, Object.class);
+            HttpEntity<Object> entity = new HttpEntity<>(object, headers);
+            try {
+                response = restTemplate.exchange(gitCardanoRepoUrl + "/pulls", HttpMethod.POST, entity, Object.class);
+                HttpStatus httpStatus = response.getStatusCode();
+                System.out.println(httpStatus.value());
+                if (httpStatus.value() == 201) {
+                    log.info("Create pull request successful!");
+                } else {
+                    log.info("Pull request already exsist!");
+                }
+                return new ResponseEntity<>(submitToken.getSubject(), HttpStatus.OK);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            log.error("Create pull request failed!");
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+            System.out.println(tokenMetadataMapping.getSubject());
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+        return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
     @Override

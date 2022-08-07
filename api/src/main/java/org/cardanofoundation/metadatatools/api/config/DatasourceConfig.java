@@ -1,6 +1,7 @@
 package org.cardanofoundation.metadatatools.api.config;
 
 import lombok.extern.log4j.Log4j2;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.jdbc.DataSourceBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -19,14 +20,19 @@ public class DatasourceConfig {
         ENVIRONMENT, AWS_SSM
     }
 
+    @Value("${dbUser}")
+    private String dbUser;
+    @Value("${dbSecret}")
+    private String dbSecret;
+
     private static final String DEFAULT_DB_DRIVER_NAME = "org.postgresql.Driver";
     private static final String DEFAULT_DB_URL = "jdbc:postgresql://localhost:5432/cf_metadata";
     private static final String DEFAULT_DB_CONNECTION_PARAMS_PROVIDER_TYPE = DatabaseConnectionParametersProviderType.ENVIRONMENT.name();
 
     private DatabaseConnectionParameters getConnectionParametersFromEnvironment() {
         final DatabaseConnectionParameters params = new DatabaseConnectionParameters();
-        params.setUsername(System.getProperty("dbUser"));
-        params.setPassword(System.getProperty("dbSecret"));
+        params.setUsername(dbUser);
+        params.setPassword(dbSecret);
         params.setDriverClassName(System.getProperty("dbDriverName", DEFAULT_DB_DRIVER_NAME));
         params.setUrl(System.getProperty("dbUrl", DEFAULT_DB_URL));
         return params;

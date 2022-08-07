@@ -37,6 +37,7 @@ public class MetadataApiController implements MetadataApi {
         final Map<String, TokenMetadata> metadata = new HashMap<>();
         final List<String> propertiesToExclude = properties.isEmpty() ? new ArrayList<>() : new ArrayList<>(MetadataQueryResult.DEFAULT_PROPERTY_NAMES);
         propertiesToExclude.removeAll(properties);
+
         for (final MetadataQueryResult metadataQueryResult : queryResults) {
             if (metadataQueryResult.getProperties() != null) {
                 try {
