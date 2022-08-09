@@ -41,7 +41,6 @@ public class SubmitToken {
     @Column(name = "url" , columnDefinition="TEXT")
     private String url;
     @Column(name = "policy" ,columnDefinition="TEXT")
-
     private String policy;
     @Column(name = "decimals")
     private Integer decimals;
@@ -52,7 +51,8 @@ public class SubmitToken {
     private String updatedBy;
     @Column(name = "status" )
     private String status;
-
+    @Column(name = "reject_url")
+    private String rejectUrl;
     @JsonIgnore
     @Type(type = "jsonb")
     @Column(name = "properties" , columnDefinition = "jsonb")
@@ -187,5 +187,13 @@ public class SubmitToken {
 
     public void setProperties(TokenMetadata properties) {
         this.properties = properties;
+    }
+
+    public String getRejectUrl() {
+        return rejectUrl;
+    }
+
+    public void setRejectUrl(String rejectUrl) {
+        this.rejectUrl = rejectUrl;
     }
 }

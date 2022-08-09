@@ -1,5 +1,6 @@
 package org.cardanofoundation.metadatatools.api.controller;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.log4j.Log4j2;
 import org.cardanofoundation.metadatatools.api.model.data.MetadataQueryResult;
@@ -14,6 +15,7 @@ import org.cardanofoundation.metadatatools.core.crypto.keys.KeyType;
 import org.cardanofoundation.metadatatools.core.model.KeyTextEnvelope;
 import org.cardanofoundation.metadatatools.core.model.PolicyScript;
 import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.api.Status;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.lib.TextProgressMonitor;
 import org.eclipse.jgit.transport.PushResult;
@@ -405,7 +407,12 @@ public class V2ApiController implements V2Api {
 
     @Override
     public ResponseEntity<List<SubmitToken>> getSubjectsByWallet(String updatedBy) {
-        return ResponseEntity.status(HttpStatus.OK).body(submitTokenRepo.findAllByUpdatedBy(updatedBy));
+        try {
+            return ResponseEntity.status(HttpStatus.OK).body(submitTokenRepo.findAllByUpdatedBy(updatedBy));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
     @Override
@@ -438,7 +445,7 @@ public class V2ApiController implements V2Api {
         } else if (submitToken.getDecimals() != null) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Decimals must be between 0 and 255!");
         }
-        if(submitToken.getUrl() != null && !submitToken.getUrl().isEmpty() && submitToken.getUrl().matches("^https://")) {
+        if(submitToken.getUrl() != null && !submitToken.getUrl().isEmpty() && submitToken.getUrl().matches("^https://.*")) {
             tokenMetadataSubmit.addProperty("url", new org.cardanofoundation.metadatatools.core.model.TokenMetadataProperty<>(submitToken.getUrl(), 0, null));
         } else if (submitToken.getUrl() != null && !submitToken.getUrl().isEmpty()) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Url must be start with https://");
@@ -489,6 +496,11 @@ public class V2ApiController implements V2Api {
                 log.info("Starting push new file to origin remote");
                 Git git = Git.open(new File(gitForkRepoPath));
                 // Repository exsistRepo = git.getRepository();
+                Status status = git.status().call();
+                for (String s : status.getUncommittedChanges()){
+                    log.info("Deleted file = " + s);
+                    git.rm().addFilepattern(s).call();
+                }
                 git.add().addFilepattern("mappings/" + tokenMetadataSubmit.getSubject() + ".json").call();
                 git.commit().setMessage("Add new metadata json file: " + tokenMetadataSubmit.getSubject()).call();
                 TextProgressMonitor consoleProgressMonitor = new TextProgressMonitor(new PrintWriter(System.out));
@@ -510,43 +522,37 @@ public class V2ApiController implements V2Api {
                 log.info("Pushing done!");
                 // 2.3 Using github account to create personal token and use for create pull request
                 // Create pull request to merge repository with cardano foundation registry
-                ResponseEntity<Object> response;
                 HttpHeaders headers = new HttpHeaders();
                 headers.setAccept(Collections.singletonList( new MediaType("application", "vnd.github+json")));
                 headers.setContentType(MediaType.APPLICATION_JSON);
                 headers.add("Authorization", "token " + gitPersonalToken);
-                String pullBody = "{\"title\":\"Submit new changes for metadata\",\"body\":\"Please pull these awesome changes in!\",\"head\":\""+gitUsername+":master\",\"base\":\"master\"}";
-                Object object = mapper.readValue(pullBody, Object.class);
-                HttpEntity<Object> entity = new HttpEntity<>(object, headers);
                 // Save submitted token
                 submitToken.setSubject(tokenMetadataSubmit.getSubject());
                 submitToken.setPolicy(tokenMetadataSubmit.getPolicy());
-                submitToken.setStatus("to_approve");
+                submitToken.setStatus("pending");
                 submitToken.setUpdated(new Date());
                 String tokenMetadataSubmitStr = mapper.writeValueAsString(tokenMetadataSubmit);
                 submitToken.setProperties(mapper.readValue(tokenMetadataSubmitStr , TokenMetadata.class));
                 try {
-                    response = restTemplate.exchange(gitCardanoRepoUrl + "/pulls", HttpMethod.POST, entity, Object.class);
-                    HttpStatus httpStatus = response.getStatusCode();
-                    System.out.println(httpStatus.value());
-                    if (httpStatus.value() == 201) {
-                        log.info("Create pull request successful!");
-                    } else {
-                        log.info("Pull request already exsist!");
+                    if(checkPullRequestExists(headers)) {
+                        log.info("Pull request already exists!");
+                        submitTokenRepo.save(submitToken);
+                        return new ResponseEntity<>(submitToken.getSubject(), HttpStatus.OK);
                     }
-                    submitTokenRepo.save(submitToken);
-                    return new ResponseEntity<>(submitToken.getSubject(), HttpStatus.OK);
+                    if (createPullRequest(headers)) {
+                        log.info("Create pull request successful!");
+                        submitTokenRepo.save(submitToken);
+                        return new ResponseEntity<>(submitToken.getSubject(), HttpStatus.OK);
+                    }
+                    log.error("Create pull request failed!");
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
-
-                log.error("Create pull request failed!");
-                return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
             } catch (GitAPIException | IOException ex) {
                 log.error("Failed!" , ex);
             }
         } else {
-            log.error("Empty mappings folder from Git repositoty !");
+            log.error("Empty mappings folder from Git repository !");
         }
         return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
     }
@@ -609,7 +615,7 @@ public class V2ApiController implements V2Api {
     @Override
     public ResponseEntity<?> deleteSubjectV2(SubmitToken submitToken) throws IOException {
         // 1. Check token exists by the wallet address - updated by
-        SubmitToken submitTokenExists = submitTokenRepo.findBySubjectAndUpdatedBy(submitToken.getSubject(), "test");
+        SubmitToken submitTokenExists = submitTokenRepo.findBySubjectAndUpdatedBy(submitToken.getSubject(), submitToken.getUpdatedBy());
         // 1. Check token metadata json file in mappings folder
         StringBuilder filePath = new StringBuilder(gitForkRepoPath + "/mappings/" + submitToken.getSubject() + ".json");
         File jsonFile = new File(filePath.toString());
@@ -618,6 +624,10 @@ public class V2ApiController implements V2Api {
         }
         try {
             org.cardanofoundation.metadatatools.core.model.TokenMetadata tokenMetadataMapping = mapper.readValue(new File(filePath.toString()), org.cardanofoundation.metadatatools.core.model.TokenMetadata.class);
+            // Check if token was deleted before
+            if (tokenMetadataMapping.getProperties().get("name").equals("VOID") && tokenMetadataMapping.getProperties().get("description").equals("VOID")){
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Token under delete processing !");
+            }
             KeyTextEnvelope signingEnvelope;
             if (submitToken.getPolicySkey() != null) {
                 try {
@@ -635,7 +645,6 @@ public class V2ApiController implements V2Api {
             tokenMetadataMapping.addProperty("description", new org.cardanofoundation.metadatatools.core.model.TokenMetadataProperty<>("VOID", tokenMetadataMapping.getProperties().get("description").getSequenceNumber() + 1, null));
             TokenMetadataCreator.signTokenMetadata(tokenMetadataMapping, signingKey );
             String newPublicKey = tokenMetadataMapping.getProperties().get("name").getSignatures().get(0).getPublicKey();
-
             if(!oldPublicKey.equals(newPublicKey)) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Incorrect policy.skey for this token!");
             }
@@ -669,35 +678,57 @@ public class V2ApiController implements V2Api {
             }
             log.info("Pushing done!");
             // Create pull request to merge repository with cardano foundation registry
-            ResponseEntity<Object> response;
             HttpHeaders headers = new HttpHeaders();
             headers.setAccept(Collections.singletonList( new MediaType("application", "vnd.github+json")));
             headers.setContentType(MediaType.APPLICATION_JSON);
             headers.add("Authorization", "token " + gitPersonalToken);
-            String pullBody = "{\"title\":\"Submit new changes for metadata\",\"body\":\"Please pull these awesome changes in!\",\"head\":\""+gitUsername+":master\",\"base\":\"master\"}";
-            Object object = mapper.readValue(pullBody, Object.class);
-            HttpEntity<Object> entity = new HttpEntity<>(object, headers);
             try {
-                response = restTemplate.exchange(gitCardanoRepoUrl + "/pulls", HttpMethod.POST, entity, Object.class);
-                HttpStatus httpStatus = response.getStatusCode();
-                System.out.println(httpStatus.value());
-                if (httpStatus.value() == 201) {
-                    log.info("Create pull request successful!");
-                } else {
-                    log.info("Pull request already exsist!");
+                // check pull request exists
+                if(checkPullRequestExists(headers)) {
+                    log.info("Pull request already exists!");
+                    if (submitTokenExists.getStatus().equals("pending")) {
+                        submitTokenRepo.delete(submitTokenExists);
+                    }
+                    return new ResponseEntity<>(submitToken.getSubject(), HttpStatus.OK);
                 }
-                return new ResponseEntity<>(submitToken.getSubject(), HttpStatus.OK);
+                if (createPullRequest(headers)) {
+                    log.info("Create pull request successful!");
+                    if (submitTokenExists.getStatus().equals("pending")) {
+                        submitTokenRepo.delete(submitTokenExists);
+                    }
+                    return new ResponseEntity<>(submitToken.getSubject(), HttpStatus.OK);
+                }
+                log.error("Create pull request failed!");
             } catch (Exception e) {
                 e.printStackTrace();
             }
-            log.error("Create pull request failed!");
-            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
-            System.out.println(tokenMetadataMapping.getSubject());
         } catch (Exception e) {
             e.printStackTrace();
-            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
         return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    private boolean createPullRequest(HttpHeaders headers) throws JsonProcessingException {
+        try {
+            String pullBody = "{\"title\":\"Submit new changes for metadata\",\"body\":\"Please pull these awesome changes in!\",\"head\":\""+gitUsername+":master\",\"base\":\"master\"}";
+            Object object = mapper.readValue(pullBody, Object.class);
+            HttpEntity<Object> entity = new HttpEntity<>(object, headers);
+            ResponseEntity<Object> response = restTemplate.exchange(gitCardanoRepoUrl + "/pulls", HttpMethod.POST, entity, Object.class);
+            HttpStatus httpStatus = response.getStatusCode();
+            if (httpStatus.value() == 201) {
+                return true;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false;
+    };
+    private boolean checkPullRequestExists(HttpHeaders headers) {
+        ResponseEntity<Object> response = restTemplate.exchange(gitCardanoRepoUrl + "/pulls?state=open&head="+gitUsername+":master", HttpMethod.GET, new HttpEntity<>(headers), Object.class);
+        if(((List<Object>) response.getBody()).size() > 0) {
+            return true;
+        }
+        return false;
     }
 
     @Override

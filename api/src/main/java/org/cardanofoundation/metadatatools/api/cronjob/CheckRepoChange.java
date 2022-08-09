@@ -1,13 +1,16 @@
 package org.cardanofoundation.metadatatools.api.cronjob;
 
 import antlr.Token;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.log4j.Log4j2;
+import org.cardanofoundation.metadatatools.api.model.data.PullRequestResponse;
 import org.cardanofoundation.metadatatools.api.model.data.SubmitToken;
 import org.cardanofoundation.metadatatools.api.model.rest.TokenMetadata;
 import org.cardanofoundation.metadatatools.api.repository.SubmitTokenRepo;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.PullResult;
+import org.eclipse.jgit.api.Status;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.diff.DiffEntry;
 import org.eclipse.jgit.lib.ObjectId;
@@ -17,15 +20,15 @@ import org.eclipse.jgit.lib.TextProgressMonitor;
 import org.eclipse.jgit.treewalk.CanonicalTreeParser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.*;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestTemplate;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -37,10 +40,30 @@ public class CheckRepoChange {
     private String gitLocalRepoPath;
     @Value("${git.repository.url}")
     private String gitRepoUrl;
+    @Value("${git.personal.token}")
+    private String gitPersonalToken;
+    @Value("${git.username}")
+    private String gitUsername;
+    @Value("${git.main.branch}")
+    private String gitMainBranch;
+    @Value("${git.cardano.repository.url}")
+    private String gitCardanoApiUrl;
+    @Value("${git.fork.repository.path}")
+    private String gitForkRepoPath;
+
+    private final ObjectMapper mapper = new ObjectMapper();
     @Autowired
     private SubmitTokenRepo submitTokenRepo;
 
-    @Scheduled(cron = "0 0/3 * * * *")
+    @Autowired
+    private RestTemplate restTemplate;
+
+    @Scheduled(cron = "0 0/1 * * * *")
+    private void cronJobFunc() throws IOException, GitAPIException {
+        checkRepoFunc();
+        checkRejectPRFunc();
+    }
+
     private void checkRepoFunc() throws IOException, GitAPIException {
         log.info("Current repo path: " + gitLocalRepoPath);
         File localRepoDir = new File(gitLocalRepoPath);
@@ -132,7 +155,8 @@ public class CheckRepoChange {
             } else {
                 log.error("Pull Failed!");
             }
-        } else {
+        }
+        else {
             // first time clone repo
             try {
                 log.info("\n>>> Cloning repository\n");
@@ -165,6 +189,69 @@ public class CheckRepoChange {
             } catch (GitAPIException ex) {
                 log.error("Clone Failed!" , ex);
             }
+        }
+    }
+    private void checkRejectPRFunc() throws IOException, GitAPIException {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setAccept(Collections.singletonList( new MediaType("application", "vnd.github+json")));
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.add("Authorization", "token " + gitPersonalToken);
+
+        ResponseEntity<Object> getListPR = restTemplate.exchange(gitCardanoApiUrl + "/pulls?state=closed&head="+gitUsername+":"+gitMainBranch, HttpMethod.GET, new HttpEntity<>(headers), Object.class);
+        List<Map<String, Object>> listPR = (List<Map<String, Object>>) getListPR.getBody();
+        String mappingsPath = "mappings/(.*)\\.json";
+        Pattern pattern = Pattern.compile(mappingsPath);
+        if(listPR != null && listPR.size() > 0) {
+            log.info("There are " + listPR.size() + " pull request has been closed!");
+            List<SubmitToken> submitTokens = new ArrayList<>();
+            listPR.forEach(pr -> {
+                if (pr.get("merged_at") == null) {
+                    ResponseEntity<Object> getListFile = restTemplate.exchange(gitCardanoApiUrl + "/pulls/" + pr.get("number") + "/files", HttpMethod.GET, new HttpEntity<>(headers), Object.class);
+                    List<Map<String, Object>> listFile = (List<Map<String, Object>>) getListFile.getBody();
+
+                    if(listFile != null && listFile.size() > 0) {
+                        listFile.forEach(f -> {
+                            Matcher matcher = pattern.matcher(f.get("filename").toString());
+                            if(matcher.matches()) {
+                                SubmitToken tokenExists = submitTokenRepo.findBySubject(matcher.group(1));
+                                if (tokenExists != null && tokenExists.getStatus().equals("pending")){
+                                    log.info("Token with subject " + tokenExists.getSubject() + " has been rejected!");
+                                    tokenExists.setStatus("disapproved");
+                                    Map<String, Object> links = (Map<String, Object>) pr.get("_links");
+                                    Map<String, Object> html = (Map<String, Object>) links.get("html");
+                                    String href = html.get("href").toString();
+                                    tokenExists.setRejectUrl(href);
+                                    tokenExists.setUpdated(new Date());
+                                    submitTokens.add(tokenExists);
+                                    deleteFile(gitForkRepoPath + "/" + f.get("filename").toString());
+                                }
+                            }
+                        });
+                    }
+                }
+            });
+            if (submitTokens.size() > 0) {
+                try {
+                    log.info("Updated all disapproved token metadata!");
+                    submitTokenRepo.saveAll(submitTokens);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    log.error("Token metadata update failed!");
+                }
+
+            }
+        }
+    }
+    private void deleteFile(String filePath){
+        try {
+            File file = new File(filePath);
+            if (file.delete()) {
+                log.info(file.getName() + " is deleted!");
+            } else {
+                log.error("Sorry, unable to delete the file.");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
     public SubmitToken convertToSubmitToken(TokenMetadata tokenMetadata) {
