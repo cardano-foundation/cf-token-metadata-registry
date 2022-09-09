@@ -46,7 +46,19 @@
         <name>Cardano Foundation</name>
         <url>https://cardanofoundation.org</url>
     </organization>
-
+    <repositories>
+        <repository>
+            <id>central</id>
+            <url>https://repo1.maven.org/maven2/</url>
+        </repository>
+        <repository>
+            <id>github</id>
+            <url>https://maven.pkg.github.com/cardano-foundation/cf-metadata-core</url>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
     <dependencies>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -94,6 +106,7 @@
         <dependency>
             <groupId>org.cardanofoundation.metadatatools</groupId>
             <artifactId>core</artifactId>
+            <version>1.0.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>software.amazon.awssdk</groupId>
