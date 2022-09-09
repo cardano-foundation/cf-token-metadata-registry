@@ -51,7 +51,6 @@ public class CheckRepoChange {
     @Value("${git.fork.repository.path}")
     private String gitForkRepoPath;
 
-    private final ObjectMapper mapper = new ObjectMapper();
     @Autowired
     private SubmitTokenRepo submitTokenRepo;
 

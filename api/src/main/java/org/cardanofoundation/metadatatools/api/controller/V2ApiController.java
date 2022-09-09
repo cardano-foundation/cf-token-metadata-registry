@@ -53,8 +53,6 @@ public class V2ApiController implements V2Api {
 
     @Value("${git.fork.repository.path}")
     private String gitForkRepoPath;
-    @Value("${git.personal.repository.url}")
-    private String gitPersonalRepoUrl;
     @Value("${git.personal.token}")
     private String gitPersonalToken;
     @Value("${git.username}")
