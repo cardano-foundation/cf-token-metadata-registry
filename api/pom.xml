@@ -90,6 +90,7 @@
             <artifactId>h2</artifactId>
             <scope>test</scope>
         </dependency>
+<!--        internal lib-->
         <dependency>
             <groupId>org.cardanofoundation.metadatatools</groupId>
             <artifactId>core</artifactId>
