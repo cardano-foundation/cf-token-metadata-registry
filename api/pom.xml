@@ -95,7 +95,7 @@
             <artifactId>core</artifactId>
             <version>1.0.0-SNAPSHOT</version>
             <scope>system</scope>
-            <systemPath>${basedir}/lib/core-1.0.0-SNAPSHOT.jar</systemPath>
+            <systemPath>${basedir}/internal-lib/core-1.0.0-SNAPSHOT.jar</systemPath>
         </dependency>
         <dependency>
             <groupId>software.amazon.awssdk</groupId>
