@@ -46,7 +46,7 @@ public class CheckRepoChange {
     private String gitUsername;
     @Value("${git.main.branch}")
     private String gitMainBranch;
-    @Value("${git.cardano.repository.url}")
+    @Value("${git.cardano.repository.api.url}")
     private String gitCardanoApiUrl;
     @Value("${git.fork.repository.path}")
     private String gitForkRepoPath;
