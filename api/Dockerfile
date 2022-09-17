@@ -1,3 +1,4 @@
+
 FROM --platform=linux/arm64 arm64v8/openjdk:18-jdk-slim-bullseye
 
 WORKDIR /cf-metadata-api/
