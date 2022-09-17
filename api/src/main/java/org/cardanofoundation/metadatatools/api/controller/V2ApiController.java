@@ -480,8 +480,78 @@ public class V2ApiController implements V2Api {
         // 2.1.1 First we need have to Fork Cardano Token Registry Repository to a github account, maybe set in config
         // 2.1.2 Clone repo to specific config folder if it is first time
         File localRepoDir = new File(gitForkRepoPath + "/mappings");
-        return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         // Repository must be cloned before
+        if(localRepoDir.exists()) {
+            log.info("Exist local repo");
+            try {
+                // validate metadata
+                // 2.2 Create json file and move to mappings folder
+                //save new file to mappings folder
+                StringBuilder filePath = new StringBuilder(gitForkRepoPath + "/mappings/" + tokenMetadataSubmit.getSubject() + ".json");
+                mapper.writerWithDefaultPrettyPrinter().writeValue(new File(filePath.toString()), tokenMetadataSubmit);
+                // Push to account github repository
+                log.info("Starting push new file to origin remote");
+                Git git = Git.open(new File(gitForkRepoPath));
+                // Repository exsistRepo = git.getRepository();
+                Status status = git.status().call();
+                for (String s : status.getUncommittedChanges()){
+                    log.info("Deleted file = " + s);
+                    git.rm().addFilepattern(s).call();
+                }
+                git.add().addFilepattern("mappings/" + tokenMetadataSubmit.getSubject() + ".json").call();
+                git.commit().setMessage("Add new metadata json file: " + tokenMetadataSubmit.getSubject()).call();
+                TextProgressMonitor consoleProgressMonitor = new TextProgressMonitor(new PrintWriter(System.out));
+                Iterable<PushResult> pushResults = git.push().setProgressMonitor(consoleProgressMonitor).setCredentialsProvider(new UsernamePasswordCredentialsProvider(gitUsername, gitPersonalToken)).setRemote("origin").add(gitMainBranch).call();
+                boolean pushFailed = false;
+                for (final PushResult pushResult : pushResults) {
+                    for (RemoteRefUpdate refUpdate : pushResult.getRemoteUpdates()) {
+                        if (refUpdate.getStatus() != RemoteRefUpdate.Status.OK) {
+                            // Push was rejected
+                            log.error("Push failed!" , pushResult.getMessages());
+                            pushFailed = true;
+                        }
+                    }
+                }
+                if(pushFailed) {
+                    log.error("Pushing failed!");
+                    return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+                }
+                log.info("Pushing done!");
+                // 2.3 Using github account to create personal token and use for create pull request
+                // Create pull request to merge repository with cardano foundation registry
+                HttpHeaders headers = new HttpHeaders();
+                headers.setAccept(Collections.singletonList( new MediaType("application", "vnd.github+json")));
+                headers.setContentType(MediaType.APPLICATION_JSON);
+                headers.add("Authorization", "token " + gitPersonalToken);
+                // Save submitted token
+                submitToken.setSubject(tokenMetadataSubmit.getSubject());
+                submitToken.setPolicy(tokenMetadataSubmit.getPolicy());
+                submitToken.setStatus("pending");
+                submitToken.setUpdated(new Date());
+                String tokenMetadataSubmitStr = mapper.writeValueAsString(tokenMetadataSubmit);
+                submitToken.setProperties(mapper.readValue(tokenMetadataSubmitStr , TokenMetadata.class));
+                try {
+                    if(checkPullRequestExists(headers)) {
+                        log.info("Pull request already exists!");
+                        submitTokenRepo.save(submitToken);
+                        return new ResponseEntity<>(submitToken.getSubject(), HttpStatus.OK);
+                    }
+                    if (createPullRequest(headers)) {
+                        log.info("Create pull request successful!");
+                        submitTokenRepo.save(submitToken);
+                        return new ResponseEntity<>(submitToken.getSubject(), HttpStatus.OK);
+                    }
+                    log.error("Create pull request failed!");
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            } catch (GitAPIException | IOException ex) {
+                log.error("Failed!" , ex);
+            }
+        } else {
+            log.error("Empty mappings folder from Git repository !");
+        }
+        return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
     @Override
