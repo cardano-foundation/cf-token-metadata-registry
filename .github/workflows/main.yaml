@@ -38,6 +38,7 @@ jobs:
       - name: Debug
         run: |
           ls -la
+          printenv
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
