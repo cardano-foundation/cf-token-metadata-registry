@@ -1,4 +1,4 @@
-name: Feature branch
+name: Staging branch
 
 on:
   push:
@@ -29,6 +29,11 @@ jobs:
         env:
           GH_PACKAGES_USER_NAME: ${{ secrets.GH_PACKAGES_USER_NAME }}
           GH_PACKAGES_ACCESS_TOKEN: ${{ secrets.GH_PACKAGES_ACCESS_TOKEN }}
+
+      - name: Debug
+        run: |
+          ls -la
+          printenv
 
       - name: Test
         run: mvn -s $GITHUB_WORKSPACE/.github/workflows/maven-settings.xml --batch-mode --update-snapshots clean verify --file ./pom.xml
