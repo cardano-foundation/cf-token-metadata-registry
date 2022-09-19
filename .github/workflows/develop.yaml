@@ -51,6 +51,7 @@ jobs:
       - name: Build and Push
         run: |
           aws ecr get-login-password --region eu-west-1 | docker login --username AWS --password-stdin 747042292633.dkr.ecr.eu-west-1.amazonaws.com
+          cd ./api
           docker build -t dev-cf-metadata-tools-server .
           docker tag dev-cf-metadata-tools-server:latest 747042292633.dkr.ecr.eu-west-1.amazonaws.com/dev-cf-metadata-tools-server:latest
           docker push 747042292633.dkr.ecr.eu-west-1.amazonaws.com/dev-cf-metadata-tools-server:latest
