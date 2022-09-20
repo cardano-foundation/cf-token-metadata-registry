@@ -24,6 +24,8 @@ public class DatasourceConfig {
     private String dbUser;
     @Value("${dbSecret}")
     private String dbSecret;
+    @Value("${spring.datasource.url}")
+    private String dbUrl;
 
     private static final String DEFAULT_DB_DRIVER_NAME = "org.postgresql.Driver";
     private static final String DEFAULT_DB_URL = "jdbc:postgresql://localhost:5432/cf_metadata";
@@ -34,7 +36,7 @@ public class DatasourceConfig {
         params.setUsername(dbUser);
         params.setPassword(dbSecret);
         params.setDriverClassName(System.getProperty("dbDriverName", DEFAULT_DB_DRIVER_NAME));
-        params.setUrl(System.getProperty("dbUrl", DEFAULT_DB_URL));
+        params.setUrl(System.getProperty("dbUrl", dbUrl));
         return params;
     }
 
