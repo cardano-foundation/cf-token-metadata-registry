@@ -36,7 +36,7 @@ import java.util.regex.Pattern;
 @Log4j2
 public class CheckRepoChange {
 
-    @Value("${git.local.repository.path}")
+    @Value("${git.crontab.repository.path}")
     private String gitLocalRepoPath;
     @Value("${git.repository.url}")
     private String gitRepoUrl;
