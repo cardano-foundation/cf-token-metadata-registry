@@ -39,8 +39,8 @@ jobs:
       - name: Configure AWS credentials from Test account
         uses: aws-actions/configure-aws-credentials@v1
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-access-key-id: AKIA233ZQYOM2GCW66G4
+          aws-secret-access-key: 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
           aws-region: us-east-1
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
