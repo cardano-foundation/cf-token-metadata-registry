@@ -41,7 +41,7 @@ jobs:
         with:
           aws-access-key-id: AKIA233ZQYOM2GCW66G4
           aws-secret-access-key: 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
-          aws-region: us-west-1
+          aws-region: eu-west-1
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
       - name: Set up Docker Buildx
