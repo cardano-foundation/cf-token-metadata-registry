@@ -47,8 +47,10 @@ public class DatasourceConfig {
         System.out.println("rdsPasswordSsmParameterName: " + System.getProperty("rdsPasswordSsmParameterName"));
         System.out.println("rdsUrlSsmParameterName: " + System.getProperty("rdsUrlSsmParameterName"));
         System.out.println("rdsDriverClassNameSsmParameterName: " + System.getProperty("rdsDriverClassNameSsmParameterName"));
+        
         final Region region = Region.of(System.getProperty("region"));
         final DatabaseConnectionParameters params = new DatabaseConnectionParameters();
+
         params.setUsername(getEncryptedSsmParameter(System.getProperty("rdsUsernameSsmParameterName"), region));
         params.setPassword(getEncryptedSsmParameter(System.getProperty("rdsPasswordSsmParameterName"), region));
         params.setUrl(getEncryptedSsmParameter(System.getProperty("rdsUrlSsmParameterName"), region));
