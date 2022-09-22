@@ -20,7 +20,10 @@ jobs:
           cache: maven
 
       - name: Build
-        run: mvn -s $GITHUB_WORKSPACE/.github/workflows/maven-settings.xml --batch-mode --update-snapshots clean package --file ./pom.xml -DskipTests
+        run: |
+          echo $GH_PACKAGES_USER_NAME
+          echo $GH_PACKAGES_ACCESS_TOKEN
+          mvn -s $GITHUB_WORKSPACE/.github/workflows/maven-settings.xml --batch-mode --update-snapshots clean package --file ./pom.xml -DskipTests
         env:
           GH_PACKAGES_USER_NAME: ${{ secrets.GH_PACKAGES_USER_NAME }}
           GH_PACKAGES_ACCESS_TOKEN: ${{ secrets.GH_PACKAGES_ACCESS_TOKEN }}
@@ -52,6 +55,8 @@ jobs:
           GH_PACKAGES_USER_NAME: ${{ secrets.GH_PACKAGES_USER_NAME }}
           GH_PACKAGES_ACCESS_TOKEN: ${{ secrets.GH_PACKAGES_ACCESS_TOKEN }}
         run: |
+          echo $GH_PACKAGES_USER_NAME
+          echo $GH_PACKAGES_ACCESS_TOKEN
           aws ecr get-login-password --region eu-west-1 | docker login --username AWS --password-stdin 747042292633.dkr.ecr.eu-west-1.amazonaws.com
           cd ./api
           docker build -t dev-cf-metadata-tools-server .

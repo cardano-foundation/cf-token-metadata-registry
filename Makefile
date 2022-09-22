@@ -4,4 +4,4 @@ push:
 	docker tag dev-cf-metadata-tools-server:latest 747042292633.dkr.ecr.eu-west-1.amazonaws.com/dev-cf-metadata-tools-server:latest
 	docker push 747042292633.dkr.ecr.eu-west-1.amazonaws.com/dev-cf-metadata-tools-server:latest
 	aws ecs update-service --force-new-deployment --cluster "dev-cf-metadata-tools" --service "dev-cf-metadata-tools-server" --profile AdministratorAccess
-	aws ecs execute-command --cluster "dev-cf-metadata-tools" --task 59f7c98e12744a9bab342b23273f3b7d --container server --interactive --command "bash" --profile AdministratorAccess
+	aws ecs execute-command --cluster "dev-cf-metadata-tools" --task 7360981b033f4e22bc80265206dec6ef --container server --interactive --command "bash" --profile AdministratorAccess
