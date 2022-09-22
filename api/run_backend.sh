@@ -7,4 +7,3 @@ then
 else
   exec java -jar --enable-preview -DdbUrl="${DB_URL}" -DdbUser="${DB_USER}" -DdbSecret="${DB_SECRET}" -DdbDriverName="${DB_DRIVER_CLASS_NAME}" ./app.jar
 fi
-
