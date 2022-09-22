@@ -1,6 +1,7 @@
 #!/bin/bash
 printenv
 
+echo "Checking config 1"
 echo AWS_SSH
 echo $DB_CONNECTION_PARAMS_PROVIDER_TYPE
 echo $REGION
@@ -8,6 +9,7 @@ echo $RDS_USERNAME_SSM_PARAMETER_NAME
 echo $RDS_PASSWORD_SSM_PARAMETER_NAME
 echo $RDS_URL_SSM_PARAMETER_NAME
 
+echo "Checking config 2"
 echo NOT AWS_SSH
 echo $DB_URL
 echo $DB_USER
