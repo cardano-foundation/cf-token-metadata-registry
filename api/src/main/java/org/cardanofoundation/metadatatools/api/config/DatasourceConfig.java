@@ -53,6 +53,7 @@ public class DatasourceConfig {
     @Bean
     public DataSource getDataSource() {
         final DatabaseConnectionParametersProviderType secretsProviderType = DatabaseConnectionParametersProviderType.valueOf(System.getProperty("dbConnectionParamsProviderType", DEFAULT_DB_CONNECTION_PARAMS_PROVIDER_TYPE));
+        System.out.println("secretsProviderType: " + secretsProviderType);
         final DatabaseConnectionParameters databaseConnectionParams = switch (secretsProviderType) {
             case ENVIRONMENT -> getConnectionParametersFromEnvironment();
             case AWS_SSM -> getConnectionParametersFromAwsSsm();
