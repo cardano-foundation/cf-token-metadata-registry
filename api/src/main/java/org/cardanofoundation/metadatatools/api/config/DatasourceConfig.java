@@ -33,6 +33,11 @@ public class DatasourceConfig {
 
     private DatabaseConnectionParameters getConnectionParametersFromEnvironment() {
         final DatabaseConnectionParameters params = new DatabaseConnectionParameters();
+        System.out.println("getConnectionParametersFromEnvironment");
+        System.out.println("dbUser: " + System.getProperty("dbUser"));
+        System.out.println("dbSecret: " + System.getProperty("dbSecret"));
+        System.out.println("dbDriverName: " + System.getProperty("DEFAULT_DB_DRIVER_NAME"));
+        System.out.println("dbUrl: " + System.getProperty("dbUrl"));
         params.setUsername(dbUser);
         params.setPassword(dbSecret);
         params.setDriverClassName(System.getProperty("dbDriverName", DEFAULT_DB_DRIVER_NAME));
