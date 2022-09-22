@@ -36,18 +36,11 @@ public class DatasourceConfig {
         params.setUsername(dbUser);
         params.setPassword(dbSecret);
         params.setDriverClassName(System.getProperty("dbDriverName", DEFAULT_DB_DRIVER_NAME));
-        params.setUrl(System.getProperty("dbUrl", dbUrl));
+        params.setUrl(dbUrl);
         return params;
     }
 
     private DatabaseConnectionParameters getConnectionParametersFromAwsSsm() {
-        System.out.println("getConnectionParametersFromAwsSsm");
-        System.out.println("Region: " + System.getProperty("region"));
-        System.out.println("rdsUsernameSsmParameterName: " + System.getProperty("rdsUsernameSsmParameterName"));
-        System.out.println("rdsPasswordSsmParameterName: " + System.getProperty("rdsPasswordSsmParameterName"));
-        System.out.println("rdsUrlSsmParameterName: " + System.getProperty("rdsUrlSsmParameterName"));
-        System.out.println("rdsDriverClassNameSsmParameterName: " + System.getProperty("rdsDriverClassNameSsmParameterName"));
-        
         final Region region = Region.of(System.getProperty("region"));
         final DatabaseConnectionParameters params = new DatabaseConnectionParameters();
 
@@ -61,7 +54,6 @@ public class DatasourceConfig {
     @Bean
     public DataSource getDataSource() {
         final DatabaseConnectionParametersProviderType secretsProviderType = DatabaseConnectionParametersProviderType.valueOf(System.getProperty("dbConnectionParamsProviderType", DEFAULT_DB_CONNECTION_PARAMS_PROVIDER_TYPE));
-        System.out.println("secretsProviderType: " + secretsProviderType);
         final DatabaseConnectionParameters databaseConnectionParams = switch (secretsProviderType) {
             case ENVIRONMENT -> getConnectionParametersFromEnvironment();
             case AWS_SSM -> getConnectionParametersFromAwsSsm();

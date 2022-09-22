@@ -75,8 +75,6 @@
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
-            <version>42.5.0</version>
-            <scope>compile</scope>
         </dependency>
         <!-- jpa, crud repository -->
         <dependency>
@@ -98,8 +96,8 @@
             <groupId>org.cardanofoundation.metadatatools</groupId>
             <artifactId>core</artifactId>
             <version>1.0.0-SNAPSHOT</version>
-            <scope>system</scope>
-            <systemPath>${basedir}/internal-lib/core-1.0.0-SNAPSHOT.jar</systemPath>
+<!--            <scope>system</scope>-->
+<!--            <systemPath>${basedir}/internal-lib/core-1.0.0-SNAPSHOT.jar</systemPath>-->
         </dependency>
         <dependency>
             <groupId>software.amazon.awssdk</groupId>
