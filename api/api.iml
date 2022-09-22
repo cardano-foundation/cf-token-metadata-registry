@@ -86,7 +86,7 @@
     <orderEntry type="library" name="Maven: io.github.classgraph:classgraph:4.8.138" level="project" />
     <orderEntry type="library" name="Maven: io.swagger.core.v3:swagger-annotations:2.1.13" level="project" />
     <orderEntry type="library" name="Maven: javax.validation:validation-api:2.0.1.Final" level="project" />
-    <orderEntry type="library" name="Maven: org.postgresql:postgresql:42.5.0" level="project" />
+    <orderEntry type="library" name="Maven: org.postgresql:postgresql:42.3.5" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Maven: org.checkerframework:checker-qual:3.5.0" level="project" />
     <orderEntry type="library" name="Maven: org.springframework.boot:spring-boot-starter-data-jpa:2.6.8" level="project" />
     <orderEntry type="library" name="Maven: org.springframework.boot:spring-boot-starter-aop:2.6.8" level="project" />
