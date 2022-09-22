@@ -7,6 +7,8 @@ on:
       - "master"
       - "release*"
       - "badges"
+      - "staging"
+      - "develop"
   pull_request:
   workflow_dispatch:
 
