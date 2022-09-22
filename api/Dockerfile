@@ -1,5 +1,4 @@
-
-FROM --platform=linux/arm64 arm64v8/openjdk:18-jdk-slim-bullseye
+FROM openjdk:18-jdk-slim as runner
 
 WORKDIR /cf-metadata-api/
 
@@ -12,4 +11,3 @@ COPY ${JAR_FILE} /cf-metadata-api/app.jar
 
 COPY run_backend.sh /cf-metadata-api/run_backend.sh
 
-ENTRYPOINT ["/bin/sh", "/cf-metadata-api/run_backend.sh"]
