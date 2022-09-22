@@ -57,7 +57,7 @@ public class CheckRepoChange {
     @Autowired
     private RestTemplate restTemplate;
 
-    @Scheduled(cron = "0 0/1 * * * *")
+    @Scheduled(cron = "0 0/5 * * * *")
     private void cronJobFunc() throws IOException, GitAPIException {
         checkRepoFunc();
         checkRejectPRFunc();
@@ -168,9 +168,11 @@ public class CheckRepoChange {
                     List<SubmitToken> submitTokensClonedList = new ArrayList<>();
                     for (File jsonFile : localRepoDir.listFiles()){
                         try {
+
                             tokenMetadataMapping = mapper.readValue(jsonFile, TokenMetadata.class);
                             submitTokensClonedList.add(convertToSubmitToken(tokenMetadataMapping));
                         } catch (Exception ex) {
+                            System.out.println(jsonFile);
                             log.error("Parse failed, maybe incorrect file input!" , ex);
                             continue;
                         }
