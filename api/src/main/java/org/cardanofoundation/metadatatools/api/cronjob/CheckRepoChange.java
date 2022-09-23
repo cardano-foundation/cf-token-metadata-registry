@@ -57,7 +57,7 @@ public class CheckRepoChange {
     @Autowired
     private RestTemplate restTemplate;
 
-    @Scheduled(cron = "0 0/5 * * * *")
+    @Scheduled(cron = "0 0/10 * * * *")
     private void cronJobFunc() throws IOException, GitAPIException {
         checkRepoFunc();
         checkRejectPRFunc();
