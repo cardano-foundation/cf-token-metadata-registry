@@ -20,7 +20,10 @@ jobs:
           cache: maven
 
       - name: Build
-        run: mvn -s $GITHUB_WORKSPACE/.github/workflows/maven-settings.xml --batch-mode --update-snapshots clean package --file ./pom.xml -DskipTests
+        run: |
+          export GH_PACKAGES_USER_NAME=${{ secrets.GH_PACKAGES_USER_NAME }}
+          export GH_PACKAGES_ACCESS_TOKEN=${{ secrets.GH_PACKAGES_ACCESS_TOKEN }}
+          mvn -s $GITHUB_WORKSPACE/.github/workflows/maven-settings.xml --batch-mode --update-snapshots clean package --file ./pom.xml -DskipTests
         env:
           GH_PACKAGES_USER_NAME: ${{ secrets.GH_PACKAGES_USER_NAME }}
           GH_PACKAGES_ACCESS_TOKEN: ${{ secrets.GH_PACKAGES_ACCESS_TOKEN }}
