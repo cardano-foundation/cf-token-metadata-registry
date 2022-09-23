@@ -226,8 +226,9 @@ public class CheckRepoChange {
                                     String href = html.get("href").toString();
                                     tokenExists.setRejectUrl(href);
                                     tokenExists.setUpdated(new Date());
-                                    submitTokens.add(tokenExists);
-                                    deleteFile(gitForkRepoPath + "/" + f.get("filename").toString());
+                                    if (deleteFile(gitForkRepoPath + "/" + f.get("filename").toString())){
+                                        submitTokens.add(tokenExists);
+                                    };
                                 }
                             }
                         });
@@ -246,17 +247,19 @@ public class CheckRepoChange {
             }
         }
     }
-    private void deleteFile(String filePath){
+    private boolean deleteFile(String filePath){
         try {
             File file = new File(filePath);
             if (file.delete()) {
                 log.info(file.getName() + " is deleted!");
+                return true;
             } else {
                 log.error("Sorry, unable to delete the file.");
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
+        return false;
     }
     public SubmitToken convertToSubmitToken(TokenMetadata tokenMetadata) {
         SubmitToken submitToken = new SubmitToken();

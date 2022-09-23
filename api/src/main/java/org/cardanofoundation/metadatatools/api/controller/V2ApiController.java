@@ -487,7 +487,7 @@ public class V2ApiController implements V2Api {
         File localRepoDir = new File(gitForkRepoPath);
         // Repository must be cloned before
         TextProgressMonitor consoleProgressMonitor = new TextProgressMonitor(new PrintWriter(System.out));
-        if(!localRepoDir.exists()) {
+        if(!localRepoDir.exists() || !(new File(gitForkRepoPath + "/mappings")).exists()) {
             if (!localRepoDir.exists()){
                 localRepoDir.mkdir();
             }

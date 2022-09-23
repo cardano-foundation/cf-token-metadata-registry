@@ -67,3 +67,16 @@ Authorization: token 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
 #
 #
 #### ```
+
+# curl
+#  -X POST
+#  -H "Accept: application/vnd.github+json"
+#
+#  -H "Authorization: Bearer <YOUR-TOKEN>"
+#  https://api.github.com/repos/OWNER/REPO/forks
+POST https://api.github.com/repos/cardano-foundation/cardano-token-registry/forks
+Accept: application/vnd.github+json
+Authorization: Bearer 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
+
+###
+
