@@ -70,6 +70,9 @@ public class CheckRepoChange {
         if (!localRepoDir.exists()){
             localRepoDir.mkdir();
         }
+        log.info(localRepoDir.toString());
+        log.info(localRepoDir.getAbsolutePath());
+        log.info(localRepoDir.listFiles());
         TextProgressMonitor consoleProgressMonitor = new TextProgressMonitor(new PrintWriter(System.out));
         if(localRepoDir.listFiles().length > 0) {
             // was cloned before
