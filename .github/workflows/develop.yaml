@@ -48,10 +48,9 @@ jobs:
           aws ecr get-login-password --region eu-west-1 | docker login --username AWS --password-stdin 747042292633.dkr.ecr.eu-west-1.amazonaws.com
           cd ./api
           docker build \
-          --build-arg GH_PACKAGES_USER_NAME=$GH_PACKAGES_USER_NAME \
-          --build-arg GH_PACKAGES_ACCESS_TOKEN=$GH_PACKAGES_ACCESS_TOKEN \
-          --build-arg GH_PACKAGES_ACCESS_TOKEN_TEST=$GH_PACKAGES_ACCESS_TOKEN \
-          -t dev-cf-metadata-tools-server .
+            --build-arg GH_PACKAGES_USER_NAME=$GH_PACKAGES_USER_NAME \
+            --build-arg GH_PACKAGES_ACCESS_TOKEN=$GH_PACKAGES_ACCESS_TOKEN \
+            -t dev-cf-metadata-tools-server .
           docker tag dev-cf-metadata-tools-server:latest 747042292633.dkr.ecr.eu-west-1.amazonaws.com/dev-cf-metadata-tools-server:latest
           docker push 747042292633.dkr.ecr.eu-west-1.amazonaws.com/dev-cf-metadata-tools-server:latest
 
