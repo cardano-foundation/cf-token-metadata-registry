@@ -20,7 +20,10 @@ jobs:
           cache: maven
 
       - name: Build
-        run: mvn -s $GITHUB_WORKSPACE/.github/workflows/maven-settings.xml --batch-mode --update-snapshots clean package --file ./pom.xml -DskipTests
+        run: |
+          export GH_PACKAGES_USER_NAME=${{ secrets.GH_PACKAGES_USER_NAME }}
+          export GH_PACKAGES_ACCESS_TOKEN=${{ secrets.GH_PACKAGES_ACCESS_TOKEN }}
+          mvn -s $GITHUB_WORKSPACE/.github/workflows/maven-settings.xml --batch-mode --update-snapshots clean package --file ./pom.xml -DskipTests
         env:
           GH_PACKAGES_USER_NAME: ${{ secrets.GH_PACKAGES_USER_NAME }}
           GH_PACKAGES_ACCESS_TOKEN: ${{ secrets.GH_PACKAGES_ACCESS_TOKEN }}
@@ -31,8 +34,8 @@ jobs:
       - name: Configure AWS credentials from Test account
         uses: aws-actions/configure-aws-credentials@v1
         with:
-          aws-access-key-id: AKIA233ZQYOM2GCW66G4 # TODO: add to  secrets
-          aws-secret-access-key: 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 # TODO: add to  secrets
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: eu-west-1
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
@@ -44,14 +47,12 @@ jobs:
           GH_PACKAGES_USER_NAME: ${{ secrets.GH_PACKAGES_USER_NAME }}
           GH_PACKAGES_ACCESS_TOKEN: ${{ secrets.GH_PACKAGES_ACCESS_TOKEN }}
         run: |
-          printenv > ./api/.env
           aws ecr get-login-password --region eu-west-1 | docker login --username AWS --password-stdin 747042292633.dkr.ecr.eu-west-1.amazonaws.com
           cd ./api
           docker build \
-          --build-arg GH_PACKAGES_USER_NAME=$GH_PACKAGES_USER_NAME \
-          --build-arg GH_PACKAGES_ACCESS_TOKEN=$GH_PACKAGES_ACCESS_TOKEN \
-          --build-arg GH_PACKAGES_ACCESS_TOKEN_TEST=$GH_PACKAGES_ACCESS_TOKEN \
-          -t dev-cf-metadata-tools-server .
+            --build-arg GH_PACKAGES_USER_NAME=$GH_PACKAGES_USER_NAME \
+            --build-arg GH_PACKAGES_ACCESS_TOKEN=$GH_PACKAGES_ACCESS_TOKEN \
+            -t dev-cf-metadata-tools-server .
           docker tag dev-cf-metadata-tools-server:latest 747042292633.dkr.ecr.eu-west-1.amazonaws.com/dev-cf-metadata-tools-server:latest
           docker push 747042292633.dkr.ecr.eu-west-1.amazonaws.com/dev-cf-metadata-tools-server:latest
 

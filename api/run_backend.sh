@@ -1,5 +1,4 @@
 #!/bin/bash
-printenv
 
 if [ "${DB_CONNECTION_PARAMS_PROVIDER_TYPE}" = "AWS_SSM" ]
 then
