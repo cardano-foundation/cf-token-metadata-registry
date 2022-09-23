@@ -2,6 +2,7 @@ FROM openjdk:18-jdk-slim as runner
 
 WORKDIR /cf-metadata-api/
 RUN mkdir /cardano-token-registry
+RUN mkdir /cardano-token-registry-fork
 
 ARG GH_PACKAGES_USER_NAME
 ARG GH_PACKAGES_ACCESS_TOKEN
@@ -15,6 +16,7 @@ RUN curl -X POST -H "Accept: application/vnd.github+json" -H "Authorization: Bea
 RUN addgroup --system spring && adduser --system --ingroup spring spring
 RUN chown spring:spring /cf-metadata-api
 RUN chown spring:spring /cardano-token-registry
+RUN chown spring:spring /cardano-token-registry-fork
 
 USER spring:spring
 
