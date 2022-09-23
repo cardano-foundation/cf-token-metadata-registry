@@ -25,10 +25,8 @@
     <servers>
         <server>
             <id>github</id>
-            <!-- <username>${env.GH_PACKAGES_USER_NAME}</username>
-            <password>${env.GH_PACKAGES_ACCESS_TOKEN}</password> -->
-            <username>Sotatek-HoangNguyen9</username>
-            <password>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</password>
+            <username>${env.GH_PACKAGES_USER_NAME}</username>
+            <password>${env.GH_PACKAGES_ACCESS_TOKEN}</password>
         </server>
     </servers>
 </settings>

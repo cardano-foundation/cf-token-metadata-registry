@@ -34,8 +34,8 @@ jobs:
       - name: Configure AWS credentials from Test account
         uses: aws-actions/configure-aws-credentials@v1
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }} 
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }} 
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: eu-west-1
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
@@ -46,17 +46,18 @@ jobs:
         env:
           GH_PACKAGES_USER_NAME: ${{ secrets.GH_PACKAGES_USER_NAME }}
           GH_PACKAGES_ACCESS_TOKEN: ${{ secrets.GH_PACKAGES_ACCESS_TOKEN }}
+          ENV: dev
         run: |
-          printenv > ./api/.env
           aws ecr get-login-password --region eu-west-1 | docker login --username AWS --password-stdin 747042292633.dkr.ecr.eu-west-1.amazonaws.com
           cd ./api
           docker build \
             --build-arg GH_PACKAGES_USER_NAME=$GH_PACKAGES_USER_NAME \
             --build-arg GH_PACKAGES_ACCESS_TOKEN=$GH_PACKAGES_ACCESS_TOKEN \
-            -t dev-cf-metadata-tools-server .
-          docker tag dev-cf-metadata-tools-server:latest 747042292633.dkr.ecr.eu-west-1.amazonaws.com/dev-cf-metadata-tools-server:latest
-          docker push 747042292633.dkr.ecr.eu-west-1.amazonaws.com/dev-cf-metadata-tools-server:latest
+            -t "${ENV}-cf-metadata-tools-server" .
+          docker tag "${ENV}-cf-metadata-tools-server:latest" \
+            "747042292633.dkr.ecr.eu-west-1.amazonaws.com/${ENV}-cf-metadata-tools-server:latest"
+          docker push "747042292633.dkr.ecr.eu-west-1.amazonaws.com/${ENV}-cf-metadata-tools-server:latest"
 
       - name: Deploy
         run: |
-          aws ecs update-service --force-new-deployment --cluster "dev-cf-metadata-tools" --service "dev-cf-metadata-tools-server"
+          aws ecs update-service --force-new-deployment --cluster "${ENV}-cf-metadata-tools" --service "${ENV}-cf-metadata-tools-server"
