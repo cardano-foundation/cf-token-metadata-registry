@@ -105,8 +105,8 @@ public interface V2Api {
      * @return Returns the complete metadata after a successfull request. (status code 200)
      * or Returned if validation of the given metadata object failed. (status code 400)
      */
-    @Operation(operationId = "postSubjectV2", summary = "Post a new token metadata submission.", responses = {@ApiResponse(responseCode = "200", description = "Returns the complete metadata after a successfull request.", content = @Content(mediaType = "application/json", schema = @Schema(implementation = TokenMetadata.class))), @ApiResponse(responseCode = "400", description = "Returned if validation of the given metadata object failed.", content = @Content(mediaType = "application/json", schema = @Schema(implementation = VerifyFailureResponse.class)))})
-    @RequestMapping(method = RequestMethod.POST, value = "/v2/subjects/{subject}", produces = {"application/json;charset=utf-8"}, consumes = {"application/json;charset=utf-8"})
+//    @Operation(operationId = "postSubjectV2", summary = "Post a new token metadata submission.", responses = {@ApiResponse(responseCode = "200", description = "Returns the complete metadata after a successfull request.", content = @Content(mediaType = "application/json", schema = @Schema(implementation = TokenMetadata.class))), @ApiResponse(responseCode = "400", description = "Returned if validation of the given metadata object failed.", content = @Content(mediaType = "application/json", schema = @Schema(implementation = VerifyFailureResponse.class)))})
+//    @RequestMapping(method = RequestMethod.POST, value = "/v2/subjects/{subject}", produces = {"application/json;charset=utf-8"}, consumes = {"application/json;charset=utf-8"})
     ResponseEntity<TokenMetadata> postSubjectV2(@Parameter(name = "subject", description = "", required = true, schema = @Schema(description = "")) @PathVariable("subject") final String subject, @Parameter(name = "Property", description = "", required = true, schema = @Schema(description = "")) @Valid @RequestBody final TokenMetadata property);
 
     /**
@@ -116,8 +116,8 @@ public interface V2Api {
      * @return Returns the complete metadata after a successful request. (status code 200)
      * or Returned if validation of the given metadata object failed. (status code 400)
      */
-    @Operation(operationId = "postSignaturesV2", summary = "Post signatures for properties of a subject.", responses = {@ApiResponse(responseCode = "200", description = "Returns the complete metadata after a successful request.", content = @Content(mediaType = "application/json", schema = @Schema(implementation = TokenMetadata.class))), @ApiResponse(responseCode = "400", description = "Returned if validation of the given metadata object failed.", content = @Content(mediaType = "application/json", schema = @Schema(implementation = VerifyFailureResponse.class)))})
-    @RequestMapping(method = RequestMethod.POST, value = "/v2/subjects/{subject}/signatures", produces = {"application/json;charset=utf-8"}, consumes = {"application/json;charset=utf-8"})
+//    @Operation(operationId = "postSignaturesV2", summary = "Post signatures for properties of a subject.", responses = {@ApiResponse(responseCode = "200", description = "Returns the complete metadata after a successful request.", content = @Content(mediaType = "application/json", schema = @Schema(implementation = TokenMetadata.class))), @ApiResponse(responseCode = "400", description = "Returned if validation of the given metadata object failed.", content = @Content(mediaType = "application/json", schema = @Schema(implementation = VerifyFailureResponse.class)))})
+//    @RequestMapping(method = RequestMethod.POST, value = "/v2/subjects/{subject}/signatures", produces = {"application/json;charset=utf-8"}, consumes = {"application/json;charset=utf-8"})
     ResponseEntity<TokenMetadata> postSignaturesV2(
             @Parameter(name = "subject", description = "", required = true, schema = @Schema(description = "")) @PathVariable("subject") final String subject,
             @Parameter(name = "signatures", description = "", required = true, schema = @Schema(description = "")) @Valid @RequestBody final TokenMetadata property);
@@ -144,9 +144,9 @@ public interface V2Api {
      * or If there are no fraud incidents related to the given address hashes. (status code 204)
      * or If anything internal went wrong. (status code 500)
      */
-    @Hidden
-    @Operation(operationId = "v2ForensicsWallets", summary = "Check if there are any scam or other fraud incidents related to the given SHA-256 wallet address hashes.", responses = {@ApiResponse(responseCode = "200", description = "Detailed information about fraud incidents related to the given address hashes.", content = @Content(mediaType = "application/json", schema = @Schema(implementation = WalletTrustCheckResponse.class))), @ApiResponse(responseCode = "204", description = "If there are no fraud incidents related to the given address hashes."), @ApiResponse(responseCode = "500", description = "If anything internal went wrong.")})
-    @RequestMapping(method = RequestMethod.POST, value = "/v2/forensics/wallet", produces = {"application/json;charset=utf-8"}, consumes = {"application/json;charset=utf-8"})
+//    @Hidden
+//    @Operation(operationId = "v2ForensicsWallets", summary = "Check if there are any scam or other fraud incidents related to the given SHA-256 wallet address hashes.", responses = {@ApiResponse(responseCode = "200", description = "Detailed information about fraud incidents related to the given address hashes.", content = @Content(mediaType = "application/json", schema = @Schema(implementation = WalletTrustCheckResponse.class))), @ApiResponse(responseCode = "204", description = "If there are no fraud incidents related to the given address hashes."), @ApiResponse(responseCode = "500", description = "If anything internal went wrong.")})
+//    @RequestMapping(method = RequestMethod.POST, value = "/v2/forensics/wallet", produces = {"application/json;charset=utf-8"}, consumes = {"application/json;charset=utf-8"})
     ResponseEntity<WalletTrustCheckResponse> v2ForensicsWallets(@Parameter(name = "WalletHashes", description = "", required = true, schema = @Schema(description = "")) @Valid @RequestBody final WalletHashes walletHashes);
 
     /**
@@ -157,7 +157,8 @@ public interface V2Api {
      * @return Returned on successful verification and validation. (status code 200)
      * or Returns a list of errors found during the validation (status code 400)
      */
-    @Operation(operationId = "verifySubjectV2", summary = "Verifies and validates the given metadata object.", responses = {@ApiResponse(responseCode = "200", description = "Returned on successfull verification and validation."), @ApiResponse(responseCode = "400", description = "Returns a list of errors found during the validation", content = @Content(mediaType = "application/json", schema = @Schema(implementation = VerifyFailureResponse.class)))})
-    @RequestMapping(method = RequestMethod.POST, value = "/v2/subjects/{subject}/verify", produces = {"application/json;charset=utf-8"}, consumes = {"application/json;charset=utf-8"})
+//    @Operation(operationId = "verifySubjectV2", summary = "Verifies and validates the given metadata object.", responses = {@ApiResponse(responseCode = "200", description = "Returned on successfull verification and validation."), @ApiResponse(responseCode = "400", description = "Returns a list of errors found during the validation", content = @Content(mediaType = "application/json", schema = @Schema(implementation = VerifyFailureResponse.class)))})
+//    @RequestMapping(method = RequestMethod.POST, value = "/v2/subjects/{subject}/verify", produces = {"application/json;charset=utf-8"}, consumes = {"application/json;charset=utf-8"})
     ResponseEntity<Void> verifySubjectV2(@Parameter(name = "subject", description = "", required = true, schema = @Schema(description = "")) @PathVariable("subject") final String subject, @Parameter(name = "Property", description = "", required = true, schema = @Schema(description = "")) @Valid @RequestBody final TokenMetadata tokenMetadata);
+
 }

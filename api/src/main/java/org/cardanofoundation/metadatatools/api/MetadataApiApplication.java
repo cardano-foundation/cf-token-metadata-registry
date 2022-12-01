@@ -10,6 +10,9 @@ import org.springframework.web.filter.ForwardedHeaderFilter;
 import javax.servlet.DispatcherType;
 import java.util.List;
 
+import static javax.servlet.DispatcherType.*;
+import static org.springframework.core.Ordered.HIGHEST_PRECEDENCE;
+
 @SpringBootApplication
 public class MetadataApiApplication {
 	public static void main(String[] args) {
@@ -20,9 +23,11 @@ public class MetadataApiApplication {
 	public FilterRegistrationBean<ForwardedHeaderFilter> forwardedHeaderFilter() {
 		final ForwardedHeaderFilter filter = new ForwardedHeaderFilter();
 		final FilterRegistrationBean<ForwardedHeaderFilter> registration = new FilterRegistrationBean<>(filter);
-		registration.setDispatcherTypes(DispatcherType.REQUEST, DispatcherType.ASYNC, DispatcherType.ERROR);
-		registration.setOrder(Ordered.HIGHEST_PRECEDENCE);
+		registration.setDispatcherTypes(REQUEST, ASYNC, ERROR);
+		registration.setOrder(HIGHEST_PRECEDENCE);
 		registration.setUrlPatterns(List.of("/**"));
+
 		return registration;
 	}
+
 }

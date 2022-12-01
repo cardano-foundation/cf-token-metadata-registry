@@ -12,7 +12,7 @@ A reference implementation of a Cardano [CIP-26](https://github.com/cardano-foun
 
 ## Introduction
 
-This repository contains an implementaiton of a [CIP-26](https://github.com/cardano-foundation/CIPs/tree/master/CIP-0026) compliant offchain metadata registry for Cardano. It exposes an extended API (see the OpenAPI v3 spec hosted by our staging deployments [here](https://api.metadata.staging.cf-deployments.org/apidocs)) with regards to the one specified in [CIP-26](https://github.com/cardano-foundation/CIPs/tree/master/CIP-0026) to allow for more querying options and also write access to the registry to get rid of parts of the GitHub based process (but still stick to the known [GitHub repository](https://github.com/cardano-foundation/cardano-token-registry) as a single source of truth for now).
+This repository contains an implementation of a [CIP-26](https://github.com/cardano-foundation/CIPs/tree/master/CIP-0026) compliant offchain metadata registry for Cardano. It exposes an extended API (see the OpenAPI v3 spec hosted by our staging deployments [here](https://api.metadata.staging.cf-deployments.org/apidocs)) with regards to the one specified in [CIP-26](https://github.com/cardano-foundation/CIPs/tree/master/CIP-0026) to allow for more querying options and also write access to the registry to get rid of parts of the GitHub based process (but still stick to the known [GitHub repository](https://github.com/cardano-foundation/cardano-token-registry) as a single source of truth for now).
 
 Implementation of client tools for metadata creation can be found [here](https://github.com/cardano-foundation/cf-metadata-app) and at [IOG's reference implementation repository](https://github.com/input-output-hk/offchain-metadata-tools).
 
@@ -116,7 +116,7 @@ Following parameters can be used to configure the application:
 
 Offchain metadata related:
 - [x] Expose CIP-26 compliant REST API
-- [x] Advanced querrying REST API
+- [x] Advanced querying REST API
 
 WIP:
 - [ ] Expose write access functions via REST API for creating, modifying and deleting offchain metadata
@@ -125,7 +125,6 @@ WIP:
 Later:
 - [ ] Modular storage backend with support for different RDS backends (SQLite, MySQL), S3 based storage (MinIO, AWS), MongoDB
 - [ ] JSON-LD support and schema.org registration
-- [ ] Include onchain token metadata like proposed in a [CIP draft](https://github.com/cardano-foundation/CIPs/pull/137)
 - [ ] Example deployments using Kubernetes and Docker Compose
 - [ ] Decentralized offchain registry based on QUIC and Gossip
 

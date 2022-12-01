@@ -87,12 +87,13 @@ public interface MetadataApi {
             @ApiResponse(responseCode = "400", description = "Invalid `body`")
         }
     )
-    @RequestMapping(
-        method = RequestMethod.POST,
-        value = "/metadata/query",
-        produces = { "application/json;charset=utf-8" },
-        consumes = { "application/json;charset=utf-8" }
-    )
+
+//    @RequestMapping(
+//        method = RequestMethod.POST,
+//        value = "/metadata/query",
+//        produces = { "application/json;charset=utf-8" },
+//        consumes = { "application/json;charset=utf-8" }
+//    )
     ResponseEntity<BatchResponse> getSubjects(
         @Parameter(name = "body", description = "", required = true, schema = @Schema(description = "")) @Valid @RequestBody final BatchRequest body
     );
