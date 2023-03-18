@@ -14,8 +14,8 @@ trap cleanup EXIT
 export DOCKER_PG_CONTAINER_NAME="cf-metadata-pg"
 export DOCKER_API_CONTAINER_NAME="cf-metadata-api"
 export DOCKER_NETWORK_NAME='cfmetadata'
-export DBA_USER_NAME="metadatadbadmin"
-export DBA_USER_SECRET="metadata1337_"
+export DB_USER_NAME="metadatadbadmin"
+export DB_USER_SECRET="metadata1337_"
 export SERVICE_USER_NAME="metadataservice"
 export SERVICE_USER_SECRET="metadata1337_"
 export METADATA_DB_NAME="cf_metadata"
@@ -75,9 +75,9 @@ echo "Setting up docker network ..."
 docker network create ${DOCKER_NETWORK_NAME} || true
 
 echo "Starting database container ..."
-docker run --name ${DOCKER_PG_CONTAINER_NAME} --net ${DOCKER_NETWORK_NAME} -p ${DB_PORT}:${DB_PORT} -e POSTGRES_PASSWORD=${DBA_USER_SECRET} -e POSTGRES_USER=${DBA_USER_NAME} -d ${DEFAULT_DB_NAME}
+docker run --name ${DOCKER_PG_CONTAINER_NAME} --net ${DOCKER_NETWORK_NAME} -p ${DB_PORT}:${DB_PORT} -e POSTGRES_PASSWORD=${DB_USER_SECRET} -e POSTGRES_USER=${DB_USER_NAME} -d ${DEFAULT_DB_NAME}
 
-while ! pg_isready -h ${DB_HOST} -p ${DB_PORT} -U ${DBA_USER_NAME} -d ${DEFAULT_DB_NAME} -q
+while ! pg_isready -h ${DB_HOST} -p ${DB_PORT} -U ${DB_USER_NAME} -d ${DEFAULT_DB_NAME} -q
 do
     echo "$(date) - waiting for database to start ..."
     sleep 2

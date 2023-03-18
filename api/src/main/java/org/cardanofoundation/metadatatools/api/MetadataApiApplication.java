@@ -7,7 +7,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.core.Ordered;
 import org.springframework.web.filter.ForwardedHeaderFilter;
 
-import javax.servlet.DispatcherType;
+import jakarta.servlet.DispatcherType;
 import java.util.List;
 
 @SpringBootApplication
