@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>org.cardanofoundation.metadatatools</groupId>
-    <artifactId>api-base</artifactId>
+    <artifactId>server-base</artifactId>
     <version>${revision}</version>
     <packaging>pom</packaging>
 
@@ -54,7 +54,7 @@
         <version.maven-pmd-plugin>3.17.0</version.maven-pmd-plugin>
         <version.maven-project-info-reports-plugin>3.3.0</version.maven-project-info-reports-plugin>
         <version.maven-site-plugin>4.0.0-M2</version.maven-site-plugin>
-        <version.spring-boot>2.6.14</version.spring-boot>
+        <version.spring-boot>3.0.0</version.spring-boot>
         <version.lombok>1.18.22</version.lombok>
         <version.springdoc-openapi-ui>1.6.6</version.springdoc-openapi-ui>
         <version.swagger-annotations>2.1.13</version.swagger-annotations>
@@ -62,6 +62,7 @@
         <version.bouncycastle>1.70</version.bouncycastle>
         <version.log4j>2.17.2</version.log4j>
         <version.nimbusds>9.21</version.nimbusds>
+        <version.commons-cli>1.5.0</version.commons-cli>
     </properties>
 
     <repositories>
@@ -127,6 +128,11 @@
                 <groupId>javax.validation</groupId>
                 <artifactId>validation-api</artifactId>
                 <version>${version.validation-api}</version>
+            </dependency>
+            <dependency>
+                <groupId>commons-cli</groupId>
+                <artifactId>commons-cli</artifactId>
+                <version>${version.commons-cli}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -220,6 +226,7 @@
 
     <modules>
         <module>api</module>
+        <module>cli</module>
     </modules>
 
 </project>
