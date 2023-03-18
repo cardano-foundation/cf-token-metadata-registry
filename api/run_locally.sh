@@ -31,6 +31,7 @@ export IS_LOCAL_DEPLOYMENT="true"
 export DB_CONNECTION_PARAMS_PROVIDER_TYPE="ENVIRONMENT"
 export DB_DRIVER_CLASS_NAME="org.postgresql.Driver"
 export TOKEN_REGISTRY_REPOSITORY_URL="https://github.com/cardano-foundation/cardano-token-registry.git"
+export MAPPINGS_FOLDER="mappings"
 
 POSITIONAL_ARGS=()
 
