@@ -1,0 +1,82 @@
+#```
+####
+#
+## curl
+##  -X POST
+##  -H "Accept: application/vnd.github+json"
+##
+##  -H "Authorization: token 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"
+##  https://api.github.com/repos/cardano-foundation/cardano-token-registry/pulls
+##  -d '{"title":"Submit new metadata","body":"Please pull these awesome changes in!","head":"Sotatek-HoangNguyen9:master","base":"master"}'
+POST https://api.github.com/repos/cardano-foundation/cardano-token-registry/pulls
+Accept: application/vnd.github+json
+Authorization: token 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
+Content-Type: application/x-www-form-urlencoded
+
+{"title":"Submit new metadata","body":"Please pull these awesome changes in!","head":"Sotatek-HoangNguyen9:master","base":"master"}
+
+#### ```
+
+```
+####
+
+# curl
+#  -X POST
+#  -H "Accept: application/vnd.github+json"
+#
+#  -H "Authorization: token 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"
+#  https://api.github.com/repos/cardano-foundation/cardano-token-registry/pulls
+#  -d '{"title":"Submit new metadata","body":"Please pull these awesome changes in!","head":"Sotatek-HoangNguyen9:master","base":"master"}'
+#GET https://api.github.com/repos/cardano-foundation/cardano-token-registry/pulls
+#Accept: application/vnd.github+json
+#Authorization: token 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
+
+
+#### ```
+
+
+####
+#
+# curl
+#  -X POST
+#  -H "Accept: application/vnd.github+json"
+#
+#  -H "Authorization: token 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"
+#  https://api.github.com/repos/cardano-foundation/cardano-token-registry/pulls
+#  -d '{"title":"Submit new metadata","body":"Please pull these awesome changes in!","head":"Sotatek-HoangNguyen9:master","base":"master"}'
+GET https://api.github.com/repos/cardano-foundation/cardano-token-registry/pulls?state=closed&head=xebatchien1412:master
+Accept: application/vnd.github+json
+Authorization: token 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
+
+####
+#
+# curl
+#  -X POST
+#  -H "Accept: application/vnd.github+json"
+#
+#  -H "Authorization: token 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"
+#  https://api.github.com/repos/cardano-foundation/cardano-token-registry/pulls
+GET https://api.github.com/repos/cardano-foundation/cardano-token-registry/pulls/2276/files
+Accept: application/vnd.github+json
+Authorization: token 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
+
+// state = closed
+// merged_at = null
+// merged = false
+// changed_files = 1
+#
+#
+#### ```
+
+# curl
+#  -X POST
+#  -H "Accept: application/vnd.github+json"
+#
+#  -H "Authorization: Bearer <YOUR-TOKEN>"
+#  https://api.github.com/repos/OWNER/REPO/forks
+POST https://api.github.com/repos/cardano-foundation/cardano-token-registry/forks
+Accept: application/vnd.github+json
+Authorization: Bearer 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
+
+###
+

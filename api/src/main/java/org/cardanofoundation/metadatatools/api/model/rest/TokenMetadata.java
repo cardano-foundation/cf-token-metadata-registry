@@ -8,6 +8,8 @@ import lombok.NoArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.cardanofoundation.metadatatools.api.model.rest.wellknownproperties.*;
 
+import javax.persistence.Entity;
+import javax.persistence.Table;
 import javax.validation.Valid;
 import java.util.Date;
 import java.util.HashMap;
@@ -69,6 +71,10 @@ public class TokenMetadata {
   @Schema(name = "updatedBy")
   private String updatedBy;
 
+  public TokenMetadata(String subject) {
+    this.subject = subject;
+  }
+
   private Map<String, TokenMetadataProperty<?>> additionalProperties = new HashMap<>();
 
   @JsonAnySetter
@@ -112,6 +118,94 @@ public class TokenMetadata {
       throw new IllegalArgumentException("propertyName cannot be null.");
     }
     return propertyName.trim();
+  }
+
+  public String getSubject() {
+    return subject;
+  }
+
+  public void setSubject(String subject) {
+    this.subject = subject;
+  }
+
+  public String getPolicy() {
+    return policy;
+  }
+
+  public void setPolicy(String policy) {
+    this.policy = policy;
+  }
+
+  public NameProperty getName() {
+    return name;
+  }
+
+  public void setName(NameProperty name) {
+    this.name = name;
+  }
+
+  public DescriptionProperty getDescription() {
+    return description;
+  }
+
+  public void setDescription(DescriptionProperty description) {
+    this.description = description;
+  }
+
+  public UrlProperty getUrl() {
+    return url;
+  }
+
+  public void setUrl(UrlProperty url) {
+    this.url = url;
+  }
+
+  public TickerProperty getTicker() {
+    return ticker;
+  }
+
+  public void setTicker(TickerProperty ticker) {
+    this.ticker = ticker;
+  }
+
+  public DecimalsProperty getDecimals() {
+    return decimals;
+  }
+
+  public void setDecimals(DecimalsProperty decimals) {
+    this.decimals = decimals;
+  }
+
+  public LogoProperty getLogo() {
+    return logo;
+  }
+
+  public void setLogo(LogoProperty logo) {
+    this.logo = logo;
+  }
+
+  public Date getUpdated() {
+    return updated;
+  }
+
+  public void setUpdated(Date updated) {
+    this.updated = updated;
+  }
+
+  public String getUpdatedBy() {
+    return updatedBy;
+  }
+
+  public void setUpdatedBy(String updatedBy) {
+    this.updatedBy = updatedBy;
+  }
+
+  public Map<String, TokenMetadataProperty<?>> getAdditionalProperties() {
+    return additionalProperties;
+  }
+
+  public void setAdditionalProperties(Map<String, TokenMetadataProperty<?>> additionalProperties) {
+    this.additionalProperties = additionalProperties;
   }
 }
 

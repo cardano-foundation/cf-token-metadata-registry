@@ -10,9 +10,9 @@ import org.cardanofoundation.metadatatools.api.model.rest.TokenMetadataProperty;
 @Data
 @EqualsAndHashCode(callSuper = true)
 @NoArgsConstructor
-public class LogoProperty extends TokenMetadataProperty<byte[]> {
+public class LogoProperty extends TokenMetadataProperty<String> {
   @Schema(name = "value", required = true)
-  public byte[] getValue() {
+  public String getValue() {
     return super.getValue();
   }
 }

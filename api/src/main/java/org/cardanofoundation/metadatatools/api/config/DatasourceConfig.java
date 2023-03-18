@@ -1,6 +1,7 @@
 package org.cardanofoundation.metadatatools.api.config;
 
 import lombok.extern.log4j.Log4j2;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.jdbc.DataSourceBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -15,10 +16,10 @@ public class DatasourceConfig {
 
     private DatabaseConnectionParameters getConnectionParametersFromEnvironment() {
         final DatabaseConnectionParameters params = new DatabaseConnectionParameters();
-        params.setUsername(System.getProperty("dbUser"));
-        params.setPassword(System.getProperty("dbSecret"));
+        params.setUsername(dbUser);
+        params.setPassword(dbSecret);
         params.setDriverClassName(System.getProperty("dbDriverName", DEFAULT_DB_DRIVER_NAME));
-        params.setUrl(System.getProperty("dbUrl", DEFAULT_DB_URL));
+        params.setUrl(dbUrl);
         return params;
     }
 
