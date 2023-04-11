@@ -11,10 +11,7 @@ import org.cardanofoundation.metadatatools.api.model.rest.BatchResponse;
 import org.cardanofoundation.metadatatools.api.model.rest.TokenMetadata;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
 
@@ -42,34 +39,34 @@ public interface MetadataApi {
         produces = { "application/json;charset=utf-8" }
     )
     ResponseEntity<TokenMetadata> getAllPropertiesForSubject(
-        @Parameter(name = "subject", description = "", required = true, schema = @Schema(description = "")) @PathVariable("subject") final String subject
-    );
+        @Parameter(name = "subject", description = "", required = true, schema = @Schema(description = "")) @PathVariable("subject") final String subject,
+        @Parameter(name = "network", description = "Specify the network from which metadata is requested. This must be mapped to a data source in the application properties.", required = false, schema = @Schema(description = "")) @Valid @RequestParam(value = "network", required = false, defaultValue = "mainnet") final String network);
 
     /**
-     * GET /metadata/{subject}/properties/{properties} : Query a single property of a single subject
+     * GET /metadata/{subject}/properties/{property} : Query a single property of a single subject
      *
      * @param subject  (required)
-     * @param properties  (required)
+     * @param property  (required)
      * @return  (status code 200)
-     *         or &#x60;subject&#x60; or &#x60;properties&#x60; not found (status code 404)
+     *         or &#x60;subject&#x60; or &#x60;property&#x60; not found (status code 404)
      */
     @Operation(
         operationId = "getPropertyForSubject",
         summary = "Query a specific property of a single subject specified by the given subject id.",
         responses = {
             @ApiResponse(responseCode = "200", description = "", content = @Content(mediaType = "application/json", schema = @Schema(implementation =  TokenMetadata.class))),
-            @ApiResponse(responseCode = "404", description = "`subject` or `properties` not found")
+            @ApiResponse(responseCode = "404", description = "`subject` or `property` not found")
         }
     )
     @RequestMapping(
         method = RequestMethod.GET,
-        value = "/metadata/{subject}/properties/{properties}",
+        value = "/metadata/{subject}/properties/{property}",
         produces = { "application/json;charset=utf-8" }
     )
     ResponseEntity<TokenMetadata> getPropertyForSubject(
         @Parameter(name = "subject", description = "", required = true, schema = @Schema(description = "")) @PathVariable("subject") final String subject,
-        @Parameter(name = "properties", description = "", required = true, schema = @Schema(description = "")) @PathVariable("properties") final String properties
-    );
+        @Parameter(name = "property", description = "", required = true, schema = @Schema(description = "")) @PathVariable("property") final String property,
+        @Parameter(name = "network", description = "Specify the network from which metadata is requested. This must be mapped to a data source in the application properties.", required = false, schema = @Schema(description = "")) @Valid @RequestParam(value = "network", required = false, defaultValue = "mainnet") final String network);
 
 
     /**
@@ -94,6 +91,6 @@ public interface MetadataApi {
         consumes = { "application/json;charset=utf-8" }
     )
     ResponseEntity<BatchResponse> getSubjects(
-        @Parameter(name = "body", description = "", required = true, schema = @Schema(description = "")) @Valid @RequestBody final BatchRequest body
-    );
+        @Parameter(name = "body", description = "", required = true, schema = @Schema(description = "")) @Valid @RequestBody final BatchRequest body,
+        @Parameter(name = "network", description = "Specify the network from which metadata is requested. This must be mapped to a data source in the application properties.", required = false, schema = @Schema(description = "")) @Valid @RequestParam(value = "network", required = false, defaultValue = "mainnet") final String network);
 }

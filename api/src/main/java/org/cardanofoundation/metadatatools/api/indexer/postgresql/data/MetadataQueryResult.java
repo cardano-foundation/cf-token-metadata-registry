@@ -1,4 +1,4 @@
-package org.cardanofoundation.metadatatools.api.model.data;
+package org.cardanofoundation.metadatatools.api.indexer.postgresql.data;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;

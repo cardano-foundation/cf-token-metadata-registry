@@ -3,6 +3,7 @@ package org.cardanofoundation.metadatatools.api.model.rest;
 import com.fasterxml.jackson.annotation.*;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.extern.log4j.Log4j2;
@@ -16,6 +17,7 @@ import java.util.Map;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 @JsonIgnoreProperties(ignoreUnknown = true)
 @Log4j2
 @JsonInclude(JsonInclude.Include.NON_NULL)
