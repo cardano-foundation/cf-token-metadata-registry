@@ -5,8 +5,6 @@ import org.springframework.boot.test.autoconfigure.jdbc.JdbcTest;
 
 @JdbcTest
 class MetadataApiApplicationTests {
-    @Test
-    void contextLoads() {
-    }
-
+  @Test
+  void contextLoads() {}
 }

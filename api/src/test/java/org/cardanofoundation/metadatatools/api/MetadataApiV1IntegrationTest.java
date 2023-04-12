@@ -9,7 +9,7 @@ import java.util.Optional;
 import org.cardanofoundation.metadatatools.api.config.OffchainMetadataRegistryConfig;
 import org.cardanofoundation.metadatatools.api.config.SpringWebSecurityConfig;
 import org.cardanofoundation.metadatatools.api.controller.MetadataApiController;
-import org.cardanofoundation.metadatatools.api.indexer.SimpleMetadataIndexer;
+import org.cardanofoundation.metadatatools.api.indexer.V1ApiMetadataIndexer;
 import org.cardanofoundation.metadatatools.api.model.rest.TokenMetadata;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -29,7 +29,7 @@ public class MetadataApiV1IntegrationTest {
 
   @Autowired private MockMvc mockMvc;
 
-  @MockBean private SimpleMetadataIndexer simpleMetadataIndexer;
+  @MockBean private V1ApiMetadataIndexer v1ApiMetadataIndexer;
 
   @MockBean private OffchainMetadataRegistryConfig metadataRegistryConfig;
 
@@ -37,9 +37,9 @@ public class MetadataApiV1IntegrationTest {
   void setUp() {
     when(metadataRegistryConfig.networkIsMapped(anyString())).thenReturn(true);
     when(metadataRegistryConfig.sourceFromNetwork(anyString())).thenReturn("mainnet");
-    when(simpleMetadataIndexer.findSubject("mainnet", "123456789abcde"))
+    when(v1ApiMetadataIndexer.findSubject("mainnet", "123456789abcde"))
         .thenReturn(Optional.empty());
-    when(simpleMetadataIndexer.findSubject("mainnet", "123456789abcdef1"))
+    when(v1ApiMetadataIndexer.findSubject("mainnet", "123456789abcdef1"))
         .thenReturn(Optional.of(TokenMetadata.builder().subject("123456789abcdef1").build()));
   }
 
