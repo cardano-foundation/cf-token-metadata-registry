@@ -14,7 +14,9 @@ import javax.validation.constraints.Size;
 @EqualsAndHashCode(callSuper = true)
 @NoArgsConstructor
 public class UrlProperty extends TokenMetadataProperty<String> {
-  @Valid @Pattern(regexp = "^https://") @Size(max = 250)
+  @Valid
+  @Pattern(regexp = "^https://")
+  @Size(max = 250)
   @Schema(name = "value", example = "https://www.iohk.io", required = true)
   public String getValue() {
     return super.getValue();

@@ -24,11 +24,16 @@ import java.util.Map;
 public class TokenMetadata {
 
   @JsonProperty("subject")
-  @Schema(name = "subject", example = "b377d03a568dde663534e040fc32a57323ec00970df0e863eba3f098717569640a", required = true)
+  @Schema(
+      name = "subject",
+      example = "b377d03a568dde663534e040fc32a57323ec00970df0e863eba3f098717569640a",
+      required = true)
   private String subject;
 
   @JsonProperty("policy")
-  @Schema(name = "policy", example = "82008200581ce62601e8eeec975f3f124a288cd0ecb2973f5fc225629f1401a79b16")
+  @Schema(
+      name = "policy",
+      example = "82008200581ce62601e8eeec975f3f124a288cd0ecb2973f5fc225629f1401a79b16")
   private String policy;
 
   @JsonProperty("name")
@@ -116,4 +121,3 @@ public class TokenMetadata {
     return propertyName.trim();
   }
 }
-
