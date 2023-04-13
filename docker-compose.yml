@@ -20,7 +20,7 @@ services:
       DBA_USER_NAME: "${DB_USER_NAME}"
       SERVICE_USER_SECRET: "${SERVICE_USER_SECRET}"
       SERVICE_USER_NAME: "${SERVICE_USER_NAME}"
-      DB_HOST: "db"
+      DB_HOST: "${DB_HOST}"
       DB_PORT: ${DB_PORT}
       METADATA_DB_NAME: ${METADATA_DB_NAME}
       TOKEN_REGISTRY_REPOSITORY_URL: "https://github.com/cardano-foundation/cardano-token-registry.git"

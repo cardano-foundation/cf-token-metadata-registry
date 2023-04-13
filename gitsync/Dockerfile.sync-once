@@ -1,7 +1,7 @@
 FROM python:3.9-slim-bullseye
 
 RUN apt update && apt upgrade
-RUN apt install -y git cron build-essential libpq-dev
+RUN apt install -y git build-essential libpq-dev
 RUN git config --global pull.rebase false
 WORKDIR /cf-gitsync-job/
 COPY . /cf-gitsync-job/
