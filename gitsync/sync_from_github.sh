@@ -1,7 +1,12 @@
 #!/bin/bash
 
 # change to working directory
-cd "${GITSYNC_WORKING_DIR}"
+if [[ -z "${GITSYNC_WORKING_DIR}" ]]; then
+  echo "Remaining in current directory ..."
+else
+  echo "Changing to working directory ..."
+  cd "${GITSYNC_WORKING_DIR}"
+fi
 
 # populate mainnet registry data
 if [[ -z "${TOKEN_REGISTRY_REPOSITORY_URL}" ]]; then
