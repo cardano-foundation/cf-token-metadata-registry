@@ -15,7 +15,9 @@ import java.math.BigDecimal;
 @EqualsAndHashCode(callSuper = true)
 @NoArgsConstructor
 public class DecimalsProperty extends TokenMetadataProperty<BigDecimal> {
-  @Valid @DecimalMin("0") @DecimalMax("255")
+  @Valid
+  @DecimalMin("0")
+  @DecimalMax("255")
   @Schema(name = "value", example = "1", required = true)
   public BigDecimal getValue() {
     return super.getValue();

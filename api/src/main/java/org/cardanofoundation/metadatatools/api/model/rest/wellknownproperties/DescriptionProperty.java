@@ -13,10 +13,10 @@ import javax.validation.constraints.Size;
 @EqualsAndHashCode(callSuper = true)
 @NoArgsConstructor
 public class DescriptionProperty extends TokenMetadataProperty<String> {
-  @Valid @Size(max = 500)
+  @Valid
+  @Size(max = 500)
   @Schema(name = "value", required = true)
   public String getValue() {
     return super.getValue();
   }
 }
-

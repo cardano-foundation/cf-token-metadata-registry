@@ -3,21 +3,18 @@ package org.cardanofoundation.metadatatools.api.model.rest;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 
-/**
- * Gets or Sets FilterOperand
- */
+/** Gets or Sets FilterOperand */
 public enum FilterOperand {
-  
   EQ("eq"),
-  
+
   NEQ("neq"),
-  
+
   LT("lt"),
-  
+
   LTE("lte"),
-  
+
   GT("gt"),
-  
+
   GTE("gte");
 
   private final String value;

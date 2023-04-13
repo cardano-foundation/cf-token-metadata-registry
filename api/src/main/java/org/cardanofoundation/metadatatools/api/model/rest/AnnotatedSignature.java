@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class AnnotatedSignature   {
+public class AnnotatedSignature {
 
   @JsonProperty("signature")
   @Schema(name = "signature", required = true)

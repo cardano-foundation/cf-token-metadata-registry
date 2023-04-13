@@ -13,7 +13,7 @@ import java.util.List;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class BatchRequest   {
+public class BatchRequest {
 
   @JsonProperty("subjects")
   @Valid
@@ -25,4 +25,3 @@ public class BatchRequest   {
   @Schema(name = "properties", required = false)
   private List<String> properties = null;
 }
-

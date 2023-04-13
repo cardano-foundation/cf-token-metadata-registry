@@ -104,7 +104,7 @@ public interface V2Api {
    * @param fields (optional)
    * @param network (optional, default value 'mainnet')
    * @return The metadata related to the queried subject. (status code 200) or If the subject is
-   *     present in the metadata server but has not data for the given fields list. (status code
+   *     present in the metadata server but has no data for the given fields list. (status code
    *     204) or If the subject is not present in the metadata server. (status code 404)
    */
   @Operation(

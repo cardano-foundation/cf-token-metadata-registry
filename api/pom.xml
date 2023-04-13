@@ -138,32 +138,6 @@
                     </execution>
                 </executions>
             </plugin>
-            <!--<plugin>
-                <groupId>org.openapitools</groupId>
-                <artifactId>openapi-generator-maven-plugin</artifactId>
-                <version>${version.openapi-generator-maven-plugin}</version>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>generate</goal>
-                        </goals>
-                        <configuration>
-                            <inputSpec>${project.basedir}/../../spec/api.yaml</inputSpec>
-                            <generatorName>spring</generatorName>
-                            <apiPackage>org.cardanofoundation.metadatatools.api.controller</apiPackage>
-                            <modelPackage>org.cardanofoundation.metadatatools.api.model</modelPackage>
-                            <supportingFilesToGenerate>ApiUtil.java</supportingFilesToGenerate>
-                            <enablePostProcessFile>true</enablePostProcessFile>
-                            <invokerPackage>org.cardanofoundation.metadatatools.api</invokerPackage>
-                            <configOptions>
-                                <configPackage>org.cardanofoundation.metadatatools.api.config</configPackage>
-                                <delegatePattern>true</delegatePattern>
-                                <openApiNullable>false</openApiNullable>
-                            </configOptions>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>-->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>

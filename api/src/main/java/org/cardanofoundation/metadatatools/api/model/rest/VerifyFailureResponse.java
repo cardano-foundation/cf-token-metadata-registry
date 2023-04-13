@@ -19,4 +19,3 @@ public class VerifyFailureResponse {
   @Schema(name = "errors", required = true)
   private List<String> errors = new ArrayList<>();
 }
-

@@ -13,10 +13,10 @@ import javax.validation.constraints.Size;
 @EqualsAndHashCode(callSuper = true)
 @NoArgsConstructor
 public class TickerProperty extends TokenMetadataProperty<String> {
-    @Valid @Size(min = 2, max = 9)
-    @Schema(name = "value", example = "QUID", required = true)
-    public String getValue() {
-        return super.getValue();
-    }
+  @Valid
+  @Size(min = 2, max = 9)
+  @Schema(name = "value", example = "QUID", required = true)
+  public String getValue() {
+    return super.getValue();
+  }
 }
-

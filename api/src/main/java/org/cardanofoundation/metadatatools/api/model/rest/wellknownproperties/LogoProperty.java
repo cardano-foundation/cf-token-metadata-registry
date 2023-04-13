@@ -16,4 +16,3 @@ public class LogoProperty extends TokenMetadataProperty<byte[]> {
     return super.getValue();
   }
 }
-

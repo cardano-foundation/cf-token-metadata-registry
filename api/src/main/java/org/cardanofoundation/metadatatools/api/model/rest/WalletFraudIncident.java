@@ -15,7 +15,10 @@ import java.time.LocalDate;
 @AllArgsConstructor
 public class WalletFraudIncident {
   @JsonProperty("addressHash")
-  @Schema(name = "addressHash", example = "b377d03a568dde663534e040fc32a57323ec00970df0e863eba3f098717569640a", required = true)
+  @Schema(
+      name = "addressHash",
+      example = "b377d03a568dde663534e040fc32a57323ec00970df0e863eba3f098717569640a",
+      required = true)
   private String addressHash;
 
   @JsonProperty("incidentId")
@@ -27,7 +30,8 @@ public class WalletFraudIncident {
   private String scamSiteDomain;
 
   @JsonProperty("reportedDate")
-  @Valid @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+  @Valid
+  @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
   @Schema(name = "reportedDate", required = true)
   private LocalDate reportedDate;
 }
