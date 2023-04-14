@@ -1,4 +1,4 @@
---liquibase formatted sql
+--liquibase formatted sql logicalFilePath:metadata.changelog-3.0.sql
 				
 --changeset cf:3
 create table "sync_control" (

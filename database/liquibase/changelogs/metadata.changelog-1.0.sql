@@ -1,4 +1,4 @@
---liquibase formatted sql
+--liquibase formatted sql logicalFilePath:metadata.changelog-1.0.sql
 
 --changeset cf:1
 create table "metadata" (

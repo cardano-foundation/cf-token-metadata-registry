@@ -1,4 +1,5 @@
 databaseChangeLog:
   - includeAll:
       path: ../liquibase/changelogs/
-
+      relativeToChangelogFile: true
+      logicalFilePath: ./metadata.root-changelog.yaml

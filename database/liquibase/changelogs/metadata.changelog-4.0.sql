@@ -1,4 +1,4 @@
---liquibase formatted sql
+--liquibase formatted sql logicalFilePath:metadata.changelog-4.0.sql
 				
 --changeset cf:4
 alter table "metadata" add column "source" varchar(255);

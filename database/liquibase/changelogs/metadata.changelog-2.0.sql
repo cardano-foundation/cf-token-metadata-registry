@@ -1,4 +1,4 @@
---liquibase formatted sql
+--liquibase formatted sql logicalFilePath:metadata.changelog-2.0.sql
 				
 --changeset cf:2
 create table "wallet_scam_lookup" (
