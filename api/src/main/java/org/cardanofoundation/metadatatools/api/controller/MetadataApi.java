@@ -6,7 +6,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import javax.validation.Valid;
+import jakarta.validation.Valid;
 import org.cardanofoundation.metadatatools.api.model.rest.BatchRequest;
 import org.cardanofoundation.metadatatools.api.model.rest.BatchResponse;
 import org.cardanofoundation.metadatatools.api.model.rest.TokenMetadata;

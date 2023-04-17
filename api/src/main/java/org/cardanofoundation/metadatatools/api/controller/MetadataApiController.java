@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotNull;
 import lombok.extern.log4j.Log4j2;
 import org.cardanofoundation.metadatatools.api.config.OffchainMetadataRegistryConfig;
 import org.cardanofoundation.metadatatools.api.indexer.V1ApiMetadataIndexer;

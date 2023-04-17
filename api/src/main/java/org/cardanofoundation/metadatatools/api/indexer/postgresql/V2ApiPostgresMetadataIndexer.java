@@ -6,7 +6,7 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.*;
 import java.util.stream.Collectors;
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotNull;
 import lombok.extern.log4j.Log4j2;
 import org.cardanofoundation.metadatatools.api.indexer.FetchMetadataResultSet;
 import org.cardanofoundation.metadatatools.api.indexer.V2ApiMetadataIndexer;

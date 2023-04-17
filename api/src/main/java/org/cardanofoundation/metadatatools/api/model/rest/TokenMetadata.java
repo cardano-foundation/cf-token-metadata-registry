@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.cardanofoundation.metadatatools.api.model.rest.wellknownproperties.*;
 
-import javax.validation.Valid;
+import jakarta.validation.Valid;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;

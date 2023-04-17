@@ -7,7 +7,7 @@ import lombok.extern.log4j.Log4j2;
 import org.cardanofoundation.metadatatools.api.model.rest.TokenMetadata;
 import org.postgresql.util.PGobject;
 
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotNull;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;

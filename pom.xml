@@ -55,9 +55,9 @@
         <version.maven-site-plugin>4.0.0-M2</version.maven-site-plugin>
         <version.spring-boot>3.0.5</version.spring-boot>
         <version.lombok>1.18.26</version.lombok>
-        <version.springdoc-openapi-ui>1.7.0</version.springdoc-openapi-ui>
+        <version.springdoc-openapi-ui>2.1.0</version.springdoc-openapi-ui>
         <version.swagger-annotations>2.2.8</version.swagger-annotations>
-        <version.validation-api>2.0.1.Final</version.validation-api>
+        <version.validation-api>3.0.2</version.validation-api>
         <version.bouncycastle>1.70</version.bouncycastle>
         <version.log4j>2.20.0</version.log4j>
         <version.nimbusds>9.31</version.nimbusds>
@@ -90,7 +90,12 @@
             </dependency>
             <dependency>
                 <groupId>org.springdoc</groupId>
-                <artifactId>springdoc-openapi-ui</artifactId>
+                <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+                <version>${version.springdoc-openapi-ui}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springdoc</groupId>
+                <artifactId>springdoc-openapi-starter-common</artifactId>
                 <version>${version.springdoc-openapi-ui}</version>
             </dependency>
             <dependency>
@@ -130,8 +135,8 @@
                 <version>${version.swagger-annotations}</version>
             </dependency>
             <dependency>
-                <groupId>javax.validation</groupId>
-                <artifactId>validation-api</artifactId>
+                <groupId>jakarta.validation</groupId>
+                <artifactId>jakarta.validation-api</artifactId>
                 <version>${version.validation-api}</version>
             </dependency>
             <dependency>

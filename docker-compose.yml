@@ -73,7 +73,7 @@ services:
       DB_SECRET: "${SERVICE_USER_SECRET}"
       DB_DRIVER_CLASS_NAME: "${DB_DRIVER_CLASS_NAME}"
     depends_on:
-      sync-db-once:
+      bootstrap-db:
         condition: service_completed_successfully
     restart: always
 
