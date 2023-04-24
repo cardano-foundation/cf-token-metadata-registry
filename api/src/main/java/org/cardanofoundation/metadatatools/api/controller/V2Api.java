@@ -22,15 +22,15 @@ import org.springframework.web.bind.annotation.*;
 @Tag(name = "v2-api", description = "The extended Cardano offchain metadata API")
 public interface V2Api {
   /**
-   * DELETE /v2/subjects/{subject} : Request deletion of the given metadata subject.
+   * DELETE /v2/{network}/subjects/{subject} : Request deletion of the given metadata subject.
    *
+   * @param network (required)
    * @param subject (required)
    * @param signature The hex string representation of the signature generated from the string
    *     &#39;VOID&#39; using the signing/private key that has been used for metadata signing.
    *     (required)
    * @param vkey The hex string representation of the cbor encoded verification/public key that fits
    *     the signing/private key that has been used for signature creation. (required)
-   * @param network (optional, default value 'mainnet')
    * @return The metadata related to the queried subject. (status code 200) or If the subject is
    *     present in the metadata server but has not data for the given fields list. (status code
    *     204) or If the subject is not present in the metadata server. (status code 404)
@@ -57,9 +57,18 @@ public interface V2Api {
       })
   @RequestMapping(
       method = RequestMethod.DELETE,
-      value = "/v2/subjects/{subject}",
+      value = "/v2/{network}/subjects/{subject}",
       produces = {"application/json;charset=utf-8"})
   ResponseEntity<TokenMetadata> deleteSubjectV2(
+      @Parameter(
+              name = "network",
+              description =
+                  "Specify the network from which metadata is requested. This must be mapped to a data source in the application properties.",
+              required = true,
+              schema = @Schema(description = ""))
+          @Valid
+          @PathVariable("network")
+          final String network,
       @Parameter(
               name = "subject",
               description = "",
@@ -86,26 +95,18 @@ public interface V2Api {
               schema = @Schema(description = ""))
           @Valid
           @RequestParam(value = "vkey", required = true)
-          final String vkey,
-      @Parameter(
-              name = "network",
-              description =
-                  "Specify the network from which metadata is requested. This must be mapped to a data source in the application properties.",
-              required = false,
-              schema = @Schema(description = ""))
-          @Valid
-          @RequestParam(value = "network", required = false, defaultValue = "mainnet")
-          final String network);
+          final String vkey);
 
   /**
-   * GET /v2/subjects/{subject} : Query all properties or specified properties of the given subject
+   * GET /v2/{network}/subjects/{subject} : Query all properties or specified properties of the
+   * given subject
    *
+   * @param network (required)
    * @param subject (required)
    * @param fields (optional)
-   * @param network (optional, default value 'mainnet')
    * @return The metadata related to the queried subject. (status code 200) or If the subject is
-   *     present in the metadata server but has no data for the given fields list. (status code
-   *     204) or If the subject is not present in the metadata server. (status code 404)
+   *     present in the metadata server but has no data for the given fields list. (status code 204)
+   *     or If the subject is not present in the metadata server. (status code 404)
    */
   @Operation(
       operationId = "getSubjectV2",
@@ -128,9 +129,18 @@ public interface V2Api {
       })
   @RequestMapping(
       method = RequestMethod.GET,
-      value = "/v2/subjects/{subject}",
+      value = "/v2/{network}/subjects/{subject}",
       produces = {"application/json;charset=utf-8"})
   ResponseEntity<TokenMetadata> getSubjectV2(
+      @Parameter(
+              name = "network",
+              description =
+                  "Specify the network from which metadata is requested. This must be mapped to a data source in the application properties.",
+              required = true,
+              schema = @Schema(description = ""))
+          @Valid
+          @PathVariable("network")
+          final String network,
       @Parameter(
               name = "subject",
               description = "",
@@ -141,20 +151,12 @@ public interface V2Api {
       @Parameter(name = "fields", description = "", schema = @Schema(description = ""))
           @Valid
           @RequestParam(value = "fields", required = false)
-          final String fields,
-      @Parameter(
-              name = "network",
-              description =
-                  "Specify the network from which metadata is requested. This must be mapped to a data source in the application properties.",
-              required = false,
-              schema = @Schema(description = ""))
-          @Valid
-          @RequestParam(value = "network", required = false, defaultValue = "mainnet")
-          final String network);
+          final String fields);
 
   /**
-   * GET /v2/subjects : Query all subjects that meet the filter criteria.
+   * GET /v2/{network}/subjects : Query all subjects that meet the filter criteria.
    *
+   * @param network (required)
    * @param fields (optional)
    * @param sortBy (optional)
    * @param name (optional)
@@ -205,9 +207,18 @@ public interface V2Api {
       })
   @RequestMapping(
       method = RequestMethod.GET,
-      value = "/v2/subjects",
+      value = "/v2/{network}/subjects",
       produces = {"application/json;charset=utf-8"})
   ResponseEntity<SubjectsResponse> getSubjectsV2(
+      @Parameter(
+              name = "network",
+              description =
+                  "Specify the network from which metadata is requested. This must be mapped to a data source in the application properties.",
+              required = true,
+              schema = @Schema(description = ""))
+          @Valid
+          @PathVariable("network")
+          final String network,
       @Parameter(name = "fields", description = "", schema = @Schema(description = ""))
           @Valid
           @RequestParam(value = "fields", required = false)
@@ -378,24 +389,16 @@ public interface V2Api {
               schema = @Schema(description = ""))
           @Valid
           @RequestParam(value = "pivot_direction", required = false)
-          final PivotDirection pivotDirection,
-      @Parameter(
-              name = "network",
-              description =
-                  "Specify the network from which metadata is requested. This must be mapped to a data source in the application properties.",
-              required = false,
-              schema = @Schema(description = ""))
-          @Valid
-          @RequestParam(value = "network", required = false, defaultValue = "mainnet")
-          final String network);
+          final PivotDirection pivotDirection);
 
   /**
-   * POST /v2/subjects/{subject} : Post a new token metadata submission.
+   * POST /v2/{network}/subjects/{subject} : Post a new token metadata submission.
    *
+   * @param network (required)
    * @param subject (required)
    * @param property (required)
-   * @return Returns the complete metadata after a successfull request. (status code 200) or
-   *     Returned if validation of the given metadata object failed. (status code 400)
+   * @return Returns the complete metadata after a successful request. (status code 200) or Returned
+   *     if validation of the given metadata object failed. (status code 400)
    */
   @Hidden
   @Operation(
@@ -404,7 +407,7 @@ public interface V2Api {
       responses = {
         @ApiResponse(
             responseCode = "200",
-            description = "Returns the complete metadata after a successfull request.",
+            description = "Returns the complete metadata after a successful request.",
             content =
                 @Content(
                     mediaType = "application/json",
@@ -419,10 +422,19 @@ public interface V2Api {
       })
   @RequestMapping(
       method = RequestMethod.POST,
-      value = "/v2/subjects/{subject}",
+      value = "/v2/{network}/subjects/{subject}",
       produces = {"application/json;charset=utf-8"},
       consumes = {"application/json;charset=utf-8"})
   ResponseEntity<TokenMetadata> postSubjectV2(
+      @Parameter(
+              name = "network",
+              description =
+                  "Specify the network from which metadata is requested. This must be mapped to a data source in the application properties.",
+              required = true,
+              schema = @Schema(description = ""))
+          @Valid
+          @PathVariable("network")
+          final String network,
       @Parameter(
               name = "subject",
               description = "",
@@ -437,21 +449,13 @@ public interface V2Api {
               schema = @Schema(description = ""))
           @Valid
           @RequestBody
-          final TokenMetadata property,
-      @Parameter(
-              name = "network",
-              description =
-                  "Specify the network from which metadata is requested. This must be mapped to a data source in the application properties.",
-              required = false,
-              schema = @Schema(description = ""))
-          @Valid
-          @RequestParam(value = "network", required = false, defaultValue = "mainnet")
-          final String network);
+          final TokenMetadata property);
 
   /**
-   * POST /v2/subjects/{subject}/sign : Sign properties of a subject. A property is identified by
-   * the property name and the sequence number.
+   * POST /v2/{network}/subjects/{subject}/sign : Sign properties of a subject. A property is
+   * identified by the property name and the sequence number.
    *
+   * @param network (required)
    * @param subject (required)
    * @return Returns the complete metadata after a successful request. (status code 200) or Returned
    *     if validation of the given metadata object failed. (status code 400)
@@ -478,10 +482,19 @@ public interface V2Api {
       })
   @RequestMapping(
       method = RequestMethod.POST,
-      value = "/v2/subjects/{subject}/signatures",
+      value = "/v2/{network}/subjects/{subject}/signatures",
       produces = {"application/json;charset=utf-8"},
       consumes = {"application/json;charset=utf-8"})
   ResponseEntity<TokenMetadata> postSignaturesV2(
+      @Parameter(
+              name = "network",
+              description =
+                  "Specify the network from which metadata is requested. This must be mapped to a data source in the application properties.",
+              required = true,
+              schema = @Schema(description = ""))
+          @Valid
+          @PathVariable("network")
+          final String network,
       @Parameter(
               name = "subject",
               description = "",
@@ -496,20 +509,13 @@ public interface V2Api {
               schema = @Schema(description = ""))
           @Valid
           @RequestBody
-          final TokenMetadata property,
-      @Parameter(
-              name = "network",
-              description =
-                  "Specify the network from which metadata is requested. This must be mapped to a data source in the application properties.",
-              required = false,
-              schema = @Schema(description = ""))
-          @Valid
-          @RequestParam(value = "network", required = false, defaultValue = "mainnet")
-          final String network);
+          final TokenMetadata property);
 
   /**
-   * POST /v2/subjects/{subject}/verify : Verifies and validates the given metadata object.
+   * POST /v2/{network}/subjects/{subject}/verify : Verifies and validates the given metadata
+   * object.
    *
+   * @param network (required)
    * @param subject (required)
    * @param tokenMetadata (required)
    * @return Returned on successful verification and validation. (status code 200) or Returns a list
@@ -522,7 +528,7 @@ public interface V2Api {
       responses = {
         @ApiResponse(
             responseCode = "200",
-            description = "Returned on successfull verification and validation."),
+            description = "Returned on successful verification and validation."),
         @ApiResponse(
             responseCode = "400",
             description = "Returns a list of errors found during the validation",
@@ -533,10 +539,19 @@ public interface V2Api {
       })
   @RequestMapping(
       method = RequestMethod.POST,
-      value = "/v2/subjects/{subject}/verify",
+      value = "/v2/{network}/subjects/{subject}/verify",
       produces = {"application/json;charset=utf-8"},
       consumes = {"application/json;charset=utf-8"})
   ResponseEntity<Void> verifySubjectV2(
+      @Parameter(
+              name = "network",
+              description =
+                  "Specify the network from which metadata is requested. This must be mapped to a data source in the application properties.",
+              required = true,
+              schema = @Schema(description = ""))
+          @Valid
+          @PathVariable("network")
+          final String network,
       @Parameter(
               name = "subject",
               description = "",
@@ -551,16 +566,7 @@ public interface V2Api {
               schema = @Schema(description = ""))
           @Valid
           @RequestBody
-          final TokenMetadata tokenMetadata,
-      @Parameter(
-              name = "network",
-              description =
-                  "Specify the network from which metadata is requested. This must be mapped to a data source in the application properties.",
-              required = false,
-              schema = @Schema(description = ""))
-          @Valid
-          @RequestParam(value = "network", required = false, defaultValue = "mainnet")
-          final String network);
+          final TokenMetadata tokenMetadata);
 
   /**
    * GET /v2/forensics/wallet/{addresshash} : Check if there are any scam or other fraud incidents

@@ -40,10 +40,16 @@ public class MetadataApiV1IntegrationTest {
   @BeforeEach
   void setUp() {
     when(metadataRegistryConfig.networkIsMapped(anyString())).thenReturn(true);
-    when(metadataRegistryConfig.sourceFromNetwork(anyString())).thenReturn("mainnet");
+    when(metadataRegistryConfig.sourceFromNetwork("mainnet")).thenReturn("mainnet");
+    when(metadataRegistryConfig.sourceFromNetwork("preprod")).thenReturn("testnet");
+    when(metadataRegistryConfig.sourceFromNetwork("preview"))
+        .thenThrow(new IllegalArgumentException("Given network not supported."));
 
     when(v1ApiMetadataIndexer.findSubject(
             "mainnet", "025146866af908340247fe4e9672d5ac7059f1e8534696b5f920c9e66362544843"))
+        .thenReturn(Optional.empty());
+    when(v1ApiMetadataIndexer.findSubject(
+            "testnet", "025146866af908340247fe4e9672d5ac7059f1e8534696b5f920c9e66362544843"))
         .thenReturn(Optional.empty());
 
     final UrlProperty urlProperty = new UrlProperty();
@@ -64,28 +70,50 @@ public class MetadataApiV1IntegrationTest {
                     .build()));
 
     when(v1ApiMetadataIndexer.findSubjectSelectProperties(
-            "mainnet", "025146866af908340247fe4e9672d5ac7059f1e8534696b5f920c9e66362544848", List.of("url")))
-            .thenReturn(
-                    Optional.of(
-                            TokenMetadata.builder()
-                                    .subject("025146866af908340247fe4e9672d5ac7059f1e8534696b5f920c9e66362544848")
-                                    .url(urlProperty)
-                                    .build()));
+            "mainnet",
+            "025146866af908340247fe4e9672d5ac7059f1e8534696b5f920c9e66362544848",
+            List.of("url")))
+        .thenReturn(
+            Optional.of(
+                TokenMetadata.builder()
+                    .subject("025146866af908340247fe4e9672d5ac7059f1e8534696b5f920c9e66362544848")
+                    .url(urlProperty)
+                    .build()));
   }
 
   @Test
   public void subjectQueryShouldReturnNoContentOnNonExistingSubject() throws Exception {
     mockMvc
         .perform(
-            get("/metadata/025146866af908340247fe4e9672d5ac7059f1e8534696b5f920c9e66362544843"))
+            get(
+                "/mainnet/metadata/025146866af908340247fe4e9672d5ac7059f1e8534696b5f920c9e66362544843"))
         .andExpect(status().isNoContent());
+  }
+
+  @Test
+  public void subjectQueryShouldReturnNoContentOnNonExistingSubjectOnPreprod() throws Exception {
+    mockMvc
+        .perform(
+            get(
+                "/preprod/metadata/025146866af908340247fe4e9672d5ac7059f1e8534696b5f920c9e66362544843"))
+        .andExpect(status().isNoContent());
+  }
+
+  @Test
+  public void subjectQueryShouldReturnBadRequestOnNonMappedNetworkRequest() throws Exception {
+    mockMvc
+        .perform(
+            get(
+                "/preview/metadata/025146866af908340247fe4e9672d5ac7059f1e8534696b5f920c9e66362544843"))
+        .andExpect(status().isBadRequest());
   }
 
   @Test
   public void subjectQueryShouldReturnMetadata() throws Exception {
     mockMvc
         .perform(
-            get("/metadata/025146866af908340247fe4e9672d5ac7059f1e8534696b5f920c9e66362544848"))
+            get(
+                "/mainnet/metadata/025146866af908340247fe4e9672d5ac7059f1e8534696b5f920c9e66362544848"))
         .andExpect(status().isOk())
         .andExpect(
             MockMvcResultMatchers.jsonPath("$.subject")
@@ -97,7 +125,7 @@ public class MetadataApiV1IntegrationTest {
     mockMvc
         .perform(
             get(
-                "/metadata/025146866af908340247fe4e9672d5ac7059f1e8534696b5f920c9e66362544843/properties/url"))
+                "/mainnet/metadata/025146866af908340247fe4e9672d5ac7059f1e8534696b5f920c9e66362544843/properties/url"))
         .andExpect(status().isNoContent());
   }
 
@@ -106,7 +134,7 @@ public class MetadataApiV1IntegrationTest {
     mockMvc
         .perform(
             get(
-                "/metadata/025146866af908340247fe4e9672d5ac7059f1e8534696b5f920c9e66362544848/properties/url"))
+                "/mainnet/metadata/025146866af908340247fe4e9672d5ac7059f1e8534696b5f920c9e66362544848/properties/url"))
         .andExpect(status().isOk())
         .andExpect(
             MockMvcResultMatchers.jsonPath("$.subject")

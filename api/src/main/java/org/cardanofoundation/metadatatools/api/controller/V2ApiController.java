@@ -43,7 +43,7 @@ public class V2ApiController implements V2Api {
 
   @Override
   public ResponseEntity<TokenMetadata> getSubjectV2(
-      final String subject, final String fields, final String network) {
+      final String network, final String subject, final String fields) {
     try {
       final Optional<TokenMetadata> queryResult;
       if (fields != null) {
@@ -80,6 +80,7 @@ public class V2ApiController implements V2Api {
 
   @Override
   public ResponseEntity<SubjectsResponse> getSubjectsV2(
+      final String network,
       final String fields,
       final String sortBy,
       final String name,
@@ -103,8 +104,7 @@ public class V2ApiController implements V2Api {
       final Integer limit,
       final Long page,
       final String pivotId,
-      final PivotDirection pivotDirection,
-      final String network) {
+      final PivotDirection pivotDirection) {
     try {
       final String metadataSource =
           offchainMetadataRegistryConfig.sourceFromNetwork(
@@ -160,7 +160,7 @@ public class V2ApiController implements V2Api {
 
   @Override
   public ResponseEntity<TokenMetadata> postSubjectV2(
-      final String subject, final TokenMetadata property, final String network) {
+      @NotNull final String network, final String subject, final TokenMetadata property) {
     // 1. verfiy data
     // 2. submit as PR to Github or where-ever
     return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
@@ -168,7 +168,7 @@ public class V2ApiController implements V2Api {
 
   @Override
   public ResponseEntity<TokenMetadata> postSignaturesV2(
-      final String subject, final TokenMetadata property, final String network) {
+      @NotNull final String network, final String subject, final TokenMetadata property) {
     return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
   }
 
@@ -185,7 +185,7 @@ public class V2ApiController implements V2Api {
 
   @Override
   public ResponseEntity<Void> verifySubjectV2(
-      final String subject, final TokenMetadata property, final String network) {
+      @NotNull final String network, final String subject, final TokenMetadata property) {
     // property has required fields
     if (!propertyHasRequiredFields(property)) {
       return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
@@ -219,7 +219,10 @@ public class V2ApiController implements V2Api {
 
   @Override
   public ResponseEntity<TokenMetadata> deleteSubjectV2(
-      final String subject, final String signature, final String vkey, final String network) {
+      @NotNull final String network,
+      @NotNull final String subject,
+      @NotNull final String signature,
+      @NotNull final String vkey) {
     // 1. verify signature (which is sig(subject | "VOID")) with given vkey
     return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
   }

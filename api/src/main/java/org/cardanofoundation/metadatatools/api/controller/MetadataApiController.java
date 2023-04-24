@@ -29,7 +29,7 @@ public class MetadataApiController implements MetadataApi {
 
   @Override
   public ResponseEntity<BatchResponse> getSubjects(
-      @NotNull final BatchRequest body, final String network) {
+      @NotNull final String network, @NotNull final BatchRequest body) {
     try {
       final Map<String, TokenMetadata> subjects =
           v1ApiMetadataIndexer.findSubjectsSelectProperties(
@@ -51,7 +51,7 @@ public class MetadataApiController implements MetadataApi {
 
   @Override
   public ResponseEntity<TokenMetadata> getAllPropertiesForSubject(
-      @NotNull final String subject, final String network) {
+      @NotNull final String network, @NotNull final String subject) {
     try {
       return v1ApiMetadataIndexer
           .findSubject(
@@ -67,7 +67,7 @@ public class MetadataApiController implements MetadataApi {
 
   @Override
   public ResponseEntity<TokenMetadata> getPropertyForSubject(
-      @NotNull final String subject, @NotNull final String property, final String network) {
+          @NotNull final String network, @NotNull final String subject, @NotNull final String property) {
     try {
       return v1ApiMetadataIndexer
           .findSubjectSelectProperties(
