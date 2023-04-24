@@ -1,7 +1,7 @@
 [![License](https://img.shields.io/github/license/cardano-foundation/cf-metadata-server)](https://github.com/cardano-foundation/cf-metadata-server/blob/main/LICENSE)
 ![GitHub top language](https://img.shields.io/github/languages/top/cardano-foundation/cf-metadata-server)
 [![Build](https://github.com/cardano-foundation/cf-metadata-server/actions/workflows/main.yaml/badge.svg)](https://github.com/cardano-foundation/cf-metadata-server/actions/workflows/main.yaml)
-[![CodeQL](https://github.com/cardano-foundation/cf-metadata-server/actions/workflows/codeql.yml/badge.svg)](https://github.com/cardano-foundation/cf-metadata-server/actions/workflows/codeql.yml)
+[![CodeQL](https://github.com/cardano-foundation/cf-metadata-server/actions/workflows/codeql.yaml/badge.svg)](https://github.com/cardano-foundation/cf-metadata-server/actions/workflows/codeql.yaml)
 ![coverage](https://github.com/cardano-foundation/cf-metadata-server/blob/badges/jacoco.svg)
 ![branches](https://github.com/cardano-foundation/cf-metadata-server/blob/badges/branches.svg)
 [![Issues](https://img.shields.io/github/issues/cardano-foundation/cf-metadata-server)](https://github.com/cardano-foundation/cf-metadata-server/issues)
