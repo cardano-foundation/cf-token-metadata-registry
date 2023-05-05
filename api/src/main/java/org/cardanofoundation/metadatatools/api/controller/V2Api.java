@@ -517,7 +517,7 @@ public interface V2Api {
    *
    * @param network (required)
    * @param subject (required)
-   * @param tokenMetadata (required)
+   * @param metadata (required)
    * @return Returned on successful verification and validation. (status code 200) or Returns a list
    *     of errors found during the validation (status code 400)
    */
@@ -542,7 +542,7 @@ public interface V2Api {
       value = "/v2/{network}/subjects/{subject}/verify",
       produces = {"application/json;charset=utf-8"},
       consumes = {"application/json;charset=utf-8"})
-  ResponseEntity<Void> verifySubjectV2(
+  ResponseEntity verifySubjectV2(
       @Parameter(
               name = "network",
               description =
@@ -560,13 +560,13 @@ public interface V2Api {
           @PathVariable("subject")
           final String subject,
       @Parameter(
-              name = "Property",
+              name = "metadata",
               description = "",
               required = true,
               schema = @Schema(description = ""))
           @Valid
           @RequestBody
-          final TokenMetadata tokenMetadata);
+          final TokenMetadata metadata);
 
   /**
    * GET /v2/forensics/wallet/{addresshash} : Check if there are any scam or other fraud incidents

@@ -6,8 +6,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import lombok.extern.log4j.Log4j2;
 import org.apache.commons.cli.*;
-import org.cardanofoundation.metadatatools.core.model.TokenMetadata;
-import org.cardanofoundation.metadatatools.core.model.TokenMetadataProperty;
+import org.cardanofoundation.metadatatools.core.cip26.model.Metadata;
+import org.cardanofoundation.metadatatools.core.cip26.model.MetadataProperty;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -65,10 +65,10 @@ public class MetadataCliApplication implements CommandLineRunner {
             if (cmd.hasOption("subject")) {
                 final String subject = cmd.getOptionValue("subject").toLowerCase(Locale.ROOT).strip();
                 if (validateSubject(subject)) {
-                    final TokenMetadata tokenMetadata = new TokenMetadata();
+                    final Metadata tokenMetadata = new Metadata();
                     tokenMetadata.setSubject(subject);
-                    tokenMetadata.addProperty("name", new TokenMetadataProperty<>("", 0, List.of()));
-                    tokenMetadata.addProperty("description", new TokenMetadataProperty<>("", 0, List.of()));
+                    tokenMetadata.addProperty("name", new MetadataProperty<>("", 0, List.of()));
+                    tokenMetadata.addProperty("description", new MetadataProperty<>("", 0, List.of()));
                     final ObjectMapper objectMapper = getObjectMapper();
                     if (cmd.hasOption("outfile")) {
                         final String outfilePath;

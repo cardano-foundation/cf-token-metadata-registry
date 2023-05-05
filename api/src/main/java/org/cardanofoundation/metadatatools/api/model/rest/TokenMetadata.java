@@ -10,6 +10,8 @@ import lombok.extern.log4j.Log4j2;
 import org.cardanofoundation.metadatatools.api.model.rest.wellknownproperties.*;
 
 import jakarta.validation.Valid;
+import org.cardanofoundation.metadatatools.core.cip26.model.Metadata;
+
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -119,5 +121,10 @@ public class TokenMetadata {
       throw new IllegalArgumentException("propertyName cannot be null.");
     }
     return propertyName.trim();
+  }
+
+  public Metadata toCip26Metadata() {
+    final Metadata metadata = new Metadata();
+    return metadata;
   }
 }

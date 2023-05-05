@@ -7,11 +7,15 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import jakarta.validation.constraints.NotNull;
 import lombok.extern.log4j.Log4j2;
+import org.apache.commons.lang3.StringUtils;
 import org.cardanofoundation.metadatatools.api.config.OffchainMetadataRegistryConfig;
 import org.cardanofoundation.metadatatools.api.indexer.FetchMetadataResultSet;
 import org.cardanofoundation.metadatatools.api.indexer.V1ApiMetadataIndexer;
 import org.cardanofoundation.metadatatools.api.indexer.V2ApiMetadataIndexer;
 import org.cardanofoundation.metadatatools.api.model.rest.*;
+import org.cardanofoundation.metadatatools.core.cip26.MetadataCreator;
+import org.cardanofoundation.metadatatools.core.cip26.MetadataValidationRules;
+import org.cardanofoundation.metadatatools.core.cip26.ValidationResult;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -172,7 +176,7 @@ public class V2ApiController implements V2Api {
     return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
   }
 
-  private boolean propertyHasRequiredFields(final TokenMetadata property) {
+  private boolean metadataHasRequiredFields(final TokenMetadata property) {
     return property.getSubject() != null
         && !property.getSubject().isBlank()
         && property.getName() != null
@@ -184,37 +188,28 @@ public class V2ApiController implements V2Api {
   }
 
   @Override
-  public ResponseEntity<Void> verifySubjectV2(
-      @NotNull final String network, final String subject, final TokenMetadata property) {
-    // property has required fields
-    if (!propertyHasRequiredFields(property)) {
-      return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+  public ResponseEntity verifySubjectV2(
+      @NotNull final String network, final String subject, final TokenMetadata metadata) {
+    final Optional<TokenMetadata> baseMetadata =
+        v1ApiMetadataIndexer.findSubject(
+            offchainMetadataRegistryConfig.sourceFromNetwork(
+                sanitizeNetworkRequestParameter(network)),
+            subject);
+    final ValidationResult validationResult;
+    if (baseMetadata.isPresent()) {
+      validationResult =
+          MetadataCreator.validateMetadataUpdate(
+              metadata.toCip26Metadata(), null, baseMetadata.get().toCip26Metadata());
+    } else {
+      validationResult = MetadataCreator.validateMetadata(metadata.toCip26Metadata());
     }
 
-    // subject must match subject in property
-    if (!property.getSubject().equals(subject)) {
-      return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+    if (validationResult.isValid()) {
+      return ResponseEntity.ok().build();
+    } else {
+      return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+          .body(new VerifyFailureResponse(validationResult.getValidationErrors()));
     }
-
-    // 1. first bytes of subject should match the policyId (if any)
-    if (property.getPolicy() != null && !property.getSubject().startsWith(property.getPolicy())) {
-      return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-    }
-
-    // 3. ticker name is not too long
-    if (property.getTicker() != null
-        && !property.getTicker().getValue().isEmpty()
-        && (property.getTicker().getValue().length() < 2
-            || property.getTicker().getValue().length() > 9)) {
-      return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-    }
-    // 3. name is not too long
-    // 4. description is not too long
-    // 5. logo size is not too big
-    // 6. decimals is a sane value (>= 0 < X)
-    // 7. url makes sense
-    // 8. validate given signatures
-    return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
   }
 
   @Override
