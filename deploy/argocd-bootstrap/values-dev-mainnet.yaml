@@ -1,0 +1,7 @@
+mainAppPath: "deploy/main-app"
+
+argo-cd:
+  server:
+    ingress:
+      hosts:
+        - argocd.dev.<domain>

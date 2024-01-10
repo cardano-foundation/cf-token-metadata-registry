@@ -1,0 +1,18 @@
+git:
+  targetRevision: null
+
+# stage: one of [dev, uat, prod]
+stage: null
+
+# network: one of [mainnet, preprod, preview]
+network: null
+
+# domain: something like "grafana.dev.ggargiulo-clusters.eu-west-1.metadata.dev.cf-deployments.org"
+domain: null
+
+grafana-dashboards:
+  enabled: true
+
+spec:
+  destination:
+    server: https://kubernetes.default.svc

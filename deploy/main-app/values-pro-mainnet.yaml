@@ -1,0 +1,6 @@
+stage: dev
+
+network: main
+
+domain: pro.<domain>
+
