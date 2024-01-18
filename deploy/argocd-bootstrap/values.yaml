@@ -8,6 +8,8 @@ mainAppPath: ""
 # ArgoCD parameters
 argo-cd:
   enabled: true
+  crds:
+    install: false
   server:
     extraArgs:
       - --insecure
