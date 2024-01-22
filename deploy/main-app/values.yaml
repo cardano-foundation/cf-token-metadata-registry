@@ -10,6 +10,9 @@ network: null
 # domain: something like "grafana.dev.ggargiulo-clusters.eu-west-1.metadata.dev.cf-deployments.org"
 domain: null
 
+not-found:
+  enabled: true
+
 grafana-dashboards:
   enabled: true
 
