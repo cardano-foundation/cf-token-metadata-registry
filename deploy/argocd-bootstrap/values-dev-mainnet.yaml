@@ -4,4 +4,4 @@ argo-cd:
   server:
     ingress:
       hosts:
-        - argocd.dev.<domain>
+        - argocd.dev.cf-metadataserver-mainnet.eu-central-1.metadata.dev.cf-deployments.org

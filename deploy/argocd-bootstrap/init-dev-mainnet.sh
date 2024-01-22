@@ -45,7 +45,13 @@ echo "Updating helm dependencies for main app"
 helm dependency update
 
 helm upgrade --install argocd -n argocd . \
-  --set git.targetRevision=HEAD \
+  --set mainAppPath=deploy/main-app \
+  --set git.targetRevision=infra-develop \
   --set valueFile=values-dev-mainnet.yaml \
   -f values-secrets.yaml \
   -f values-dev-mainnet.yaml
+
+
+
+    git.targetRevision: infra-develop
+    valueFile: values-dev-mainnet.yaml
