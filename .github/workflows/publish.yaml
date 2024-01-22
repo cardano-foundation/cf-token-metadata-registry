@@ -43,7 +43,7 @@ jobs:
   api:
     runs-on: ubuntu-latest
     env:
-      APP_NAME: cf-metadata-server-api
+      APP_NAME: cf-metadata-server
     needs: build-version
     steps:
       - name: Checkout
