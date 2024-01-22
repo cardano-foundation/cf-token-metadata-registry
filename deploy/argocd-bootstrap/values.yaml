@@ -23,6 +23,9 @@ argo-cd:
         - url:  https://prometheus-community.github.io/helm-charts
           name: prometheus-community
           type: helm
+        - url:  https://opensource.zalando.com/postgres-operator/charts/postgres-operator
+          name: postgres-operator-charts
+          type: helm
         - url: git@github.com:cardano-foundation/cf-metadata-server.git
           sshPrivateKeySecret:
             name: github-deploy-key
