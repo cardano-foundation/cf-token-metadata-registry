@@ -2,7 +2,7 @@ apiVersion: "acid.zalan.do/v1"
 kind: postgresql
 metadata:
   # name must start w/ teamId
-  name: cf-metadata-server
+  name: cf-metadata-server-pg
   namespace: cf-metadataserver
 spec:
   teamId: "cf"
