@@ -1,0 +1,43 @@
+replicaCount: 1
+
+image:
+  repository: pro.registry.gitlab.metadata.dev.cf-deployments.org/base-infrastructure/docker-registry/cf-metadata-server
+  tag: "0.0.1"
+  pullPolicy: Always
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+service:
+  type: ClusterIP
+  port: 9093
+
+ingress:
+  enabled: true
+  disableActuatorEndpoint: true
+  additionalDomains: []
+
+postgres:
+  host: cf-metadata-server-pg
+  port: 5432
+  dbName: cf_metadata_server
+  schema: public
+  secret:
+    name: cardano.cf-metadata-server-pg.credentials.postgresql.acid.zalan.do
+    userKey: username
+    hostKey: password
+
+
+resources: {}
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+nodeSelector: {}
+
+monitoring:
+  enabled: false
