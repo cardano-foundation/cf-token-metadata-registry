@@ -12,6 +12,6 @@ spec:
   users:
     cardano: []
   databases:
-    metadata_server: cardano
+    cf_metadata_server: cardano
   postgresql:
     version: "15"
