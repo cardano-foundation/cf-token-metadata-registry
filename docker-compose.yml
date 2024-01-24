@@ -5,7 +5,6 @@ services:
     ports:
       - "${DB_PORT}:${DB_PORT}"
     environment:
-      POSTGRES_PASSWORD: "${DB_USER_SECRET}"
       POSTGRES_USER: "${DB_USER_NAME}"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER_NAME}"]
@@ -16,7 +15,6 @@ services:
   bootstrap-db:
     build: ./database
     environment:
-      DBA_USER_SECRET: "${DB_USER_SECRET}"
       DBA_USER_NAME: "${DB_USER_NAME}"
       SERVICE_USER_SECRET: "${SERVICE_USER_SECRET}"
       SERVICE_USER_NAME: "${SERVICE_USER_NAME}"
@@ -34,7 +32,6 @@ services:
       dockerfile: Dockerfile.sync-once
     environment:
       DB_URL: "db:${DB_PORT}/${METADATA_DB_NAME}"
-      DB_USER_SECRET: "${DB_USER_SECRET}"
       DB_USER_NAME: "${DB_USER_NAME}"
       TOKEN_REGISTRY_REPOSITORY_URL: "${TOKEN_REGISTRY_REPOSITORY_URL}"
       TOKEN_REGISTRY_BRANCH_NAME: "${TOKEN_REGISTRY_BRANCH_NAME}"
@@ -51,7 +48,6 @@ services:
       dockerfile: Dockerfile.sync-cron
       args:
         DB_URL: "db:${DB_PORT}/${METADATA_DB_NAME}"
-        DB_USER_SECRET: "${DB_USER_SECRET}"
         DB_USER_NAME: "${DB_USER_NAME}"
         TOKEN_REGISTRY_REPOSITORY_URL: "${TOKEN_REGISTRY_REPOSITORY_URL}"
         TOKEN_REGISTRY_BRANCH_NAME: "${TOKEN_REGISTRY_BRANCH_NAME}"
