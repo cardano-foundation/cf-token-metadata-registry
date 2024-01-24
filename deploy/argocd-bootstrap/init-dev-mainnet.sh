@@ -10,16 +10,16 @@ if [ $? != 0 ]; then
   kubectl create ns argocd > /dev/null 2>&1
 fi
 
-echo "Checking cf-metadata-server namespace existence"
-kubectl get ns cf-metadata-server > /dev/null 2>&1
+echo "Checking cf-token-metadata-registry namespace existence"
+kubectl get ns cf-token-metadata-registry > /dev/null 2>&1
 
 if [ $? != 0 ]; then
-  echo "cf-metadata-server namespace does not exist, creating..."
-  kubectl create ns cf-metadata-server > /dev/null 2>&1
+  echo "cf-token-metadata-registry namespace does not exist, creating..."
+  kubectl create ns cf-token-metadata-registry > /dev/null 2>&1
 fi
 
 ## DockerHub secret
-kubectl create secret -n cf-metadata-server generic regcred \
+kubectl create secret -n cf-token-metadata-registry generic regcred \
   --from-file=.dockerconfigjson=../../.keys/docker-cred.json \
   --type=kubernetes.io/dockerconfigjson \
   --save-config \
@@ -33,7 +33,7 @@ kubectl create secret generic github-deploy-key \
   --dry-run=client \
   -o yaml \
   -n argocd \
-  --from-file=../../.keys/cf-metadata-server \
+  --from-file=../../.keys/cf-token-metadata-registry \
   | kubectl apply -f -
 
 exit 0

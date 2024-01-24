@@ -7,7 +7,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: git@github.com:cardano-foundation/cf-metadata-server.git
+    repoURL: git@github.com:cardano-foundation/cf-token-metadata-registry.git
     targetRevision: {{ .Values.git.targetRevision | default "HEAD" }}
     path: {{ .Values.mainAppPath }}
     helm:

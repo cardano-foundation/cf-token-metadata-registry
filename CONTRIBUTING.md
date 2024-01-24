@@ -10,7 +10,7 @@ This document contains guidelines to help you get started and how to make sure y
 
 Should you have any questions or need some help in getting set up, you can use these communication channels to reach the team and get answers in a way where others can benefit from it as well:
 
-- Github [Discussions](https://github.com/cardano-foundation/cf-metadata-server/discussions)
+- Github [Discussions](https://github.com/cardano-foundation/cf-token-metadata-registry/discussions)
 - Cardano [StackExchange](https://cardano.stackexchange.com/) using the `cip26` tag
 
 ## Your first contribution 
@@ -21,11 +21,11 @@ Also, take a look at the tests. Making sure we have the best high quality test s
 
 ### Documentation + translations
 
-We host our documentation / user manual in the [Wiki](https://github.com/cardano-foundation/cf-metadata-server/wiki) and [README](./README.md).
+We host our documentation / user manual in the [Wiki](https://github.com/cardano-foundation/cf-token-metadata-registry/wiki) and [README](./README.md).
 
 ### Bug reports
 
-[Submit an issue](https://github.com/cardano-foundation/cf-metadata-server/issues/new).
+[Submit an issue](https://github.com/cardano-foundation/cf-token-metadata-registry/issues/new).
 
 For bug reports, it's very important to explain
 * what version you used,
@@ -37,7 +37,7 @@ For bug reports, it's very important to explain
 
 Feature ideas are precursors to high-level features items, which will be discussed and fleshed out to ideally become items on our feature roadmap.
 
-We use the [Ideas discussions category](https://github.com/cardano-foundation/cf-metadata-server/discussions/categories/ideas) to discuss and vote on feature ideas, but you can also [submit an issue](https://github.com/cardano-foundation/cf-metadata-server/issues/new) using the "Feature idea :thought_balloon:" template and we convert that to a discussion.
+We use the [Ideas discussions category](https://github.com/cardano-foundation/cf-token-metadata-registry/discussions/categories/ideas) to discuss and vote on feature ideas, but you can also [submit an issue](https://github.com/cardano-foundation/cf-token-metadata-registry/issues/new) using the "Feature idea :thought_balloon:" template and we convert that to a discussion.
 
 We expect a description of
 * why you (or the user) need/want something (e.g. problem, challenge, pain, benefit), and

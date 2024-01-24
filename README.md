@@ -1,10 +1,10 @@
-[![License](https://img.shields.io/github/license/cardano-foundation/cf-metadata-server)](https://github.com/cardano-foundation/cf-metadata-server/blob/main/LICENSE)
-![GitHub top language](https://img.shields.io/github/languages/top/cardano-foundation/cf-metadata-server)
-[![Build](https://github.com/cardano-foundation/cf-metadata-server/actions/workflows/main.yaml/badge.svg)](https://github.com/cardano-foundation/cf-metadata-server/actions/workflows/main.yaml)
-[![CodeQL](https://github.com/cardano-foundation/cf-metadata-server/actions/workflows/codeql.yaml/badge.svg)](https://github.com/cardano-foundation/cf-metadata-server/actions/workflows/codeql.yaml)
-![coverage](https://github.com/cardano-foundation/cf-metadata-server/blob/badges/jacoco.svg)
-![branches](https://github.com/cardano-foundation/cf-metadata-server/blob/badges/branches.svg)
-[![Issues](https://img.shields.io/github/issues/cardano-foundation/cf-metadata-server)](https://github.com/cardano-foundation/cf-metadata-server/issues)
+[![License](https://img.shields.io/github/license/cardano-foundation/cf-token-metadata-registry)](https://github.com/cardano-foundation/cf-token-metadata-registry/blob/main/LICENSE)
+![GitHub top language](https://img.shields.io/github/languages/top/cardano-foundation/cf-token-metadata-registry)
+[![Build](https://github.com/cardano-foundation/cf-token-metadata-registry/actions/workflows/main.yaml/badge.svg)](https://github.com/cardano-foundation/cf-token-metadata-registry/actions/workflows/main.yaml)
+[![CodeQL](https://github.com/cardano-foundation/cf-token-metadata-registry/actions/workflows/codeql.yaml/badge.svg)](https://github.com/cardano-foundation/cf-token-metadata-registry/actions/workflows/codeql.yaml)
+![coverage](https://github.com/cardano-foundation/cf-token-metadata-registry/blob/badges/jacoco.svg)
+![branches](https://github.com/cardano-foundation/cf-token-metadata-registry/blob/badges/branches.svg)
+[![Issues](https://img.shields.io/github/issues/cardano-foundation/cf-token-metadata-registry)](https://github.com/cardano-foundation/cf-token-metadata-registry/issues)
 
 ---
 
@@ -27,12 +27,12 @@ For building you need
 ### Building from source
 Clone this repository
 ```console
-$ git clone git@github.com:cardano-foundation/cf-metadata-server.git
+$ git clone git@github.com:cardano-foundation/cf-token-metadata-registry.git
 ```
 
 `cd` into the directory where `git` did clone the sources into and build the application via Maven
 ```console
-$ cd cf-metadata-server
+$ cd cf-token-metadata-registry
 $ mvn package
 ```
 

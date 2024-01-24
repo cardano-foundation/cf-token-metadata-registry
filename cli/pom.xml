@@ -15,14 +15,14 @@
     <packaging>jar</packaging>
 
     <scm>
-        <connection>scm:git:git://github.com/cardano-foundation/cf-metadata-server.git</connection>
-        <url>https://github.com/cardano-foundation/cf-metadata-server</url>
-        <developerConnection>scm:git:git://github.com/cardano-foundation/cf-metadata-server.git</developerConnection>
+        <connection>scm:git:git://github.com/cardano-foundation/cf-token-metadata-registry.git</connection>
+        <url>https://github.com/cardano-foundation/cf-token-metadata-registry</url>
+        <developerConnection>scm:git:git://github.com/cardano-foundation/cf-token-metadata-registry.git</developerConnection>
         <tag>HEAD</tag>
     </scm>
 
     <issueManagement>
-        <url>https://github.com/cardano-foundation/cf-metadata-server/issues</url>
+        <url>https://github.com/cardano-foundation/cf-token-metadata-registry/issues</url>
         <system>GitHub issues</system>
     </issueManagement>
 
