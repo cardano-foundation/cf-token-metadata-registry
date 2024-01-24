@@ -21,12 +21,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.web.context.WebApplicationContext;
 
 @WebMvcTest(MetadataApiController.class)
 @Import(SpringWebSecurityConfig.class)
+@ActiveProfiles("test")
 public class MetadataApiV1IntegrationTest {
 
   @Autowired private WebApplicationContext context;
