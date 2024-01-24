@@ -2,8 +2,8 @@ apiVersion: "acid.zalan.do/v1"
 kind: postgresql
 metadata:
   # name must start w/ teamId
-  name: cf-metadata-server-pg
-  namespace: cf-metadataserver
+  name: cf-token-metadata-registry-pg
+  namespace: cf-token-metadata-registry
 spec:
   teamId: "cf"
   volume:
@@ -12,6 +12,6 @@ spec:
   users:
     cardano: []
   databases:
-    cf_metadata_server: cardano
+    cf_token_metadata_registry: cardano
   postgresql:
     version: "15"
