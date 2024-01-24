@@ -16,6 +16,9 @@ not-found:
 grafana-dashboards:
   enabled: true
 
+cf-token-metadata-registry:
+  enabled: true
+
 spec:
   destination:
     server: https://kubernetes.default.svc
