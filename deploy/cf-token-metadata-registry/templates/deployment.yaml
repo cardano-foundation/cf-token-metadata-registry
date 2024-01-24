@@ -1,18 +1,18 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "cf-metadata-server.fullname" . }}
+  name: {{ include "cf-token-metadata-registry.fullname" . }}
   labels:
-    {{- include "cf-metadata-server.labels" . | nindent 4 }}
+    {{- include "cf-token-metadata-registry.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      {{- include "cf-metadata-server.selectorLabels" . | nindent 6 }}
+      {{- include "cf-token-metadata-registry.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       labels:
-        {{- include "cf-metadata-server.selectorLabels" . | nindent 8 }}
+        {{- include "cf-token-metadata-registry.selectorLabels" . | nindent 8 }}
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:

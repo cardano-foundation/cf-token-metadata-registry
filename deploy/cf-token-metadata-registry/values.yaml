@@ -1,7 +1,7 @@
 replicaCount: 1
 
 image:
-  repository: pro.registry.gitlab.metadata.dev.cf-deployments.org/base-infrastructure/docker-registry/cf-metadata-server
+  repository: pro.registry.gitlab.metadata.dev.cf-deployments.org/base-infrastructure/docker-registry/cf-token-metadata-registry
   tag: "0.0.1"
   pullPolicy: Always
 
@@ -19,12 +19,12 @@ ingress:
   additionalDomains: []
 
 postgres:
-  host: cf-metadata-server-pg
+  host: cf-token-metadata-registry-pg
   port: 5432
   dbName: cf_metadata_server
   schema: public
   secret:
-    name: cardano.cf-metadata-server-pg.credentials.postgresql.acid.zalan.do
+    name: cardano.cf-token-metadata-registry-pg.credentials.postgresql.acid.zalan.do
     userKey: username
     hostKey: password
 

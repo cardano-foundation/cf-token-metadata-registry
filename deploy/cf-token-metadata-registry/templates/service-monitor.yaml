@@ -3,10 +3,10 @@
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
-  name: {{ include "cf-metadata-server.fullname" . }}
+  name: {{ include "cf-token-metadata-registry.fullname" . }}
   labels:
     release: prometheus-stack
-    {{- include "cf-metadata-server.labels" . | nindent 4 }}
+    {{- include "cf-token-metadata-registry.labels" . | nindent 4 }}
 spec:
   endpoints:
     - path: /actuator/prometheus
@@ -16,5 +16,5 @@ spec:
       - {{ $.Release.Namespace }}
   selector:
     matchLabels:
-      {{- include "cf-metadata-server.labels" . | nindent 6 }}
+      {{- include "cf-token-metadata-registry.labels" . | nindent 6 }}
 {{ end }}
