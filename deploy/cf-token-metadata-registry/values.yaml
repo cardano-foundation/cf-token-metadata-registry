@@ -21,7 +21,7 @@ ingress:
 postgres:
   host: cf-token-metadata-registry-pg
   port: 5432
-  dbName: cf_metadata_server
+  dbName: cf_token_metadata_registry
   schema: public
   secret:
     name: cardano.cf-token-metadata-registry-pg.credentials.postgresql.acid.zalan.do
