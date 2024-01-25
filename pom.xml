@@ -241,6 +241,7 @@
 
     <modules>
         <module>api</module>
+        <module>job</module>
         <module>cli</module>
     </modules>
 
