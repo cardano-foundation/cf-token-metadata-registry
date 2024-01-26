@@ -12,8 +12,8 @@ import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.stereotype.Component;
 
 import java.io.Serializable;
-import java.sql.Date;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -34,7 +34,7 @@ public class TokenMetadataDao {
 
     public void insertTokenMetadata(String subject, String source, Optional<String> policy,
                                     Optional<String> name, Optional<String> ticker, Optional<String> url,
-                                    Optional<String> description, Optional<Integer> decimals, Date updatedAt, String updatedBy, Mapping mapping) {
+                                    Optional<String> description, Optional<Integer> decimals, Timestamp updatedAt, String updatedBy, Mapping mapping) {
 
         PGobject jsonBMapping = new PGobject();
         jsonBMapping.setType("jsonb");

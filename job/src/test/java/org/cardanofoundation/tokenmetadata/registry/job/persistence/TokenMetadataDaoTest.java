@@ -14,6 +14,8 @@ import org.springframework.test.context.ActiveProfiles;
 import java.io.File;
 import java.io.IOException;
 import java.sql.Date;
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -43,7 +45,7 @@ class TokenMetadataDaoTest {
                                 Optional.ofNullable(mapping.url()).map(Item::value),
                                 Optional.ofNullable(mapping.description()).map(Item::value),
                                 Optional.ofNullable(mapping.decimals()).map(Item::value).map(Integer::valueOf),
-                                new Date(new java.util.Date().getTime()),
+                                Timestamp.valueOf(LocalDateTime.now()),
                                 "test",
                                 mapping
                         );
