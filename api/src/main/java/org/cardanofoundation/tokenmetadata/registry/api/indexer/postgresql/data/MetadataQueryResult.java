@@ -2,12 +2,14 @@ package org.cardanofoundation.tokenmetadata.registry.api.indexer.postgresql.data
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.*;
-import lombok.extern.log4j.Log4j2;
+import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.TokenMetadata;
 import org.postgresql.util.PGobject;
 
-import jakarta.validation.constraints.NotNull;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -15,7 +17,7 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
-@Log4j2
+@Slf4j
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

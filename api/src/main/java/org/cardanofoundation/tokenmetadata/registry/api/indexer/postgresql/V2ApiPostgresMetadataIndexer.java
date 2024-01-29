@@ -8,6 +8,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 import jakarta.validation.constraints.NotNull;
 import lombok.extern.log4j.Log4j2;
+import lombok.extern.slf4j.Slf4j;
 import org.cardanofoundation.tokenmetadata.registry.api.indexer.FetchMetadataResultSet;
 import org.cardanofoundation.tokenmetadata.registry.api.indexer.V2ApiMetadataIndexer;
 import org.cardanofoundation.tokenmetadata.registry.api.indexer.postgresql.data.MetadataQueryResult;
@@ -24,7 +25,7 @@ import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.stereotype.Component;
 
 @Component
-@Log4j2
+@Slf4j
 public class V2ApiPostgresMetadataIndexer implements V2ApiMetadataIndexer {
   @Autowired private NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 

@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import lombok.extern.log4j.Log4j2;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.cli.*;
 import org.cardanofoundation.metadatatools.core.cip26.model.Metadata;
 import org.cardanofoundation.metadatatools.core.cip26.model.MetadataProperty;
@@ -18,7 +18,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 
-@Log4j2
+@Slf4j
 @SpringBootApplication
 public class MetadataCliApplication implements CommandLineRunner {
     public static void main(final String[] args) {

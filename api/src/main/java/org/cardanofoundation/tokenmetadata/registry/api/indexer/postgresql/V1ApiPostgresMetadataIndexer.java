@@ -2,7 +2,8 @@ package org.cardanofoundation.tokenmetadata.registry.api.indexer.postgresql;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.extern.log4j.Log4j2;
+import jakarta.validation.constraints.NotNull;
+import lombok.extern.slf4j.Slf4j;
 import org.cardanofoundation.tokenmetadata.registry.api.indexer.V1ApiMetadataIndexer;
 import org.cardanofoundation.tokenmetadata.registry.api.indexer.postgresql.data.MetadataQueryResult;
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.TokenMetadata;
@@ -12,13 +13,12 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.stereotype.Component;
 
-import jakarta.validation.constraints.NotNull;
 import java.util.*;
 
 import static java.util.Map.entry;
 
 @Component
-@Log4j2
+@Slf4j
 public class V1ApiPostgresMetadataIndexer implements V1ApiMetadataIndexer {
   @Autowired private NamedParameterJdbcTemplate jdbcTemplate;
 

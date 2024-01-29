@@ -1,6 +1,6 @@
 package org.cardanofoundation.tokenmetadata.registry.job.config;
 
-import lombok.extern.log4j.Log4j2;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.jdbc.DataSourceBuilder;
 import org.springframework.context.annotation.Bean;
@@ -10,7 +10,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 import javax.sql.DataSource;
 
-@Log4j2
+@Slf4j
 @Configuration
 public class DatasourceConfig {
     @Value("${spring.datasource.driverClassName}")
