@@ -1,9 +1,17 @@
 replicaCount: 1
 
-image:
-  repository: pro.registry.gitlab.metadata.dev.cf-deployments.org/base-infrastructure/docker-registry/cf-token-metadata-registry
-  tag: "0.0.1"
-  pullPolicy: Always
+api:
+  image:
+    repository: pro.registry.gitlab.metadata.dev.cf-deployments.org/base-infrastructure/docker-registry/cf-token-metadata-registry-api
+    tag: "0.0.1"
+    pullPolicy: Always
+
+job:
+  image:
+    repository: pro.registry.gitlab.metadata.dev.cf-deployments.org/base-infrastructure/docker-registry/cf-token-metadata-registry-job
+    tag: "0.0.1"
+    pullPolicy: Always
+  cron: "15 * * * *"
 
 imagePullSecrets: []
 nameOverride: ""

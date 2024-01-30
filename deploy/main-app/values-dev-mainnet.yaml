@@ -7,6 +7,9 @@ domain: dev.cf-metadataserver-mainnet.eu-central-1.metadata.dev.cf-deployments.o
 cf-token-metadata-registry:
   enabled: true
   values:
-    image:
-      repository: pro.registry.gitlab.metadata.dev.cf-deployments.org/base-infrastructure/docker-registry/cf-token-metadata-registry
-      tag: "0.0.1"
+    api:
+      image:
+        tag: "0.0.1"
+    job:
+      image:
+        tag: "0.0.1"

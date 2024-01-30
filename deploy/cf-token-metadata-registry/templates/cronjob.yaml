@@ -1,0 +1,45 @@
+{{ if .Values.cronjob.enabled }}
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "cf-token-metadata-registry.fullname" . }}-job
+  labels:
+    {{- include "cf-token-metadata-registry.labels" . | nindent 4 }}
+spec:
+  schedule: {{ .Values.job.cron }}
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: {{ include "cf-token-metadata-registry.fullname" . }}-job
+              image: "{{ $.Values.job.image.repository }}:{{ $.Values.job.image.tag }}"
+              env:
+                ## Postgres
+                - name: DB_DRIVER
+                  value: "org.postgresql.Driver"
+                - name: DB_DIALECT
+                  value: "org.hibernate.dialect.PostgreSQLDialect"
+                - name: POSTGRES_HOST
+                  value: {{ .Values.postgres.host }}
+                - name: POSTGRES_PORT
+                  value: {{ .Values.postgres.port | quote }}
+                - name: POSTGRES_DB
+                  value: {{ .Values.postgres.dbName }}
+                - name: DB_SCHEMA
+                  value: {{ .Values.dbSchema | default "public" }}
+                - name: DB_URL
+                  value: jdbc:postgresql://$(POSTGRES_HOST):$(POSTGRES_PORT)/$(POSTGRES_DB)?currentSchema=$(DB_SCHEMA)
+                - name: DB_USERNAME
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ .Values.postgres.secret.name }}
+                      key: {{ .Values.postgres.secret.userKey }}
+                - name: DB_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ .Values.postgres.secret.name }}
+                      key: {{ .Values.postgres.secret.hostKey }}
+          restartPolicy: OnFailure
+{{ end }}
