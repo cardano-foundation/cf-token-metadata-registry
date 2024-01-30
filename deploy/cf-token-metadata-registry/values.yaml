@@ -7,6 +7,7 @@ api:
     pullPolicy: Always
 
 job:
+  enabled: false
   image:
     repository: pro.registry.gitlab.metadata.dev.cf-deployments.org/base-infrastructure/docker-registry/cf-token-metadata-registry-job
     tag: "0.0.1"
