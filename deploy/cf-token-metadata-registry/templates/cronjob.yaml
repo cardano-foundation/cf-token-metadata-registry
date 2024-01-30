@@ -43,4 +43,5 @@ spec:
                       name: {{ .Values.postgres.secret.name }}
                       key: {{ .Values.postgres.secret.hostKey }}
           restartPolicy: OnFailure
+  concurrencyPolicy: Forbid
 {{ end }}
