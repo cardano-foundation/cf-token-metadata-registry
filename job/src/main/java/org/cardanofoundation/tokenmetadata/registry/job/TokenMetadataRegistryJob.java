@@ -24,6 +24,7 @@ public class TokenMetadataRegistryJob implements CommandLineRunner {
     public void run(String... args) throws Exception {
         log.info("Started...");
         tokenMetadataSyncService.synchronizeDatabase();
+        log.info("Complete...");
     }
 
 }
