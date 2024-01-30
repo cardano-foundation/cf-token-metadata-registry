@@ -14,7 +14,8 @@ spec:
         spec:
           containers:
             - name: {{ include "cf-token-metadata-registry.fullname" . }}-job
-              image: "{{ $.Values.job.image.repository }}:{{ $.Values.job.image.tag }}"
+              image: "{{ .Values.job.image.repository }}:{{ .Values.job.image.tag }}"
+              imagePullPolicy: {{ .Values.job.image.pullPolicy }}
               env:
                 ## Postgres
                 - name: DB_DRIVER
