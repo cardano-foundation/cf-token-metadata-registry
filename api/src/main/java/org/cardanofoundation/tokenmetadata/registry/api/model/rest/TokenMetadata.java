@@ -2,13 +2,12 @@ package org.cardanofoundation.tokenmetadata.registry.api.model.rest;
 
 import com.fasterxml.jackson.annotation.*;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.extern.log4j.Log4j2;
-
-import jakarta.validation.Valid;
+import lombok.extern.slf4j.Slf4j;
 import org.cardanofoundation.metadatatools.core.cip26.model.Metadata;
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.wellknownproperties.*;
 
@@ -21,7 +20,7 @@ import java.util.Map;
 @AllArgsConstructor
 @Builder
 @JsonIgnoreProperties(ignoreUnknown = true)
-@Log4j2
+@Slf4j
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class TokenMetadata {
 

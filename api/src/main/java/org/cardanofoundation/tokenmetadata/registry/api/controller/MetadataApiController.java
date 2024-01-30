@@ -1,11 +1,7 @@
 package org.cardanofoundation.tokenmetadata.registry.api.controller;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
 import jakarta.validation.constraints.NotNull;
-import lombok.extern.log4j.Log4j2;
+import lombok.extern.slf4j.Slf4j;
 import org.cardanofoundation.tokenmetadata.registry.api.config.OffchainMetadataRegistryConfig;
 import org.cardanofoundation.tokenmetadata.registry.api.indexer.V1ApiMetadataIndexer;
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.BatchRequest;
@@ -18,10 +14,15 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.RequestMapping;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+
 @Controller
 @CrossOrigin
 @RequestMapping("${openapi.metadataServer.base-path:}")
-@Log4j2
+@Slf4j
 public class MetadataApiController implements MetadataApi {
   @Autowired private V1ApiMetadataIndexer v1ApiMetadataIndexer;
 

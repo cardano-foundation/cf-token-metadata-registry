@@ -1,18 +1,13 @@
 package org.cardanofoundation.tokenmetadata.registry.api.controller;
 
-import java.time.LocalDate;
-import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 import jakarta.validation.constraints.NotNull;
-import lombok.extern.log4j.Log4j2;
+import lombok.extern.slf4j.Slf4j;
+import org.cardanofoundation.metadatatools.core.cip26.MetadataCreator;
+import org.cardanofoundation.metadatatools.core.cip26.ValidationResult;
 import org.cardanofoundation.tokenmetadata.registry.api.config.OffchainMetadataRegistryConfig;
 import org.cardanofoundation.tokenmetadata.registry.api.indexer.FetchMetadataResultSet;
 import org.cardanofoundation.tokenmetadata.registry.api.indexer.V1ApiMetadataIndexer;
 import org.cardanofoundation.tokenmetadata.registry.api.indexer.V2ApiMetadataIndexer;
-import org.cardanofoundation.metadatatools.core.cip26.MetadataCreator;
-import org.cardanofoundation.metadatatools.core.cip26.ValidationResult;
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -22,7 +17,15 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.RequestMapping;
 
-@Log4j2
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Locale;
+import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+
+@Slf4j
 @Controller
 @CrossOrigin(exposedHeaders = {"X-Total-Count"})
 @RequestMapping("${openapi.metadataServer.base-path:}")
