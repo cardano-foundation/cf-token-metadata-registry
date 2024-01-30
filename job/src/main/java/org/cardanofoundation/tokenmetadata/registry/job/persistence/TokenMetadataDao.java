@@ -32,6 +32,10 @@ public class TokenMetadataDao {
             "(:subject, :source, :policy, :name, :ticker, :url, :description, :decimals, :updated, :updated_by, :properties) " +
             "ON CONFLICT (subject, source) DO NOTHING";
 
+    public static final String TOKEN_LOGO_INSERT_SQL = "INSERT INTO logo " +
+            "(subject, source, logo) VALUES (:subject, :source, :logo) " +
+            "ON CONFLICT (subject, source) DO NOTHING";
+
     public void insertTokenMetadata(String subject, String source, Optional<String> policy,
                                     Optional<String> name, Optional<String> ticker, Optional<String> url,
                                     Optional<String> description, Optional<Integer> decimals, Timestamp updatedAt, String updatedBy, Mapping mapping) {
@@ -58,6 +62,16 @@ public class TokenMetadataDao {
         myParams.put("properties", jsonBMapping);
         final SqlParameterSource params = new MapSqlParameterSource(myParams);
         namedParameterJdbcTemplate.update(TOKEN_METADATA_INSERT_SQL, params);
+
+    }
+
+    public void insertTokenLogo(String subject, String source, Optional<String> logo) {
+        Map<String, Serializable> myParams = new HashMap<>();
+        myParams.put("subject", subject);
+        myParams.put("source", source);
+        myParams.put("logo", logo.orElse(null));
+        final SqlParameterSource params = new MapSqlParameterSource(myParams);
+        namedParameterJdbcTemplate.update(TOKEN_LOGO_INSERT_SQL, params);
 
     }
 
