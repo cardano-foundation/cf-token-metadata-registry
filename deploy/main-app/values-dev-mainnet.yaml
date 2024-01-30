@@ -2,7 +2,7 @@ stage: dev
 
 network: main
 
-domain: dev.cf-metadataserver-mainnet.eu-central-1.metadata.dev.cf-deployments.org
+domain: dev.cf-metadataserver-1.eu-central-1.metadata.testing.cf-deployments.org
 
 cf-token-metadata-registry:
   enabled: true
