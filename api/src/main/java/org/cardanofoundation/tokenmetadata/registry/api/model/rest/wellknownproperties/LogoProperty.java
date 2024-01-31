@@ -8,7 +8,7 @@ import lombok.NoArgsConstructor;
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.TokenMetadataProperty;
 
 @Data
-@EqualsAndHashCode(callSuper = true)
+@EqualsAndHashCode(callSuper = false)
 @NoArgsConstructor
 public class LogoProperty extends TokenMetadataProperty<byte[]> {
   @Schema(name = "value", required = true)
