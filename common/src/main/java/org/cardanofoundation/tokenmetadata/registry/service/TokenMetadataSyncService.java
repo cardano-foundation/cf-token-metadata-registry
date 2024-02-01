@@ -1,10 +1,10 @@
-package org.cardanofoundation.tokenmetadata.registry.job.service;
+package org.cardanofoundation.tokenmetadata.registry.service;
 
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.cardanofoundation.tokenmetadata.registry.job.model.Mapping;
-import org.cardanofoundation.tokenmetadata.registry.job.model.MappingDetails;
-import org.cardanofoundation.tokenmetadata.registry.job.model.MappingUpdateDetails;
+import org.cardanofoundation.tokenmetadata.registry.model.Mapping;
+import org.cardanofoundation.tokenmetadata.registry.model.MappingDetails;
+import org.cardanofoundation.tokenmetadata.registry.model.MappingUpdateDetails;
 import org.springframework.stereotype.Service;
 
 import java.io.File;

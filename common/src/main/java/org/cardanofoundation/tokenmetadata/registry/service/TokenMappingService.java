@@ -1,8 +1,8 @@
-package org.cardanofoundation.tokenmetadata.registry.job.service;
+package org.cardanofoundation.tokenmetadata.registry.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
-import org.cardanofoundation.tokenmetadata.registry.job.model.Mapping;
+import org.cardanofoundation.tokenmetadata.registry.model.Mapping;
 import org.springframework.stereotype.Component;
 
 import java.io.File;

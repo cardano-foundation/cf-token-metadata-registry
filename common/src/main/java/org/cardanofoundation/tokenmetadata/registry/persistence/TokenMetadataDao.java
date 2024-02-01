@@ -1,10 +1,10 @@
-package org.cardanofoundation.tokenmetadata.registry.job.persistence;
+package org.cardanofoundation.tokenmetadata.registry.persistence;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.cardanofoundation.tokenmetadata.registry.job.model.Mapping;
+import org.cardanofoundation.tokenmetadata.registry.model.Mapping;
 import org.postgresql.util.PGobject;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
