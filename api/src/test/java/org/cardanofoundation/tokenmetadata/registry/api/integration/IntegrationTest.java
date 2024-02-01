@@ -2,6 +2,7 @@ package org.cardanofoundation.tokenmetadata.registry.api.integration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import lombok.extern.slf4j.Slf4j;
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.TokenMetadata;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Disabled;
@@ -14,6 +15,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+@Slf4j
 public class IntegrationTest {
 
     private static final String HASKEL_HOST = "tokens.cardano.org";
@@ -42,10 +44,13 @@ public class IntegrationTest {
     })
     @ParameterizedTest
     @Disabled
-    public void testFetchSubjects(String subject) throws IOException {
+    public void testFetchSubjects(String subject) throws IOException, InterruptedException {
+
+        String javaResponse = restTemplate.getForObject("https://api.dev.cf-metadataserver-1.eu-central-1.metadata.testing.cf-deployments.org/mainnet/metadata/" + subject, String.class);
+        log.info("java ok");
 
         String haskellResponse = restTemplate.getForObject("https://tokens.cardano.org/metadata/" + subject, String.class);
-        String javaResponse = restTemplate.getForObject("https://api.dev.cf-metadataserver-1.eu-central-1.metadata.testing.cf-deployments.org/mainnet/metadata/" + subject, String.class);
+        log.info("haskel ok");
 
         var haskelSubject = objectMapper.readTree(haskellResponse);
         var javaSubject = objectMapper.readTree(javaResponse);
@@ -54,6 +59,8 @@ public class IntegrationTest {
         }
 
         Assertions.assertEquals(haskelSubject, javaSubject);
+
+        Thread.sleep(1000L);
 
     }
 
@@ -83,14 +90,19 @@ public class IntegrationTest {
 
         var property = properties.get(0);
 
-        String haskellResponse = restTemplate.getForObject(String.format("https://%s/metadata/%s/properties/%s", HASKEL_HOST, subject, property), String.class);
         String javaResponse = restTemplate.getForObject(String.format("https://%s/mainnet/metadata/%s/properties/%s", TEMP_JAVA_HOST, subject, property), String.class);
+        log.info("java ok");
+
+        String haskellResponse = restTemplate.getForObject(String.format("https://%s/metadata/%s/properties/%s", HASKEL_HOST, subject, property), String.class);
+        log.info("haskel ok");
 
         var haskelSubject = objectMapper.readValue(haskellResponse, TokenMetadata.class);
         var javaSubject = objectMapper.readValue(javaResponse, TokenMetadata.class);
         haskelSubject.setPolicy(javaSubject.getPolicy());
 
         Assertions.assertEquals(haskelSubject, javaSubject, String.format("Property %s", property));
+
+        Thread.sleep(1000L);
 
     }
 
