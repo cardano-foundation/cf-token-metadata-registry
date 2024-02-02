@@ -10,6 +10,7 @@ spec:
   schedule: {{ .Values.job.cron }}
   jobTemplate:
     spec:
+      ttlSecondsAfterFinished: 600
       template:
         spec:
           containers:
