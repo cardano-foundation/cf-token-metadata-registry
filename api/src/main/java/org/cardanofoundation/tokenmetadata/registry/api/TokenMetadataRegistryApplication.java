@@ -10,7 +10,7 @@ import org.springframework.web.filter.ForwardedHeaderFilter;
 
 import java.util.List;
 
-@SpringBootApplication
+@SpringBootApplication(scanBasePackages = "org.cardanofoundation.tokenmetadata.registry")
 public class TokenMetadataRegistryApplication {
     public static void main(String[] args) {
         SpringApplication.run(TokenMetadataRegistryApplication.class, args);
