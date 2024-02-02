@@ -8,7 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
-import org.cardanofoundation.tokenmetadata.registry.api.config.OffchainMetadataRegistryConfig;
+
 import org.cardanofoundation.tokenmetadata.registry.api.config.SpringWebSecurityConfig;
 import org.cardanofoundation.tokenmetadata.registry.api.controller.V2ApiController;
 import org.cardanofoundation.tokenmetadata.registry.api.indexer.V1ApiMetadataIndexer;
