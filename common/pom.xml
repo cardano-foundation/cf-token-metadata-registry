@@ -9,9 +9,9 @@
         <version>${revision}</version>
     </parent>
 
-    <artifactId>job</artifactId>
-    <name>job</name>
-    <description>Job to update db data with github data</description>
+    <artifactId>common</artifactId>
+    <name>common</name>
+    <description>Common code to be shared between different applications</description>
 
     <packaging>jar</packaging>
 
@@ -49,11 +49,6 @@
     </organization>
 
     <dependencies>
-        <dependency>
-            <groupId>org.cardanofoundation.metadatatools</groupId>
-            <artifactId>common</artifactId>
-            <version>${revision}</version>
-        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>

@@ -1,7 +1,7 @@
 package org.cardanofoundation.tokenmetadata.registry.job;
 
 import lombok.extern.slf4j.Slf4j;
-import org.cardanofoundation.tokenmetadata.registry.job.service.TokenMetadataSyncService;
+import org.cardanofoundation.tokenmetadata.registry.service.TokenMetadataSyncService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;

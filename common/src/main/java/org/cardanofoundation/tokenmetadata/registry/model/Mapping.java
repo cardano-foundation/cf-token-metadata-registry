@@ -1,4 +1,4 @@
-package org.cardanofoundation.tokenmetadata.registry.job.model;
+package org.cardanofoundation.tokenmetadata.registry.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 

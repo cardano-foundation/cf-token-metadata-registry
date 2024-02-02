@@ -1,6 +1,6 @@
-package org.cardanofoundation.tokenmetadata.registry.job.service;
+package org.cardanofoundation.tokenmetadata.registry.service;
 
-import org.cardanofoundation.tokenmetadata.registry.job.persistence.TokenMetadataDao;
+import org.cardanofoundation.tokenmetadata.registry.persistence.TokenMetadataDao;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
