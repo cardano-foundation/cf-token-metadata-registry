@@ -54,7 +54,7 @@ spec:
 
             # Scheduled Task to update
             - name: TOKEN_METADATA_SYNC_JOB
-              value: {{ .Values.tokenMetadataUpdateJob.enabled | quote }}
+              value: {{ .Values.api.tokenMetadataUpdateJob.enabled | quote }}
 
           ports:
             - name: http
