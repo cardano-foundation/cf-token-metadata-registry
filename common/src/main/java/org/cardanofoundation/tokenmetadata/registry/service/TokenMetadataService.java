@@ -16,13 +16,10 @@ import java.util.Optional;
 @AllArgsConstructor
 public class TokenMetadataService {
 
-    private static final String SOURCE = "mainnet";
-
     private final TokenMetadataDao tokenMetadataDao;
 
     public void insertMapping(Mapping mapping, LocalDateTime updatedAt, String updateBy) {
         tokenMetadataDao.insertTokenMetadata(mapping.subject(),
-                SOURCE,
                 Optional.ofNullable(mapping.policy()),
                 Optional.ofNullable(mapping.name()).map(Item::value),
                 Optional.ofNullable(mapping.ticker()).map(Item::value),
@@ -36,9 +33,7 @@ public class TokenMetadataService {
     }
 
     public void insertLogo(Mapping mapping) {
-        tokenMetadataDao.insertTokenLogo(mapping.subject(),
-                SOURCE,
-                Optional.ofNullable(mapping.logo()).map(Item::value));
+        tokenMetadataDao.insertTokenLogo(mapping.subject(), Optional.ofNullable(mapping.logo()).map(Item::value));
     }
 
 }

@@ -39,7 +39,6 @@ class TokenMetadataServiceTest {
             tokenMetadataService.insertMapping(mappings, now, testUser);
 
             Mockito.verify(tokenMetadataDao, Mockito.times(1)).insertTokenMetadata("ff7cad970d3a755a1ff0335ccb3f3c1cabf31aacf3f23dd13db61b0630313030",
-                    "mainnet",
                     Optional.of("820182018282051a02f893828200581cdc1ac66efbf0f27457cd646d80fbeee08eafcacce42fb631ca1a0254"),
                     Optional.of("Spirit Of The Bone Forest"),
                     Optional.of("0100"),
@@ -70,7 +69,6 @@ class TokenMetadataServiceTest {
             tokenMetadataService.insertLogo(mappings);
 
             Mockito.verify(tokenMetadataDao, Mockito.times(1)).insertTokenLogo("ff7cad970d3a755a1ff0335ccb3f3c1cabf31aacf3f23dd13db61b0630313030",
-                    "mainnet",
                     Optional.of(logo));
 
         });

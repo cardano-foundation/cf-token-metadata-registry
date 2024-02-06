@@ -28,15 +28,15 @@ public class TokenMetadataDao {
     private final NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
     public static final String TOKEN_METADATA_INSERT_SQL = "INSERT INTO metadata " +
-            "(subject, source, policy, name, ticker, url, description, decimals, updated, updated_by, properties) VALUES " +
-            "(:subject, :source, :policy, :name, :ticker, :url, :description, :decimals, :updated, :updated_by, :properties) " +
-            "ON CONFLICT (subject, source) DO NOTHING";
+            "(subject, policy, name, ticker, url, description, decimals, updated, updated_by, properties) VALUES " +
+            "(:subject, :policy, :name, :ticker, :url, :description, :decimals, :updated, :updated_by, :properties) " +
+            "ON CONFLICT (subject) DO NOTHING";
 
     public static final String TOKEN_LOGO_INSERT_SQL = "INSERT INTO logo " +
-            "(subject, source, logo) VALUES (:subject, :source, :logo) " +
-            "ON CONFLICT (subject, source) DO NOTHING";
+            "(subject, logo) VALUES (:subject, :logo) " +
+            "ON CONFLICT (subject) DO NOTHING";
 
-    public void insertTokenMetadata(String subject, String source, Optional<String> policy,
+    public void insertTokenMetadata(String subject, Optional<String> policy,
                                     Optional<String> name, Optional<String> ticker, Optional<String> url,
                                     Optional<String> description, Optional<Integer> decimals, Timestamp updatedAt, String updatedBy, Mapping mapping) {
 
@@ -50,7 +50,6 @@ public class TokenMetadataDao {
 
         Map<String, Serializable> myParams = new HashMap<>();
         myParams.put("subject", subject);
-        myParams.put("source", source);
         myParams.put("policy", policy.orElse(null));
         myParams.put("name", name.orElse(null));
         myParams.put("ticker", ticker.orElse(null));
@@ -65,10 +64,9 @@ public class TokenMetadataDao {
 
     }
 
-    public void insertTokenLogo(String subject, String source, Optional<String> logo) {
+    public void insertTokenLogo(String subject, Optional<String> logo) {
         Map<String, Serializable> myParams = new HashMap<>();
         myParams.put("subject", subject);
-        myParams.put("source", source);
         myParams.put("logo", logo.orElse(null));
         final SqlParameterSource params = new MapSqlParameterSource(myParams);
         namedParameterJdbcTemplate.update(TOKEN_LOGO_INSERT_SQL, params);
