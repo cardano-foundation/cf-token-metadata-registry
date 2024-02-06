@@ -52,6 +52,10 @@ spec:
                   name: {{ .Values.postgres.secret.name }}
                   key: {{ .Values.postgres.secret.hostKey }}
 
+            # Scheduled Task to update
+            - name: TOKEN_METADATA_SYNC_JOB
+              value: {{ .Values.tokenMetadataUpdateJob.enabled }}
+
           ports:
             - name: http
               containerPort: {{ .Values.service.port }}

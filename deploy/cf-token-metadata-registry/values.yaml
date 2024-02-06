@@ -5,6 +5,9 @@ api:
     repository: pro.registry.gitlab.metadata.dev.cf-deployments.org/base-infrastructure/docker-registry/cf-token-metadata-registry-api
     tag: "0.0.1"
     pullPolicy: Always
+  tokenMetadataUpdateJob:
+    enabled: true
+
 
 job:
   enabled: false
