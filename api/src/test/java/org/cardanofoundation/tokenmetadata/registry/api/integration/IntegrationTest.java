@@ -6,7 +6,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.SubjectsResponse;
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.TokenMetadata;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -43,13 +42,12 @@ public class IntegrationTest {
             "e4214b7cce62ac6fbba385d164df48e157eae5863521b4b67ca71d868ea3529080de9d5784e4c3a44f7ed41ac6de20c38a39a8936515f74c8a0d1d14",
     })
     @ParameterizedTest
-    @Disabled
     public void testFetchSubjects(String subject) throws IOException, InterruptedException {
 
-        String javaResponse = restTemplate.getForObject("https://api.dev.cf-metadataserver-1.eu-central-1.metadata.testing.cf-deployments.org/mainnet/metadata/" + subject, String.class);
+        String javaResponse = restTemplate.getForObject(String.format("https://%s/metadata/%s", TEMP_JAVA_HOST, subject), String.class);
         log.info("java ok");
 
-        String haskellResponse = restTemplate.getForObject("https://tokens.cardano.org/metadata/" + subject, String.class);
+        String haskellResponse = restTemplate.getForObject(String.format("https://%s/metadata/%s", HASKEL_HOST, subject), String.class);
         log.info("haskel ok");
 
         var haskelSubject = objectMapper.readTree(haskellResponse);
@@ -82,7 +80,6 @@ public class IntegrationTest {
     })
 
     @ParameterizedTest
-    @Disabled
     public void fetchProps(String subject) throws Exception {
 
         List<String> properties = new ArrayList<>(List.of("name", "description", "url", "ticker", "decimals", "logo", "policy"));
@@ -91,7 +88,7 @@ public class IntegrationTest {
 
         var property = properties.get(0);
 
-        String javaResponse = restTemplate.getForObject(String.format("https://%s/mainnet/metadata/%s/properties/%s", TEMP_JAVA_HOST, subject, property), String.class);
+        String javaResponse = restTemplate.getForObject(String.format("https://%s/metadata/%s/properties/%s", TEMP_JAVA_HOST, subject, property), String.class);
         log.info("java ok");
 
         String haskellResponse = restTemplate.getForObject(String.format("https://%s/metadata/%s/properties/%s", HASKEL_HOST, subject, property), String.class);
@@ -132,7 +129,7 @@ public class IntegrationTest {
 
         var request = new Query(subjects, properties);
 
-        String javaResponse = restTemplate.postForObject(String.format("https://%s/mainnet/metadata/query", TEMP_JAVA_HOST), request, String.class);
+        String javaResponse = restTemplate.postForObject(String.format("https://%s/metadata/query", TEMP_JAVA_HOST), request, String.class);
         log.info("java ok");
 
         String haskellResponse = restTemplate.postForObject(String.format("https://%s/metadata/query", HASKEL_HOST), request, String.class);
