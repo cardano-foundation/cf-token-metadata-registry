@@ -234,8 +234,8 @@
 
     <modules>
         <module>api</module>
-        <module>common</module>
         <module>job</module>
+        <module>common</module>
         <module>cli</module>
     </modules>
 
