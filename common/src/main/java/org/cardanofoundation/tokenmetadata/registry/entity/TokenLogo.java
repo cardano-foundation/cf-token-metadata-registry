@@ -1,6 +1,5 @@
 package org.cardanofoundation.tokenmetadata.registry.entity;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -12,41 +11,22 @@ import java.time.LocalDateTime;
 import java.util.Objects;
 
 @Entity
-@Table(name = "metadata")
+@Table(name = "logo")
 @Getter
 @Setter
-public class TokenMetadata {
+public class TokenLogo {
 
     @Id
     private String subject;
 
-    private String policy;
-
-    private String name;
-
-    private String ticker;
-
-    private String url;
-
-    private String description;
-
-    private Long decimals;
-
-    @Temporal(TemporalType.TIMESTAMP)
-    private LocalDateTime updated;
-
-    private String updatedBy;
-
-    @JdbcTypeCode(SqlTypes.JSON)
-    private Mapping properties;
-
+    private String logo;
 
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        TokenMetadata that = (TokenMetadata) o;
-        return Objects.equals(subject, that.subject);
+        TokenLogo tokenLogo = (TokenLogo) o;
+        return Objects.equals(subject, tokenLogo.subject);
     }
 
     @Override

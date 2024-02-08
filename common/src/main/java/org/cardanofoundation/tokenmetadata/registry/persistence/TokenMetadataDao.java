@@ -6,6 +6,7 @@ import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.cardanofoundation.tokenmetadata.registry.model.Mapping;
 import org.postgresql.util.PGobject;
+import org.springframework.context.annotation.Profile;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
@@ -20,6 +21,7 @@ import java.util.Optional;
 
 @Component
 @AllArgsConstructor
+@Profile("!test")
 @Slf4j
 public class TokenMetadataDao {
 
