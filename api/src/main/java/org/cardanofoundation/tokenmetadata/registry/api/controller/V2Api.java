@@ -60,6 +60,7 @@ public interface V2Api {
             value = "/v2/subjects/{subject}",
             produces = {"application/json;charset=utf-8"})
     ResponseEntity<TokenMetadata> deleteSubjectV2(
+            @NotNull
             @Parameter(
                     name = "subject",
                     required = true,
