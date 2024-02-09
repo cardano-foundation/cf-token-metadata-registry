@@ -30,8 +30,30 @@ public class GitService {
     private String gitTempFolder;
 
     public Optional<Path> cloneCardanoTokenRegistryGitRepository() {
+        var gitFolder = getGitFolder();
+        if (gitFolder.exists()) {
+            FileSystemUtils.deleteRecursively(gitFolder);
+        }
+        try {
 
+            var process = new ProcessBuilder()
+                    .directory(gitFolder.getParentFile())
+                    .command("sh", "-c", String.format("git clone https://github.com/%s/%s.git", organization, projectName))
+                    .start();
+
+            var exitCode = process.waitFor();
+
+            if (exitCode == 0) {
                 return Optional.of(getMappingsFolder());
+            } else {
+                return Optional.empty();
+            }
+
+
+        } catch (Exception e) {
+            log.warn(String.format("It was not possible to clone the %s project", projectName), e);
+            return Optional.empty();
+        }
 
 
     }
