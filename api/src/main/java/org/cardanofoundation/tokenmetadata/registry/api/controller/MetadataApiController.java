@@ -1,6 +1,5 @@
 package org.cardanofoundation.tokenmetadata.registry.api.controller;
 
-import jakarta.validation.constraints.NotNull;
 import lombok.extern.slf4j.Slf4j;
 import org.cardanofoundation.tokenmetadata.registry.api.indexer.V1ApiMetadataIndexer;
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.BatchRequest;
@@ -26,7 +25,7 @@ public class MetadataApiController implements MetadataApi {
     private V1ApiMetadataIndexer v1ApiMetadataIndexer;
 
     @Override
-    public ResponseEntity<BatchResponse> getSubjects(@NotNull final BatchRequest body) {
+    public ResponseEntity<BatchResponse> getSubjects(final BatchRequest body) {
         try {
             final Map<String, TokenMetadata> subjects = v1ApiMetadataIndexer.findSubjectsSelectProperties(
                     body.getSubjects(),
@@ -44,7 +43,7 @@ public class MetadataApiController implements MetadataApi {
     }
 
     @Override
-    public ResponseEntity<TokenMetadata> getAllPropertiesForSubject(@NotNull final String subject) {
+    public ResponseEntity<TokenMetadata> getAllPropertiesForSubject(final String subject) {
         try {
             return v1ApiMetadataIndexer
                     .findSubject(subject)
@@ -56,7 +55,7 @@ public class MetadataApiController implements MetadataApi {
     }
 
     @Override
-    public ResponseEntity<TokenMetadata> getPropertyForSubject(@NotNull final String subject, @NotNull final String property) {
+    public ResponseEntity<TokenMetadata> getPropertyForSubject(final String subject, final String property) {
         try {
             return v1ApiMetadataIndexer
                     .findSubjectSelectProperties(subject, List.of(property))

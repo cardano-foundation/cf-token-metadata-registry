@@ -192,9 +192,9 @@ public class V2ApiController implements V2Api {
     }
 
     @Override
-    public ResponseEntity<TokenMetadata> deleteSubjectV2(@NotNull final String subject,
-                                                         @NotNull final String signature,
-                                                         @NotNull final String vkey) {
+    public ResponseEntity<TokenMetadata> deleteSubjectV2(final String subject,
+                                                         final String signature,
+                                                         final String vkey) {
         // 1. verify signature (which is sig(subject | "VOID")) with given vkey
         return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
     }

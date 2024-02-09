@@ -2,38 +2,36 @@ package org.cardanofoundation.tokenmetadata.registry.service;
 
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.cardanofoundation.tokenmetadata.registry.model.Item;
 import org.cardanofoundation.tokenmetadata.registry.model.Mapping;
-import org.cardanofoundation.tokenmetadata.registry.persistence.TokenMetadataDao;
+import org.cardanofoundation.tokenmetadata.registry.repository.TokenLogoRepository;
+import org.cardanofoundation.tokenmetadata.registry.repository.TokenMetadataRepository;
+import org.cardanofoundation.tokenmetadata.registry.util.MappingsUtil;
 import org.springframework.stereotype.Component;
 
-import java.sql.Timestamp;
 import java.time.LocalDateTime;
-import java.util.Optional;
+
+import static org.cardanofoundation.tokenmetadata.registry.util.MappingsUtil.toTokenLogo;
 
 @Component
 @Slf4j
 @AllArgsConstructor
 public class TokenMetadataService {
 
-    private final TokenMetadataDao tokenMetadataDao;
+
+    private final TokenMetadataRepository tokenMetadataRepository;
+
+    private final TokenLogoRepository tokenLogoRepository;
 
     public void insertMapping(Mapping mapping, LocalDateTime updatedAt, String updateBy) {
-        tokenMetadataDao.insertTokenMetadata(mapping.subject(),
-                Optional.ofNullable(mapping.policy()),
-                Optional.ofNullable(mapping.name()).map(Item::value),
-                Optional.ofNullable(mapping.ticker()).map(Item::value),
-                Optional.ofNullable(mapping.url()).map(Item::value),
-                Optional.ofNullable(mapping.description()).map(Item::value),
-                Optional.ofNullable(mapping.decimals()).map(Item::value).map(Integer::valueOf),
-                Timestamp.valueOf(updatedAt),
-                updateBy,
-                mapping
-        );
+        var tokenMetadata = MappingsUtil.toTokenMetadata(mapping, updateBy, updatedAt);
+        tokenMetadataRepository.save(tokenMetadata);
+
     }
 
     public void insertLogo(Mapping mapping) {
-        tokenMetadataDao.insertTokenLogo(mapping.subject(), Optional.ofNullable(mapping.logo()).map(Item::value));
+        var tokenLogo = toTokenLogo(mapping);
+        tokenLogoRepository.save(tokenLogo);
     }
+
 
 }
