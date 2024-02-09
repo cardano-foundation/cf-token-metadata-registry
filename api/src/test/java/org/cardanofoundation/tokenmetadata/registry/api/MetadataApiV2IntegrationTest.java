@@ -1,5 +1,6 @@
 package org.cardanofoundation.tokenmetadata.registry.api;
 
+import jakarta.persistence.EntityManager;
 import org.cardanofoundation.tokenmetadata.registry.api.config.SpringWebSecurityConfig;
 import org.cardanofoundation.tokenmetadata.registry.api.controller.V2ApiController;
 import org.cardanofoundation.tokenmetadata.registry.api.indexer.V1ApiMetadataIndexer;
@@ -42,6 +43,9 @@ public class MetadataApiV2IntegrationTest {
 
     @MockBean
     private V2ApiMetadataIndexer v2ApiMetadataIndexer;
+
+    @MockBean
+    private EntityManager entityManager;
 
     @BeforeEach
     void setUp() {
