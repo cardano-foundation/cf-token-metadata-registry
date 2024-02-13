@@ -28,34 +28,57 @@ public class GitService {
     private String mappingsFolderName;
     @Value("${git.tmp.folder:/tmp}")
     private String gitTempFolder;
+    @Value("${git.forceClone:false}")
+    private boolean forceClone;
 
     public Optional<Path> cloneCardanoTokenRegistryGitRepository() {
         var gitFolder = getGitFolder();
-        if (gitFolder.exists()) {
+        boolean repoReady;
+        if (gitFolder.exists() && (forceClone || !isGitRepo())) {
+            log.info("exists and either force clone or not a git repo");
             FileSystemUtils.deleteRecursively(gitFolder);
-        }
-        try {
+            repoReady = cloneRepo();
+        } else if (gitFolder.exists() && isGitRepo()) {
+            log.info("exists and is git repo");
+            try {
+                var process = new ProcessBuilder()
+                        .directory(gitFolder)
+                        .command("sh", "-c", "git pull --rebase")
+                        .start();
 
-            var process = new ProcessBuilder()
-                    .directory(gitFolder.getParentFile())
-                    .command("sh", "-c", String.format("git clone https://github.com/%s/%s.git", organization, projectName))
-                    .start();
-
-            var exitCode = process.waitFor();
-
-            if (exitCode == 0) {
-                return Optional.of(getMappingsFolder());
-            } else {
-                return Optional.empty();
+                var exitCode = process.waitFor();
+                repoReady = exitCode == 0;
+            } catch (Exception e) {
+                log.warn("it was not possible to update repo. cloning from scratch", e);
+                repoReady = cloneRepo();
             }
+        } else {
+            repoReady = cloneRepo();
+        }
 
-
-        } catch (Exception e) {
-            log.warn(String.format("It was not possible to clone the %s project", projectName), e);
+        if (repoReady) {
+            return Optional.of(getMappingsFolder());
+        } else {
             return Optional.empty();
         }
+    }
 
+    private boolean cloneRepo() {
+        try {
+            var process = new ProcessBuilder()
+                    .directory(getGitFolder().getParentFile())
+                    .command("sh", "-c", String.format("git clone https://github.com/%s/%s.git", organization, projectName))
+                    .start();
+            var exitCode = process.waitFor();
+            return exitCode == 0;
+        } catch (Exception e) {
+            log.warn(String.format("It was not possible to clone the %s project", projectName), e);
+            return false;
+        }
+    }
 
+    private boolean isGitRepo() {
+        return getGitFolder().toPath().resolve(".git").toFile().exists();
     }
 
     private File getGitFolder() {
