@@ -33,6 +33,7 @@ public class GitService {
 
     public Optional<Path> cloneCardanoTokenRegistryGitRepository() {
         var gitFolder = getGitFolder();
+
         boolean repoReady;
         if (gitFolder.exists() && (forceClone || !isGitRepo())) {
             log.info("exists and either force clone or not a git repo");
@@ -40,18 +41,7 @@ public class GitService {
             repoReady = cloneRepo();
         } else if (gitFolder.exists() && isGitRepo()) {
             log.info("exists and is git repo");
-            try {
-                var process = new ProcessBuilder()
-                        .directory(gitFolder)
-                        .command("sh", "-c", "git pull --rebase")
-                        .start();
-
-                var exitCode = process.waitFor();
-                repoReady = exitCode == 0;
-            } catch (Exception e) {
-                log.warn("it was not possible to update repo. cloning from scratch", e);
-                repoReady = cloneRepo();
-            }
+            repoReady = pullRebaseRepo();
         } else {
             repoReady = cloneRepo();
         }
@@ -73,6 +63,21 @@ public class GitService {
             return exitCode == 0;
         } catch (Exception e) {
             log.warn(String.format("It was not possible to clone the %s project", projectName), e);
+            return false;
+        }
+    }
+
+    private boolean pullRebaseRepo() {
+        try {
+            var process = new ProcessBuilder()
+                    .directory(getGitFolder())
+                    .command("sh", "-c", "git pull --rebase")
+                    .start();
+
+            var exitCode = process.waitFor();
+            return exitCode == 0;
+        } catch (Exception e) {
+            log.warn("it was not possible to update repo. cloning from scratch", e);
             return false;
         }
     }
