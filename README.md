@@ -43,12 +43,13 @@ The simplest approach to running the application after having built it is to use
 $ docker compose up
 ```
 
+> [!NOTE]
+> If you change the code, in order to make the changes visible to docker compose you need to rebuild the local image 
+> with `docker compose build` and then `docker compose up` will take care to restart containers who have a new image available
+
 The complete Docker Compose setup runs the following services:
 1. Setup a Postgres database in a docker container and exposes it to `localhost` on port `5432` (service name `db`)
-2. Initialize the database schema and creates and configures access for the users required by the API (service name `bootstrap-db`)
-3. Performs a one time sync of the data available in the mainnet and testnet registries from Cardano Foundation and IOG (service name `sync-db-once`)
-4. Starts a service that syncs the repository in a fixed interval (service name `sync-db-cron`)
-5. Starts the actual Spring application that exposes the CIP-26 REST API and exposes it to `localhost` on port `8081` (service name `api`)
+2. Starts the actual Spring application that exposes the CIP-26 REST API and exposes it to `localhost` on port `8081` (service name `api`)
 
 To test if the API is running query its health endpoint by executing:
 ```console
@@ -57,12 +58,8 @@ $ curl http://localhost:8081/actuator/health
 
 Have a look at the [.env file](./.env) for the various configuration options.
 
-If you ony need the database without starting the REST API or the data synced from the registries simply use the following command:
-```console
-$ docker compose up db bootstrap-db
-```
-
-At the moment the application needs a PostgreSQL database as a storage layer which might change in the future. You can use the [liquibase](https://www.liquibase.org/) database migration scripts provided in our [database folder](./database) to initialize this database.
+At the moment the application needs a PostgreSQL database as a storage layer which might change in the future. Database evolutions
+are managed by the `api` project using [flyway](https://flywaydb.org/).
 
 ## Features
 
