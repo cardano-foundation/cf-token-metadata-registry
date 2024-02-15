@@ -1,4 +1,4 @@
-[![License](https://img.shields.io/github/license/cardano-foundation/cf-token-metadata-registry)](https://github.com/cardano-foundation/cf-token-metadata-registry/blob/main/LICENSE)
+[![License: MPL 2.0](https://img.shields.io/badge/License-MPL_2.0-brightgreen.svg)](https://github.com/cardano-foundation/cf-token-metadata-registry/blob/main/LICENSE)
 ![GitHub top language](https://img.shields.io/github/languages/top/cardano-foundation/cf-token-metadata-registry)
 [![Build](https://github.com/cardano-foundation/cf-token-metadata-registry/actions/workflows/main.yaml/badge.svg)](https://github.com/cardano-foundation/cf-token-metadata-registry/actions/workflows/main.yaml)
 ![coverage](https://github.com/cardano-foundation/cf-token-metadata-registry/blob/badges/jacoco.svg)
