@@ -11,8 +11,8 @@ cf-token-metadata-registry:
       image:
         tag: "0.0.1"
       tokenMetadataUpdateJob:
-        enabled: false
+        enabled: true
     job:
-      enabled: true
+      enabled: false
       image:
         tag: "0.0.1"
