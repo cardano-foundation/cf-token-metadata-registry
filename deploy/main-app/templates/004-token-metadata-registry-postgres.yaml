@@ -15,3 +15,4 @@ spec:
     cf_token_metadata_registry: cardano
   postgresql:
     version: "15"
+  enableLogicalBackup: true
