@@ -8,7 +8,7 @@ spec:
   teamId: "cf"
   volume:
     size: 1Gi
-  numberOfInstances: 1
+  numberOfInstances: 2
   users:
     cardano: []
   databases:
