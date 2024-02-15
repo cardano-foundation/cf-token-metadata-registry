@@ -1,7 +1,6 @@
 [![License](https://img.shields.io/github/license/cardano-foundation/cf-token-metadata-registry)](https://github.com/cardano-foundation/cf-token-metadata-registry/blob/main/LICENSE)
 ![GitHub top language](https://img.shields.io/github/languages/top/cardano-foundation/cf-token-metadata-registry)
 [![Build](https://github.com/cardano-foundation/cf-token-metadata-registry/actions/workflows/main.yaml/badge.svg)](https://github.com/cardano-foundation/cf-token-metadata-registry/actions/workflows/main.yaml)
-[![CodeQL](https://github.com/cardano-foundation/cf-token-metadata-registry/actions/workflows/codeql.yaml/badge.svg)](https://github.com/cardano-foundation/cf-token-metadata-registry/actions/workflows/codeql.yaml)
 ![coverage](https://github.com/cardano-foundation/cf-token-metadata-registry/blob/badges/jacoco.svg)
 ![branches](https://github.com/cardano-foundation/cf-token-metadata-registry/blob/badges/branches.svg)
 [![Issues](https://img.shields.io/github/issues/cardano-foundation/cf-token-metadata-registry)](https://github.com/cardano-foundation/cf-token-metadata-registry/issues)
