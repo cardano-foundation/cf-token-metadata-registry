@@ -14,9 +14,9 @@ cf-token-metadata-registry:
       image:
         tag: "1.0.0"
       tokenMetadataUpdateJob:
-        enabled: true
+        enabled: false
     job:
-      enabled: false
+      enabled: true
       image:
         tag: "0.0.1"
     postgres:
