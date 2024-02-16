@@ -1,6 +1,19 @@
-stage: dev
+stage: pro
 
 network: main
 
-domain: pro.<domain>
+domain: pro.cf-token-metadata-registry.cf-deployments.org
 
+cf-token-metadata-registry:
+  enabled: true
+  values:
+    replicaCount: 2
+    api:
+      image:
+        tag: "1.0.0"
+      tokenMetadataUpdateJob:
+        enabled: false
+    job:
+      enabled: true
+      image:
+        tag: "1.0.0"
