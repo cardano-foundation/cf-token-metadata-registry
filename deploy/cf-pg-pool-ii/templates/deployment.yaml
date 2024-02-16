@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "cf-pg-pool-ii.fullname" . }}
+  labels:
+    {{- include "cf-pg-pool-ii.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "cf-pg-pool-ii.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "cf-pg-pool-ii.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.api.image.repository }}:{{ .Values.api.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.api.image.pullPolicy }}
+          env:
+            - name: POSTGRES_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.postgres.credentials.secretName }}
+                  key: {{ .Values.postgres.credentials.usernameKey }}
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.postgres.credentials.secretName }}
+                  key: {{ .Values.postgres.credentials.passwordKey }}
+            - name: PGPOOL_PASSWORD_ENCRYPTION_METHOD
+              value: "scram-sha-256"
+            - name: PGPOOL_ENABLE_POOL_PASSWD
+              value: "true"
+            - name: PGPOOL_SKIP_PASSWORD_ENCRYPTION
+              value: "false"
+
+          ports:
+            - name: db
+              containerPort: {{ .Values.service.port }}
+              protocol: TCP
+#          livenessProbe:
+#            httpGet:
+#              path: /
+#              port: http
+#          readinessProbe:
+#            httpGet:
+#              path: /
+#              port: http
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: pgpool-config
+              mountPath: /config
+          #- name: pgpool-tls
+          #  mountPath: /config/tls
+        volumes:
+        - name: pgpool-config
+          configMap:
+            name: pgpool-config
+      # Configure your own TLS certificate.
+      # If not set, Pgpool-II will automatically generate the TLS certificate if ssl = on.
+      #- name: pgpool-tls
+      #  secret:
+      #    secretName: pgpool-tls
