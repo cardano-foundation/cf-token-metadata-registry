@@ -12,7 +12,9 @@ cf-token-metadata-registry:
   values:
     api:
       image:
-        tag: "0.0.1"
+        tag: "1.0.0"
+      postgres:
+        host: pg-pool-ii-cf-pg-pool-ii
       tokenMetadataUpdateJob:
         enabled: true
     job:
