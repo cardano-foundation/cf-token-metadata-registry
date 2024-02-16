@@ -2,7 +2,7 @@ stage: pro
 
 network: main
 
-domain: pro.cf-token-metadata-registry.cf-deployments.org
+domain: pro.cf-token-registry-mainnet.eu-central-1.cf-token-metadata-registry.cf-deployments.org
 
 cf-token-metadata-registry:
   enabled: true
