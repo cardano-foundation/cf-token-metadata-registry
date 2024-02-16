@@ -3,7 +3,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: pg-pool-iu
+  name: pg-pool-ii
   namespace: argocd
   finalizers:
     - resources-finalizer.argocd.argoproj.io
@@ -12,7 +12,7 @@ spec:
   source:
     repoURL: git@github.com:cardano-foundation/cf-token-metadata-registry.git
     targetRevision: {{ .Values.git.targetRevision | default "HEAD" }}
-    path: deploy/pg-pool-ii
+    path: deploy/cf-pg-pool-ii
 
   syncPolicy:
     automated:
