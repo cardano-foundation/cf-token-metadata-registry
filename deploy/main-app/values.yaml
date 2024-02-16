@@ -13,6 +13,9 @@ domain: null
 not-found:
   enabled: true
 
+pg-pool-ii:
+  enabled: false
+
 grafana-dashboards:
   enabled: true
 

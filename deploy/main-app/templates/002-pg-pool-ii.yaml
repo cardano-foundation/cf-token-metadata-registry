@@ -1,0 +1,26 @@
+{{ if index .Values "pg-pool-ii" "enabled" }}
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: pg-pool-iu
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: git@github.com:cardano-foundation/cf-token-metadata-registry.git
+    targetRevision: {{ .Values.git.targetRevision | default "HEAD" }}
+    path: deploy/pg-pool-ii
+
+  syncPolicy:
+    automated:
+      prune: true
+    syncOptions:
+      - CreateNamespace=true
+
+  destination:
+    namespace: cf-token-metadata-registry
+    server: {{ .Values.spec.destination.server }}
+{{ end }}
