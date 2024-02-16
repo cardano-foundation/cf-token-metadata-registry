@@ -59,7 +59,7 @@ spec:
               mountPath: /config
           #- name: pgpool-tls
           #  mountPath: /config/tls
-        volumes:
+      volumes:
         - name: pgpool-config
           configMap:
             name: pgpool-config
