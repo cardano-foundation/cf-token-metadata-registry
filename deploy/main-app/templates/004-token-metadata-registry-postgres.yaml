@@ -4,6 +4,8 @@ metadata:
   # name must start w/ teamId
   name: cf-token-metadata-registry-pg
   namespace: cf-token-metadata-registry
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
 spec:
   teamId: "cf"
   volume:
