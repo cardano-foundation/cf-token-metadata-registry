@@ -1,11 +1,9 @@
+{{ if .Values.postgres.createDb }}
 apiVersion: "acid.zalan.do/v1"
 kind: postgresql
 metadata:
   # name must start w/ teamId
   name: cf-token-metadata-registry-pg
-  namespace: cf-token-metadata-registry
-  annotations:
-    argocd.argoproj.io/sync-wave: "1"
 spec:
   teamId: "cf"
   volume:
@@ -18,3 +16,4 @@ spec:
   postgresql:
     version: "15"
   enableLogicalBackup: true
+{{ end }}
