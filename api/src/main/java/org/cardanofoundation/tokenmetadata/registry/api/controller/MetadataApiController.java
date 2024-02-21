@@ -27,16 +27,22 @@ public class MetadataApiController implements MetadataApi {
     @Override
     public ResponseEntity<BatchResponse> getSubjects(final BatchRequest body) {
         try {
-            final Map<String, TokenMetadata> subjects = v1ApiMetadataIndexer.findSubjectsSelectProperties(
-                    body.getSubjects(),
-                    body.getProperties());
-            if (subjects.isEmpty()) {
-                return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-            } else {
+            if (body.getSubjects().isEmpty()) {
                 final BatchResponse response = new BatchResponse();
-                response.setSubjects(new ArrayList<>(subjects.values()));
                 return new ResponseEntity<>(response, HttpStatus.OK);
+            } else {
+                final Map<String, TokenMetadata> subjects = v1ApiMetadataIndexer.findSubjectsSelectProperties(
+                        body.getSubjects(),
+                        body.getProperties());
+                if (subjects.isEmpty()) {
+                    return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+                } else {
+                    final BatchResponse response = new BatchResponse();
+                    response.setSubjects(new ArrayList<>(subjects.values()));
+                    return new ResponseEntity<>(response, HttpStatus.OK);
+                }
             }
+
         } catch (final IllegalArgumentException e) {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
