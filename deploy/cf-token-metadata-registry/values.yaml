@@ -53,4 +53,4 @@ resources: {}
 nodeSelector: {}
 
 monitoring:
-  enabled: false
+  enabled: true
