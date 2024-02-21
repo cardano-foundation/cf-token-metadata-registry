@@ -33,7 +33,7 @@ public class MetadataApiController implements MetadataApi {
             } else {
                 final Map<String, TokenMetadata> subjects = v1ApiMetadataIndexer.findSubjectsSelectProperties(
                         body.getSubjects(),
-                        body.getProperties());
+                        body.getProperties() == null ? List.of() : body.getProperties());
                 if (subjects.isEmpty()) {
                     return new ResponseEntity<>(HttpStatus.NO_CONTENT);
                 } else {
