@@ -4,8 +4,6 @@ apiVersion: batch/v1
 kind: CronJob
 metadata:
   name: {{ include "cf-token-metadata-registry.fullname" . }}-job
-  labels:
-    {{- include "cf-token-metadata-registry.labels" . | nindent 4 }}
 spec:
   schedule: {{ .Values.job.cron }}
   jobTemplate:
