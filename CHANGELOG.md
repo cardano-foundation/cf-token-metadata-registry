@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.2](https://github.com/cardano-foundation/cf-token-metadata-registry/compare/v1.0.1...v1.0.2) (2024-02-21)
+
+
+### Bug Fixes
+
+* quick null check for nullable property ([e48a503](https://github.com/cardano-foundation/cf-token-metadata-registry/commit/e48a50369b7328ad6281a9e65abc8843f4dcac52))
+
 ## [1.0.1](https://github.com/cardano-foundation/cf-token-metadata-registry/compare/v1.0.0...v1.0.1) (2024-02-21)
 
 
