@@ -10,7 +10,7 @@ cf-token-metadata-registry:
     replicaCount: 2
     api:
       image:
-        tag: "1.0.0"
+        tag: "1.0.1"
       tokenMetadataUpdateJob:
         enabled: false
     job:
