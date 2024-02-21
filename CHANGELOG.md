@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1](https://github.com/cardano-foundation/cf-token-metadata-registry/compare/v1.0.0...v1.0.1) (2024-02-21)
+
+
+### Bug Fixes
+
+* immediately return empty response for batch request with empty list of subjects ([#12](https://github.com/cardano-foundation/cf-token-metadata-registry/issues/12)) ([1d25b23](https://github.com/cardano-foundation/cf-token-metadata-registry/commit/1d25b238a4671ca6630361b7d3cc1e02eb8eaf6d))
+
 ## 1.0.0 (2024-02-15)
 
 
