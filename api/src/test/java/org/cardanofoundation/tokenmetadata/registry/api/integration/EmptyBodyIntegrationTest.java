@@ -1,0 +1,134 @@
+package org.cardanofoundation.tokenmetadata.registry.api.integration;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.extern.slf4j.Slf4j;
+import org.cardanofoundation.tokenmetadata.registry.api.model.rest.SubjectsResponse;
+import org.cardanofoundation.tokenmetadata.registry.api.model.rest.TokenMetadata;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.springframework.web.client.RestTemplate;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+
+@Slf4j
+public class EmptyBodyIntegrationTest {
+
+
+    // DEV
+//    private static final String TEMP_JAVA_HOST = "api.dev.cf-metadataserver-1.eu-central-1.metadata.testing.cf-deployments.org";
+    // PRO
+//    private static final String TEMP_JAVA_HOST = "api.pro.cf-token-registry-mainnet.eu-central-1.pro.cf-token-metadata-registry.cf-deployments.org";
+
+    // PROPRO
+    private static final String TEMP_JAVA_HOST = "tokens.cardano.org";
+
+    private final RestTemplate restTemplate = new RestTemplate();
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
+
+    private record Query(List<String> subjects, List<String> properties) {
+
+    }
+
+    @Test
+    public void postSubjects() throws Exception {
+
+        List<String> allProperties = new ArrayList<>(List.of("name", "description", "url", "ticker", "decimals", "logo", "policy"));
+
+        Collections.shuffle(allProperties);
+
+        var properties = allProperties.subList(0, 3);
+
+        var request = new Query(List.of(), properties);
+
+        String javaResponse = restTemplate.postForObject(String.format("https://%s/metadata/query", TEMP_JAVA_HOST), request, String.class);
+        log.info("java ok");
+
+        var javaSubjects = objectMapper.readValue(javaResponse, SubjectsResponse.class);
+
+        log.info("response: {}", javaSubjects);
+
+    }
+
+    public Optional<String> findPolicy(String subject, List<TokenMetadata> tokenMetadata) {
+        return tokenMetadata.stream().filter(tm -> tm.getSubject().equalsIgnoreCase(subject)).findAny().map(TokenMetadata::getPolicy);
+    }
+
+    @CsvSource({
+            "4ffaa4ef3217df37c4995bb96066af4cb68dfcc66b9f2a10e0c333b95779726d73746f6e65",
+            "07f019ce45fb638353258bda4316ce5eb3d0f76a3fb739c45174084953414c5459",
+            "ff7cad970d3a755a1ff0335ccb3f3c1cabf31aacf3f23dd13db61b0630313030",
+            "1d42b2025ed618de0d11c481a90438620e25a1c0e8b4ab737b401224546865547269706c6574734b54313846593139",
+            "e4214b7cce62ac6fbba385d164df48e157eae5863521b4b67ca71d862c5ecc97a01efbfdbafe344a466fae6b23941bb750dafd8f84f6145635e96691",
+            "3ea73755a53a11dd19297cb31281ff8f957c37e9b93c374f40403772506978656C43617264616E6F",
+            "e4214b7cce62ac6fbba385d164df48e157eae5863521b4b67ca71d869400f7aaa73fb7b882a21c66c11ab806d3d197cbac239d257fdc3c0dd0cc278d",
+            "e4214b7cce62ac6fbba385d164df48e157eae5863521b4b67ca71d86af33876a391b295fbed0e66dba561e3084f86f281bbd5eaa54d8e4232239a847",
+            "4fde92c2f6dbcfa2879b44f7453872b31394cfb2f70f1d4c411169ac427562626c65",
+            "5c4f08f47124b8e7ce9a4d0a00a5939da624cf6e533e1dc9de9b49c5556e636c6542656e6e793431",
+            "e4214b7cce62ac6fbba385d164df48e157eae5863521b4b67ca71d86d4388a601aee88a1c70b9504645652af5879dc17af27c90d1a8f0738d5d8ac48",
+            "320e3da27c6373e4bc045d7332c734ac393917755eb6b7689ce35ddb50524f5054454341",
+            "e4214b7cce62ac6fbba385d164df48e157eae5863521b4b67ca71d868ea3529080de9d5784e4c3a44f7ed41ac6de20c38a39a8936515f74c8a0d1d14",
+    })
+    @ParameterizedTest
+    public void testJavaOnly(String subject) throws IOException {
+
+        // Metadata Test
+        String javaResponse = restTemplate.getForObject(String.format("https://%s/metadata/%s", TEMP_JAVA_HOST, subject), String.class);
+        log.info("java ok");
+
+        var javaSubject = objectMapper.readTree(javaResponse);
+
+        Assertions.assertNotNull(javaSubject);
+
+        // Properties Subset Test
+        List<String> properties = new ArrayList<>(List.of("name", "description", "url", "ticker", "decimals", "logo", "policy"));
+
+        Collections.shuffle(properties);
+
+        var property = properties.get(0);
+
+        String javaPropertiesResponse = restTemplate.getForObject(String.format("https://%s/metadata/%s/properties/%s", TEMP_JAVA_HOST, subject, property), String.class);
+        log.info("java ok");
+
+        var javaPropertiesSubject = objectMapper.readValue(javaPropertiesResponse, TokenMetadata.class);
+
+        Assertions.assertNotNull(javaPropertiesSubject);
+
+        // Post Endpoint Test
+        var subjects = List.of(
+                "1d42b2025ed618de0d11c481a90438620e25a1c0e8b4ab737b401224546865547269706c6574734b54313846593139",
+                "e4214b7cce62ac6fbba385d164df48e157eae5863521b4b67ca71d862c5ecc97a01efbfdbafe344a466fae6b23941bb750dafd8f84f6145635e96691",
+                "3ea73755a53a11dd19297cb31281ff8f957c37e9b93c374f40403772506978656C43617264616E6F",
+                "e4214b7cce62ac6fbba385d164df48e157eae5863521b4b67ca71d869400f7aaa73fb7b882a21c66c11ab806d3d197cbac239d257fdc3c0dd0cc278d",
+                "e4214b7cce62ac6fbba385d164df48e157eae5863521b4b67ca71d86af33876a391b295fbed0e66dba561e3084f86f281bbd5eaa54d8e4232239a847",
+                "4fde92c2f6dbcfa2879b44f7453872b31394cfb2f70f1d4c411169ac427562626c65",
+                "5c4f08f47124b8e7ce9a4d0a00a5939da624cf6e533e1dc9de9b49c5556e636c6542656e6e793431"
+        );
+
+        List<String> allProperties = new ArrayList<>(List.of("name", "description", "url", "ticker", "decimals", "logo", "policy"));
+
+        Collections.shuffle(allProperties);
+
+        properties = allProperties.subList(0, 3);
+
+        var request = new Query(subjects, properties);
+
+        String javaPostResponse = restTemplate.postForObject(String.format("https://%s/metadata/query", TEMP_JAVA_HOST), request, String.class);
+        log.info("java ok");
+
+        var javaSubjects = objectMapper.readValue(javaPostResponse, SubjectsResponse.class);
+
+        Assertions.assertNotNull(javaSubjects);
+
+
+    }
+
+
+}
