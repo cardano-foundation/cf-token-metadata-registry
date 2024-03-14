@@ -1,8 +1,6 @@
 [![License: MPL 2.0](https://img.shields.io/badge/License-MPL_2.0-brightgreen.svg)](https://github.com/cardano-foundation/cf-token-metadata-registry/blob/main/LICENSE)
 ![GitHub top language](https://img.shields.io/github/languages/top/cardano-foundation/cf-token-metadata-registry)
 [![Build](https://github.com/cardano-foundation/cf-token-metadata-registry/actions/workflows/main.yaml/badge.svg)](https://github.com/cardano-foundation/cf-token-metadata-registry/actions/workflows/main.yaml)
-![coverage](https://github.com/cardano-foundation/cf-token-metadata-registry/blob/badges/jacoco.svg)
-![branches](https://github.com/cardano-foundation/cf-token-metadata-registry/blob/badges/branches.svg)
 [![Issues](https://img.shields.io/github/issues/cardano-foundation/cf-token-metadata-registry)](https://github.com/cardano-foundation/cf-token-metadata-registry/issues)
 
 ---
@@ -64,14 +62,12 @@ are managed by the `api` project using [flyway](https://flywaydb.org/).
 
 Offchain metadata related:
 - [x] Expose CIP-26 compliant REST API
-- [x] Advanced querrying REST API
 
 WIP:
-- [ ] Expose write access functions via REST API for creating, modifying and deleting offchain metadata
+- [ ] Add [CIP-88](https://github.com/cardano-foundation/CIPs/tree/master/CIP-0088) support
 - [ ] Expose verification API for offchain metadata based on extended CIP-26 trust concept
 - [ ] Provide a CLI application for metadata creation and verification
 - [ ] Implement metadata verification based on public key registries
-- [ ] Implement metadata verification based on SSI trust registries
 
 ## Contributing
 
