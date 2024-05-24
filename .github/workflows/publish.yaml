@@ -7,9 +7,9 @@ on:
   workflow_dispatch:
 
 env:
-  PRIVATE_DOCKER_REGISTRY_URL: ${{ secrets.GITLAB_DOCKER_REGISTRY_URL }}
-  PRIVATE_DOCKER_REGISTRY_USER: Deploy-Token
-  PRIVATE_DOCKER_REGISTRY_PASS: ${{ secrets.GITLAB_PKG_REGISTRY_TOKEN }}
+  DOCKER_REPO: cardanofoundation
+  DOCKER_REGISTRY_USER: ${{ secrets.DOCKERHUB_USERNAME }}
+  DOCKER_REGISTRY_PASS: ${{ secrets.DOCKERHUB_TOKEN }}
 
 jobs:
 
@@ -61,9 +61,8 @@ jobs:
       - name: Private Docker Hub Login
         uses: docker/login-action@v2
         with:
-          registry: ${{ env.PRIVATE_DOCKER_REGISTRY_URL }}
-          username: ${{ env.PRIVATE_DOCKER_REGISTRY_USER }}
-          password: ${{ env.PRIVATE_DOCKER_REGISTRY_PASS }}
+          username: ${{ env.DOCKER_REGISTRY_USER }}
+          password: ${{ env.DOCKER_REGISTRY_PASS }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
@@ -76,7 +75,7 @@ jobs:
           context: api
           push: true
           tags: |
-            ${{ env.PRIVATE_DOCKER_REGISTRY_URL }}/${{ env.APP_NAME }}:${{ env.ARTIFACT_VERSION }}
+            ${{ env.DOCKER_REPO }}/${{ env.APP_NAME }}:${{ env.ARTIFACT_VERSION }}
 
   job:
     runs-on: ubuntu-latest
@@ -99,9 +98,8 @@ jobs:
       - name: Private Docker Hub Login
         uses: docker/login-action@v2
         with:
-          registry: ${{ env.PRIVATE_DOCKER_REGISTRY_URL }}
-          username: ${{ env.PRIVATE_DOCKER_REGISTRY_USER }}
-          password: ${{ env.PRIVATE_DOCKER_REGISTRY_PASS }}
+          username: ${{ env.DOCKER_REGISTRY_USER }}
+          password: ${{ env.DOCKER_REGISTRY_PASS }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
@@ -114,4 +112,4 @@ jobs:
           context: job
           push: true
           tags: |
-            ${{ env.PRIVATE_DOCKER_REGISTRY_URL }}/${{ env.APP_NAME }}:${{ env.ARTIFACT_VERSION }}
+            ${{ env.DOCKER_REPO }}/${{ env.APP_NAME }}:${{ env.ARTIFACT_VERSION }}
