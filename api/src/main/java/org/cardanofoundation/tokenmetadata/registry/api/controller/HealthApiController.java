@@ -3,7 +3,7 @@ package org.cardanofoundation.tokenmetadata.registry.api.controller;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.HealthResponse;
-import org.cardanofoundation.tokenmetadata.registry.model.enums.SyncStatusEnum;
+import org.cardanofoundation.tokenmetadata.registry.service.SyncStatus;
 import org.cardanofoundation.tokenmetadata.registry.service.TokenMetadataSyncService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -22,10 +22,10 @@ public class HealthApiController implements HealthApi {
 
     @Override
     public ResponseEntity<HealthResponse> getHealthStatus() {
-
+        SyncStatus syncStatus = tokenMetadataSyncService.getSyncStatus();
         return new ResponseEntity<>(HealthResponse.builder()
-                .synced(tokenMetadataSyncService.isInitialSyncDone())
-                .syncStatus(tokenMetadataSyncService.getSyncStatusEnum().toString())
+                .synced(syncStatus.isInitialSyncDone())
+                .syncStatus(syncStatus.getSyncStatus().toString())
                 .build(), HttpStatus.OK);
     }
 }
