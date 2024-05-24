@@ -18,6 +18,19 @@ x-tagGroups:
       - v1 queries
       - v2 queries
 paths:
+  /health:
+    get:
+      summary: "Get Health status"
+      tags:
+        - v1 queries
+      operationId: "health"
+      responses:
+        200:
+          description: "Health Response including if initial sync is done and current syncing status."
+          content:
+            application/json;charset=utf-8:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
   /metadata/{subject}:
     get:
       summary: "Query All Properties"
@@ -545,6 +558,13 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Property'
+    HealthResponse:
+      type: object
+      properties:
+        synced:
+          type: boolean
+        syncStatus:
+          type: string
     BatchRequest:
       required:
         - subjects

@@ -1,10 +1,13 @@
 package org.cardanofoundation.tokenmetadata.registry.service;
 
 import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.cardanofoundation.tokenmetadata.registry.model.Mapping;
 import org.cardanofoundation.tokenmetadata.registry.model.MappingDetails;
 import org.cardanofoundation.tokenmetadata.registry.model.MappingUpdateDetails;
+import org.cardanofoundation.tokenmetadata.registry.model.enums.SyncStatusEnum;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
@@ -12,6 +15,7 @@ import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -20,7 +24,7 @@ import static java.util.stream.Collectors.groupingBy;
 
 @Service
 @Slf4j
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class TokenMetadataSyncService {
 
     private final GitService gitService;
@@ -29,8 +33,14 @@ public class TokenMetadataSyncService {
 
     private final TokenMappingService tokenMappingService;
 
+    @Getter
+    private SyncStatusEnum syncStatusEnum = SyncStatusEnum.SYNC_NOT_STARTED;
+    @Getter
+    private boolean isInitialSyncDone = false;
+
     public void synchronizeDatabase() {
 
+        syncStatusEnum = SyncStatusEnum.SYNC_IN_PROGRESS;
         Optional<Path> repoPathOpt = gitService.cloneCardanoTokenRegistryGitRepository();
 
         if (repoPathOpt.isPresent()) {
@@ -64,8 +74,12 @@ public class TokenMetadataSyncService {
 
                     });
 
+            syncStatusEnum = SyncStatusEnum.SYNC_DONE;
+            isInitialSyncDone = true;
+
         } else {
             log.warn("cardano-token-registry could not be cloned");
+            syncStatusEnum = SyncStatusEnum.SYNC_ERROR;
         }
 
     }
