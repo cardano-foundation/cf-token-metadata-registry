@@ -75,7 +75,7 @@ jobs:
           context: api
           push: true
           tags: |
-            ${{ env.DOCKER_REPO }}/${{ env.APP_NAME }}:${{ env.ARTIFACT_VERSION }}
+            ${{ env.DOCKER_REPO }}/${{ env.APP_NAME }}:${{ env.ARTIFACT_VERSION }} , ${{ env.DOCKER_REPO }}/${{ env.APP_NAME }}:latest
 
   job:
     runs-on: ubuntu-latest
@@ -112,4 +112,5 @@ jobs:
           context: job
           push: true
           tags: |
-            ${{ env.DOCKER_REPO }}/${{ env.APP_NAME }}:${{ env.ARTIFACT_VERSION }}
+            ${{ env.DOCKER_REPO }}/${{ env.APP_NAME }}:${{ env.ARTIFACT_VERSION }} , ${{ env.DOCKER_REPO }}/${{ env.APP_NAME }}:latest
+            
