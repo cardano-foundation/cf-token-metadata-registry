@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - feat/push-docker-to-public-repo
   workflow_dispatch:
 
 env:
