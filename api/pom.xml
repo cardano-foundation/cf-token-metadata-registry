@@ -18,7 +18,8 @@
     <scm>
         <connection>scm:git:git://github.com/cardano-foundation/cf-token-metadata-registry.git</connection>
         <url>https://github.com/cardano-foundation/cf-token-metadata-registry</url>
-        <developerConnection>scm:git:git://github.com/cardano-foundation/cf-token-metadata-registry.git</developerConnection>
+        <developerConnection>scm:git:git://github.com/cardano-foundation/cf-token-metadata-registry.git
+        </developerConnection>
         <tag>HEAD</tag>
     </scm>
 
@@ -117,6 +118,34 @@
             <groupId>org.cardanofoundation.metadatatools</groupId>
             <artifactId>core</artifactId>
         </dependency>
+
+        <dependency>
+            <groupId>com.bloxbean.cardano</groupId>
+            <artifactId>cardano-client-lib</artifactId>
+            <version>${version.cardano-client-lib}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.bloxbean.cardano</groupId>
+            <artifactId>cardano-client-backend-blockfrost</artifactId>
+            <version>${version.cardano-client-lib}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.bloxbean.cardano</groupId>
+            <artifactId>cardano-client-annotation-processor</artifactId>
+            <version>${version.cardano-client-lib}</version>
+            <scope>compile</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>com.bloxbean.cardano</groupId>
+            <artifactId>yaci-store-spring-boot-starter</artifactId>
+            <version>${version.yaci}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.bloxbean.cardano</groupId>
+            <artifactId>yaci-store-utxo-spring-boot-starter</artifactId>
+            <version>${version.yaci}</version>
+        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
@@ -172,6 +201,11 @@
                             <groupId>org.projectlombok</groupId>
                             <artifactId>lombok</artifactId>
                             <version>${version.lombok}</version>
+                        </path>
+                        <path>
+                            <groupId>com.bloxbean.cardano</groupId>
+                            <artifactId>cardano-client-annotation-processor</artifactId>
+                            <version>${version.cardano-client-lib}</version>
                         </path>
                     </annotationProcessorPaths>
                 </configuration>
