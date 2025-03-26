@@ -4,6 +4,12 @@ import com.bloxbean.cardano.client.util.HexUtil;
 import com.fasterxml.jackson.annotation.JsonKey;
 import lombok.extern.slf4j.Slf4j;
 
+/**
+ * Record/Utility class to group in one place Asset unit, policy and name manipulation and comparison
+ *
+ * @param policyId
+ * @param assetName
+ */
 @Slf4j
 public record AssetType(String policyId, String assetName) {
 
@@ -18,7 +24,7 @@ public record AssetType(String policyId, String assetName) {
     }
 
     public boolean isAda() {
-        return this.assetName.equals(ada().assetName());
+        return this.equals(Ada);
     }
 
     @JsonKey

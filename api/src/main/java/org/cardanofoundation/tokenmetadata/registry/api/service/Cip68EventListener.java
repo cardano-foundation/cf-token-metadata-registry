@@ -13,7 +13,6 @@ import org.cardanofoundation.tokenmetadata.registry.repository.MetadataReference
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 
-import java.util.function.Function;
 import java.util.stream.Stream;
 
 @Service
@@ -50,7 +49,7 @@ public class Cip68EventListener {
     }
 
     private MetadataReferenceNft buildMetadataReferenceNft(FungibleTokenMetadata metadata, AssetType assetType, String datum, Long slot) {
-        return  MetadataReferenceNft.builder()
+        return MetadataReferenceNft.builder()
                 .policyId(assetType.policyId())
                 .assetName(assetType.assetName())
                 .slot(slot)
