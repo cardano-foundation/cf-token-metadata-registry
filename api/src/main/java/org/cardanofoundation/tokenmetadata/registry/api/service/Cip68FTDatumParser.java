@@ -1,9 +1,7 @@
 package org.cardanofoundation.tokenmetadata.registry.api.service;
 
-import com.bloxbean.cardano.client.exception.CborDeserializationException;
 import com.bloxbean.cardano.client.plutus.spec.*;
 import com.bloxbean.cardano.client.util.HexUtil;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,20 +25,27 @@ public class Cip68FTDatumParser {
     private static final String WEBSITE = "website";
     private static final String URL = "url";
 
+    /**
+     * Manually parses Cip68 Fungible Token Datum
+     *
+     * @param inlineDatum the hex encoded datum
+     * @return the Cip68 Fungible Token Metadata
+     */
     public Optional<FungibleTokenMetadata> parse(String inlineDatum) {
+
+        if (inlineDatum == null || inlineDatum.trim().isEmpty()) {
+            return Optional.empty();
+        }
+
         try {
 
-            if (inlineDatum == null || inlineDatum.trim().isEmpty()) {
-                return Optional.empty();
-            }
+            var plutusData = PlutusData.deserialize(HexUtil.decodeHexString(inlineDatum));
 
-            var cip68Data = PlutusData.deserialize(HexUtil.decodeHexString(inlineDatum));
+            if (plutusData instanceof ConstrPlutusData cip68Data) {
 
-            if (cip68Data instanceof ConstrPlutusData) {
+                var dataList = cip68Data.getData().getPlutusDataList();
 
-                var data = ((ConstrPlutusData) cip68Data).getData().getPlutusDataList();
-
-                if (data.size() < 2 || !(data.getFirst() instanceof MapPlutusData properties)) {
+                if (dataList.size() < 2 || !(dataList.getFirst() instanceof MapPlutusData properties)) {
                     return Optional.empty();
                 }
 
@@ -52,7 +57,7 @@ public class Cip68FTDatumParser {
                 var website = getStringProperty(WEBSITE, properties);
                 var url = getStringProperty(URL, properties);
 
-                if (!(data.get(1) instanceof BigIntPlutusData version)) {
+                if (!(dataList.getFirst() instanceof BigIntPlutusData version)) {
                     return Optional.empty();
                 }
 
@@ -62,12 +67,7 @@ public class Cip68FTDatumParser {
 
             return Optional.empty();
         } catch (Exception e) {
-            log.warn("Error while processing {}", inlineDatum, e);
-            try {
-                log.warn("Datum: {}", OBJECT_MAPPER.writeValueAsString(PlutusData.deserialize(HexUtil.decodeHexString(inlineDatum))));
-            } catch (JsonProcessingException | CborDeserializationException ex) {
-                // do nothing
-            }
+            log.warn("Unexpected error while parsing CIP FT Datum: {}", inlineDatum, e);
             return Optional.empty();
         }
 
@@ -75,8 +75,8 @@ public class Cip68FTDatumParser {
 
     private String getStringProperty(String propertyName, MapPlutusData mapPlutusData) {
         var property = mapPlutusData.getMap().get(BytesPlutusData.of(propertyName));
-        if (property instanceof BytesPlutusData) {
-            return new String(((BytesPlutusData) property).getValue());
+        if (property instanceof BytesPlutusData bytes) {
+            return new String(bytes.getValue());
         } else {
             return null;
         }
@@ -84,8 +84,8 @@ public class Cip68FTDatumParser {
 
     private Long getNumericProperty(String propertyName, MapPlutusData mapPlutusData) {
         var property = mapPlutusData.getMap().get(BytesPlutusData.of(propertyName));
-        if (property instanceof BigIntPlutusData) {
-            return ((BigIntPlutusData) property).getValue().longValue();
+        if (property instanceof BigIntPlutusData bigInteger) {
+            return bigInteger.getValue().longValue();
         } else {
             return null;
         }
