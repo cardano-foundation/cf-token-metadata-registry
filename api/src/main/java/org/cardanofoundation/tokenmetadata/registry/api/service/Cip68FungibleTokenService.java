@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.cardanofoundation.tokenmetadata.registry.api.model.cip68.FungibleTokenMetadata;
 import org.cardanofoundation.tokenmetadata.registry.api.util.AssetType;
+import org.cardanofoundation.tokenmetadata.registry.repository.MetadataReferenceNftRepository;
 import org.springframework.stereotype.Service;
 
 import java.math.BigInteger;
@@ -18,6 +19,8 @@ public class Cip68FungibleTokenService {
 
     // This represents the hex encoding of `(100)` the prefix in the name of the Reference Token
     private static final String REFERENCE_NFT_PREFIX = "000643b0";
+
+    private final MetadataReferenceNftRepository metadataReferenceNftRepository;
 
     /**
      * In order to be a valid FT Token Metadata Reference datum there are some constraints (name and description must be present)
@@ -54,6 +57,13 @@ public class Cip68FungibleTokenService {
     public boolean isReferenceNft(Amt amount) {
         return amount.getQuantity().equals(BigInteger.ONE)
                 && AssetType.fromUnit(amount.getUnit()).assetName().startsWith(REFERENCE_NFT_PREFIX);
+    }
+
+    public Optional<FungibleTokenMetadata> findSubject (String policyId, String assetName) {
+        return metadataReferenceNftRepository.findByPolicyIdAndAssetNameV2(policyId,assetName)
+                .map(referenceNft -> new FungibleTokenMetadata(referenceNft.getDecimals(),
+                        referenceNft.getDescription(), referenceNft. getLogo(), referenceNft. getName(), referenceNft.getTicker(),
+                        referenceNft. getUrl(), referenceNft.getVersion()));
     }
 
 

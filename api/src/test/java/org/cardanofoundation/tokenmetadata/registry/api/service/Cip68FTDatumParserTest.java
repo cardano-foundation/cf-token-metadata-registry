@@ -29,7 +29,6 @@ class Cip68FTDatumParserTest {
                         "FLDT",
                         "FLDT",
                         null,
-                        "https://fluidtokens.com/",
                         1L),
                 tokenMetadata);
 
@@ -55,7 +54,6 @@ class Cip68FTDatumParserTest {
                         "USDM",
                         "USDM",
                         "https://mehen.io/",
-                        null,
                         1L),
                 tokenMetadata);
 

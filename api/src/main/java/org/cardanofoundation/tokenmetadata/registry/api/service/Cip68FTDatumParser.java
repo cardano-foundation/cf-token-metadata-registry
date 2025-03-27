@@ -22,7 +22,6 @@ public class Cip68FTDatumParser {
     private static final String LOGO = "logo";
     private static final String NAME = "name";
     private static final String TICKER = "ticker";
-    private static final String WEBSITE = "website";
     private static final String URL = "url";
 
     /**
@@ -54,14 +53,13 @@ public class Cip68FTDatumParser {
                 var logo = getStringProperty(LOGO, properties);
                 var name = getStringProperty(NAME, properties);
                 var ticker = getStringProperty(TICKER, properties);
-                var website = getStringProperty(WEBSITE, properties);
                 var url = getStringProperty(URL, properties);
 
                 if (!(dataList.getFirst() instanceof BigIntPlutusData version)) {
                     return Optional.empty();
                 }
 
-                return Optional.of(new FungibleTokenMetadata(decimals, description, logo, name, ticker, url, website, version.getValue().longValue()));
+                return Optional.of(new FungibleTokenMetadata(decimals, description, logo, name, ticker, url, version.getValue().longValue()));
 
             }
 
