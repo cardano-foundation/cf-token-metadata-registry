@@ -11,21 +11,22 @@ import org.cardanofoundation.tokenmetadata.registry.api.model.cip68.FungibleToke
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.TokenMetadata;
 import org.cardanofoundation.tokenmetadata.registry.api.model.v2.*;
 import org.cardanofoundation.tokenmetadata.registry.api.service.Cip68FungibleTokenService;
-import org.cardanofoundation.tokenmetadata.registry.api.util.AssetType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Stream;
+import java.util.function.BiFunction;
+import java.util.function.BinaryOperator;
 
 @Controller
 @RequiredArgsConstructor
 @RequestMapping("/api/v2")
 @Slf4j
 public class V2ApiController implements V2Api {
+
+    public static final Pair<Metadata, Standards> IDENTITY = new Pair<>(Metadata.empty(), Standards.empty());
 
     private final AppConfig.CipPriorityConfiguration priorityConfiguration;
 
@@ -59,15 +60,13 @@ public class V2ApiController implements V2Api {
         return new Metadata(name, description, ticker, decimals, logo, url, version);
     }
 
-    private Optional<Pair<Metadata, Object>> findMetadata(String subject, QueryPriority priority) {
+    private Optional<Pair<Metadata, Standards>> findMetadata(String subject, QueryPriority priority) {
         return switch (priority) {
             case CIP_26 -> v1ApiMetadataIndexer.findSubject(subject)
-                    .map(metadata -> new Pair<>(toMetadata(metadata), metadata));
-            case CIP_68 -> {
-                var assetType = AssetType.fromUnit(subject);
-                yield cip68FungibleTokenService.findSubject(assetType.policyId(), assetType.assetName())
-                        .map(fungibleTokenMetadata -> new Pair<>(toMetadata(fungibleTokenMetadata), fungibleTokenMetadata));
-            }
+                    .map(metadata -> new Pair<>(toMetadata(metadata), new Standards(metadata, null)));
+            case CIP_68 -> cip68FungibleTokenService.getReferenceNftSubject(subject)
+                    .flatMap(assetType -> cip68FungibleTokenService.findSubject(assetType.policyId(), assetType.assetName()))
+                    .map(fungibleTokenMetadata -> new Pair<>(toMetadata(fungibleTokenMetadata), new Standards(null, fungibleTokenMetadata)));
         };
     }
 
@@ -77,46 +76,33 @@ public class V2ApiController implements V2Api {
         var queryPriority = priorities != null ? priorities : priorityConfiguration.getDefaultPriority();
 
         var tokenMetadata = queryPriority.stream()
-                .reduce(new Pair<>(Metadata.empty(), new ArrayList<>()),
-                        (pair, priority) -> findMetadata(subject, priority)
-                                .map(metadataObjectPair -> {
-                                    pair.second().add(metadataObjectPair.second());
-                                    return new Pair<>(pair.first().merge(metadataObjectPair.first()), pair.second());
-                                })
-                                .orElse(pair)
-                        ,
-                        (metadataArrayListPair, metadataArrayListPair2) -> {
-                            metadataArrayListPair.second().addAll(metadataArrayListPair2.second());
-                            var metadata = metadataArrayListPair.first().merge(metadataArrayListPair2.first());
-                            return new Pair<>(metadata, metadataArrayListPair.second());
-                        });
+                .reduce(IDENTITY, combineStandards(subject), aggregateResults());
 
-        if (tokenMetadata.first().equals(Metadata.empty()) || tokenMetadata.second().isEmpty()) {
+        if (tokenMetadata.first().equals(Metadata.empty())) {
             return ResponseEntity.notFound().build();
         } else {
-            var cip26Opt = tokenMetadata.second().stream().flatMap(object -> {
-                if (object instanceof TokenMetadata tokenMetadata1) {
-                    return Stream.of(tokenMetadata1);
-                } else {
-                    return Stream.empty();
-                }
-            }).findFirst();
-
-            var cip68Opt = tokenMetadata.second().stream().flatMap(object -> {
-                if (object instanceof FungibleTokenMetadata fungibleTokenMetadata) {
-                    return Stream.of(fungibleTokenMetadata);
-                } else {
-                    return Stream.empty();
-                }
-            }).findFirst();
-
-            var standards = new Standards(cip26Opt.orElse(null), cip68Opt.orElse(null));
+            var standards = tokenMetadata.second();
             var stringPriorities = queryPriority.stream().map(QueryPriority::name).toList();
             var response = new Response(new Subject(subject, tokenMetadata.first(), standards), stringPriorities);
             return ResponseEntity.ok(response);
         }
 
 
+    }
+
+    private static BinaryOperator<Pair<Metadata, Standards>> aggregateResults() {
+        return (thisMetadata, that) -> {
+            var metadata = thisMetadata.first().merge(that.first());
+            var standards = thisMetadata.second().merge(that.second());
+            return new Pair<>(metadata, standards);
+        };
+    }
+
+    private BiFunction<Pair<Metadata, Standards>, QueryPriority, Pair<Metadata, Standards>> combineStandards(String subject) {
+        return (accumulatedResults, priority) -> findMetadata(subject, priority)
+                .map(metadataObjectPair -> new Pair<>(accumulatedResults.first().merge(metadataObjectPair.first()),
+                        accumulatedResults.second().merge(metadataObjectPair.second())))
+                .orElse(accumulatedResults);
     }
 
 }

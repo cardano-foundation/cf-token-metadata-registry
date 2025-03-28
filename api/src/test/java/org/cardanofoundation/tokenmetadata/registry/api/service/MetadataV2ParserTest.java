@@ -28,7 +28,7 @@ class MetadataV2ParserTest {
                 new StringProperty("http://url.com", QueryPriority.CIP_26.name()),
                 new LongProperty(1L, QueryPriority.CIP_26.name()));
 
-        var subject = new Subject("subject", metadata, new Standards(null, "foo"));
+        var subject = new Subject("subject", metadata, new Standards(null, null));
         var response = new Response(subject, priorities);
         log.info("response: {}", OBJECT_MAPPER.writeValueAsString(response));
 

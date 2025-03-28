@@ -12,6 +12,9 @@ import org.springframework.stereotype.Service;
 import java.math.BigInteger;
 import java.util.Optional;
 
+import static org.cardanofoundation.tokenmetadata.registry.api.model.cip68.Cip68Constants.FT_TOKEN_PREFIX;
+import static org.cardanofoundation.tokenmetadata.registry.api.model.cip68.Cip68Constants.REF_TOKEN_PREFIX;
+
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -33,6 +36,7 @@ public class Cip68FungibleTokenService {
 
     /**
      * Checks whether the utxo contains an NFT which matches Cip68 Reference NFT requirements
+     *
      * @param utxo the utxo to check
      * @return true if any of the utxo's contains a Cip68 Reference NFT
      */
@@ -42,6 +46,7 @@ public class Cip68FungibleTokenService {
 
     /**
      * Checks and returns an NFT which matches Cip68 Reference NFT requirements if present
+     *
      * @param utxo the utxo to check
      * @return the amt matching the Referenct NFT if found
      */
@@ -51,6 +56,7 @@ public class Cip68FungibleTokenService {
 
     /**
      * Check if the amount matches Cip68 Reference NFT Requirements
+     *
      * @param amount the amount to check
      * @return true if the amount is a Cip68 Reference NFT
      */
@@ -59,12 +65,23 @@ public class Cip68FungibleTokenService {
                 && AssetType.fromUnit(amount.getUnit()).assetName().startsWith(REFERENCE_NFT_PREFIX);
     }
 
-    public Optional<FungibleTokenMetadata> findSubject (String policyId, String assetName) {
-        return metadataReferenceNftRepository.findByPolicyIdAndAssetNameV2(policyId,assetName)
+    public Optional<FungibleTokenMetadata> findSubject(String policyId, String assetName) {
+        return metadataReferenceNftRepository.findByPolicyIdAndAssetName(policyId, assetName)
                 .map(referenceNft -> new FungibleTokenMetadata(referenceNft.getDecimals(),
-                        referenceNft.getDescription(), referenceNft. getLogo(), referenceNft. getName(), referenceNft.getTicker(),
-                        referenceNft. getUrl(), referenceNft.getVersion()));
+                        referenceNft.getDescription(), referenceNft.getLogo(), referenceNft.getName(), referenceNft.getTicker(),
+                        referenceNft.getUrl(), referenceNft.getVersion()));
     }
 
+
+    public Optional<AssetType> getReferenceNftSubject(String subject) {
+        var assetType = AssetType.fromUnit(subject);
+        var assetName = assetType.assetName();
+        if (assetName.length() > 8 && assetName.startsWith(FT_TOKEN_PREFIX)) {
+            var refNftAssetName = String.format("%s%s", REF_TOKEN_PREFIX, assetType.assetName().substring(8));
+            return Optional.of(new AssetType(assetType.policyId(), refNftAssetName));
+        } else {
+            return Optional.empty();
+        }
+    }
 
 }

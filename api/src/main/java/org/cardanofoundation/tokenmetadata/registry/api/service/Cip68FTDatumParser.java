@@ -55,7 +55,7 @@ public class Cip68FTDatumParser {
                 var ticker = getStringProperty(TICKER, properties);
                 var url = getStringProperty(URL, properties);
 
-                if (!(dataList.getFirst() instanceof BigIntPlutusData version)) {
+                if (!(dataList.get(1) instanceof BigIntPlutusData version)) {
                     return Optional.empty();
                 }
 
