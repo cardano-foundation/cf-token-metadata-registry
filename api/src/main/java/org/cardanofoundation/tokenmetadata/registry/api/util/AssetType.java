@@ -31,23 +31,24 @@ public record AssetType(String policyId, String assetName) {
     public String unsafeHumanAssetName() {
         if (this.isAda()) {
             return ADA;
-        } else {
-            return new String(HexUtil.decodeHexString(assetName));
         }
+        return new String(HexUtil.decodeHexString(assetName));
     }
 
     public static AssetType fromUnit(String unit) {
         try {
+
             if (unit.equalsIgnoreCase(LOVELACE) || unit.trim().isEmpty()) {
                 return Ada;
-            } else {
-                String sanitizedUnit = unit.replaceAll("\\.", "");
-                if (sanitizedUnit.length() > 56) {
-                    return new AssetType(sanitizedUnit.substring(0, 56), sanitizedUnit.substring(56));
-                } else {
-                    return new AssetType(sanitizedUnit.substring(0, 56), "");
-                }
             }
+
+            String sanitizedUnit = unit.replaceAll("\\.", "");
+            if (sanitizedUnit.length() > 56) {
+                return new AssetType(sanitizedUnit.substring(0, 56), sanitizedUnit.substring(56));
+            } else {
+                return new AssetType(sanitizedUnit.substring(0, 56), "");
+            }
+
         } catch (Exception e) {
             log.warn("Invalid unit '{}'", unit);
             throw new RuntimeException(e);
