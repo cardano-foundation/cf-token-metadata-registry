@@ -22,6 +22,6 @@ public class BatchRequest {
 
   @JsonProperty("properties")
   @Valid
-  @Schema(name = "properties", required = false)
+  @Schema(name = "properties")
   private List<String> properties = null;
 }

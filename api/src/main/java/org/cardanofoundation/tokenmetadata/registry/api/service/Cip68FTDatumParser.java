@@ -8,21 +8,21 @@ import lombok.extern.slf4j.Slf4j;
 import org.cardanofoundation.tokenmetadata.registry.api.model.cip68.FungibleTokenMetadata;
 import org.springframework.stereotype.Service;
 
+import java.util.Arrays;
 import java.util.Optional;
+import java.util.stream.IntStream;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class Cip68FTDatumParser {
 
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-
-    private static final String DECIMALS = "decimals";
-    private static final String DESCRIPTION = "description";
-    private static final String LOGO = "logo";
-    private static final String NAME = "name";
-    private static final String TICKER = "ticker";
-    private static final String URL = "url";
+    public static final String DECIMALS = "decimals";
+    public static final String DESCRIPTION = "description";
+    public static final String LOGO = "logo";
+    public static final String NAME = "name";
+    public static final String TICKER = "ticker";
+    public static final String URL = "url";
 
     /**
      * Manually parses Cip68 Fungible Token Datum
@@ -74,7 +74,7 @@ public class Cip68FTDatumParser {
     private String getStringProperty(String propertyName, MapPlutusData mapPlutusData) {
         var property = mapPlutusData.getMap().get(BytesPlutusData.of(propertyName));
         if (property instanceof BytesPlutusData bytes) {
-            return new String(bytes.getValue());
+            return new String(bytes.getValue()).replaceAll("\0", "");
         } else {
             return null;
         }

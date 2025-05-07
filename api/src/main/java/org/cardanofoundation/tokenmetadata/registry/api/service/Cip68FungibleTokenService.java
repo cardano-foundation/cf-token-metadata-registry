@@ -10,10 +10,11 @@ import org.cardanofoundation.tokenmetadata.registry.repository.MetadataReference
 import org.springframework.stereotype.Service;
 
 import java.math.BigInteger;
+import java.util.List;
 import java.util.Optional;
 
-import static org.cardanofoundation.tokenmetadata.registry.api.model.cip68.Cip68Constants.FT_TOKEN_PREFIX;
-import static org.cardanofoundation.tokenmetadata.registry.api.model.cip68.Cip68Constants.REF_TOKEN_PREFIX;
+import static org.cardanofoundation.tokenmetadata.registry.api.model.cip68.Cip68Constants.FUNGIBLE_TOKEN_PREFIX;
+import static org.cardanofoundation.tokenmetadata.registry.api.model.cip68.Cip68Constants.REFERENCE_TOKEN_PREFIX;
 
 @Service
 @RequiredArgsConstructor
@@ -22,6 +23,8 @@ public class Cip68FungibleTokenService {
 
     // This represents the hex encoding of `(100)` the prefix in the name of the Reference Token
     private static final String REFERENCE_NFT_PREFIX = "000643b0";
+
+    private static final String VERSION = "version";
 
     private final MetadataReferenceNftRepository metadataReferenceNftRepository;
 
@@ -65,19 +68,32 @@ public class Cip68FungibleTokenService {
                 && AssetType.fromUnit(amount.getUnit()).assetName().startsWith(REFERENCE_NFT_PREFIX);
     }
 
-    public Optional<FungibleTokenMetadata> findSubject(String policyId, String assetName) {
+    public Optional<FungibleTokenMetadata> findSubject(String policyId, String assetName, List<String> properties) {
         return metadataReferenceNftRepository.findByPolicyIdAndAssetName(policyId, assetName)
-                .map(referenceNft -> new FungibleTokenMetadata(referenceNft.getDecimals(),
-                        referenceNft.getDescription(), referenceNft.getLogo(), referenceNft.getName(), referenceNft.getTicker(),
-                        referenceNft.getUrl(), referenceNft.getVersion()));
+                .map(referenceNft -> new FungibleTokenMetadata(getPropertyIfRequired(Cip68FTDatumParser.DECIMALS, referenceNft.getDecimals(), properties),
+                        getPropertyIfRequired(Cip68FTDatumParser.DESCRIPTION, referenceNft.getDescription(), properties),
+                        getPropertyIfRequired(Cip68FTDatumParser.LOGO, referenceNft.getLogo(), properties),
+                        getPropertyIfRequired(Cip68FTDatumParser.NAME, referenceNft.getName(), properties),
+                        getPropertyIfRequired(Cip68FTDatumParser.TICKER, referenceNft.getTicker(), properties),
+                        getPropertyIfRequired(Cip68FTDatumParser.URL, referenceNft.getUrl(), properties),
+                        getPropertyIfRequired(VERSION, referenceNft.getVersion(), properties)));
+    }
+
+    private <T> T getPropertyIfRequired(String propertyName, T propertyValue, List<String> properties) {
+        if (properties.isEmpty() || properties.contains(propertyName)) {
+            return propertyValue;
+        } else {
+            return null;
+        }
     }
 
 
     public Optional<AssetType> getReferenceNftSubject(String subject) {
         var assetType = AssetType.fromUnit(subject);
         var assetName = assetType.assetName();
-        if (assetName.length() > 8 && assetName.startsWith(FT_TOKEN_PREFIX)) {
-            var refNftAssetName = String.format("%s%s", REF_TOKEN_PREFIX, assetType.assetName().substring(8));
+        var tokenPrefixLength = REFERENCE_TOKEN_PREFIX.length();
+        if (assetName.length() > tokenPrefixLength && assetName.startsWith(FUNGIBLE_TOKEN_PREFIX)) {
+            var refNftAssetName = String.format("%s%s", REFERENCE_TOKEN_PREFIX, assetType.assetName().substring(tokenPrefixLength));
             return Optional.of(new AssetType(assetType.policyId(), refNftAssetName));
         } else {
             return Optional.empty();

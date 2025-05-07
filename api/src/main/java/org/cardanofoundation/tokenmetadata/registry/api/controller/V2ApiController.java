@@ -1,14 +1,12 @@
 package org.cardanofoundation.tokenmetadata.registry.api.controller;
 
-import com.bloxbean.cardano.client.util.HexUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.cardanofoundation.tokenmetadata.registry.api.config.AppConfig;
 import org.cardanofoundation.tokenmetadata.registry.api.indexer.V1ApiMetadataIndexer;
 import org.cardanofoundation.tokenmetadata.registry.api.model.Pair;
 import org.cardanofoundation.tokenmetadata.registry.api.model.QueryPriority;
-import org.cardanofoundation.tokenmetadata.registry.api.model.cip68.FungibleTokenMetadata;
-import org.cardanofoundation.tokenmetadata.registry.api.model.rest.TokenMetadata;
+import org.cardanofoundation.tokenmetadata.registry.api.model.rest.BatchRequest;
 import org.cardanofoundation.tokenmetadata.registry.api.model.v2.*;
 import org.cardanofoundation.tokenmetadata.registry.api.service.Cip68FungibleTokenService;
 import org.springframework.http.ResponseEntity;
@@ -19,6 +17,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.BinaryOperator;
+import java.util.stream.Collectors;
 
 @Controller
 @RequiredArgsConstructor
@@ -28,66 +27,71 @@ public class V2ApiController implements V2Api {
 
     public static final Pair<Metadata, Standards> IDENTITY = new Pair<>(Metadata.empty(), Standards.empty());
 
+    private static final List<String> ALL_PROPERTIES = List.of();
+
     private final AppConfig.CipPriorityConfiguration priorityConfiguration;
 
     private final Cip68FungibleTokenService cip68FungibleTokenService;
 
     private final V1ApiMetadataIndexer v1ApiMetadataIndexer;
 
-
-    private Metadata toMetadata(TokenMetadata metadata) {
-
-        var name = metadata.getName() != null ? new StringProperty(metadata.getName().getValue(), QueryPriority.CIP_26.name()) : null;
-        var description = metadata.getDescription() != null ? new StringProperty(metadata.getDescription().getValue(), QueryPriority.CIP_26.name()) : null;
-        var ticker = metadata.getTicker() != null ? new StringProperty(metadata.getTicker().getValue(), QueryPriority.CIP_26.name()) : null;
-        var decimals = metadata.getDecimals() != null ? new LongProperty(metadata.getDecimals().getValue().longValue(), QueryPriority.CIP_26.name()) : null;
-        var logo = metadata.getLogo() != null ? new StringProperty(HexUtil.encodeHexString(metadata.getLogo().getValue()), QueryPriority.CIP_26.name()) : null;
-        var url = metadata.getUrl() != null ? new StringProperty(metadata.getUrl().getValue(), QueryPriority.CIP_26.name()) : null;
-
-        return new Metadata(name, description, ticker, decimals, logo, url, null);
-    }
-
-    private Metadata toMetadata(FungibleTokenMetadata fungibleTokenMetadata) {
-
-        var name = fungibleTokenMetadata.name() != null ? new StringProperty(fungibleTokenMetadata.name(), QueryPriority.CIP_68.name()) : null;
-        var description = fungibleTokenMetadata.description() != null ? new StringProperty(fungibleTokenMetadata.description(), QueryPriority.CIP_68.name()) : null;
-        var ticker = fungibleTokenMetadata.ticker() != null ? new StringProperty(fungibleTokenMetadata.ticker(), QueryPriority.CIP_68.name()) : null;
-        var decimals = fungibleTokenMetadata.decimals() != null ? new LongProperty(fungibleTokenMetadata.decimals(), QueryPriority.CIP_68.name()) : null;
-        var logo = fungibleTokenMetadata.logo() != null ? new StringProperty(fungibleTokenMetadata.logo(), QueryPriority.CIP_68.name()) : null;
-        var url = fungibleTokenMetadata.url() != null ? new StringProperty(fungibleTokenMetadata.url(), QueryPriority.CIP_68.name()) : null;
-        var version = fungibleTokenMetadata.version() != null ? new LongProperty(fungibleTokenMetadata.version(), QueryPriority.CIP_68.name()) : null;
-
-        return new Metadata(name, description, ticker, decimals, logo, url, version);
-    }
-
-    private Optional<Pair<Metadata, Standards>> findMetadata(String subject, QueryPriority priority) {
-        return switch (priority) {
-            case CIP_26 -> v1ApiMetadataIndexer.findSubject(subject)
-                    .map(metadata -> new Pair<>(toMetadata(metadata), new Standards(metadata, null)));
-            case CIP_68 -> cip68FungibleTokenService.getReferenceNftSubject(subject)
-                    .flatMap(assetType -> cip68FungibleTokenService.findSubject(assetType.policyId(), assetType.assetName()))
-                    .map(fungibleTokenMetadata -> new Pair<>(toMetadata(fungibleTokenMetadata), new Standards(null, fungibleTokenMetadata)));
-        };
-    }
-
     @Override
-    public ResponseEntity<Response> getSubject(String subject, List<String> properties, List<QueryPriority> priorities) {
+    public ResponseEntity<Response> getSubject(final String subject,
+                                               final List<String> properties,
+                                               final List<QueryPriority> priorities,
+                                               final Boolean showCipsDetails) {
 
+        log.info("subject: {}, properties: {}, priorities: {}, showCipsDetails: {}", subject,
+                properties != null ? String.join(",", properties) : "",
+                priorities != null ? priorities.stream().map(QueryPriority::name).collect(Collectors.joining(",")) : "",
+                showCipsDetails);
+
+        var queryProperties = properties != null ? properties : ALL_PROPERTIES;
         var queryPriority = priorities != null ? priorities : priorityConfiguration.getDefaultPriority();
 
         var tokenMetadata = queryPriority.stream()
-                .reduce(IDENTITY, combineStandards(subject), aggregateResults());
+                .reduce(IDENTITY, combineStandards(subject, queryProperties), aggregateResults());
 
         if (tokenMetadata.first().equals(Metadata.empty())) {
             return ResponseEntity.notFound().build();
         } else {
             var standards = tokenMetadata.second();
             var stringPriorities = queryPriority.stream().map(QueryPriority::name).toList();
-            var response = new Response(new Subject(subject, tokenMetadata.first(), standards), stringPriorities);
+            var response = new Response(new Subject(subject, tokenMetadata.first(), showCipsDetails ? standards : null), stringPriorities);
             return ResponseEntity.ok(response);
         }
 
 
+    }
+
+    @Override
+    public ResponseEntity<BatchResponse> getSubjects(BatchRequest body,
+                                                     List<QueryPriority> priorities,
+                                                     Boolean showCipsDetails) {
+
+        var queryProperties = body.getProperties() != null ? body.getProperties() : ALL_PROPERTIES;
+        var queryPriority = priorities != null ? priorities : priorityConfiguration.getDefaultPriority();
+
+        var subjects = body.getSubjects()
+                .stream()
+                .map(subject -> {
+                    var pair = queryPriority.stream().reduce(IDENTITY, combineStandards(subject, queryProperties), aggregateResults());
+                    return new Subject(subject, pair.first(), showCipsDetails ? pair.second() : null);
+                })
+                .toList();
+        var stringPriorities = queryPriority.stream().map(QueryPriority::name).toList();
+        return ResponseEntity.ok(new BatchResponse(subjects, stringPriorities));
+    }
+
+
+    private Optional<Pair<Metadata, Standards>> findMetadata(String subject, List<String> properties, QueryPriority priority) {
+        return switch (priority) {
+            case CIP_26 -> v1ApiMetadataIndexer.findSubjectSelectProperties(subject, properties)
+                    .map(metadata -> new Pair<>(Metadata.from(metadata), new Standards(metadata, null)));
+            case CIP_68 -> cip68FungibleTokenService.getReferenceNftSubject(subject)
+                    .flatMap(assetType -> cip68FungibleTokenService.findSubject(assetType.policyId(), assetType.assetName(), properties))
+                    .map(fungibleTokenMetadata -> new Pair<>(Metadata.from(fungibleTokenMetadata), new Standards(null, fungibleTokenMetadata)));
+        };
     }
 
     private static BinaryOperator<Pair<Metadata, Standards>> aggregateResults() {
@@ -98,8 +102,8 @@ public class V2ApiController implements V2Api {
         };
     }
 
-    private BiFunction<Pair<Metadata, Standards>, QueryPriority, Pair<Metadata, Standards>> combineStandards(String subject) {
-        return (accumulatedResults, priority) -> findMetadata(subject, priority)
+    private BiFunction<Pair<Metadata, Standards>, QueryPriority, Pair<Metadata, Standards>> combineStandards(String subject, List<String> properties) {
+        return (accumulatedResults, priority) -> findMetadata(subject, properties, priority)
                 .map(metadataObjectPair -> new Pair<>(accumulatedResults.first().merge(metadataObjectPair.first()),
                         accumulatedResults.second().merge(metadataObjectPair.second())))
                 .orElse(accumulatedResults);
