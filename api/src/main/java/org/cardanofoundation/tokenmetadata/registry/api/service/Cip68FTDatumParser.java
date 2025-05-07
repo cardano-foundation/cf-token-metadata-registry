@@ -2,15 +2,12 @@ package org.cardanofoundation.tokenmetadata.registry.api.service;
 
 import com.bloxbean.cardano.client.plutus.spec.*;
 import com.bloxbean.cardano.client.util.HexUtil;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.cardanofoundation.tokenmetadata.registry.api.model.cip68.FungibleTokenMetadata;
 import org.springframework.stereotype.Service;
 
-import java.util.Arrays;
 import java.util.Optional;
-import java.util.stream.IntStream;
 
 @Service
 @RequiredArgsConstructor
@@ -55,11 +52,18 @@ public class Cip68FTDatumParser {
                 var ticker = getStringProperty(TICKER, properties);
                 var url = getStringProperty(URL, properties);
 
-                if (!(dataList.get(1) instanceof BigIntPlutusData version)) {
+                var versionData = dataList.get(1);
+
+                if (!(versionData instanceof BigIntPlutusData version)) {
                     return Optional.empty();
                 }
 
-                return Optional.of(new FungibleTokenMetadata(decimals, description, logo, name, ticker, url, version.getValue().longValue()));
+                return Optional.of(new FungibleTokenMetadata(decimals.orElse(null),
+                        description.orElse(null),
+                        logo.orElse(null),
+                        name.orElse(null),
+                        ticker.orElse(null), url.orElse(null),
+                        version.getValue().longValue()));
 
             }
 
@@ -71,21 +75,21 @@ public class Cip68FTDatumParser {
 
     }
 
-    private String getStringProperty(String propertyName, MapPlutusData mapPlutusData) {
+    private Optional<String> getStringProperty(String propertyName, MapPlutusData mapPlutusData) {
         var property = mapPlutusData.getMap().get(BytesPlutusData.of(propertyName));
         if (property instanceof BytesPlutusData bytes) {
-            return new String(bytes.getValue()).replaceAll("\0", "");
+            return Optional.of(new String(bytes.getValue()).replaceAll("\0", ""));
         } else {
-            return null;
+            return Optional.empty();
         }
     }
 
-    private Long getNumericProperty(String propertyName, MapPlutusData mapPlutusData) {
+    private Optional<Long> getNumericProperty(String propertyName, MapPlutusData mapPlutusData) {
         var property = mapPlutusData.getMap().get(BytesPlutusData.of(propertyName));
         if (property instanceof BigIntPlutusData bigInteger) {
-            return bigInteger.getValue().longValue();
+            return Optional.of(bigInteger.getValue().longValue());
         } else {
-            return null;
+            return Optional.empty();
         }
     }
 
