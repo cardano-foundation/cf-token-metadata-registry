@@ -53,7 +53,7 @@ spec:
                   key: {{ .Values.postgres.secret.hostKey }}
 
             - name: STORE_CARDANO_HOST
-              value: "backbone.mainnet.cardanofoundation.org"
+              value: "backbone.cardano.iog.io"
             - name: STORE_CARDANO_PORT
               value: "3001"
 
