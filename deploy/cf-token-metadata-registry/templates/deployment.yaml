@@ -52,6 +52,10 @@ spec:
                   name: {{ .Values.postgres.secret.name }}
                   key: {{ .Values.postgres.secret.hostKey }}
 
+            # Deployments are read only (starts yaci in read only mode)
+            - name: STORE_SYNCAUTOSTART
+              value: "false"
+
             # Scheduled Task to update
             - name: TOKEN_METADATA_SYNC_JOB
               value: {{ .Values.api.tokenMetadataUpdateJob.enabled | quote }}
