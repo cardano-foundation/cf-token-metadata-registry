@@ -1,5 +1,6 @@
 package org.cardanofoundation.tokenmetadata.registry.api;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.EntityManager;
 import net.minidev.json.JSONArray;
 import org.cardanofoundation.tokenmetadata.registry.api.config.AppConfig;
@@ -7,6 +8,7 @@ import org.cardanofoundation.tokenmetadata.registry.api.config.SpringWebSecurity
 import org.cardanofoundation.tokenmetadata.registry.api.controller.V2ApiController;
 import org.cardanofoundation.tokenmetadata.registry.api.indexer.V1ApiMetadataIndexer;
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.AnnotatedSignature;
+import org.cardanofoundation.tokenmetadata.registry.api.model.rest.BatchRequest;
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.TokenMetadata;
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.wellknownproperties.NameProperty;
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.wellknownproperties.TickerProperty;
@@ -205,21 +207,29 @@ public class MetadataApiV2IntegrationTest {
     @Test
     public void getSubjectsTest() throws Exception {
 
+        var objectMapper = new ObjectMapper();
 
+        var request = new BatchRequest(List.of("025146866af908340247fe4e9672d5ac7059f1e8534696b5f920c9e66362544848", "577f0b1342f8f8f4aed3388b80a8535812950c7a892495c0ecdf0f1e0014df10464c4454"), List.of());
 
         List<Object> expectedArray = new JSONArray();
-        expectedArray.add("CIP_26");
         expectedArray.add("CIP_68");
-        mockMvc.perform(post("/api/v2/subjects/577f0b1342f8f8f4aed3388b80a8535812950c7a892495c0ecdf0f1e0014df10464c4454")
-                        .content()
-                        .queryPara)
+        expectedArray.add("CIP_26");
+        mockMvc.perform(post("/api/v2/subjects/query")
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
-                .andExpect(MockMvcResultMatchers.jsonPath("$.subject.subject").value("577f0b1342f8f8f4aed3388b80a8535812950c7a892495c0ecdf0f1e0014df10464c4454"))
-                .andExpect(MockMvcResultMatchers.jsonPath("$.subject.metadata.name.value").value("FLDT"))
-                .andExpect(MockMvcResultMatchers.jsonPath("$.subject.metadata.name.source").value("CIP_26"))
-                .andExpect(MockMvcResultMatchers.jsonPath("$.subject.metadata.url.value").value("https://fluidtokens.com"))
-                .andExpect(MockMvcResultMatchers.jsonPath("$.subject.metadata.url.source").value("CIP_26"))
-                .andExpect(MockMvcResultMatchers.jsonPath("$.queryPriority").value(expectedArray));
+                .andExpect(MockMvcResultMatchers.jsonPath("$.subjects").isArray())
+                // This checks the "length" of the subjects array is 2
+                .andExpect(MockMvcResultMatchers.jsonPath("$.subjects.length()").value(2))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.subjects[0].subject").value("025146866af908340247fe4e9672d5ac7059f1e8534696b5f920c9e66362544848"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.subjects[0].metadata.url.value").value("https://fivebinaries.com/nutcoin"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.subjects[1].subject").value("577f0b1342f8f8f4aed3388b80a8535812950c7a892495c0ecdf0f1e0014df10464c4454"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.subjects[1].metadata.name.value").value("FLDT"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.subjects[1].metadata.name.source").value("CIP_68"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.subjects[1].metadata.url.value").value("https://fluidtokens.com"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.subjects[1].metadata.url.source").value("CIP_26"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.queryPriority").value(expectedArray)
+                );
     }
 
 
