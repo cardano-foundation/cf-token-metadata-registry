@@ -1,11 +1,11 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "cf-token-metadata-registry.fullname" . }}
+  name: {{ include "cf-token-metadata-registry.fullname" . }}-ro
   labels:
     {{- include "cf-token-metadata-registry.labels" . | nindent 4 }}
 spec:
-  replicas: {{ .Values.rwReplicaCount }}
+  replicas: {{ .Values.roReplicaCount }}
   selector:
     matchLabels:
       {{- include "cf-token-metadata-registry.selectorLabels" . | nindent 6 }}
@@ -56,6 +56,10 @@ spec:
               value: "backbone.mainnet.cardanofoundation.org"
             - name: STORE_CARDANO_PORT
               value: "3001"
+
+            # Deployments are read only (starts yaci in read only mode)
+            - name: STORE_SYNCAUTOSTART
+              value: "false"
 
             # Scheduled Task to update
             - name: TOKEN_METADATA_SYNC_JOB
