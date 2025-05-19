@@ -54,3 +54,8 @@ nodeSelector: {}
 
 monitoring:
   enabled: true
+
+cardano:
+  node:
+    host: backbone.cardano.iog.io
+    port: 3001

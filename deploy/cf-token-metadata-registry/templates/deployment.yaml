@@ -53,9 +53,9 @@ spec:
                   key: {{ .Values.postgres.secret.hostKey }}
 
             - name: STORE_CARDANO_HOST
-              value: "backbone.cardano.iog.io"
+              value: {{ .Values.cardano.node.host }}
             - name: STORE_CARDANO_PORT
-              value: "3001"
+              value: {{ .Values.cardano.node.port | quote }}
 
             # Scheduled Task to update
             - name: TOKEN_METADATA_SYNC_JOB
