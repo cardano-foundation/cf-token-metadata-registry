@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.1.0](https://github.com/cardano-foundation/cf-token-metadata-registry/compare/v1.0.2...v1.1.0) (2025-05-19)
+
+
+### Features
+
+* Add CIP-68 Support for the only Fungible Tokens ([#21](https://github.com/cardano-foundation/cf-token-metadata-registry/issues/21)) ([a457c79](https://github.com/cardano-foundation/cf-token-metadata-registry/commit/a457c798c2b024d01ae56f5ea4b5861bca30f4ab))
+* added Health Endpoint returning sync status. ([#16](https://github.com/cardano-foundation/cf-token-metadata-registry/issues/16)) ([c94e91e](https://github.com/cardano-foundation/cf-token-metadata-registry/commit/c94e91ec66eecda17083082afa03a246b1ff6d85))
+
 ## [1.0.2](https://github.com/cardano-foundation/cf-token-metadata-registry/compare/v1.0.1...v1.0.2) (2024-02-21)
 
 
