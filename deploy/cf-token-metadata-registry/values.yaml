@@ -2,7 +2,7 @@ replicaCount: 1
 
 api:
   image:
-    repository: pro.registry.gitlab.metadata.dev.cf-deployments.org/base-infrastructure/docker-registry/cf-token-metadata-registry-api
+    repository: cardanofoundation/cf-token-metadata-registry-api
     tag: "0.0.1"
     pullPolicy: Always
   tokenMetadataUpdateJob:
@@ -12,7 +12,7 @@ api:
 job:
   enabled: false
   image:
-    repository: pro.registry.gitlab.metadata.dev.cf-deployments.org/base-infrastructure/docker-registry/cf-token-metadata-registry-job
+    repository: cardanofoundation/cf-token-metadata-registry-job
     tag: "0.0.1"
     pullPolicy: Always
   cron: "15 * * * *"
