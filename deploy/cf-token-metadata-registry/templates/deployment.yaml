@@ -52,6 +52,11 @@ spec:
                   name: {{ .Values.postgres.secret.name }}
                   key: {{ .Values.postgres.secret.hostKey }}
 
+            - name: STORE_CARDANO_HOST
+              value: "backbone.mainnet.cardanofoundation.org"
+            - name: STORE_CARDANO_PORT
+              value: "3001"
+
             # Deployments are read only (starts yaci in read only mode)
             - name: STORE_SYNCAUTOSTART
               value: "false"
