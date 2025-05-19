@@ -49,8 +49,6 @@ public class MetadataApiV1IntegrationTest {
 
         when(v1ApiMetadataIndexer.findSubject("025146866af908340247fe4e9672d5ac7059f1e8534696b5f920c9e66362544843"))
                 .thenReturn(Optional.empty());
-        when(v1ApiMetadataIndexer.findSubject("025146866af908340247fe4e9672d5ac7059f1e8534696b5f920c9e66362544843"))
-                .thenReturn(Optional.empty());
 
         final UrlProperty urlProperty = new UrlProperty();
         urlProperty.setSequenceNumber(BigDecimal.valueOf(1));
