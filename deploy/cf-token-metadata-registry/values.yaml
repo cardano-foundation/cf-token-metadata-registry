@@ -31,7 +31,7 @@ ingress:
   additionalDomains: []
 
 postgres:
-  createDb: false
+  createDb: true
   host: cf-token-metadata-registry-pg
   port: 5432
   dbName: cf_token_metadata_registry
