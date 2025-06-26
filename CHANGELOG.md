@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/cardano-foundation/cf-token-metadata-registry/compare/v1.1.0...v1.2.0) (2025-06-26)
+
+
+### Features
+
+* bump minor ([208c5fe](https://github.com/cardano-foundation/cf-token-metadata-registry/commit/208c5fe8072fe6a02cb6778c2bf987bb0cb37789))
+
 ## [1.1.0](https://github.com/cardano-foundation/cf-token-metadata-registry/compare/v1.0.2...v1.1.0) (2025-06-26)
 
 
