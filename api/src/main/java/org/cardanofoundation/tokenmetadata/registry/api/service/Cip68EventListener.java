@@ -20,7 +20,8 @@ import java.util.stream.Stream;
 @Slf4j
 public class Cip68EventListener {
 
-    private record ReferenceNftUtxoData(AssetType referenceNft, FungibleTokenMetadata fungibleTokenMetadata,
+    private record ReferenceNftUtxoData(AssetType referenceNft,
+                                        FungibleTokenMetadata fungibleTokenMetadata,
                                         String datum) {
 
     }
@@ -79,6 +80,5 @@ public class Cip68EventListener {
     private Stream<Pair<Amt, AddressUtxo>> findReferenceNft(AddressUtxo utxo) {
         return cip68FungibleTokenService.extractReferenceNft(utxo).map(amt -> new Pair<>(amt, utxo)).stream();
     }
-
 
 }

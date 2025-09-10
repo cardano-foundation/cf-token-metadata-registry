@@ -27,6 +27,7 @@ public class TokenMetadataRegistryApplication {
         registration.setDispatcherTypes(DispatcherType.REQUEST, DispatcherType.ASYNC, DispatcherType.ERROR);
         registration.setOrder(Ordered.HIGHEST_PRECEDENCE);
         registration.setUrlPatterns(List.of("/**"));
+
         return registration;
     }
 
