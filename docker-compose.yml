@@ -11,7 +11,7 @@ services:
     volumes:
       - ./database/scripts/bootstrap_db.sql:/docker-entrypoint-initdb.d/bootstrap_db.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d ${DB_NAME}"]
       interval: 5s
       timeout: 5s
       retries: 10

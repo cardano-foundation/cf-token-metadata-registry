@@ -58,17 +58,15 @@ public class V2ApiController implements V2Api {
             var standards = tokenMetadata.second();
             var stringPriorities = queryPriority.stream().map(QueryPriority::name).toList();
             var response = new Response(new Subject(subject, tokenMetadata.first(), showCipsDetails ? standards : null), stringPriorities);
+
             return ResponseEntity.ok(response);
         }
-
-
     }
 
     @Override
     public ResponseEntity<BatchResponse> getSubjects(BatchRequest body,
                                                      List<QueryPriority> priorities,
                                                      Boolean showCipsDetails) {
-
         var queryProperties = body.getProperties() != null ? body.getProperties() : ALL_PROPERTIES;
         var queryPriority = priorities != null ? priorities : priorityConfiguration.getDefaultPriority();
 

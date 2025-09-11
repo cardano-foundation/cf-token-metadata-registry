@@ -25,13 +25,11 @@ public class TokenMetadataService {
     public void insertMapping(Mapping mapping, LocalDateTime updatedAt, String updateBy) {
         var tokenMetadata = MappingsUtil.toTokenMetadata(mapping, updateBy, updatedAt);
         tokenMetadataRepository.save(tokenMetadata);
-
     }
 
     public void insertLogo(Mapping mapping) {
         var tokenLogo = toTokenLogo(mapping);
         tokenLogoRepository.save(tokenLogo);
     }
-
 
 }
