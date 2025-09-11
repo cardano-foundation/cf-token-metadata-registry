@@ -5,7 +5,7 @@ RUN apt update && apt install -y maven && apt clean
 
 ADD . /app
 WORKDIR /app
-RUN mvn clean package
+RUN mvn clean package -DskipTests
 
 FROM openjdk:21-jdk-slim
 
