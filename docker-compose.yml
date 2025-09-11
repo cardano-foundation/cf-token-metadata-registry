@@ -5,7 +5,9 @@ services:
     ports:
       - "${DB_PORT}:5432"
     environment:
+      POSTGRES_USER: "${DB_USERNAME}"
       POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+      POSTGRES_DB: "${DB_NAME}"
     volumes:
       - ./database/scripts/bootstrap_db.sql:/docker-entrypoint-initdb.d/bootstrap_db.sql
     healthcheck:
