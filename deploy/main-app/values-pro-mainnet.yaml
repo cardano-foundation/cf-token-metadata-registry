@@ -8,7 +8,7 @@ cf-token-metadata-registry:
   enabled: true
   values:
     rwReplicaCount: 1 # rw 0 or 1
-    roReplicaCount: 2
+    roReplicaCount: 0
     api:
       image:
         tag: "1.2.1"
