@@ -3,11 +3,11 @@ package org.cardanofoundation.tokenmetadata.registry.api.indexer.postgresql;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.validation.constraints.NotNull;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.cardanofoundation.tokenmetadata.registry.api.indexer.V1ApiMetadataIndexer;
 import org.cardanofoundation.tokenmetadata.registry.api.indexer.postgresql.data.MetadataQueryResult;
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.TokenMetadata;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
@@ -18,15 +18,17 @@ import java.util.*;
 import static java.util.Map.entry;
 
 @Component
+@RequiredArgsConstructor
 @Slf4j
 public class V1ApiPostgresMetadataIndexer implements V1ApiMetadataIndexer {
-    @Autowired
-    private NamedParameterJdbcTemplate jdbcTemplate;
 
-    private static Map<String, TokenMetadata> metadataFromQueryResults(@NotNull final List<MetadataQueryResult> queryResults,
-                                                                       @NotNull final List<String> properties) throws IllegalArgumentException {
+    private final ObjectMapper objectMapper;
+
+    private final NamedParameterJdbcTemplate jdbcTemplate;
+
+    private Map<String, TokenMetadata> metadataFromQueryResults(@NotNull final List<MetadataQueryResult> queryResults,
+                                                                @NotNull final List<String> properties) throws IllegalArgumentException {
         final Map<String, TokenMetadata> metadata = new HashMap<>();
-        final ObjectMapper valueMapper = new ObjectMapper();
         final List<String> propertiesToExclude =
                 properties.isEmpty()
                         ? new ArrayList<>()
@@ -36,7 +38,7 @@ public class V1ApiPostgresMetadataIndexer implements V1ApiMetadataIndexer {
             if (metadataQueryResult.getProperties() != null) {
                 try {
                     final TokenMetadata tokenMetadata =
-                            valueMapper.readValue(metadataQueryResult.getProperties(), TokenMetadata.class);
+                            objectMapper.readValue(metadataQueryResult.getProperties(), TokenMetadata.class);
                     if (!propertiesToExclude.isEmpty()) {
                         for (final String fieldName : propertiesToExclude) {
                             switch (fieldName) {
@@ -71,7 +73,7 @@ public class V1ApiPostgresMetadataIndexer implements V1ApiMetadataIndexer {
      * @throws IllegalArgumentException If no or an invalid value is related to a property of a
      *                                  subject.
      */
-    private static Map<String, TokenMetadata> metadataFromQueryResults(@NotNull final List<MetadataQueryResult> queryResults) throws IllegalArgumentException {
+    private Map<String, TokenMetadata> metadataFromQueryResults(@NotNull final List<MetadataQueryResult> queryResults) throws IllegalArgumentException {
         return metadataFromQueryResults(queryResults, List.of());
     }
 

@@ -1,5 +1,6 @@
 package org.cardanofoundation.tokenmetadata.registry.util;
 
+import org.cardanofoundation.tokenmetadata.registry.config.JsonConfiguration;
 import org.cardanofoundation.tokenmetadata.registry.entity.TokenLogo;
 import org.cardanofoundation.tokenmetadata.registry.entity.TokenMetadata;
 import org.cardanofoundation.tokenmetadata.registry.service.TokenMappingService;
@@ -15,7 +16,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.time.LocalDateTime;
 
-@SpringBootTest(classes = {TokenMappingService.class})
+@SpringBootTest(classes = {TokenMappingService.class, JsonConfiguration.class})
 class MappingsUtilTest {
 
     @Autowired

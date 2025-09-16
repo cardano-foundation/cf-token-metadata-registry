@@ -13,7 +13,6 @@ import org.springframework.stereotype.Service;
 
 import java.io.File;
 import java.nio.file.Path;
-import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Optional;
@@ -38,7 +37,7 @@ public class TokenMetadataSyncService {
 
     @PostConstruct
     private void initSyncStatus() {
-        if(isMetadataJobEnabled) {
+        if (isMetadataJobEnabled) {
             syncStatus = new SyncStatus(false, SyncStatusEnum.SYNC_NOT_STARTED);
         } else {
             syncStatus = new SyncStatus(true, SyncStatusEnum.SYNC_IN_EXTRA_JOB);

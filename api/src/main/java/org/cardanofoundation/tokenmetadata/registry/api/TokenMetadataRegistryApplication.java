@@ -16,6 +16,7 @@ import java.util.List;
 @EnableJpaRepositories("org.cardanofoundation.tokenmetadata.registry.repository")
 @EntityScan(basePackages = "org.cardanofoundation.tokenmetadata.registry.entity")
 public class TokenMetadataRegistryApplication {
+
     public static void main(String[] args) {
         SpringApplication.run(TokenMetadataRegistryApplication.class, args);
     }
@@ -27,6 +28,7 @@ public class TokenMetadataRegistryApplication {
         registration.setDispatcherTypes(DispatcherType.REQUEST, DispatcherType.ASYNC, DispatcherType.ERROR);
         registration.setOrder(Ordered.HIGHEST_PRECEDENCE);
         registration.setUrlPatterns(List.of("/**"));
+
         return registration;
     }
 

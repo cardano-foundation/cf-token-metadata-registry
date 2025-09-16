@@ -26,7 +26,6 @@ public interface V2Api {
                                         @Parameter(description = "whether all the CIP specific properties should be returned in the response. False by default")
                                         @RequestParam(value = "show_cips_details", defaultValue = "false", required = false) final Boolean showCipsDetails);
 
-
     @Operation(operationId = "getSubjects", summary = "Query either all or a subset of properties of the given subjects")
     @PostMapping(value = "/subjects/query", produces = {"application/json;charset=utf-8"}, consumes = {"application/json;charset=utf-8"})
     ResponseEntity<BatchResponse> getSubjects(@Parameter(name = "body", required = true, schema = @Schema) @Valid @RequestBody final BatchRequest body,
@@ -35,12 +34,4 @@ public interface V2Api {
                                               @Parameter(description = "whether all the CIP specific properties should be returned in the response. False by default")
                                               @RequestParam(value = "show_cips_details", defaultValue = "false", required = false) final Boolean showCipsDetails);
 
-
 }
-
-
-
-
-
-
-

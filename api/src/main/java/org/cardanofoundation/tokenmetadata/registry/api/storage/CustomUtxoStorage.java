@@ -36,7 +36,6 @@ public class CustomUtxoStorage extends UtxoStorageImpl {
 
     @Override
     public void saveUnspent(List<AddressUtxo> addressUtxoList) {
-
         var automaticPaymentsUtxos = addressUtxoList
                 .stream()
                 .filter(cip68FungibleTokenService::containsReferenceNft)

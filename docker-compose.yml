@@ -5,11 +5,13 @@ services:
     ports:
       - "${DB_PORT}:5432"
     environment:
+      POSTGRES_USER: "${DB_USERNAME}"
       POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+      POSTGRES_DB: "${DB_NAME}"
     volumes:
       - ./database/scripts/bootstrap_db.sql:/docker-entrypoint-initdb.d/bootstrap_db.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d ${DB_NAME}"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -26,6 +28,20 @@ services:
       DB_USERNAME: "${DB_USERNAME}"
       DB_PASSWORD: "${DB_PASSWORD}"
       TOKEN_METADATA_SYNC_JOB: "${TOKEN_METADATA_SYNC_JOB}"
+      GITHUB_ORGANIZATION: "${GITHUB_ORGANIZATION:-cardano-foundation}"
+      GITHUB_PROJECT_NAME: "${GITHUB_PROJECT_NAME:-cardano-token-registry}"
+      GITHUB_MAPPINGS_FOLDER: "${GITHUB_MAPPINGS_FOLDER:-mappings}"
+      GITHUB_TMP_FOLDER: "${GITHUB_TMP_FOLDER:-/tmp}"
+      GITHUB_FORCE_CLONE: "${GITHUB_FORCE_CLONE:-false}"
+      STORE_CARDANO_PROTOCOL_MAGIC: "${STORE_CARDANO_PROTOCOL_MAGIC}"
+      STORE_CARDANO_HOST: "${STORE_CARDANO_HOST}"
+      STORE_CARDANO_PORT: "${STORE_CARDANO_PORT}"
+      STORE_CARDANO_SYNC_START_SLOT: "${STORE_CARDANO_SYNC_START_SLOT}"
+      STORE_CARDANO_SYNC_START_BLOCKHASH: "${STORE_CARDANO_SYNC_START_BLOCKHASH}"
+      STORE_SYNCAUTOSTART: "${STORE_SYNCAUTOSTART}"
+      STORE_BLOCKS_EPOCH_CALCULATION_INTERVAL: "${STORE_BLOCKS_EPOCH_CALCULATION_INTERVAL}"
+      CIP_QUERY_PRIORITY: "${CIP_QUERY_PRIORITY}"
+      API_LOCAL_BIND_PORT: "${API_LOCAL_BIND_PORT}"
     depends_on:
       db:
         condition: service_healthy

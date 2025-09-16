@@ -54,17 +54,16 @@
         <version.maven-project-info-reports-plugin>3.3.0</version.maven-project-info-reports-plugin>
         <version.maven-site-plugin>4.0.0-M2</version.maven-site-plugin>
         <version.spring-boot>3.3.10</version.spring-boot>
-        <version.lombok>1.18.30</version.lombok>
+        <version.lombok>1.18.40</version.lombok>
         <version.springdoc-openapi-ui>2.1.0</version.springdoc-openapi-ui>
         <version.swagger-annotations>2.2.8</version.swagger-annotations>
         <version.validation-api>3.0.2</version.validation-api>
         <version.bouncycastle>1.70</version.bouncycastle>
         <version.log4j>2.20.0</version.log4j>
-        <version.nimbusds>9.31</version.nimbusds>
         <version.commons-cli>1.5.0</version.commons-cli>
         <version.hamcrest>1.3</version.hamcrest>
-        <version.cardano-client-lib>0.7.0-beta2</version.cardano-client-lib>
-        <version.yaci>0.1.1</version.yaci>
+        <version.cardano-client-lib>0.7.0-beta4</version.cardano-client-lib>
+        <version.yaci>0.1.6</version.yaci>
     </properties>
 
     <repositories>
@@ -118,11 +117,6 @@
                 <groupId>org.apache.logging.log4j</groupId>
                 <artifactId>log4j-api</artifactId>
                 <version>${version.log4j}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.nimbusds</groupId>
-                <artifactId>nimbus-jose-jwt</artifactId>
-                <version>${version.nimbusds}</version>
             </dependency>
             <dependency>
                 <groupId>io.swagger.core.v3</groupId>
