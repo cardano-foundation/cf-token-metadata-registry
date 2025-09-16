@@ -60,6 +60,8 @@ spec:
             # Deployments are read only (starts yaci in read only mode)
             - name: STORE_SYNCAUTOSTART
               value: "false"
+            - name: STORE_READONLYMODE
+              value: "true"
 
             # Scheduled Task to update
             - name: TOKEN_METADATA_SYNC_JOB
