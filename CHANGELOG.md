@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.1](https://github.com/cardano-foundation/cf-token-metadata-registry/compare/v1.2.0...v1.2.1) (2025-09-16)
+
+
+### Bug Fixes
+
+* externalise environment variables and provide support for preprod token registry. ([#28](https://github.com/cardano-foundation/cf-token-metadata-registry/issues/28)) ([814cfcd](https://github.com/cardano-foundation/cf-token-metadata-registry/commit/814cfcdd743b87aae8f7236cca5b7874c6c09b30))
+
 ## [1.2.0](https://github.com/cardano-foundation/cf-token-metadata-registry/compare/v1.1.0...v1.2.0) (2025-06-26)
 
 
