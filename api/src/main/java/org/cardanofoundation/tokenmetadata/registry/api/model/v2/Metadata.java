@@ -10,8 +10,10 @@ import org.cardanofoundation.tokenmetadata.registry.api.model.rest.TokenMetadata
 public record Metadata(StringProperty name, StringProperty description, StringProperty ticker, LongProperty decimals,
                        StringProperty logo, StringProperty url, LongProperty version) {
 
+    private static final Metadata EMPTY_METADATA = Metadata.builder().build();
+
     public static Metadata empty() {
-        return Metadata.builder().build();
+        return EMPTY_METADATA;
     }
 
     public Metadata merge(Metadata that) {
@@ -23,7 +25,6 @@ public record Metadata(StringProperty name, StringProperty description, StringPr
                 url != null ? url : that.url(),
                 version != null ? version : that.version());
     }
-
 
 
     public static Metadata from(TokenMetadata metadata) {
@@ -51,5 +52,12 @@ public record Metadata(StringProperty name, StringProperty description, StringPr
         return new Metadata(name, description, ticker, decimals, logo, url, version);
     }
 
+    public boolean isEmpty() {
+        return this.equals(EMPTY_METADATA);
+    }
+
+    public boolean isValid() {
+        return this.name != null && this.description != null;
+    }
 
 }
