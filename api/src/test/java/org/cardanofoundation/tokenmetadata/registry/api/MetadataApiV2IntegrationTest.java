@@ -10,9 +10,7 @@ import org.cardanofoundation.tokenmetadata.registry.api.indexer.V1ApiMetadataInd
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.AnnotatedSignature;
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.BatchRequest;
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.TokenMetadata;
-import org.cardanofoundation.tokenmetadata.registry.api.model.rest.wellknownproperties.NameProperty;
-import org.cardanofoundation.tokenmetadata.registry.api.model.rest.wellknownproperties.TickerProperty;
-import org.cardanofoundation.tokenmetadata.registry.api.model.rest.wellknownproperties.UrlProperty;
+import org.cardanofoundation.tokenmetadata.registry.api.model.rest.wellknownproperties.*;
 import org.cardanofoundation.tokenmetadata.registry.api.service.Cip68FungibleTokenService;
 import org.cardanofoundation.tokenmetadata.registry.api.util.AssetType;
 import org.cardanofoundation.tokenmetadata.registry.entity.MetadataReferenceNft;
@@ -75,10 +73,24 @@ public class MetadataApiV2IntegrationTest {
                 "08c2ca6654c9e43b41b0b1560ee6a7bb4997629c2646575982934a51ecd71900")));
 
 
+        final NameProperty nameProperty = new NameProperty();
+        nameProperty.setSequenceNumber(BigDecimal.ZERO);
+        nameProperty.setValue("nutcoin");
+        nameProperty.setSignatures(List.of(new AnnotatedSignature("5bb051ae591d1119586dbaef478098bc22f58cd2926b058f6aa445bddabd5c418b274dbe3d59b22e83c81c80c4cf6bd6f7280246b1782b38c5a9cd0bd33d6b07",
+                "08c2ca6654c9e43b41b0b1560ee6a7bb4997629c2646575982934a51ecd71900")));
+
+        final DescriptionProperty descriptionProperty = new DescriptionProperty();
+        descriptionProperty.setSequenceNumber(BigDecimal.ZERO);
+        descriptionProperty.setValue("The legendary Nutcoin, the first native asset minted on Cardano.");
+        descriptionProperty.setSignatures(List.of(new AnnotatedSignature("414a210054ac263d3a895efa1deb87faf542b9e74dc5c2165e66b2b379c20a35778e3ea3366132c3884e4f0cc6f197f0598df38a165a008671af8782c056cb0e",
+                "08c2ca6654c9e43b41b0b1560ee6a7bb4997629c2646575982934a51ecd71900")));
+
         // CIP 26 only token
         var knownAssetType = AssetType.fromUnit("025146866af908340247fe4e9672d5ac7059f1e8534696b5f920c9e66362544848");
         when(v1ApiMetadataIndexer.findSubjectSelectProperties(knownAssetType.toUnit(), List.of()))
                 .thenReturn(Optional.of(TokenMetadata.builder()
+                        .name(nameProperty)
+                        .description(descriptionProperty)
                         .subject(knownAssetType.toUnit())
                         .url(urlProperty)
                         .build()));
@@ -118,6 +130,7 @@ public class MetadataApiV2IntegrationTest {
                         .policyId(fldtAssetType.policyId())
                         .assetName(fldtAssetType.assetName())
                         .name("FLDT")
+                        .description("The official token of FluidTokens, a leading DeFi ecosystem fueled by innovation and community backing.")
                         .ticker("FLDT")
                         .build()));
 
@@ -228,6 +241,32 @@ public class MetadataApiV2IntegrationTest {
                 .andExpect(MockMvcResultMatchers.jsonPath("$.subjects[1].metadata.name.source").value("CIP_68"))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.subjects[1].metadata.url.value").value("https://fluidtokens.com"))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.subjects[1].metadata.url.source").value("CIP_26"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.queryPriority").value(expectedArray)
+                );
+    }
+
+    @Test
+    public void getSubjectsFilterMissingOutTest() throws Exception {
+
+        var objectMapper = new ObjectMapper();
+
+        var request = new BatchRequest(List.of("025146866af908340247fe4e9672d5ac7059f1e8534696b5f920c9e66362544843", "577f0b1342f8f8f4aed3388b80a8535812950c7a892495c0ecdf0f1e0014df10464c4454"), List.of());
+
+        List<Object> expectedArray = new JSONArray();
+        expectedArray.add("CIP_68");
+        expectedArray.add("CIP_26");
+        mockMvc.perform(post("/api/v2/subjects/query")
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.subjects").isArray())
+                // This checks the "length" of the subjects array is 2
+                .andExpect(MockMvcResultMatchers.jsonPath("$.subjects.length()").value(1))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.subjects[0].subject").value("577f0b1342f8f8f4aed3388b80a8535812950c7a892495c0ecdf0f1e0014df10464c4454"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.subjects[0].metadata.name.value").value("FLDT"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.subjects[0].metadata.name.source").value("CIP_68"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.subjects[0].metadata.url.value").value("https://fluidtokens.com"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.subjects[0].metadata.url.source").value("CIP_26"))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.queryPriority").value(expectedArray)
                 );
     }

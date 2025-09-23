@@ -52,7 +52,7 @@ public class V2ApiController implements V2Api {
         var tokenMetadata = queryPriority.stream()
                 .reduce(IDENTITY, combineStandards(subject, queryProperties), aggregateResults());
 
-        if (tokenMetadata.first().equals(Metadata.empty())) {
+        if (tokenMetadata.first().isEmpty()) {
             return ResponseEntity.notFound().build();
         } else {
             var standards = tokenMetadata.second();
@@ -76,6 +76,7 @@ public class V2ApiController implements V2Api {
                     var pair = queryPriority.stream().reduce(IDENTITY, combineStandards(subject, queryProperties), aggregateResults());
                     return new Subject(subject, pair.first(), showCipsDetails ? pair.second() : null);
                 })
+                .filter(metadata -> !metadata.metadata().isEmpty() && metadata.metadata().isValid())
                 .toList();
         var stringPriorities = queryPriority.stream().map(QueryPriority::name).toList();
         return ResponseEntity.ok(new BatchResponse(subjects, stringPriorities));
