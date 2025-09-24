@@ -11,13 +11,13 @@ cf-token-metadata-registry:
     roReplicaCount: 2
     api:
       image:
-        tag: "1.2.1"
+        tag: "1.3.0"
       tokenMetadataUpdateJob:
         enabled: false
     job:
       enabled: true
       image:
-        tag: "1.2.1"
+        tag: "1.3.0"
     ingress:
       additionalDomains:
         - tokens.cardano.org
