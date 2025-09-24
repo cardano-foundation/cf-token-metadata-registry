@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.0](https://github.com/cardano-foundation/cf-token-metadata-registry/compare/v1.2.1...v1.3.0) (2025-09-24)
+
+
+### Features
+
+* attempt to trigger release ([5bd14c3](https://github.com/cardano-foundation/cf-token-metadata-registry/commit/5bd14c31416f6d20101f90da91403218d1f75af4))
+
 ## [1.2.1](https://github.com/cardano-foundation/cf-token-metadata-registry/compare/v1.2.0...v1.2.1) (2025-09-16)
 
 
