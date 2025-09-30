@@ -25,6 +25,8 @@ spec:
           env:
 #            - name: SPRING_PROFILES_ACTIVE
 #              value: {{ .springProfiles }}
+            - name: JAVA_OPTS
+              value: "-Dserver.tomcat.max-http-post-size=10MB"
 
             ## Postgres
             - name: DB_DRIVER
