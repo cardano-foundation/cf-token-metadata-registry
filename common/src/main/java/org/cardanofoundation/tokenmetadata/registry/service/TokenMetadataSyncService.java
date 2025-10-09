@@ -84,9 +84,8 @@ public class TokenMetadataSyncService {
                                 tokenMetadataService.insertLogo(mappingDetails.mapping());
                             }
                         } catch (Exception e) {
-                            log.warn("Failed to process token with subject '{}': {}. Continuing with next token.",
+                            log.warn("Failed to process token '{}': {}. Continuing with next token.",
                                     mappingDetails.mapping().subject(), e.getMessage());
-                            log.debug("Full stack trace for token processing failure:", e);
                         }
                     });
 

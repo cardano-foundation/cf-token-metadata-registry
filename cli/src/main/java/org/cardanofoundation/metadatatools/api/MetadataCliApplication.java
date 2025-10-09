@@ -21,6 +21,7 @@ import java.util.Locale;
 @Slf4j
 @SpringBootApplication
 public class MetadataCliApplication implements CommandLineRunner {
+
     public static void main(final String[] args) {
         SpringApplication.run(MetadataCliApplication.class, args);
     }

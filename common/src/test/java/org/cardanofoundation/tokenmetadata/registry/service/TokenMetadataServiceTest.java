@@ -63,8 +63,6 @@ class TokenMetadataServiceTest {
             Mockito.verify(tokenMetadataRepository, Mockito.times(1)).save(tokenMetadata);
 
         });
-
-
     }
 
     @Test
@@ -101,10 +99,10 @@ class TokenMetadataServiceTest {
         var now = LocalDateTime.now();
         var testUser = "test-user";
 
-        // Create a mapping with a name that exceeds 255 characters
-        var longName = "a".repeat(256);
+        // Create a mapping with a name that exceeds 50 characters (CIP-26 limit)
+        var longName = "a".repeat(51);
         var mapping = new org.cardanofoundation.tokenmetadata.registry.model.Mapping(
-                "testSubject",
+                "1234567890abcdef1234567890abcdef1234567890abcdef12345678", // Valid 56 hex char subject
                 new org.cardanofoundation.tokenmetadata.registry.model.Item(null, "https://example.com", null), // url
                 new org.cardanofoundation.tokenmetadata.registry.model.Item(null, longName, null), // name
                 new org.cardanofoundation.tokenmetadata.registry.model.Item(null, "TICK", null), // ticker
@@ -116,7 +114,7 @@ class TokenMetadataServiceTest {
 
         // Verify that insertMapping returns false for invalid token
         boolean result = tokenMetadataService.insertMapping(mapping, now, testUser);
-        Assertions.assertFalse(result, "insertMapping should return false when name exceeds 255 characters");
+        Assertions.assertFalse(result, "insertMapping should return false when name exceeds 50 characters (CIP-26 limit)");
 
         // Verify repository save was NOT called
         Mockito.verify(tokenMetadataRepository, Mockito.never()).save(Mockito.any());
@@ -127,10 +125,10 @@ class TokenMetadataServiceTest {
         var now = LocalDateTime.now();
         var testUser = "test-user";
 
-        // Create a mapping with a ticker that exceeds 32 characters
-        var longTicker = "a".repeat(33);
+        // Create a mapping with a ticker that exceeds 9 characters (CIP-26 limit)
+        var longTicker = "a".repeat(10);
         var mapping = new org.cardanofoundation.tokenmetadata.registry.model.Mapping(
-                "testSubject",
+                "1234567890abcdef1234567890abcdef1234567890abcdef12345678", // Valid 56 hex char subject
                 new org.cardanofoundation.tokenmetadata.registry.model.Item(null, "https://example.com", null), // url
                 new org.cardanofoundation.tokenmetadata.registry.model.Item(null, "TestToken", null), // name
                 new org.cardanofoundation.tokenmetadata.registry.model.Item(null, longTicker, null), // ticker
@@ -142,44 +140,46 @@ class TokenMetadataServiceTest {
 
         // Verify that insertMapping returns false for invalid token
         boolean result = tokenMetadataService.insertMapping(mapping, now, testUser);
-        Assertions.assertFalse(result, "insertMapping should return false when ticker exceeds 32 characters");
+        Assertions.assertFalse(result, "insertMapping should return false when ticker exceeds 9 characters (CIP-26 limit)");
 
         // Verify repository save was NOT called
         Mockito.verify(tokenMetadataRepository, Mockito.never()).save(Mockito.any());
     }
 
     @Test
-    public void insertMappingTest_ShouldRejectTokenWithUrlExceedingMaxLength() {
+    public void insertMappingTest_ShouldRejectTokenWithDescriptionExceedingMaxLength() {
         var now = LocalDateTime.now();
         var testUser = "test-user";
 
-        // Create a mapping with a URL that exceeds 255 characters
-        var longUrl = "https://example.com/" + "a".repeat(256);
+        // Create a mapping with a description that exceeds 500 characters (CIP-26 limit)
+        var longDescription = "a".repeat(501);
         var mapping = new org.cardanofoundation.tokenmetadata.registry.model.Mapping(
-                "testSubject",
-                new org.cardanofoundation.tokenmetadata.registry.model.Item(null, longUrl, null), // url
+                "1234567890abcdef1234567890abcdef1234567890abcdef12345678", // Valid 56 hex char subject
+                new org.cardanofoundation.tokenmetadata.registry.model.Item(null, "https://example.com", null), // url
                 new org.cardanofoundation.tokenmetadata.registry.model.Item(null, "TestToken", null), // name
                 new org.cardanofoundation.tokenmetadata.registry.model.Item(null, "TICK", null), // ticker
                 new org.cardanofoundation.tokenmetadata.registry.model.Item(null, "6", null), // decimals
                 new org.cardanofoundation.tokenmetadata.registry.model.Item(null, "data:image/png;base64,abc", null), // logo
                 "testPolicy",
-                new org.cardanofoundation.tokenmetadata.registry.model.Item(null, "description", null) // description
+                new org.cardanofoundation.tokenmetadata.registry.model.Item(null, longDescription, null) // description
         );
 
         // Verify that insertMapping returns false for invalid token
         boolean result = tokenMetadataService.insertMapping(mapping, now, testUser);
-        Assertions.assertFalse(result, "insertMapping should return false when URL exceeds 255 characters");
+        Assertions.assertFalse(result, "insertMapping should return false when description exceeds 500 characters (CIP-26 limit)");
 
         // Verify repository save was NOT called
         Mockito.verify(tokenMetadataRepository, Mockito.never()).save(Mockito.any());
     }
 
     @Test
-    public void insertLogoTest_ShouldRejectLogoWithSubjectExceedingMaxLength() {
-        // Create a mapping with a subject that exceeds 255 characters
-        var longSubject = "a".repeat(256);
+    public void insertLogoTest_ShouldRejectLogoWithInvalidSubject() {
+        // Create a mapping with a subject that exceeds CIP-26 specification (max 120 hex characters)
+        // This tests that subject validation is also performed when inserting logos
+        // Validation is performed by cf-metadata-core library
+        var longSubject = "a".repeat(122); // 122 hex chars (exceeds CIP-26 max of 120)
         var mapping = new org.cardanofoundation.tokenmetadata.registry.model.Mapping(
-                longSubject, // subject exceeds 255
+                longSubject, // subject exceeds CIP-26 limit
                 new org.cardanofoundation.tokenmetadata.registry.model.Item(null, "https://example.com", null), // url
                 new org.cardanofoundation.tokenmetadata.registry.model.Item(null, "TestToken", null), // name
                 new org.cardanofoundation.tokenmetadata.registry.model.Item(null, "TICK", null), // ticker
@@ -189,9 +189,33 @@ class TokenMetadataServiceTest {
                 new org.cardanofoundation.tokenmetadata.registry.model.Item(null, "description", null) // description
         );
 
-        // Verify that insertLogo returns false for invalid subject
+        // Verify that insertLogo returns false for invalid subject (validated by cf-metadata-core library)
         boolean result = tokenMetadataService.insertLogo(mapping);
-        Assertions.assertFalse(result, "insertLogo should return false when subject exceeds 255 characters");
+        Assertions.assertFalse(result, "insertLogo should return false when subject exceeds CIP-26 specification limit");
+
+        // Verify repository save was NOT called
+        Mockito.verify(tokenLogoRepository, Mockito.never()).save(Mockito.any());
+    }
+
+    @Test
+    public void insertLogoTest_ShouldRejectLogoExceedingMaxLength() {
+        // Create a mapping with a logo that exceeds the CIP-26 specification limit (87,400 characters)
+        // This limit is defined in cf-metadata-core library, not hardcoded in our service
+        var longLogo = "a".repeat(87401);
+        var mapping = new org.cardanofoundation.tokenmetadata.registry.model.Mapping(
+                "1234567890abcdef1234567890abcdef1234567890abcdef12345678", // Valid 56 hex char subject
+                new org.cardanofoundation.tokenmetadata.registry.model.Item(null, "https://example.com", null), // url
+                new org.cardanofoundation.tokenmetadata.registry.model.Item(null, "TestToken", null), // name
+                new org.cardanofoundation.tokenmetadata.registry.model.Item(null, "TICK", null), // ticker
+                new org.cardanofoundation.tokenmetadata.registry.model.Item(null, "6", null), // decimals
+                new org.cardanofoundation.tokenmetadata.registry.model.Item(null, longLogo, null), // logo exceeds CIP-26 limit
+                "testPolicy",
+                new org.cardanofoundation.tokenmetadata.registry.model.Item(null, "description", null) // description
+        );
+
+        // Verify that insertLogo returns false for invalid logo (validated by cf-metadata-core library)
+        boolean result = tokenMetadataService.insertLogo(mapping);
+        Assertions.assertFalse(result, "insertLogo should return false when logo exceeds CIP-26 specification limit (validated by cf-metadata-core)");
 
         // Verify repository save was NOT called
         Mockito.verify(tokenLogoRepository, Mockito.never()).save(Mockito.any());

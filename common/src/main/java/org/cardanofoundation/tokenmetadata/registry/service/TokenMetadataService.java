@@ -26,42 +26,48 @@ public class TokenMetadataService {
 
     /**
      * Inserts mapping metadata into the database.
-     * Validates field lengths before insertion.
+     * Validates metadata before insertion.
      *
-     * @return true if successfully inserted, false if validation failed
+     * @return true if successfully inserted, false if validation failed or error occurred
      */
     public boolean insertMapping(Mapping mapping, LocalDateTime updatedAt, String updateBy) {
         var tokenMetadata = MappingsUtil.toTokenMetadata(mapping, updateBy, updatedAt);
 
         if (!tokenMetadataValidator.validate(tokenMetadata)) {
-            log.warn("Skipping token metadata insertion for subject '{}' due to validation failure",
-                    tokenMetadata.getSubject());
+            log.warn("Skipping token metadata for subject '{}' - validation failed", tokenMetadata.getSubject());
             return false;
         }
 
-        tokenMetadataRepository.save(tokenMetadata);
-
-        return true;
+        try {
+            tokenMetadataRepository.save(tokenMetadata);
+            return true;
+        } catch (Exception e) {
+            log.error("Failed to save token metadata for subject '{}': {}", tokenMetadata.getSubject(), e.getMessage());
+            return false;
+        }
     }
 
     /**
      * Inserts logo data into the database.
+     * Validates logo according to CIP-26 before insertion.
      *
-     * @return true if successfully inserted, false if validation failed
+     * @return true if successfully inserted, false if validation failed or error occurred
      */
     public boolean insertLogo(Mapping mapping) {
         var tokenLogo = toTokenLogo(mapping);
 
-        // Validate subject length (logo table has FK to metadata table with varchar(255))
-        if (tokenLogo.getSubject() != null && tokenLogo.getSubject().length() > 255) {
-            log.warn("Skipping logo insertion for subject '{}' - subject exceeds 255 characters (length: {})",
-                    tokenLogo.getSubject(), tokenLogo.getSubject().length());
+        if (!tokenMetadataValidator.validateLogo(tokenLogo.getSubject(), tokenLogo.getLogo())) {
+            log.warn("Skipping logo for subject '{}' - validation failed", tokenLogo.getSubject());
             return false;
         }
 
-        tokenLogoRepository.save(tokenLogo);
-
-        return true;
+        try {
+            tokenLogoRepository.save(tokenLogo);
+            return true;
+        } catch (Exception e) {
+            log.error("Failed to save logo for subject '{}': {}", tokenLogo.getSubject(), e.getMessage());
+            return false;
+        }
     }
 
 }
