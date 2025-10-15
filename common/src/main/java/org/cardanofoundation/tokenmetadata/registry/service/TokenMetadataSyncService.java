@@ -73,12 +73,20 @@ public class TokenMetadataSyncService {
 
                     })
                     .forEach(mappingDetails -> {
-                        tokenMetadataService.insertMapping(mappingDetails.mapping(),
-                                mappingDetails.mappingUpdateDetails().updatedAt(),
-                                mappingDetails.mappingUpdateDetails().updatedBy());
+                        try {
+                            boolean metadataInserted = tokenMetadataService.insertMapping(
+                                    mappingDetails.mapping(),
+                                    mappingDetails.mappingUpdateDetails().updatedAt(),
+                                    mappingDetails.mappingUpdateDetails().updatedBy());
 
-                        tokenMetadataService.insertLogo(mappingDetails.mapping());
-
+                            // Only insert logo if metadata was successfully inserted
+                            if (metadataInserted) {
+                                tokenMetadataService.insertLogo(mappingDetails.mapping());
+                            }
+                        } catch (Exception e) {
+                            log.warn("Failed to process token '{}': {}. Continuing with next token.",
+                                    mappingDetails.mapping().subject(), e.getMessage());
+                        }
                     });
 
             syncStatus.setSyncStatus(SyncStatusEnum.SYNC_DONE);

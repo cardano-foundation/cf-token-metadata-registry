@@ -34,14 +34,6 @@
         </license>
     </licenses>
 
-    <developers>
-        <developer>
-            <name>CF Metadata Team</name>
-            <organization>Cardano Foundation</organization>
-            <organizationUrl>https://cardanofoundation.org</organizationUrl>
-        </developer>
-    </developers>
-
     <organization>
         <name>Cardano Foundation</name>
         <url>https://cardanofoundation.org</url>
@@ -58,7 +50,7 @@
         </dependency>
         <dependency>
             <groupId>org.cardanofoundation.metadatatools</groupId>
-            <artifactId>core</artifactId>
+            <artifactId>cf-tokens-cip26</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
