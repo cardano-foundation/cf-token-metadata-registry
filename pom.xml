@@ -58,7 +58,7 @@
     <properties>
         <revision>2.0.0-SNAPSHOT</revision>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <version.cf-metadatatools-core>2.0.0-SNAPSHOT</version.cf-metadatatools-core>
+        <version.cf-tokens-cip26>2.0.0</version.cf-tokens-cip26>
         <version.maven-compiler-plugin>3.13.0</version.maven-compiler-plugin>
         <version.maven-surefire-plugin>3.2.5</version.maven-surefire-plugin>
         <version.jacoco-maven-plugin>0.8.11</version.jacoco-maven-plugin>
@@ -83,10 +83,6 @@
         <repository>
             <id>central</id>
             <url>https://repo1.maven.org/maven2/</url>
-        </repository>
-        <repository>
-            <id>gitlab-maven</id>
-            <url>https://pro.gitlab.metadata.dev.cf-deployments.org/api/v4/projects/2/packages/maven</url>
         </repository>
     </repositories>
 
@@ -118,7 +114,7 @@
             <dependency>
                 <groupId>org.cardanofoundation.metadatatools</groupId>
                 <artifactId>cf-tokens-cip26</artifactId>
-                <version>${version.cf-metadatatools-core}</version>
+                <version>${version.cf-tokens-cip26}</version>
             </dependency>
             <dependency>
                 <groupId>org.bouncycastle</groupId>
