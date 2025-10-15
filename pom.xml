@@ -56,7 +56,7 @@
     </organization>
 
     <properties>
-        <revision>2.0.0-SNAPSHOT</revision>
+        <revision>1.3.1-SNAPSHOT</revision>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <version.cf-tokens-cip26>2.0.0</version.cf-tokens-cip26>
         <version.maven-compiler-plugin>3.13.0</version.maven-compiler-plugin>
