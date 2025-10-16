@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.3.1](https://github.com/cardano-foundation/cf-token-metadata-registry/compare/v1.3.0...v1.3.1) (2025-10-16)
+
+
+### Bug Fixes
+
+* **env varaible value:** use internal Postgres port (5432) for service connection ([bc8d964](https://github.com/cardano-foundation/cf-token-metadata-registry/commit/bc8d964be46654b149611a5a3fc3764d5afc7c75))
+* prevent invalid tokens, which are not passing validation from preprod repository from being submitted to the registry. ([d332b88](https://github.com/cardano-foundation/cf-token-metadata-registry/commit/d332b8855e235174adda7c9a830ad8fe413acf36))
+
 ## [1.3.0](https://github.com/cardano-foundation/cf-token-metadata-registry/compare/v1.2.1...v1.3.0) (2025-09-24)
 
 
