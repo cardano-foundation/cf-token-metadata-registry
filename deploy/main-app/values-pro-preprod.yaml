@@ -23,9 +23,9 @@ cf-token-metadata-registry:
     ingress:
       additionalDomains:
         - preprod.tokens.cardano.org
-  cardano:
-    node:
-      host: preprod-node.play.dev.cardano.org
-      port: 3001
+    cardano:
+      node:
+        host: preprod-node.play.dev.cardano.org
+        port: 3001
 
 
