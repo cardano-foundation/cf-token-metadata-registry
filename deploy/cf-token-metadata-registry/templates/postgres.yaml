@@ -8,7 +8,7 @@ spec:
   teamId: "cf"
   volume:
     size: 50Gi
-  numberOfInstances: 2
+  numberOfInstances: {{ .Values.postgres.numberOfInstances | default 2 }}
   users:
     cardano: []
   databases:
