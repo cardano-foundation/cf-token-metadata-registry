@@ -1,0 +1,29 @@
+stage: pro
+
+network: preprod
+
+domain: pro.cf-token-registry-preprod.eu-central-1.pro.cf-token-metadata-registry.cf-deployments.org
+
+cf-token-metadata-registry:
+  enabled: true
+  values:
+    rwReplicaCount: 1 # rw 0 or 1
+    roReplicaCount: 2
+    api:
+      image:
+        tag: "1.3.1"
+      tokenMetadataUpdateJob:
+        enabled: false
+    job:
+      enabled: true
+      image:
+        tag: "1.3.1"
+    ingress:
+      additionalDomains:
+        - preprod.tokens.cardano.org
+  cardano:
+    node:
+      host: preprod-node.play.dev.cardano.org
+      port: 3001
+
+
