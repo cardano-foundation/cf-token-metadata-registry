@@ -60,3 +60,4 @@ cardano:
   node:
     host: backbone.cardano.iog.io
     port: 3001
+    protocolMagic: 764824073

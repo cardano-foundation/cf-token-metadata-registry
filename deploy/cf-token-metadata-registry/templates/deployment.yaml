@@ -60,6 +60,8 @@ spec:
               value: {{ .Values.cardano.node.host }}
             - name: STORE_CARDANO_PORT
               value: {{ .Values.cardano.node.port | quote }}
+            - name: STORE_CARDANO_PROTOCOLMAGIC
+              value: {{ .Values.cardano.node.protocolMagic | default 764824073 | quote }}
 
             # Scheduled Task to update
             - name: TOKEN_METADATA_SYNC_JOB
