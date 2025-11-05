@@ -65,17 +65,17 @@ spec:
 
             {{- with .Values.cardano.node.syncStartSlot }}
             - name: STORE_CARDANO_SYNC_START_SLOT
-              value: {{ .Values.cardano.node.syncStartSlot | quote }}
+              value: {{ . | quote }}
             {{- end }}
 
             {{- with .Values.cardano.node.syncStartBlockhash }}
             - name: STORE_CARDANO_SYNC_START_BLOCKHASH
-              value: {{ .Values.cardano.node.syncStartBlockhash | quote }}
+              value: {{ . | quote }}
             {{- end }}
 
-            {{- with .Values.cardano.node.storeBlocksEpochCalculationInterval }}
+            {{- with .Values.cardano.node.blocksEpochCalculationInterval }}
             - name: STORE_BLOCKS_EPOCH_CALCULATION_INTERVAL
-              value: {{ .Values.cardano.node.storeBlocksEpochCalculationInterval | quote }}
+              value: {{ . | quote }}
             {{- end }}
 
             # Scheduled Task to update

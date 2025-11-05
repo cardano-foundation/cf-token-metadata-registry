@@ -63,7 +63,7 @@ cardano:
     protocolMagic: "764824073"
     syncStartSlot:
     syncStartBlockhash:
-    storeBlocksEpochCalculationInterval:
+    blocksEpochCalculationInterval:
 
 github:
   organization: "cardano-foundation"
