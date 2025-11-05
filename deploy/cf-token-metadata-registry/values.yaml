@@ -61,3 +61,12 @@ cardano:
     host: backbone.cardano.iog.io
     port: 3001
     protocolMagic: "764824073"
+    syncStartSlot:
+    syncStartBlockhash:
+    storeBlocksEpochCalculationInterval:
+
+github:
+  organization: "cardano-foundation"
+  projectName: "cardano-token-registry"
+  mappingsFolder: "mappings"
+  tmpFolder: "/tmp"

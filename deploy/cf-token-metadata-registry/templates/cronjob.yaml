@@ -41,6 +41,14 @@ spec:
                     secretKeyRef:
                       name: {{ .Values.postgres.secret.name }}
                       key: {{ .Values.postgres.secret.hostKey }}
+                - name: GITHUB_ORGANIZATION
+                  value: {{ .Values.github.organization | quote }}
+                - name: GITHUB_PROJECT_NAME
+                  value: {{ .Values.github.projectName | quote }}
+                - name: GITHUB_MAPPINGS_FOLDER
+                  value: {{ .Values.github.mappingsFolder | quote }}
+                - name: GITHUB_TMP_FOLDER
+                  value: {{ .Values.github.tmpFolder | quote }}
           restartPolicy: OnFailure
   concurrencyPolicy: Forbid
 {{ end }}

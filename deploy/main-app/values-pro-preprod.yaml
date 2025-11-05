@@ -28,5 +28,12 @@ cf-token-metadata-registry:
         host: preprod-node.play.dev.cardano.org
         port: 3001
         protocolMagic: "1"
-
-
+        syncStartSlot: 0
+        syncStartBlockhash: ""
+        storeBlocksEpochCalculationInterval: "14400"
+    github:
+      organization: "input-output-hk"
+      projectName: "metadata-registry-testnet"
+      mappingsFolder: "registry"
+      tmpFolder: "/tmp"
+      forceClone: "false"

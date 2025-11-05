@@ -63,6 +63,21 @@ spec:
             - name: STORE_CARDANO_PROTOCOLMAGIC
               value: {{ .Values.cardano.node.protocolMagic | default "764824073" | quote }}
 
+            {{- with .Values.cardano.node.syncStartSlot }}
+            - name: STORE_CARDANO_SYNC_START_SLOT
+              value: {{ .Values.cardano.node.syncStartSlot | quote }}
+            {{- end }}
+
+            {{- with .Values.cardano.node.syncStartBlockhash }}
+            - name: STORE_CARDANO_SYNC_START_BLOCKHASH
+              value: {{ .Values.cardano.node.syncStartBlockhash | quote }}
+            {{- end }}
+
+            {{- with .Values.cardano.node.storeBlocksEpochCalculationInterval }}
+            - name: STORE_BLOCKS_EPOCH_CALCULATION_INTERVAL
+              value: {{ .Values.cardano.node.storeBlocksEpochCalculationInterval | quote }}
+            {{- end }}
+
             # Scheduled Task to update
             - name: TOKEN_METADATA_SYNC_JOB
               value: {{ .Values.api.tokenMetadataUpdateJob.enabled | quote }}
