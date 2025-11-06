@@ -22,6 +22,9 @@ grafana-dashboards:
 cf-token-metadata-registry:
   enabled: true
 
+cf-eks-monitoring:
+  enabled: false
+
 spec:
   destination:
     server: https://kubernetes.default.svc

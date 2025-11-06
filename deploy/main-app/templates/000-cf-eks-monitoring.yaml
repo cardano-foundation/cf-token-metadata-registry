@@ -1,0 +1,41 @@
+{{ if index .Values "cf-eks-monitoring" "enabled" }}
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: cf-eks-monitoring
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  project: default
+  source:
+    repoURL: {{ index .Values "cf-eks-monitoring" "git" "repoURL" | default "https://github.com/cardano-foundation/cf-helm-charts.git" }}
+    targetRevision: {{ index .Values "cf-eks-monitoring" "git" "targetRevision" | default "HEAD" | quote }}
+    path: {{ index .Values "git" "chartPath" | default "charts/cf-eks-monitoring" }}
+    helm:
+      {{- with index .Values "cf-eks-monitoring" }}
+      values: |
+{{ toYaml . | indent 8 }}
+      {{- end }}
+
+  ignoreDifferences:
+    - group: "*"
+      kind: "Secret"
+      jqPathExpressions:
+        - '.data'
+
+  syncPolicy:
+    automated:
+      prune: true
+    syncOptions:
+      - CreateNamespace=true
+      - RespectIgnoreDifferences=true
+      - ServerSideApply=true
+
+  destination:
+    namespace: {{ index .Values "cf-eks-monitoring" "namespace" | default "observe" }}
+    server: {{ .Values.spec.destination.server }}
+{{ end }}

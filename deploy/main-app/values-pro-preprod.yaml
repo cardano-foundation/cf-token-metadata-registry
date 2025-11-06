@@ -37,3 +37,10 @@ cf-token-metadata-registry:
       mappingsFolder: "registry"
       tmpFolder: "/tmp"
       forceClone: "false"
+
+cf-eks-monitoring:
+  enabled: true
+  git:
+    targetRevision: "70178e2"
+  alloy:
+    enabled: true
