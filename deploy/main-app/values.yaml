@@ -24,6 +24,15 @@ cf-token-metadata-registry:
 
 cf-eks-monitoring:
   enabled: false
+  kube-prom-stack:
+    enabled: true
+    fullnameOverride: "kube-prometheus-stack"
+  namespace: null
+  git:
+    repoUrl: null
+    targetRevision: null
+    chartPath: null # ie tg-modules/argocd/charts/cf-eks-monitoring
+
 
 prometheusStack:
   enabled: true
