@@ -21,3 +21,13 @@ cf-token-metadata-registry:
     ingress:
       additionalDomains:
         - tokens.cardano.org
+
+cf-eks-monitoring:
+  enabled: true
+  git:
+    targetRevision: "70178e2"
+  alloy:
+    enabled: true
+
+prometheusStack:
+  enabled: false
