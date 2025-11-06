@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.1](https://github.com/cardano-foundation/cf-token-metadata-registry/compare/v1.4.0...v1.4.1) (2025-11-06)
+
+
+### Bug Fixes
+
+* fixed docker images FROM because openjdk is now deprecated ([f707393](https://github.com/cardano-foundation/cf-token-metadata-registry/commit/f707393a355dfdf3c1bf6ea5843c7faad0b849a2))
+
 ## [1.4.0](https://github.com/cardano-foundation/cf-token-metadata-registry/compare/v1.3.1...v1.4.0) (2025-11-06)
 
 
