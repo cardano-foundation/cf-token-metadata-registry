@@ -1,4 +1,4 @@
-FROM openjdk:21-jdk-slim
+FROM eclipse-temurin:21-jdk-alpine
 
 RUN apt update && apt install -y git && apt clean
 
