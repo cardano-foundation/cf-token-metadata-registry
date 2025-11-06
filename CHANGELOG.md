@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.2](https://github.com/cardano-foundation/cf-token-metadata-registry/compare/v1.4.1...v1.4.2) (2025-11-06)
+
+
+### Bug Fixes
+
+* updating to non alping ([c103eda](https://github.com/cardano-foundation/cf-token-metadata-registry/commit/c103eda83ea851087976e9fdc727d52dc4786457))
+
 ## [1.4.1](https://github.com/cardano-foundation/cf-token-metadata-registry/compare/v1.4.0...v1.4.1) (2025-11-06)
 
 
