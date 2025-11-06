@@ -44,3 +44,6 @@ cf-eks-monitoring:
     targetRevision: "70178e2"
   alloy:
     enabled: true
+
+prometheusStack:
+  enabled: false

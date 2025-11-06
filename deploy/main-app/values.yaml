@@ -25,6 +25,9 @@ cf-token-metadata-registry:
 cf-eks-monitoring:
   enabled: false
 
+prometheusStack:
+  enabled: true
+
 spec:
   destination:
     server: https://kubernetes.default.svc
