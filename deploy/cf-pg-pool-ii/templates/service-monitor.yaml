@@ -5,7 +5,7 @@ kind: ServiceMonitor
 metadata:
   name: {{ include "cf-pg-pool-ii.fullname" . }}
   labels:
-    release: prometheus-stack
+    release: cf-eks-monitoring
     {{- include "cf-pg-pool-ii.labels" . | nindent 4 }}
 spec:
   endpoints:

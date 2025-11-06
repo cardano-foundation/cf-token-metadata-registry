@@ -5,7 +5,7 @@ kind: ServiceMonitor
 metadata:
   name: {{ include "cf-token-metadata-registry.fullname" . }}
   labels:
-    release: prometheus-stack
+    release: cf-eks-monitoring
     {{- include "cf-token-metadata-registry.labels" . | nindent 4 }}
 spec:
   endpoints:
