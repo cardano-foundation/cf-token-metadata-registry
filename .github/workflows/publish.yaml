@@ -55,8 +55,8 @@ jobs:
           java-version: '21'
           cache: maven
 
-      - name: Build
-        run: mvn clean package
+      - name: Build and Test
+        run: mvn clean verify
 
       - name: Private Docker Hub Login
         uses: docker/login-action@v2
@@ -92,8 +92,8 @@ jobs:
           java-version: '21'
           cache: maven
 
-      - name: Build
-        run: mvn clean package
+      - name: Build and Test
+        run: mvn clean verify
 
       - name: Private Docker Hub Login
         uses: docker/login-action@v2
