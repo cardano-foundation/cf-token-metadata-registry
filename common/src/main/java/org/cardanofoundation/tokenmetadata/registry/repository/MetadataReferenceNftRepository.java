@@ -14,13 +14,10 @@ import java.util.Optional;
 @Profile("!test")
 public interface MetadataReferenceNftRepository extends JpaRepository<MetadataReferenceNft, MetadataReferenceNftId> {
 
-    @Query(value = """
-            SELECT DISTINCT ON (policy_id, asset_name, slot) m.*
-            FROM metadata_reference_nft m
-            WHERE policy_id = :policyId
-                AND asset_name = :assetName
-            ORDER BY policy_id, asset_name, slot DESC
-            """, nativeQuery = true)
-    Optional<MetadataReferenceNft> findByPolicyIdAndAssetName(@Param("policyId") String policyId, @Param("assetName") String assetName);
+    /**
+     * Returns the most recent metadata (highest slot) for a given policyId and assetName.
+     * Uses Spring Data JPA method naming convention to order by slot descending and return first result.
+     */
+    Optional<MetadataReferenceNft> findFirstByPolicyIdAndAssetNameOrderBySlotDesc(String policyId, String assetName);
 
 }

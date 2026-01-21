@@ -69,7 +69,7 @@ public class Cip68FungibleTokenService {
     }
 
     public Optional<FungibleTokenMetadata> findSubject(String policyId, String assetName, List<String> properties) {
-        return metadataReferenceNftRepository.findByPolicyIdAndAssetName(policyId, assetName)
+        return metadataReferenceNftRepository.findFirstByPolicyIdAndAssetNameOrderBySlotDesc(policyId, assetName)
                 .map(referenceNft -> new FungibleTokenMetadata(getPropertyIfRequired(Cip68FTDatumParser.DECIMALS, referenceNft.getDecimals(), properties),
                         getPropertyIfRequired(Cip68FTDatumParser.DESCRIPTION, referenceNft.getDescription(), properties),
                         getPropertyIfRequired(Cip68FTDatumParser.LOGO, referenceNft.getLogo(), properties),

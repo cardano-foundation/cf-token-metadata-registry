@@ -63,7 +63,7 @@ public class MetadataApiV2IntegrationTest {
         when(v1ApiMetadataIndexer.findSubject(unknownAssetType.toUnit()))
                 .thenReturn(Optional.empty());
 
-        when(metadataReferenceNftRepository.findByPolicyIdAndAssetName(unknownAssetType.policyId(), unknownAssetType.assetName()))
+        when(metadataReferenceNftRepository.findFirstByPolicyIdAndAssetNameOrderBySlotDesc(unknownAssetType.policyId(), unknownAssetType.assetName()))
                 .thenReturn(Optional.empty());
 
         final UrlProperty urlProperty = new UrlProperty();
@@ -101,7 +101,7 @@ public class MetadataApiV2IntegrationTest {
                         .url(urlProperty)
                         .build()));
 
-        when(metadataReferenceNftRepository.findByPolicyIdAndAssetName(knownAssetType.policyId(), knownAssetType.assetName()))
+        when(metadataReferenceNftRepository.findFirstByPolicyIdAndAssetNameOrderBySlotDesc(knownAssetType.policyId(), knownAssetType.assetName()))
                 .thenReturn(Optional.of(MetadataReferenceNft.builder()
                         .policyId(knownAssetType.policyId())
                         .assetName(knownAssetType.assetName())
@@ -125,7 +125,7 @@ public class MetadataApiV2IntegrationTest {
                         .url(url)
                         .build()));
 
-        when(metadataReferenceNftRepository.findByPolicyIdAndAssetName(fldtAssetType.policyId(), "000643b0464c4454"))
+        when(metadataReferenceNftRepository.findFirstByPolicyIdAndAssetNameOrderBySlotDesc(fldtAssetType.policyId(), "000643b0464c4454"))
                 .thenReturn(Optional.of(MetadataReferenceNft.builder()
                         .policyId(fldtAssetType.policyId())
                         .assetName(fldtAssetType.assetName())
