@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.3](https://github.com/cardano-foundation/cf-token-metadata-registry/compare/v1.4.2...v1.4.3) (2026-01-21)
+
+
+### Bug Fixes
+
+* return only the latest injested token metadata (CIP-68)) ([c14a1fb](https://github.com/cardano-foundation/cf-token-metadata-registry/commit/c14a1fb23a1b7d0aa3f091ea2f30e5cc1daf3972))
+
 ## [1.4.2](https://github.com/cardano-foundation/cf-token-metadata-registry/compare/v1.4.1...v1.4.2) (2025-11-06)
 
 
