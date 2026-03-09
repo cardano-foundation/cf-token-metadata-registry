@@ -14,6 +14,7 @@ import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.util.Optional;
 
+import static java.lang.System.getProperty;
 import static java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME;
 
 @Service
@@ -57,7 +58,8 @@ public class GitService {
         try {
             var process = new ProcessBuilder()
                     .directory(getGitFolder().getParentFile())
-                    .command("sh", "-c", String.format("git clone https://github.com/%s/%s.git", organization, projectName))
+                    .command("sh", "-c",
+                            String.format("git clone https://github.com/%s/%s.git", organization, projectName))
                     .start();
             var exitCode = process.waitFor();
             return exitCode == 0;
@@ -83,10 +85,16 @@ public class GitService {
     }
 
     private boolean isGitRepo() {
+        if (getGitFolder() == null || getGitFolder().toPath() == null) {
+            return false;
+        }
         return getGitFolder().toPath().resolve(".git").toFile().exists();
     }
 
     private File getGitFolder() {
+        if (gitTempFolder == null || gitTempFolder.isBlank()) {
+            gitTempFolder = getProperty("java.io.tmpdir");
+        }
         return new File(String.format("%s/%s", gitTempFolder, projectName));
     }
 
@@ -98,21 +106,70 @@ public class GitService {
         try {
             var process = new ProcessBuilder()
                     .directory(getMappingsFolder().toFile())
-                    .command("sh", "-c", String.format("git log -n 1 --date-order --no-merges --pretty=format:%%aE#-#%%aI %s", mappingFile.getName()))
+                    .command("sh", "-c",
+                            String.format("git log -n 1 --date-order --no-merges --pretty=format:%%aE#-#%%aI %s",
+                                    mappingFile.getName()))
                     .start();
 
             BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
             String output = bufferedReader.readLine();
+
+            if (output == null || !output.contains("#-#")) {
+                return Optional.empty();
+            }
+
             var parts = output.split("#-#");
 
             return Optional.of(new MappingUpdateDetails(parts[0], LocalDateTime.parse(parts[1], ISO_OFFSET_DATE_TIME)));
 
         } catch (IOException e) {
-            log.warn(String.format("it was not possible to determine updatedBy and updatedAt for mapping file: %s", mappingFile.getName()), e);
+            log.warn(String.format("it was not possible to determine updatedBy and updatedAt for mapping file: %s",
+                    mappingFile.getName()), e);
             return Optional.empty();
         }
 
     }
 
+    public Optional<String> getHeadCommitHash() {
+        try {
+            var process = new ProcessBuilder()
+                    .directory(getGitFolder())
+                    .command("sh", "-c", "git rev-parse HEAD")
+                    .start();
+            var exitCode = process.waitFor();
+            if (exitCode == 0) {
+                BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+                String hash = reader.readLine();
+                if (hash != null && hash.trim().length() == 40) {
+                    return Optional.of(hash.trim());
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Failed to get HEAD commit hash", e);
+        }
+        return Optional.empty();
+    }
+
+    public java.util.List<Path> getChangedFiles(String fromHash, String toHash) {
+        try {
+            var process = new ProcessBuilder()
+                    .directory(getGitFolder())
+                    .command("sh", "-c",
+                            String.format("git diff %s..%s --name-only --diff-filter=AM", fromHash, toHash))
+                    .start();
+            var exitCode = process.waitFor();
+            if (exitCode == 0) {
+                BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+                return reader.lines()
+                        .filter(line -> line.startsWith(mappingsFolderName + "/"))
+                        .filter(line -> line.endsWith(".json"))
+                        .map(line -> getGitFolder().toPath().resolve(line))
+                        .toList();
+            }
+        } catch (Exception e) {
+            log.warn(String.format("Failed to get changed files between %s and %s", fromHash, toHash), e);
+        }
+        return java.util.List.of();
+    }
 
 }

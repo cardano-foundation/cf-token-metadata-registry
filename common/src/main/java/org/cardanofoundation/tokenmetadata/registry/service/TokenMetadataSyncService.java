@@ -4,17 +4,19 @@ import jakarta.annotation.PostConstruct;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.cardanofoundation.tokenmetadata.registry.entity.SyncState;
 import org.cardanofoundation.tokenmetadata.registry.model.Mapping;
 import org.cardanofoundation.tokenmetadata.registry.model.MappingDetails;
 import org.cardanofoundation.tokenmetadata.registry.model.MappingUpdateDetails;
 import org.cardanofoundation.tokenmetadata.registry.model.enums.SyncStatusEnum;
+import org.cardanofoundation.tokenmetadata.registry.repository.SyncStateRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
 import java.nio.file.Path;
 import java.util.Arrays;
-import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 
@@ -28,6 +30,8 @@ public class TokenMetadataSyncService {
     private final TokenMetadataService tokenMetadataService;
 
     private final TokenMappingService tokenMappingService;
+
+    private final SyncStateRepository syncStateRepository;
 
     @Value("${token.metadata.job.enabled}")
     private boolean isMetadataJobEnabled;
@@ -48,18 +52,37 @@ public class TokenMetadataSyncService {
 
         syncStatus.setSyncStatus(SyncStatusEnum.SYNC_IN_PROGRESS);
 
+        Optional<SyncState> lastSyncState = syncStateRepository
+                .findById(1L);
+        String lastHash = lastSyncState
+                .map(SyncState::getLastCommitHash).orElse(null);
+
         Optional<Path> repoPathOpt = gitService.cloneCardanoTokenRegistryGitRepository();
 
         if (repoPathOpt.isPresent()) {
 
-            Path repoPath = repoPathOpt.get();
+            Optional<String> newHashOpt = gitService.getHeadCommitHash();
+            if (newHashOpt.isPresent() && newHashOpt.get().equals(lastHash)) {
+                log.info("No new commits since last sync. Skipping processing.");
+                syncStatus.setSyncStatus(SyncStatusEnum.SYNC_DONE);
+                syncStatus.setInitialSyncDone(true);
+                return;
+            }
 
-            File mappings = repoPath.toFile();
+            List<File> filesToProcess;
+            if (lastHash != null && newHashOpt.isPresent()) {
+                log.info("Incremental sync from {} to {}", lastHash, newHashOpt.get());
+                filesToProcess = gitService.getChangedFiles(lastHash, newHashOpt.get()).stream()
+                        .map(Path::toFile).toList();
+                log.info("Incremental sync: processing {} changed file(s)", filesToProcess.size());
+            } else {
+                log.info("Full sync: processing all files");
+                File mappings = repoPathOpt.get().toFile();
+                filesToProcess = Optional.ofNullable(mappings.listFiles())
+                        .map(Arrays::asList).orElse(List.of());
+            }
 
-            Optional.ofNullable(mappings.listFiles())
-                    .map(Arrays::asList)
-                    .stream()
-                    .flatMap(Collection::stream)
+            filesToProcess.stream()
                     .flatMap(mappingFile -> {
 
                         Optional<Mapping> mapping = tokenMappingService.parseMappings(mappingFile);
@@ -89,6 +112,11 @@ public class TokenMetadataSyncService {
                         }
                     });
 
+            if (newHashOpt.isPresent()) {
+                syncStateRepository
+                        .save(new SyncState(newHashOpt.get()));
+            }
+
             syncStatus.setSyncStatus(SyncStatusEnum.SYNC_DONE);
             syncStatus.setInitialSyncDone(true);
 
@@ -98,6 +126,5 @@ public class TokenMetadataSyncService {
         }
 
     }
-
 
 }
