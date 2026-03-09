@@ -1,5 +1,5 @@
 create table "sync_state" (
-    "id"               bigint      primary key,
+    "id"               bigserial   primary key,
     "last_commit_hash" varchar(40) not null
 );
 

@@ -52,7 +52,7 @@ class TokenMetadataSyncServiceTest {
 
     @Test
     void synchronizeDatabase_fullSync_whenNoHashStored() throws Exception {
-        when(syncStateRepository.findById(1L)).thenReturn(Optional.empty());
+        when(syncStateRepository.findTopByOrderByIdDesc()).thenReturn(Optional.empty());
         Path mockRepoPath = mock(Path.class);
         File mockMappingsDir = mock(File.class);
         when(mockRepoPath.toFile()).thenReturn(mockMappingsDir);
@@ -68,7 +68,7 @@ class TokenMetadataSyncServiceTest {
 
     @Test
     void synchronizeDatabase_incrementalSync_whenHashStoredAndChanged() throws Exception {
-        when(syncStateRepository.findById(1L)).thenReturn(Optional.of(new SyncState(oldHash)));
+        when(syncStateRepository.findTopByOrderByIdDesc()).thenReturn(Optional.of(new SyncState(oldHash)));
         Path mockRepoPath = mock(Path.class);
         when(gitService.cloneCardanoTokenRegistryGitRepository()).thenReturn(Optional.of(mockRepoPath));
         when(gitService.getHeadCommitHash()).thenReturn(Optional.of(newHash));
@@ -94,7 +94,7 @@ class TokenMetadataSyncServiceTest {
 
     @Test
     void synchronizeDatabase_noOp_whenHashesMatch() {
-        when(syncStateRepository.findById(1L)).thenReturn(Optional.of(new SyncState(oldHash)));
+        when(syncStateRepository.findTopByOrderByIdDesc()).thenReturn(Optional.of(new SyncState(oldHash)));
         Path mockRepoPath = mock(Path.class);
         when(gitService.cloneCardanoTokenRegistryGitRepository()).thenReturn(Optional.of(mockRepoPath));
         when(gitService.getHeadCommitHash()).thenReturn(Optional.of(oldHash));
@@ -108,7 +108,7 @@ class TokenMetadataSyncServiceTest {
 
     @Test
     void synchronizeDatabase_error_whenCloneFails() {
-        when(syncStateRepository.findById(1L)).thenReturn(Optional.empty());
+        when(syncStateRepository.findTopByOrderByIdDesc()).thenReturn(Optional.empty());
         when(gitService.cloneCardanoTokenRegistryGitRepository()).thenReturn(Optional.empty());
 
         tokenMetadataSyncService.synchronizeDatabase();

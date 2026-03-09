@@ -52,8 +52,7 @@ public class TokenMetadataSyncService {
 
         syncStatus.setSyncStatus(SyncStatusEnum.SYNC_IN_PROGRESS);
 
-        Optional<SyncState> lastSyncState = syncStateRepository
-                .findById(1L);
+        Optional<SyncState> lastSyncState = syncStateRepository.findTopByOrderByIdDesc();
         String lastHash = lastSyncState
                 .map(SyncState::getLastCommitHash).orElse(null);
 
@@ -113,8 +112,9 @@ public class TokenMetadataSyncService {
                     });
 
             if (newHashOpt.isPresent()) {
-                syncStateRepository
-                        .save(new SyncState(newHashOpt.get()));
+                SyncState syncStateToSave = lastSyncState.orElse(new SyncState());
+                syncStateToSave.setLastCommitHash(newHashOpt.get());
+                syncStateRepository.save(syncStateToSave);
             }
 
             syncStatus.setSyncStatus(SyncStatusEnum.SYNC_DONE);

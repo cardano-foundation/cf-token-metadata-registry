@@ -2,6 +2,8 @@ package org.cardanofoundation.tokenmetadata.registry.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.Getter;
@@ -16,6 +18,7 @@ import lombok.Setter;
 public class SyncState {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
     private Long id;
 
@@ -23,7 +26,6 @@ public class SyncState {
     private String lastCommitHash;
 
     public SyncState(String lastCommitHash) {
-        this.id = 1L;
         this.lastCommitHash = lastCommitHash;
     }
 }
