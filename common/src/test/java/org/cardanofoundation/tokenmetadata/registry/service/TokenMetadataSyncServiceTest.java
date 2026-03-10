@@ -12,7 +12,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import java.io.File;
 import java.nio.file.Path;
@@ -47,8 +46,8 @@ public class TokenMetadataSyncServiceTest {
 
     @BeforeEach
     public void setUp() {
-        ReflectionTestUtils.setField(tokenMetadataSyncService, "isMetadataJobEnabled", true);
-        ReflectionTestUtils.invokeMethod(tokenMetadataSyncService, "initSyncStatus");
+        tokenMetadataSyncService.isMetadataJobEnabled = true;
+        tokenMetadataSyncService.initSyncStatus();
     }
 
     @Nested

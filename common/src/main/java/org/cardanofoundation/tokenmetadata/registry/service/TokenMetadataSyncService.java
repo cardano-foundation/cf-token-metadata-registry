@@ -34,13 +34,13 @@ public class TokenMetadataSyncService {
     private final SyncStateRepository syncStateRepository;
 
     @Value("${token.metadata.job.enabled}")
-    private boolean isMetadataJobEnabled;
+    boolean isMetadataJobEnabled;
 
     @Getter
     private SyncStatus syncStatus;
 
     @PostConstruct
-    private void initSyncStatus() {
+    void initSyncStatus() {
         if (isMetadataJobEnabled) {
             syncStatus = new SyncStatus(false, SyncStatusEnum.SYNC_NOT_STARTED);
         } else {
