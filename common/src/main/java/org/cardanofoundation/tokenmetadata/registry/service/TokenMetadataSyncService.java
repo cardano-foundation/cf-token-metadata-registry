@@ -4,7 +4,7 @@ import jakarta.annotation.PostConstruct;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.cardanofoundation.tokenmetadata.registry.entity.SyncState;
+import org.cardanofoundation.tokenmetadata.registry.entity.OffChainSyncState;
 import org.cardanofoundation.tokenmetadata.registry.model.Mapping;
 import org.cardanofoundation.tokenmetadata.registry.model.MappingDetails;
 import org.cardanofoundation.tokenmetadata.registry.model.MappingUpdateDetails;
@@ -52,9 +52,9 @@ public class TokenMetadataSyncService {
 
         syncStatus.setSyncStatus(SyncStatusEnum.SYNC_IN_PROGRESS);
 
-        Optional<SyncState> lastSyncState = syncStateRepository.findTopByOrderByIdDesc();
+        Optional<OffChainSyncState> lastSyncState = syncStateRepository.findTopByOrderByIdDesc();
         String lastHash = lastSyncState
-                .map(SyncState::getLastCommitHash).orElse(null);
+                .map(OffChainSyncState::getLastCommitHash).orElse(null);
 
         Optional<Path> repoPathOpt = gitService.cloneCardanoTokenRegistryGitRepository();
 
@@ -112,9 +112,9 @@ public class TokenMetadataSyncService {
                     });
 
             if (newHashOpt.isPresent()) {
-                SyncState syncStateToSave = lastSyncState.orElse(new SyncState());
-                syncStateToSave.setLastCommitHash(newHashOpt.get());
-                syncStateRepository.save(syncStateToSave);
+                OffChainSyncState offChainSyncStateToSave = lastSyncState.orElse(new OffChainSyncState());
+                offChainSyncStateToSave.setLastCommitHash(newHashOpt.get());
+                syncStateRepository.save(offChainSyncStateToSave);
             }
 
             syncStatus.setSyncStatus(SyncStatusEnum.SYNC_DONE);

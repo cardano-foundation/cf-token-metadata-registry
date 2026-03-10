@@ -1,6 +1,6 @@
-create table "sync_state" (
+create table "off_chain_sync_state" (
     "id"               bigserial   primary key,
     "last_commit_hash" varchar(40) not null
 );
 
---rollback drop table "sync_state" cascade;
+--rollback drop table "off_chain_sync_state" cascade;

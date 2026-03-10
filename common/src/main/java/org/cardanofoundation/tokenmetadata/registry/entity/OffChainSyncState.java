@@ -11,11 +11,11 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
-@Table(name = "sync_state")
+@Table(name = "off_chain_sync_state")
 @Getter
 @Setter
 @NoArgsConstructor
-public class SyncState {
+public class OffChainSyncState {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -25,7 +25,7 @@ public class SyncState {
     @Column(name = "last_commit_hash", length = 40, nullable = false)
     private String lastCommitHash;
 
-    public SyncState(String lastCommitHash) {
+    public OffChainSyncState(String lastCommitHash) {
         this.lastCommitHash = lastCommitHash;
     }
 }

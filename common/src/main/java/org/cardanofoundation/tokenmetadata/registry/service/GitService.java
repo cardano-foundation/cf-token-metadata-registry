@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 import static java.lang.System.getProperty;
@@ -58,8 +59,7 @@ public class GitService {
         try {
             var process = new ProcessBuilder()
                     .directory(getGitFolder().getParentFile())
-                    .command("sh", "-c",
-                            String.format("git clone https://github.com/%s/%s.git", organization, projectName))
+                    .command("sh", "-c", String.format("git clone https://github.com/%s/%s.git", organization, projectName))
                     .start();
             var exitCode = process.waitFor();
             return exitCode == 0;
@@ -106,9 +106,7 @@ public class GitService {
         try {
             var process = new ProcessBuilder()
                     .directory(getMappingsFolder().toFile())
-                    .command("sh", "-c",
-                            String.format("git log -n 1 --date-order --no-merges --pretty=format:%%aE#-#%%aI %s",
-                                    mappingFile.getName()))
+                    .command("sh", "-c", String.format("git log -n 1 --date-order --no-merges --pretty=format:%%aE#-#%%aI %s", mappingFile.getName()))
                     .start();
 
             BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
@@ -123,8 +121,7 @@ public class GitService {
             return Optional.of(new MappingUpdateDetails(parts[0], LocalDateTime.parse(parts[1], ISO_OFFSET_DATE_TIME)));
 
         } catch (IOException e) {
-            log.warn(String.format("it was not possible to determine updatedBy and updatedAt for mapping file: %s",
-                    mappingFile.getName()), e);
+            log.warn(String.format("it was not possible to determine updatedBy and updatedAt for mapping file: %s", mappingFile.getName()), e);
             return Optional.empty();
         }
 
@@ -150,7 +147,7 @@ public class GitService {
         return Optional.empty();
     }
 
-    public java.util.List<Path> getChangedFiles(String fromHash, String toHash) {
+    public List<Path> getChangedFiles(String fromHash, String toHash) {
         try {
             var process = new ProcessBuilder()
                     .directory(getGitFolder())
@@ -169,7 +166,7 @@ public class GitService {
         } catch (Exception e) {
             log.warn(String.format("Failed to get changed files between %s and %s", fromHash, toHash), e);
         }
-        return java.util.List.of();
+        return List.of();
     }
 
 }
