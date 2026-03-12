@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.4.4](https://github.com/cardano-foundation/cf-token-metadata-registry/compare/v1.4.3...v1.4.4) (2026-03-12)
+
+
+### Bug Fixes
+
+* Build fail ([d06c9df](https://github.com/cardano-foundation/cf-token-metadata-registry/commit/d06c9df4b86f8380c47ba0d6dd99892e03de80a7))
+* Build fail ([d06c9df](https://github.com/cardano-foundation/cf-token-metadata-registry/commit/d06c9df4b86f8380c47ba0d6dd99892e03de80a7))
+
 ## [1.4.3](https://github.com/cardano-foundation/cf-token-metadata-registry/compare/v1.4.2...v1.4.3) (2026-01-21)
 
 
