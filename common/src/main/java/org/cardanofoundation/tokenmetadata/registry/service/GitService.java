@@ -12,8 +12,10 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
+import static java.lang.System.getProperty;
 import static java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME;
 
 @Service
@@ -83,10 +85,16 @@ public class GitService {
     }
 
     private boolean isGitRepo() {
+        if (getGitFolder() == null || getGitFolder().toPath() == null) {
+            return false;
+        }
         return getGitFolder().toPath().resolve(".git").toFile().exists();
     }
 
     private File getGitFolder() {
+        if (gitTempFolder == null || gitTempFolder.isBlank()) {
+            gitTempFolder = getProperty("java.io.tmpdir");
+        }
         return new File(String.format("%s/%s", gitTempFolder, projectName));
     }
 
@@ -103,6 +111,11 @@ public class GitService {
 
             BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
             String output = bufferedReader.readLine();
+
+            if (output == null || !output.contains("#-#")) {
+                return Optional.empty();
+            }
+
             var parts = output.split("#-#");
 
             return Optional.of(new MappingUpdateDetails(parts[0], LocalDateTime.parse(parts[1], ISO_OFFSET_DATE_TIME)));
@@ -114,5 +127,46 @@ public class GitService {
 
     }
 
+    public Optional<String> getHeadCommitHash() {
+        try {
+            var process = new ProcessBuilder()
+                    .directory(getGitFolder())
+                    .command("sh", "-c", "git rev-parse HEAD")
+                    .start();
+            var exitCode = process.waitFor();
+            if (exitCode == 0) {
+                BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+                String hash = reader.readLine();
+                if (hash != null && hash.trim().length() == 40) {
+                    return Optional.of(hash.trim());
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Failed to get HEAD commit hash", e);
+        }
+        return Optional.empty();
+    }
+
+    public List<Path> getChangedFiles(String fromHash, String toHash) {
+        try {
+            var process = new ProcessBuilder()
+                    .directory(getGitFolder())
+                    .command("sh", "-c",
+                            String.format("git diff %s..%s --name-only --diff-filter=AM", fromHash, toHash))
+                    .start();
+            var exitCode = process.waitFor();
+            if (exitCode == 0) {
+                BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+                return reader.lines()
+                        .filter(line -> line.startsWith(mappingsFolderName + "/"))
+                        .filter(line -> line.endsWith(".json"))
+                        .map(line -> getGitFolder().toPath().resolve(line))
+                        .toList();
+            }
+        } catch (Exception e) {
+            log.warn(String.format("Failed to get changed files between %s and %s", fromHash, toHash), e);
+        }
+        return List.of();
+    }
 
 }
