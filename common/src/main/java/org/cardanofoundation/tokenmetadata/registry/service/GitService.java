@@ -112,6 +112,11 @@ public class GitService {
 
     private boolean pullRebaseRepo() {
         try {
+            var remotes = git.remoteList().call();
+            if (remotes.isEmpty()) {
+                log.info("No remote configured, skipping pull");
+                return true;
+            }
             git.pull()
                     .setRebase(BranchConfig.BranchRebaseMode.REBASE)
                     .call();
