@@ -41,6 +41,12 @@ services:
       STORE_BLOCKS_EPOCH_CALCULATION_INTERVAL: "${STORE_BLOCKS_EPOCH_CALCULATION_INTERVAL}"
       CIP_QUERY_PRIORITY: "${CIP_QUERY_PRIORITY}"
       API_LOCAL_BIND_PORT: "${API_LOCAL_BIND_PORT}"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:${API_EXPOSED_PORT}/actuator/health/readiness || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
     depends_on:
       db:
         condition: service_healthy
