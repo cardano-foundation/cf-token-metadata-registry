@@ -34,7 +34,7 @@ public class Cip68EventListener {
 
     @EventListener
     public void processTransaction(AddressUtxoEvent addressUtxoEvent) {
-        var slot = addressUtxoEvent.getEventMetadata().getSlot();
+        var slot = addressUtxoEvent.getMetadata().getSlot();
         addressUtxoEvent.getTxInputOutputs()
                 .stream()
                 .flatMap(txInputOutput -> txInputOutput.getOutputs().stream())
