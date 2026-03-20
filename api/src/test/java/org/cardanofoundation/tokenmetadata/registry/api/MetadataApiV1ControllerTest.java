@@ -32,7 +32,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Import(SpringWebSecurityConfig.class)
 @ActiveProfiles("test")
 @SuppressWarnings("java:S5738") // @MockBean deprecated — @MockitoBean cannot replace it here (EntityManager needs early registration)
-public class MetadataApiV1IntegrationTest {
+public class MetadataApiV1ControllerTest {
 
     @Autowired
     private WebApplicationContext context;
