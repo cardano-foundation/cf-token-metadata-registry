@@ -10,6 +10,8 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import org.cardanofoundation.tokenmetadata.registry.model.MappingUpdateDetails;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -17,6 +19,7 @@ import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -80,7 +83,7 @@ class GitServiceTest {
             testRepo = initRepoWithMappings();
             gitService.git = testRepo;
 
-            var result = gitService.getHeadCommitHash();
+            Optional<String> result = gitService.getHeadCommitHash();
 
             assertThat(result).isPresent();
             assertThat(result.get()).hasSize(40).matches("[0-9a-f]+");
@@ -88,7 +91,7 @@ class GitServiceTest {
 
         @Test
         void returnsEmptyWhenGitIsNull() {
-            var result = gitService.getHeadCommitHash();
+            Optional<String> result = gitService.getHeadCommitHash();
 
             assertThat(result).isEmpty();
         }
@@ -99,7 +102,7 @@ class GitServiceTest {
             gitService.git = testRepo;
             String expectedHash = testRepo.getRepository().resolve("HEAD").name();
 
-            var result = gitService.getHeadCommitHash();
+            Optional<String> result = gitService.getHeadCommitHash();
 
             assertThat(result).hasValue(expectedHash);
         }
@@ -127,7 +130,7 @@ class GitServiceTest {
             String email = "author@cardano.org";
             RevCommit commit = addMappingFile(testRepo, "token1.json", "{\"subject\":\"abc\"}", email);
 
-            var result = gitService.getMappingDetails(new File("token1.json"));
+            Optional<MappingUpdateDetails> result = gitService.getMappingDetails(new File("token1.json"));
 
             assertThat(result).isPresent();
             assertThat(result.get().updatedBy()).isEqualTo(email);
@@ -141,7 +144,7 @@ class GitServiceTest {
             testRepo = initRepoWithMappings();
             gitService.git = testRepo;
 
-            var result = gitService.getMappingDetails(new File("nonexistent.json"));
+            Optional<MappingUpdateDetails> result = gitService.getMappingDetails(new File("nonexistent.json"));
 
             assertThat(result).isEmpty();
         }
@@ -154,7 +157,7 @@ class GitServiceTest {
             addMappingFile(testRepo, "token1.json", "{\"v\":1}", "first@test.com");
             addMappingFile(testRepo, "token1.json", "{\"v\":2}", "latest@test.com");
 
-            var result = gitService.getMappingDetails(new File("token1.json"));
+            Optional<MappingUpdateDetails> result = gitService.getMappingDetails(new File("token1.json"));
 
             assertThat(result).isPresent();
             assertThat(result.get().updatedBy()).isEqualTo("latest@test.com");
@@ -162,7 +165,7 @@ class GitServiceTest {
 
         @Test
         void returnsEmptyWhenGitIsNull() {
-            var result = gitService.getMappingDetails(new File("token1.json"));
+            Optional<MappingUpdateDetails> result = gitService.getMappingDetails(new File("token1.json"));
 
             assertThat(result).isEmpty();
         }
@@ -373,7 +376,7 @@ class GitServiceTest {
                 }
             }
 
-            var result = gitService.cloneCardanoTokenRegistryGitRepository();
+            Optional<Path> result = gitService.cloneCardanoTokenRegistryGitRepository();
 
             assertThat(result).isPresent();
             assertThat(result.get().toFile()).exists();
@@ -382,7 +385,7 @@ class GitServiceTest {
 
         @Test
         void returnsEmptyWhenCloneFails() {
-            var result = gitService.cloneCardanoTokenRegistryGitRepository();
+            Optional<Path> result = gitService.cloneCardanoTokenRegistryGitRepository();
 
             assertThat(result).isEmpty();
         }
@@ -395,7 +398,7 @@ class GitServiceTest {
             Files.createDirectories(repoDir.resolve("mappings"));
             Files.writeString(repoDir.resolve("some-file.txt"), "stale");
 
-            var result = gitService.cloneCardanoTokenRegistryGitRepository();
+            Optional<Path> result = gitService.cloneCardanoTokenRegistryGitRepository();
 
             assertThat(result).isEmpty();
             assertThat(repoDir.resolve("some-file.txt")).doesNotExist();

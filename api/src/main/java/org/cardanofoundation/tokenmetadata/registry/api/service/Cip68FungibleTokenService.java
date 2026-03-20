@@ -89,11 +89,11 @@ public class Cip68FungibleTokenService {
 
 
     public Optional<AssetType> getReferenceNftSubject(String subject) {
-        var assetType = AssetType.fromUnit(subject);
-        var assetName = assetType.assetName();
-        var tokenPrefixLength = REFERENCE_TOKEN_PREFIX.length();
+        AssetType assetType = AssetType.fromUnit(subject);
+        String assetName = assetType.assetName();
+        int tokenPrefixLength = REFERENCE_TOKEN_PREFIX.length();
         if (assetName.length() > tokenPrefixLength && assetName.startsWith(FUNGIBLE_TOKEN_PREFIX)) {
-            var refNftAssetName = String.format("%s%s", REFERENCE_TOKEN_PREFIX, assetType.assetName().substring(tokenPrefixLength));
+            String refNftAssetName = String.format("%s%s", REFERENCE_TOKEN_PREFIX, assetType.assetName().substring(tokenPrefixLength));
             return Optional.of(new AssetType(assetType.policyId(), refNftAssetName));
         } else {
             return Optional.empty();

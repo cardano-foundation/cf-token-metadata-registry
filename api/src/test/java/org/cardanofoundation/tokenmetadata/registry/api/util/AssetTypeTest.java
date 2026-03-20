@@ -23,7 +23,7 @@ class AssetTypeTest {
 
             @Test
             void lovelace_returnsAda() {
-                var result = AssetType.fromUnit("lovelace");
+                AssetType result = AssetType.fromUnit("lovelace");
 
                 assertThat(result.isAda()).isTrue();
                 assertThat(result.policyId()).isEmpty();
@@ -32,14 +32,14 @@ class AssetTypeTest {
 
             @Test
             void lovelaceUpperCase_returnsAda() {
-                var result = AssetType.fromUnit("LOVELACE");
+                AssetType result = AssetType.fromUnit("LOVELACE");
 
                 assertThat(result.isAda()).isTrue();
             }
 
             @Test
             void emptyString_returnsAda() {
-                var result = AssetType.fromUnit("  ");
+                AssetType result = AssetType.fromUnit("  ");
 
                 assertThat(result.isAda()).isTrue();
             }
@@ -53,7 +53,7 @@ class AssetTypeTest {
             void unitLongerThan56Chars_splitsPolicyAndAssetName() {
                 String unit = POLICY_ID_56 + ASSET_NAME_HEX;
 
-                var result = AssetType.fromUnit(unit);
+                AssetType result = AssetType.fromUnit(unit);
 
                 assertThat(result.policyId()).isEqualTo(POLICY_ID_56);
                 assertThat(result.assetName()).isEqualTo(ASSET_NAME_HEX);
@@ -61,7 +61,7 @@ class AssetTypeTest {
 
             @Test
             void unitExactly56Chars_returnsPolicyWithEmptyAssetName() {
-                var result = AssetType.fromUnit(POLICY_ID_56);
+                AssetType result = AssetType.fromUnit(POLICY_ID_56);
 
                 assertThat(result.policyId()).isEqualTo(POLICY_ID_56);
                 assertThat(result.assetName()).isEmpty();
@@ -71,7 +71,7 @@ class AssetTypeTest {
             void unitWithDots_removesDotsBeforeParsing() {
                 String unit = POLICY_ID_56 + "." + ASSET_NAME_HEX;
 
-                var result = AssetType.fromUnit(unit);
+                AssetType result = AssetType.fromUnit(unit);
 
                 assertThat(result.policyId()).isEqualTo(POLICY_ID_56);
                 assertThat(result.assetName()).isEqualTo(ASSET_NAME_HEX);
@@ -85,7 +85,7 @@ class AssetTypeTest {
             @ParameterizedTest(name = "short unit \"{0}\" does not throw")
             @ValueSource(strings = {"abcdef", "a", "nonexistent"})
             void shortUnit_doesNotThrow_andUsesInputAsPolicyId(String unit) {
-                var result = AssetType.fromUnit(unit);
+                AssetType result = AssetType.fromUnit(unit);
 
                 assertThat(result.policyId()).isEqualTo(unit);
                 assertThat(result.assetName()).isEmpty();
@@ -99,7 +99,7 @@ class AssetTypeTest {
 
         @Test
         void concatenatesPolicyAndAssetName() {
-            var assetType = new AssetType(POLICY_ID_56, ASSET_NAME_HEX);
+            AssetType assetType = new AssetType(POLICY_ID_56, ASSET_NAME_HEX);
 
             assertThat(assetType.toUnit()).isEqualTo(POLICY_ID_56 + ASSET_NAME_HEX);
         }
@@ -108,7 +108,7 @@ class AssetTypeTest {
         void roundTripsWithFromUnit() {
             String original = POLICY_ID_56 + ASSET_NAME_HEX;
 
-            var result = AssetType.fromUnit(original);
+            AssetType result = AssetType.fromUnit(original);
 
             assertThat(result.toUnit()).isEqualTo(original);
         }
@@ -125,7 +125,7 @@ class AssetTypeTest {
 
         @Test
         void nonAdaAsset_isNotAda() {
-            var assetType = new AssetType(POLICY_ID_56, ASSET_NAME_HEX);
+            AssetType assetType = new AssetType(POLICY_ID_56, ASSET_NAME_HEX);
 
             assertThat(assetType.isAda()).isFalse();
         }

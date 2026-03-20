@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.cardanofoundation.tokenmetadata.registry.api.model.cip68.FungibleTokenMetadata;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -35,24 +36,24 @@ public class Cip68FTDatumParser {
 
         try {
 
-            var plutusData = PlutusData.deserialize(HexUtil.decodeHexString(inlineDatum));
+            PlutusData plutusData = PlutusData.deserialize(HexUtil.decodeHexString(inlineDatum));
 
             if (plutusData instanceof ConstrPlutusData cip68Data) {
 
-                var dataList = cip68Data.getData().getPlutusDataList();
+                List<PlutusData> dataList = cip68Data.getData().getPlutusDataList();
 
                 if (dataList.size() < 2 || !(dataList.getFirst() instanceof MapPlutusData properties)) {
                     return Optional.empty();
                 }
 
-                var decimals = getNumericProperty(DECIMALS, properties);
-                var description = getStringProperty(DESCRIPTION, properties);
-                var logo = getStringProperty(LOGO, properties);
-                var name = getStringProperty(NAME, properties);
-                var ticker = getStringProperty(TICKER, properties);
-                var url = getStringProperty(URL, properties);
+                Optional<Long> decimals = getNumericProperty(DECIMALS, properties);
+                Optional<String> description = getStringProperty(DESCRIPTION, properties);
+                Optional<String> logo = getStringProperty(LOGO, properties);
+                Optional<String> name = getStringProperty(NAME, properties);
+                Optional<String> ticker = getStringProperty(TICKER, properties);
+                Optional<String> url = getStringProperty(URL, properties);
 
-                var versionData = dataList.get(1);
+                PlutusData versionData = dataList.get(1);
 
                 if (!(versionData instanceof BigIntPlutusData version)) {
                     return Optional.empty();
@@ -76,7 +77,7 @@ public class Cip68FTDatumParser {
     }
 
     private Optional<String> getStringProperty(String propertyName, MapPlutusData mapPlutusData) {
-        var property = mapPlutusData.getMap().get(BytesPlutusData.of(propertyName));
+        PlutusData property = mapPlutusData.getMap().get(BytesPlutusData.of(propertyName));
         if (property instanceof BytesPlutusData bytes) {
             return Optional.of(new String(bytes.getValue()).replaceAll("\0", ""));
         } else {
@@ -85,7 +86,7 @@ public class Cip68FTDatumParser {
     }
 
     private Optional<Long> getNumericProperty(String propertyName, MapPlutusData mapPlutusData) {
-        var property = mapPlutusData.getMap().get(BytesPlutusData.of(propertyName));
+        PlutusData property = mapPlutusData.getMap().get(BytesPlutusData.of(propertyName));
         if (property instanceof BigIntPlutusData bigInteger) {
             return Optional.of(bigInteger.getValue().longValue());
         } else {

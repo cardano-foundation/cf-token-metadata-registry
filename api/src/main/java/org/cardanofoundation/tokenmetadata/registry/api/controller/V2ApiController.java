@@ -49,21 +49,21 @@ public class V2ApiController implements V2Api {
                                                final Boolean showCipsDetails) {
 
         log.info("subject: {}, properties: {}, priorities: {}, showCipsDetails: {}",
-                subject.replaceAll("[\\r\\n]", ""),
+                subject.replaceAll("[^a-fA-F0-9]", ""),
                 properties != null ? String.join(",", properties) : "",
                 priorities != null ? priorities.stream().map(QueryPriority::name).collect(Collectors.joining(",")) : "",
                 showCipsDetails);
 
         metricsService.recordV2Query(1);
 
-        var queryProperties = properties != null ? properties : ALL_PROPERTIES;
+        List<String> queryProperties = properties != null ? properties : ALL_PROPERTIES;
         if (!queryProperties.isEmpty() && !queryProperties.containsAll(REQUIRED_PROPERTIES)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "When filtering properties, 'name' and 'description' are required and must be included");
         }
-        var queryPriority = priorities != null ? priorities : priorityConfiguration.getDefaultPriority();
+        List<QueryPriority> queryPriority = priorities != null ? priorities : priorityConfiguration.getDefaultPriority();
 
-        var tokenMetadata = queryPriority.stream()
+        Pair<Metadata, Standards> tokenMetadata = queryPriority.stream()
                 .reduce(IDENTITY, combineStandards(subject, queryProperties), aggregateResults());
 
         if (tokenMetadata.first().isEmpty() || !tokenMetadata.first().isValid()) {
@@ -71,9 +71,9 @@ public class V2ApiController implements V2Api {
             return ResponseEntity.notFound().build();
         } else {
             recordCipHits(tokenMetadata.second());
-            var standards = tokenMetadata.second();
-            var stringPriorities = queryPriority.stream().map(QueryPriority::name).toList();
-            var response = new Response(new Subject(subject, tokenMetadata.first(), showCipsDetails ? standards : null), stringPriorities);
+            Standards standards = tokenMetadata.second();
+            List<String> stringPriorities = queryPriority.stream().map(QueryPriority::name).toList();
+            Response response = new Response(new Subject(subject, tokenMetadata.first(), showCipsDetails ? standards : null), stringPriorities);
 
             return ResponseEntity.ok(response);
         }
@@ -85,18 +85,18 @@ public class V2ApiController implements V2Api {
                                                      Boolean showCipsDetails) {
         metricsService.recordV2Query(body.getSubjects().size());
 
-        var queryProperties = body.getProperties() != null ? body.getProperties() : ALL_PROPERTIES;
+        List<String> queryProperties = body.getProperties() != null ? body.getProperties() : ALL_PROPERTIES;
         if (!queryProperties.isEmpty() && !queryProperties.containsAll(REQUIRED_PROPERTIES)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "When filtering properties, 'name' and 'description' are required and must be included");
         }
-        var queryPriority = priorities != null ? priorities : priorityConfiguration.getDefaultPriority();
+        List<QueryPriority> queryPriority = priorities != null ? priorities : priorityConfiguration.getDefaultPriority();
 
-        var subjects = body.getSubjects()
+        List<Subject> subjects = body.getSubjects()
                 .stream()
                 .map(subject -> {
-                    var pair = queryPriority.stream().reduce(IDENTITY, combineStandards(subject, queryProperties), aggregateResults());
-                    var subjectResult = new Subject(subject, pair.first(), showCipsDetails ? pair.second() : null);
+                    Pair<Metadata, Standards> pair = queryPriority.stream().reduce(IDENTITY, combineStandards(subject, queryProperties), aggregateResults());
+                    Subject subjectResult = new Subject(subject, pair.first(), showCipsDetails ? pair.second() : null);
                     if (pair.first().isEmpty()) {
                         metricsService.recordNotFound();
                     } else {
@@ -106,7 +106,7 @@ public class V2ApiController implements V2Api {
                 })
                 .filter(metadata -> !metadata.metadata().isEmpty() && metadata.metadata().isValid())
                 .toList();
-        var stringPriorities = queryPriority.stream().map(QueryPriority::name).toList();
+        List<String> stringPriorities = queryPriority.stream().map(QueryPriority::name).toList();
         return ResponseEntity.ok(new BatchResponse(subjects, stringPriorities));
     }
 
@@ -132,8 +132,8 @@ public class V2ApiController implements V2Api {
 
     private static BinaryOperator<Pair<Metadata, Standards>> aggregateResults() {
         return (thisMetadata, that) -> {
-            var metadata = thisMetadata.first().merge(that.first());
-            var standards = thisMetadata.second().merge(that.second());
+            Metadata metadata = thisMetadata.first().merge(that.first());
+            Standards standards = thisMetadata.second().merge(that.second());
             return new Pair<>(metadata, standards);
         };
     }

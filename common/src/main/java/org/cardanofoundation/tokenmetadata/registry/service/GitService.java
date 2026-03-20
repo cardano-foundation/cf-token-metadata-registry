@@ -9,8 +9,10 @@ import org.eclipse.jgit.lib.BranchConfig;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.diff.DiffEntry;
 import org.eclipse.jgit.lib.ObjectId;
+import org.eclipse.jgit.lib.ObjectReader;
 import org.eclipse.jgit.lib.PersonIdent;
 import org.eclipse.jgit.lib.Repository;
+import org.eclipse.jgit.transport.RemoteConfig;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.revwalk.filter.RevFilter;
@@ -63,7 +65,7 @@ public class GitService {
     }
 
     public Optional<Path> cloneCardanoTokenRegistryGitRepository() {
-        var gitFolder = getGitFolder();
+        File gitFolder = getGitFolder();
 
         boolean repoReady;
         if (gitFolder.exists() && (forceClone || !isGitRepo())) {
@@ -98,7 +100,7 @@ public class GitService {
 
     private boolean cloneRepo() {
         try {
-            var url = String.format("https://github.com/%s/%s.git", organization, projectName);
+            String url = String.format("https://github.com/%s/%s.git", organization, projectName);
             git = Git.cloneRepository()
                     .setURI(url)
                     .setDirectory(getGitFolder())
@@ -112,7 +114,7 @@ public class GitService {
 
     private boolean pullRebaseRepo() {
         try {
-            var remotes = git.remoteList().call();
+            List<RemoteConfig> remotes = git.remoteList().call();
             if (remotes.isEmpty()) {
                 log.info("No remote configured, skipping pull");
                 return true;
@@ -227,9 +229,9 @@ private boolean isGitRepo() {
 
     private AbstractTreeIterator prepareTreeParser(Repository repository, ObjectId objectId) throws IOException {
         try (RevWalk walk = new RevWalk(repository)) {
-            var commit = walk.parseCommit(objectId);
-            var treeParser = new CanonicalTreeParser();
-            try (var reader = repository.newObjectReader()) {
+            RevCommit commit = walk.parseCommit(objectId);
+            CanonicalTreeParser treeParser = new CanonicalTreeParser();
+            try (ObjectReader reader = repository.newObjectReader()) {
                 treeParser.reset(reader, commit.getTree().getId());
             }
             return treeParser;

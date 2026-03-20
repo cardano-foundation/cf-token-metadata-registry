@@ -34,7 +34,7 @@ public class Cip68EventListener {
 
     @EventListener
     public void processTransaction(AddressUtxoEvent addressUtxoEvent) {
-        var slot = addressUtxoEvent.getMetadata().getSlot();
+        Long slot = addressUtxoEvent.getMetadata().getSlot();
         addressUtxoEvent.getTxInputOutputs()
                 .stream()
                 .flatMap(txInputOutput -> txInputOutput.getOutputs().stream())
@@ -42,9 +42,9 @@ public class Cip68EventListener {
                 .flatMap(this::parseDatum)
                 .filter(this::isValidFTMetadata)
                 .forEach(referenceNftUtxoData -> {
-                    var assetType = referenceNftUtxoData.referenceNft();
-                    var metadata = referenceNftUtxoData.fungibleTokenMetadata();
-                    var referenceNftEntity = buildMetadataReferenceNft(metadata, assetType, referenceNftUtxoData.datum(), slot);
+                    AssetType assetType = referenceNftUtxoData.referenceNft();
+                    FungibleTokenMetadata metadata = referenceNftUtxoData.fungibleTokenMetadata();
+                    MetadataReferenceNft referenceNftEntity = buildMetadataReferenceNft(metadata, assetType, referenceNftUtxoData.datum(), slot);
                     metadataReferenceNftRepository.save(referenceNftEntity);
                 });
     }

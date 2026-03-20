@@ -36,7 +36,7 @@ public class CustomUtxoStorage extends UtxoStorageImpl {
 
     @Override
     public void saveUnspent(List<AddressUtxo> addressUtxoList) {
-        var automaticPaymentsUtxos = addressUtxoList
+        List<AddressUtxo> automaticPaymentsUtxos = addressUtxoList
                 .stream()
                 .filter(cip68FungibleTokenService::containsReferenceNft)
                 .toList();
@@ -46,7 +46,7 @@ public class CustomUtxoStorage extends UtxoStorageImpl {
 
     @Override
     public void saveSpent(List<TxInput> txInputs) {
-        var automaticPaymentInputs = txInputs
+        List<TxInput> automaticPaymentInputs = txInputs
                 .stream()
                 .filter(txInput -> utxoRepository.findById(new UtxoId(txInput.getTxHash(), txInput.getOutputIndex())).isPresent())
                 .toList();

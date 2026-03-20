@@ -16,6 +16,7 @@ public class DescriptionProperty extends TokenMetadataProperty<String> {
   @Valid
   @Size(max = 500)
   @Schema(name = "value", required = true)
+  @Override
   public String getValue() {
     return super.getValue();
   }

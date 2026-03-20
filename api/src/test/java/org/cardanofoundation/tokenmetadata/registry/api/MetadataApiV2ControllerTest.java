@@ -63,7 +63,7 @@ class MetadataApiV2ControllerTest {
     @BeforeEach
     void setUp() {
 
-        var unknownAssetType = AssetType.fromUnit("025146866af908340247fe4e9672d5ac7059f1e8534696b5f920c9e66362544843");
+        AssetType unknownAssetType = AssetType.fromUnit("025146866af908340247fe4e9672d5ac7059f1e8534696b5f920c9e66362544843");
 
         when(v1ApiMetadataIndexer.findSubject(unknownAssetType.toUnit()))
                 .thenReturn(Optional.empty());
@@ -91,7 +91,7 @@ class MetadataApiV2ControllerTest {
                 "08c2ca6654c9e43b41b0b1560ee6a7bb4997629c2646575982934a51ecd71900")));
 
         // CIP 26 only token
-        var knownAssetType = AssetType.fromUnit("025146866af908340247fe4e9672d5ac7059f1e8534696b5f920c9e66362544848");
+        AssetType knownAssetType = AssetType.fromUnit("025146866af908340247fe4e9672d5ac7059f1e8534696b5f920c9e66362544848");
         when(v1ApiMetadataIndexer.findSubjectSelectProperties(knownAssetType.toUnit(), List.of()))
                 .thenReturn(Optional.of(TokenMetadata.builder()
                         .name(nameProperty)
@@ -117,12 +117,12 @@ class MetadataApiV2ControllerTest {
                         .build()));
 
         // CIP 26 and 68 token
-        var fldtAssetType = AssetType.fromUnit("577f0b1342f8f8f4aed3388b80a8535812950c7a892495c0ecdf0f1e.0014df10464c4454");
-        var ticker = new TickerProperty();
+        AssetType fldtAssetType = AssetType.fromUnit("577f0b1342f8f8f4aed3388b80a8535812950c7a892495c0ecdf0f1e.0014df10464c4454");
+        TickerProperty ticker = new TickerProperty();
         ticker.setValue("FLDT");
-        var name = new NameProperty();
+        NameProperty name = new NameProperty();
         name.setValue("FLDT");
-        var url = new UrlProperty();
+        UrlProperty url = new UrlProperty();
         url.setValue("https://fluidtokens.com");
         when(v1ApiMetadataIndexer.findSubjectSelectProperties(fldtAssetType.toUnit(), List.of()))
                 .thenReturn(Optional.of(TokenMetadata.builder()
@@ -234,9 +234,9 @@ class MetadataApiV2ControllerTest {
     @Test
     void getSubjectsTest() throws Exception {
 
-        var objectMapper = new ObjectMapper();
+        ObjectMapper objectMapper = new ObjectMapper();
 
-        var request = new BatchRequest(List.of("025146866af908340247fe4e9672d5ac7059f1e8534696b5f920c9e66362544848", "577f0b1342f8f8f4aed3388b80a8535812950c7a892495c0ecdf0f1e0014df10464c4454"), List.of());
+        BatchRequest request = new BatchRequest(List.of("025146866af908340247fe4e9672d5ac7059f1e8534696b5f920c9e66362544848", "577f0b1342f8f8f4aed3388b80a8535812950c7a892495c0ecdf0f1e0014df10464c4454"), List.of());
 
         List<Object> expectedArray = new JSONArray();
         expectedArray.add("CIP_68");
@@ -262,9 +262,9 @@ class MetadataApiV2ControllerTest {
     @Test
     void getSubjectsBatchShouldReturnBadRequest_whenMissingRequiredProperties() throws Exception {
 
-        var objectMapper = new ObjectMapper();
+        ObjectMapper objectMapper = new ObjectMapper();
 
-        var request = new BatchRequest(List.of("025146866af908340247fe4e9672d5ac7059f1e8534696b5f920c9e66362544848"), List.of("ticker"));
+        BatchRequest request = new BatchRequest(List.of("025146866af908340247fe4e9672d5ac7059f1e8534696b5f920c9e66362544848"), List.of("ticker"));
 
         mockMvc.perform(post("/api/v2/subjects/query")
                         .contentType("application/json")
@@ -275,9 +275,9 @@ class MetadataApiV2ControllerTest {
     @Test
     void getSubjectsFilterMissingOutTest() throws Exception {
 
-        var objectMapper = new ObjectMapper();
+        ObjectMapper objectMapper = new ObjectMapper();
 
-        var request = new BatchRequest(List.of("025146866af908340247fe4e9672d5ac7059f1e8534696b5f920c9e66362544843", "577f0b1342f8f8f4aed3388b80a8535812950c7a892495c0ecdf0f1e0014df10464c4454"), List.of());
+        BatchRequest request = new BatchRequest(List.of("025146866af908340247fe4e9672d5ac7059f1e8534696b5f920c9e66362544843", "577f0b1342f8f8f4aed3388b80a8535812950c7a892495c0ecdf0f1e0014df10464c4454"), List.of());
 
         List<Object> expectedArray = new JSONArray();
         expectedArray.add("CIP_68");

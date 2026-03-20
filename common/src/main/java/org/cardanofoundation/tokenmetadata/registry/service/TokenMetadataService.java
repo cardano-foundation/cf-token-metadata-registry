@@ -2,6 +2,8 @@ package org.cardanofoundation.tokenmetadata.registry.service;
 
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.cardanofoundation.tokenmetadata.registry.entity.TokenLogo;
+import org.cardanofoundation.tokenmetadata.registry.entity.TokenMetadata;
 import org.cardanofoundation.tokenmetadata.registry.model.Mapping;
 import org.cardanofoundation.tokenmetadata.registry.repository.TokenLogoRepository;
 import org.cardanofoundation.tokenmetadata.registry.repository.TokenMetadataRepository;
@@ -31,7 +33,7 @@ public class TokenMetadataService {
      * @return true if successfully inserted, false if validation failed or error occurred
      */
     public boolean insertMapping(Mapping mapping, LocalDateTime updatedAt, String updateBy) {
-        var tokenMetadata = MappingsUtil.toTokenMetadata(mapping, updateBy, updatedAt);
+        TokenMetadata tokenMetadata = MappingsUtil.toTokenMetadata(mapping, updateBy, updatedAt);
 
         if (!tokenMetadataValidator.validate(tokenMetadata)) {
             log.warn("Skipping token metadata for subject '{}' - validation failed", tokenMetadata.getSubject());
@@ -54,7 +56,7 @@ public class TokenMetadataService {
      * @return true if successfully inserted, false if validation failed or error occurred
      */
     public boolean insertLogo(Mapping mapping) {
-        var tokenLogo = toTokenLogo(mapping);
+        TokenLogo tokenLogo = toTokenLogo(mapping);
 
         if (!tokenMetadataValidator.validateLogo(tokenLogo.getSubject(), tokenLogo.getLogo())) {
             log.warn("Skipping logo for subject '{}' - validation failed", tokenLogo.getSubject());
