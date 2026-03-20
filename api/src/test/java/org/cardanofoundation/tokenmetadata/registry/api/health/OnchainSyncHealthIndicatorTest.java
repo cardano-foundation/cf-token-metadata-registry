@@ -87,6 +87,16 @@ class OnchainSyncHealthIndicatorTest {
     }
 
     @Test
+    void blockFetcherNotInitialized_shouldReturnUnknown() {
+        when(healthService.getHealthStatus()).thenThrow(new NullPointerException("blockFetcher is null"));
+
+        Health health = onchainSyncHealthIndicator.health();
+
+        assertThat(health.getStatus()).isEqualTo(Status.UNKNOWN);
+        assertThat(health.getDetails()).containsEntry("syncStatus", "Block fetcher not initialized");
+    }
+
+    @Test
     void scheduledToStop_shouldReturnOutOfService() {
         when(healthService.getHealthStatus()).thenReturn(HealthStatus.builder()
                 .isConnectionAlive(true)

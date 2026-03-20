@@ -20,7 +20,18 @@ public class OnchainSyncHealthIndicator implements HealthIndicator {
 
     @Override
     public Health health() {
-        HealthStatus status = healthService.getHealthStatus();
+        HealthStatus status;
+        try {
+            status = healthService.getHealthStatus();
+        } catch (NullPointerException e) {
+            // Workaround for yaci-store bug: BlockRangeSync.isRunning() throws NPE
+            // when blockFetcher is null (node not connected yet).
+            // See: BlockRangeSync.java:99 in yaci-helper.
+            // TODO: remove once fixed upstream in yaci-store/yaci-helper
+            return Health.unknown()
+                    .withDetail("syncStatus", "Block fetcher not initialized")
+                    .build();
+        }
 
         Health.Builder builder = new Health.Builder()
                 .withDetail("connectionAlive", status.isConnectionAlive())

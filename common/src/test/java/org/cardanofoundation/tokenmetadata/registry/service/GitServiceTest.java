@@ -44,11 +44,13 @@ class GitServiceTest {
 
     @AfterEach
     void tearDown() {
-        if (testRepo != null) {
-            testRepo.close();
-            testRepo = null;
-        }
+        // gitService.git and testRepo may reference the same Git instance,
+        // so clean up via gitService first to avoid double-close warnings.
         gitService.cleanup();
+        if (testRepo != null && testRepo != gitService.git) {
+            testRepo.close();
+        }
+        testRepo = null;
     }
 
     private Git initRepoWithMappings() throws GitAPIException, IOException {
