@@ -144,15 +144,14 @@ public class SyncStatusIntegrationIT extends BaseIntegrationIT {
         }
 
         @Test
-        void shouldOnlyContainLivenessState() throws Exception {
+        void shouldIncludeSyncIndicators() throws Exception {
             ResponseEntity<String> response = restTemplate.getForEntity(
                     API_BASE_URL + "/actuator/health/liveness", String.class);
 
             JsonNode components = objectMapper.readTree(response.getBody()).get("components");
             assertThat(components.get("livenessState")).isNotNull();
-            // Liveness should NOT include sync indicators (would cause restart loops)
-            assertThat(components.get("offchainSync")).isNull();
-            assertThat(components.get("onchainSync")).isNull();
+            assertThat(components.get("offchainSync")).isNotNull();
+            assertThat(components.get("onchainSync")).isNotNull();
         }
     }
 
