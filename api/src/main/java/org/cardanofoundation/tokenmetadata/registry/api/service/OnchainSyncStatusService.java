@@ -23,7 +23,7 @@ import java.util.concurrent.atomic.AtomicReference;
 public class OnchainSyncStatusService {
 
     private static final long INITIAL_SYNC_REFRESH_INTERVAL = 15 * 60 * 1000; // 15 minutes
-    private static final long SYNCED_REFRESH_INTERVAL = 3 * 60 * 1000;        // 3 minutes
+    private static final long SYNCED_REFRESH_INTERVAL = 60 * 1000;             // 1 minute
     private static final long SYNC_THRESHOLD_BLOCKS = 1000;
     private static final double SYNCED_PERCENTAGE_THRESHOLD = 98.0;
 
