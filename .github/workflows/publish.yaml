@@ -28,7 +28,7 @@ jobs:
       - name: Set extra environment and metadata
         id: metadata
         run: |
-          CURRENT_VERSION=$(cat version.txt)
+          CURRENT_VERSION=$(jq '.["."]' -r  .release-please-manifest.json)
           
           if [ ${{github.event_name}} == "pull_request" ]
           then
