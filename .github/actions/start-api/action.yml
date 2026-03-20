@@ -1,0 +1,84 @@
+name: Start API
+description: Start the API application in jar or docker mode and wait for health check
+
+inputs:
+  mode:
+    description: 'How to start the API: jar or docker'
+    required: true
+  image-tag:
+    description: 'Docker image tag (required for docker mode)'
+    required: false
+    default: ''
+
+runs:
+  using: composite
+  steps:
+    - name: Start API (jar)
+      if: inputs.mode == 'jar'
+      shell: bash
+      run: |
+        java -jar api/target/api-*.jar &
+        echo "Waiting for API to be ready..."
+        for i in $(seq 1 60); do
+          if curl -sf http://localhost:8081/actuator/health > /dev/null 2>&1; then
+            echo "API is ready."
+            break
+          fi
+          echo "Attempt $i/60 - waiting 2s..."
+          sleep 2
+        done
+      env:
+        DB_URL: jdbc:postgresql://localhost:5432/cf_token_metadata_registry
+        DB_USERNAME: cardano
+        DB_PASSWORD: test_password
+        TOKEN_METADATA_SYNC_JOB: "true"
+        GITHUB_TMP_FOLDER: /tmp
+        GITHUB_PROJECT_NAME: test-token-registry
+        GITHUB_FORCE_CLONE: "false"
+        STORE_CARDANO_HOST: localhost
+        STORE_CARDANO_PORT: "3001"
+        STORE_CARDANO_PROTOCOL_MAGIC: "42"
+        STORE_SYNCAUTOSTART: "true"
+        STORE_CARDANO_SYNC_START_SLOT: "0"
+        STORE_CARDANO_SYNC_START_BLOCKHASH: ""
+        SERVER_PORT: "8081"
+        STORE_CARDANO_BYRON_GENESIS_FILE: ${{ env.DEVNET_DIR }}/node/genesis/byron-genesis.json
+        STORE_CARDANO_SHELLEY_GENESIS_FILE: ${{ env.DEVNET_DIR }}/node/genesis/shelley-genesis.json
+        STORE_CARDANO_ALONZO_GENESIS_FILE: ${{ env.DEVNET_DIR }}/node/genesis/alonzo-genesis.json
+        STORE_CARDANO_CONWAY_GENESIS_FILE: ${{ env.DEVNET_DIR }}/node/genesis/conway-genesis.json
+
+    - name: Start API (docker)
+      if: inputs.mode == 'docker'
+      shell: bash
+      run: |
+        docker run -d --name api --network host \
+          -e DB_URL=jdbc:postgresql://localhost:5432/cf_token_metadata_registry \
+          -e DB_USERNAME=cardano \
+          -e DB_PASSWORD=test_password \
+          -e TOKEN_METADATA_SYNC_JOB=true \
+          -e GITHUB_TMP_FOLDER=/tmp \
+          -e GITHUB_PROJECT_NAME=test-token-registry \
+          -e GITHUB_FORCE_CLONE=false \
+          -e STORE_CARDANO_HOST=localhost \
+          -e STORE_CARDANO_PORT=3001 \
+          -e STORE_CARDANO_PROTOCOL_MAGIC=42 \
+          -e STORE_SYNCAUTOSTART=true \
+          -e STORE_CARDANO_SYNC_START_SLOT=0 \
+          -e "STORE_CARDANO_SYNC_START_BLOCKHASH=" \
+          -e SERVER_PORT=8081 \
+          -e STORE_CARDANO_BYRON_GENESIS_FILE=/genesis/byron-genesis.json \
+          -e STORE_CARDANO_SHELLEY_GENESIS_FILE=/genesis/shelley-genesis.json \
+          -e STORE_CARDANO_ALONZO_GENESIS_FILE=/genesis/alonzo-genesis.json \
+          -e STORE_CARDANO_CONWAY_GENESIS_FILE=/genesis/conway-genesis.json \
+          -v /tmp/test-token-registry:/tmp/test-token-registry \
+          -v ${{ env.DEVNET_DIR }}/node/genesis:/genesis:ro \
+          ${{ inputs.image-tag }}
+        echo "Waiting for API to be ready..."
+        for i in $(seq 1 60); do
+          if curl -sf http://localhost:8081/actuator/health > /dev/null 2>&1; then
+            echo "API is ready."
+            break
+          fi
+          echo "Attempt $i/60 - waiting 2s..."
+          sleep 2
+        done

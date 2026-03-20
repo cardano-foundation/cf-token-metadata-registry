@@ -1,30 +1,21 @@
 name: Integration Tests
 
 on:
-  push:
-    branches: [main, develop]
-  pull_request:
-    branches: [main, develop]
-  workflow_dispatch:
+  workflow_call:
+    inputs:
+      target:
+        type: string
+        required: true
+        description: 'Test target: jar, docker-jvm, or docker-native'
+      image-tag:
+        type: string
+        required: false
+        default: ''
+        description: 'Docker image tag (required for docker targets)'
 
 jobs:
   integration-test:
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:17
-        env:
-          POSTGRES_DB: cf_token_metadata_registry
-          POSTGRES_USER: cardano
-          POSTGRES_PASSWORD: test_password
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U cardano -d cf_token_metadata_registry"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -36,81 +27,28 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: '22'
-
       - name: Build and install project
         run: mvn --batch-mode clean install -DskipTests
 
-      - name: Install yaci-devkit
-        run: npm install -g @bloxbean/yaci-devkit
+      - name: Download Docker image
+        if: startsWith(inputs.target, 'docker-')
+        uses: actions/download-artifact@v4
+        with:
+          name: docker-image-api-${{ inputs.target == 'docker-jvm' && 'jvm' || 'native' }}
+          path: /tmp
 
-      - name: Start Yaci DevKit
-        run: nohup yaci-devkit up --enable-yaci-store &
+      - name: Load Docker image
+        if: startsWith(inputs.target, 'docker-')
+        run: docker load -i /tmp/docker-image.tar
 
-      - name: Wait for devnet to be ready
-        run: |
-          echo "Waiting for Store API to be ready..."
-          for i in $(seq 1 30); do
-            if nc -z localhost 8080 2>/dev/null; then
-              echo "Store API is ready!"
-              break
-            fi
-            echo "Attempt $i/30 - Store API not ready yet, waiting..."
-            sleep 2
-          done
+      - name: Setup test infrastructure
+        uses: ./.github/actions/setup-test-infra
 
-      - name: Setup test token registry (CIP-26)
-        run: |
-          mkdir -p /tmp/test-token-registry/mappings
-          cp integration-test/src/test/resources/test-mappings/*.json /tmp/test-token-registry/mappings/
-          cd /tmp/test-token-registry
-          git init
-          git config user.email "test@test.com"
-          git config user.name "test"
-          git add .
-          git commit -m "test tokens"
-
-      - name: Locate devnet genesis files
-        run: |
-          DEVNET_DIR="$HOME/.yaci-cli/local-clusters/default"
-          echo "Looking for genesis files in $DEVNET_DIR..."
-          ls -la "$DEVNET_DIR/node/genesis/" || true
-          echo "DEVNET_DIR=$DEVNET_DIR" >> $GITHUB_ENV
-
-      - name: Start API application
-        run: |
-          java -jar api/target/api-*.jar &
-          echo "Waiting for API to be ready..."
-          for i in $(seq 1 60); do
-            if curl -sf http://localhost:8081/actuator/health > /dev/null 2>&1; then
-              echo "API is ready."
-              break
-            fi
-            echo "Attempt $i/60 - waiting 2s..."
-            sleep 2
-          done
-        env:
-          DB_URL: jdbc:postgresql://localhost:5432/cf_token_metadata_registry
-          DB_USERNAME: cardano
-          DB_PASSWORD: test_password
-          TOKEN_METADATA_SYNC_JOB: true
-          GITHUB_TMP_FOLDER: /tmp
-          GITHUB_PROJECT_NAME: test-token-registry
-          GITHUB_FORCE_CLONE: false
-          STORE_CARDANO_HOST: localhost
-          STORE_CARDANO_PORT: 3001
-          STORE_CARDANO_PROTOCOL_MAGIC: 42
-          STORE_SYNCAUTOSTART: true
-          STORE_CARDANO_SYNC_START_SLOT: 0
-          STORE_CARDANO_SYNC_START_BLOCKHASH: ""
-          SERVER_PORT: 8081
-          STORE_CARDANO_BYRON_GENESIS_FILE: ${{ env.DEVNET_DIR }}/node/genesis/byron-genesis.json
-          STORE_CARDANO_SHELLEY_GENESIS_FILE: ${{ env.DEVNET_DIR }}/node/genesis/shelley-genesis.json
-          STORE_CARDANO_ALONZO_GENESIS_FILE: ${{ env.DEVNET_DIR }}/node/genesis/alonzo-genesis.json
-          STORE_CARDANO_CONWAY_GENESIS_FILE: ${{ env.DEVNET_DIR }}/node/genesis/conway-genesis.json
+      - name: Start API
+        uses: ./.github/actions/start-api
+        with:
+          mode: ${{ startsWith(inputs.target, 'docker-') && 'docker' || 'jar' }}
+          image-tag: ${{ inputs.image-tag }}
 
       - name: Run integration tests
         run: mvn --batch-mode verify -pl integration-test -DskipITs=false

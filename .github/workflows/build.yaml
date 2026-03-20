@@ -1,10 +1,7 @@
 name: Build
 
 on:
-  push:
-    branches: [ main, develop ]
-  pull_request:
-    branches: [ main, develop ]
+  workflow_call:
   workflow_dispatch:
 
 jobs:
@@ -29,10 +26,7 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
-      - name: Build
-        run: mvn --batch-mode clean package -DskipTests
-
-      - name: Test
+      - name: Build and Test
         run: mvn --batch-mode clean verify
 
       - name: Generate JaCoCo Badge
@@ -65,3 +59,15 @@ jobs:
         with:
           name: jacoco-report
           path: api/target/site/jacoco/
+
+      - name: Upload API JAR
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-jar
+          path: api/target/api-*.jar
+
+      - name: Upload Job JAR
+        uses: actions/upload-artifact@v4
+        with:
+          name: job-jar
+          path: job/target/job-*.jar
