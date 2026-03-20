@@ -39,6 +39,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(V2ApiController.class)
 @Import({SpringWebSecurityConfig.class, Cip68FungibleTokenService.class, AppConfig.CipPriorityConfiguration.class})
 @ActiveProfiles("test")
+@SuppressWarnings("java:S5738") // @MockBean deprecated — @MockitoBean cannot replace it here (EntityManager needs early registration)
 public class MetadataApiV2IntegrationTest {
 
     @Autowired
@@ -47,16 +48,16 @@ public class MetadataApiV2IntegrationTest {
     @Autowired
     private MockMvc mockMvc;
 
-    @MockBean // TODO migrate to @MockitoBean when WebMvcTest slice supports it cleanly
+    @MockBean
     private MetadataReferenceNftRepository metadataReferenceNftRepository;
 
-    @MockBean // TODO migrate to @MockitoBean when WebMvcTest slice supports it cleanly
+    @MockBean
     private V1ApiMetadataIndexer v1ApiMetadataIndexer;
 
-    @MockBean // TODO migrate to @MockitoBean when WebMvcTest slice supports it cleanly
+    @MockBean
     private EntityManager entityManager;
 
-    @MockBean // TODO migrate to @MockitoBean when WebMvcTest slice supports it cleanly
+    @MockBean
     private RegistryMetricsService metricsService;
 
     @BeforeEach

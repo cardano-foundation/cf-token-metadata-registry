@@ -23,7 +23,7 @@ import org.springframework.context.annotation.ImportRuntimeHints;
 
 import static org.springframework.aot.hint.MemberCategory.*;
 
-@Configuration
+@Configuration(proxyBeanMethods = false)
 @ImportRuntimeHints(NativeImageConfig.Hints.class)
 public class NativeImageConfig {
 
