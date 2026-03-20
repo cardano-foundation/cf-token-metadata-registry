@@ -9,6 +9,7 @@ import org.cardanofoundation.tokenmetadata.registry.api.model.QueryPriority;
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.BatchRequest;
 import org.cardanofoundation.tokenmetadata.registry.api.model.v2.*;
 import org.cardanofoundation.tokenmetadata.registry.api.service.Cip68FungibleTokenService;
+import org.cardanofoundation.tokenmetadata.registry.api.service.MetricsService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -35,6 +36,8 @@ public class V2ApiController implements V2Api {
 
     private final V1ApiMetadataIndexer v1ApiMetadataIndexer;
 
+    private final MetricsService metricsService;
+
     @Override
     public ResponseEntity<Response> getSubject(final String subject,
                                                final List<String> properties,
@@ -46,6 +49,8 @@ public class V2ApiController implements V2Api {
                 priorities != null ? priorities.stream().map(QueryPriority::name).collect(Collectors.joining(",")) : "",
                 showCipsDetails);
 
+        metricsService.recordV2Query(1);
+
         var queryProperties = properties != null ? properties : ALL_PROPERTIES;
         var queryPriority = priorities != null ? priorities : priorityConfiguration.getDefaultPriority();
 
@@ -53,8 +58,10 @@ public class V2ApiController implements V2Api {
                 .reduce(IDENTITY, combineStandards(subject, queryProperties), aggregateResults());
 
         if (tokenMetadata.first().isEmpty()) {
+            metricsService.recordNotFound();
             return ResponseEntity.notFound().build();
         } else {
+            recordCipHits(tokenMetadata.second());
             var standards = tokenMetadata.second();
             var stringPriorities = queryPriority.stream().map(QueryPriority::name).toList();
             var response = new Response(new Subject(subject, tokenMetadata.first(), showCipsDetails ? standards : null), stringPriorities);
@@ -67,6 +74,8 @@ public class V2ApiController implements V2Api {
     public ResponseEntity<BatchResponse> getSubjects(BatchRequest body,
                                                      List<QueryPriority> priorities,
                                                      Boolean showCipsDetails) {
+        metricsService.recordV2Query(body.getSubjects().size());
+
         var queryProperties = body.getProperties() != null ? body.getProperties() : ALL_PROPERTIES;
         var queryPriority = priorities != null ? priorities : priorityConfiguration.getDefaultPriority();
 
@@ -74,7 +83,13 @@ public class V2ApiController implements V2Api {
                 .stream()
                 .map(subject -> {
                     var pair = queryPriority.stream().reduce(IDENTITY, combineStandards(subject, queryProperties), aggregateResults());
-                    return new Subject(subject, pair.first(), showCipsDetails ? pair.second() : null);
+                    var subjectResult = new Subject(subject, pair.first(), showCipsDetails ? pair.second() : null);
+                    if (pair.first().isEmpty()) {
+                        metricsService.recordNotFound();
+                    } else {
+                        recordCipHits(pair.second());
+                    }
+                    return subjectResult;
                 })
                 .filter(metadata -> !metadata.metadata().isEmpty() && metadata.metadata().isValid())
                 .toList();
@@ -82,6 +97,15 @@ public class V2ApiController implements V2Api {
         return ResponseEntity.ok(new BatchResponse(subjects, stringPriorities));
     }
 
+
+    private void recordCipHits(Standards standards) {
+        if (standards.cip26() != null) {
+            metricsService.recordCip26Hit();
+        }
+        if (standards.cip68() != null) {
+            metricsService.recordCip68Hit();
+        }
+    }
 
     private Optional<Pair<Metadata, Standards>> findMetadata(String subject, List<String> properties, QueryPriority priority) {
         return switch (priority) {
