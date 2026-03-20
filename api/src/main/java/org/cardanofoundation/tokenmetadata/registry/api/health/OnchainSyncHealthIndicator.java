@@ -65,7 +65,7 @@ public class OnchainSyncHealthIndicator implements HealthIndicator {
 
         if (!syncStatusService.isSynced()) {
             return builder.outOfService()
-                    .withDetail("syncStatus", "Catching up")
+                    .withDetail("syncStatus", "Syncing")
                     .build();
         }
 

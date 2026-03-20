@@ -57,7 +57,7 @@ class OnchainSyncHealthIndicatorTest {
         Health health = onchainSyncHealthIndicator.health();
 
         assertThat(health.getStatus()).isEqualTo(Status.OUT_OF_SERVICE);
-        assertThat(health.getDetails()).containsEntry("syncStatus", "Catching up");
+        assertThat(health.getDetails()).containsEntry("syncStatus", "Syncing");
         assertThat(health.getDetails()).containsEntry("syncPercentage", "45.00%");
     }
 
