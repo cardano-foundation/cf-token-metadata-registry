@@ -1,0 +1,69 @@
+name: Setup Test Infrastructure
+description: Start Postgres, yaci-devkit, and set up test token registry for integration tests
+
+runs:
+  using: composite
+  steps:
+    - name: Start PostgreSQL
+      shell: bash
+      run: |
+        docker run -d --name postgres --network host \
+          -e POSTGRES_DB=cf_token_metadata_registry \
+          -e POSTGRES_USER=cardano \
+          -e POSTGRES_PASSWORD=test_password \
+          postgres:17
+        echo "Waiting for PostgreSQL..."
+        for i in $(seq 1 30); do
+          if docker exec postgres pg_isready -U cardano -d cf_token_metadata_registry > /dev/null 2>&1; then
+            echo "PostgreSQL is ready!"
+            break
+          fi
+          echo "Attempt $i/30..."
+          sleep 2
+        done
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v6
+      with:
+        node-version: '22'
+
+    - name: Install yaci-devkit
+      shell: bash
+      run: npm install -g @bloxbean/yaci-devkit
+
+    - name: Start Yaci DevKit
+      shell: bash
+      run: nohup yaci-devkit up --enable-yaci-store &
+
+    - name: Wait for devnet to be ready
+      shell: bash
+      run: |
+        echo "Waiting for Store API to be ready..."
+        for i in $(seq 1 30); do
+          if nc -z localhost 8080 2>/dev/null; then
+            echo "Store API is ready!"
+            break
+          fi
+          echo "Attempt $i/30 - Store API not ready yet, waiting..."
+          sleep 2
+        done
+
+    - name: Setup test token registry (CIP-26)
+      shell: bash
+      run: |
+        mkdir -p /tmp/test-token-registry/mappings
+        cp integration-test/src/test/resources/test-mappings/*.json /tmp/test-token-registry/mappings/
+        cd /tmp/test-token-registry
+        git init
+        git config user.email "test@test.com"
+        git config user.name "test"
+        git add .
+        git commit -m "test tokens"
+
+    - name: Locate devnet genesis files
+      shell: bash
+      run: |
+        DEVNET_DIR="$HOME/.yaci-cli/local-clusters/default"
+        echo "Looking for genesis files in $DEVNET_DIR..."
+        ls -la "$DEVNET_DIR/node/genesis/" || true
+        echo "DEVNET_DIR=$DEVNET_DIR" >> $GITHUB_ENV

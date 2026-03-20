@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+    inputs:
+      run_native:
+        description: 'Run native image build and tests'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  java-build:
+    uses: ./.github/workflows/build.yaml
+
+  integration-test-jar:
+    needs: java-build
+    uses: ./.github/workflows/integration-tests.yml
+    with:
+      target: jar
+
+  docker-build-jvm:
+    needs: java-build
+    uses: ./.github/workflows/docker-build.yaml
+    with:
+      app: api
+      variant: jvm
+
+  integration-test-docker-jvm:
+    needs: docker-build-jvm
+    uses: ./.github/workflows/integration-tests.yml
+    with:
+      target: docker-jvm
+      image-tag: ${{ needs.docker-build-jvm.outputs.image-tag }}
+
+  docker-build-native:
+    needs: java-build
+    if: >-
+      github.ref == 'refs/heads/main' ||
+      (github.event_name == 'workflow_dispatch' && inputs.run_native) ||
+      contains(github.event.pull_request.labels.*.name, 'test-native')
+    uses: ./.github/workflows/docker-build.yaml
+    with:
+      app: api
+      variant: native
+
+  integration-test-docker-native:
+    needs: docker-build-native
+    uses: ./.github/workflows/integration-tests.yml
+    with:
+      target: docker-native
+      image-tag: ${{ needs.docker-build-native.outputs.image-tag }}
