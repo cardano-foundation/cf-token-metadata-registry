@@ -17,5 +17,4 @@ jobs:
       - name: 🚀 release-please-action
         uses: google-github-actions/release-please-action@v4
         with:
-          bump-minor-pre-major: true
-          bump-patch-for-minor-pre-major: true
+          token: ${{ secrets.GITHUB_TOKEN }}
