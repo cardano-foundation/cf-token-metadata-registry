@@ -40,7 +40,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Import({SpringWebSecurityConfig.class, Cip68FungibleTokenService.class, AppConfig.CipPriorityConfiguration.class})
 @ActiveProfiles("test")
 @SuppressWarnings("java:S5738") // @MockBean deprecated — @MockitoBean cannot replace it here (EntityManager needs early registration)
-public class MetadataApiV2ControllerTest {
+class MetadataApiV2ControllerTest {
 
     @Autowired
     private WebApplicationContext context;
@@ -144,32 +144,32 @@ public class MetadataApiV2ControllerTest {
     }
 
     @Test
-    public void subjectQueryShouldReturnNoContentOnNonExistingSubject() throws Exception {
+    void subjectQueryShouldReturnNoContentOnNonExistingSubject() throws Exception {
         mockMvc.perform(get("/api/v2/subjects/025146866af908340247fe4e9672d5ac7059f1e8534696b5f920c9e66362544843"))
                 .andExpect(status().isNotFound());
     }
 
     @Test
-    public void subjectQueryShouldReturnNoContentOnNonExistingSubjectOnTestnet() throws Exception {
+    void subjectQueryShouldReturnNoContentOnNonExistingSubjectOnTestnet() throws Exception {
         mockMvc.perform(get("/api/v2/subjects/025146866af908340247fe4e9672d5ac7059f1e8534696b5f920c9e66362544843"))
                 .andExpect(status().isNotFound());
     }
 
     @Test
-    public void subjectQueryShouldReturnMetadata() throws Exception {
+    void subjectQueryShouldReturnMetadata() throws Exception {
         mockMvc.perform(get("/api/v2/subjects/025146866af908340247fe4e9672d5ac7059f1e8534696b5f920c9e66362544848"))
                 .andExpect(status().isOk()).andExpect(MockMvcResultMatchers.jsonPath("$.subject.subject")
                         .value("025146866af908340247fe4e9672d5ac7059f1e8534696b5f920c9e66362544848"));
     }
 
     @Test
-    public void subjectPropertyQueryShouldReturnNoContentOnNonExistingSubject() throws Exception {
+    void subjectPropertyQueryShouldReturnNoContentOnNonExistingSubject() throws Exception {
         mockMvc.perform(get("/api/v2/subjects/025146866af908340247fe4e9672d5ac7059f1e8534696b5f920c9e66362544843"))
                 .andExpect(status().isNotFound());
     }
 
     @Test
-    public void subjectPropertyQueryShouldReturnMetadata() throws Exception {
+    void subjectPropertyQueryShouldReturnMetadata() throws Exception {
         List<Object> expectedArray = new JSONArray();
         expectedArray.add("CIP_68");
         expectedArray.add("CIP_26");
@@ -182,14 +182,14 @@ public class MetadataApiV2ControllerTest {
     }
 
     @Test
-    public void subjectPropertyQueryShouldReturnBadRequest_whenMissingRequiredProperties() throws Exception {
+    void subjectPropertyQueryShouldReturnBadRequest_whenMissingRequiredProperties() throws Exception {
         mockMvc.perform(get("/api/v2/subjects/025146866af908340247fe4e9672d5ac7059f1e8534696b5f920c9e66362544848")
                         .queryParam("property", "url"))
                 .andExpect(status().isBadRequest());
     }
 
     @Test
-    public void cip68SubjectShouldReturnMetadata() throws Exception {
+    void cip68SubjectShouldReturnMetadata() throws Exception {
         List<Object> expectedArray = new JSONArray();
         expectedArray.add("CIP_68");
         expectedArray.add("CIP_26");
@@ -204,7 +204,7 @@ public class MetadataApiV2ControllerTest {
     }
 
     @Test
-    public void cip68SubjectShouldReturnMetadataShowCipsDetails() throws Exception {
+    void cip68SubjectShouldReturnMetadataShowCipsDetails() throws Exception {
         mockMvc.perform(get("/api/v2/subjects/577f0b1342f8f8f4aed3388b80a8535812950c7a892495c0ecdf0f1e0014df10464c4454")
                         .queryParam("show_cips_details", "true"))
                 .andExpect(status().isOk())
@@ -216,7 +216,7 @@ public class MetadataApiV2ControllerTest {
     }
 
     @Test
-    public void cip68SubjectShouldReturnMetadataWithCip26Prio() throws Exception {
+    void cip68SubjectShouldReturnMetadataWithCip26Prio() throws Exception {
         List<Object> expectedArray = new JSONArray();
         expectedArray.add("CIP_26");
         expectedArray.add("CIP_68");
@@ -232,7 +232,7 @@ public class MetadataApiV2ControllerTest {
     }
 
     @Test
-    public void getSubjectsTest() throws Exception {
+    void getSubjectsTest() throws Exception {
 
         var objectMapper = new ObjectMapper();
 
@@ -260,7 +260,7 @@ public class MetadataApiV2ControllerTest {
     }
 
     @Test
-    public void getSubjectsBatchShouldReturnBadRequest_whenMissingRequiredProperties() throws Exception {
+    void getSubjectsBatchShouldReturnBadRequest_whenMissingRequiredProperties() throws Exception {
 
         var objectMapper = new ObjectMapper();
 
@@ -273,7 +273,7 @@ public class MetadataApiV2ControllerTest {
     }
 
     @Test
-    public void getSubjectsFilterMissingOutTest() throws Exception {
+    void getSubjectsFilterMissingOutTest() throws Exception {
 
         var objectMapper = new ObjectMapper();
 

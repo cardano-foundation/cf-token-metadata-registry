@@ -3,6 +3,8 @@ package org.cardanofoundation.tokenmetadata.registry.api.util;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -80,27 +82,12 @@ class AssetTypeTest {
         @DisplayName("short / invalid units")
         class ShortUnits {
 
-            @Test
-            void unitShorterThan56Chars_doesNotThrow() {
-                var result = AssetType.fromUnit("abcdef");
+            @ParameterizedTest(name = "short unit \"{0}\" does not throw")
+            @ValueSource(strings = {"abcdef", "a", "nonexistent"})
+            void shortUnit_doesNotThrow_andUsesInputAsPolicyId(String unit) {
+                var result = AssetType.fromUnit(unit);
 
-                assertThat(result.policyId()).isEqualTo("abcdef");
-                assertThat(result.assetName()).isEmpty();
-            }
-
-            @Test
-            void singleCharUnit_doesNotThrow() {
-                var result = AssetType.fromUnit("a");
-
-                assertThat(result.policyId()).isEqualTo("a");
-                assertThat(result.assetName()).isEmpty();
-            }
-
-            @Test
-            void nonHexString_doesNotThrow() {
-                var result = AssetType.fromUnit("nonexistent");
-
-                assertThat(result.policyId()).isEqualTo("nonexistent");
+                assertThat(result.policyId()).isEqualTo(unit);
                 assertThat(result.assetName()).isEmpty();
             }
         }

@@ -31,7 +31,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Import(SpringWebSecurityConfig.class)
 @ActiveProfiles("test")
 @SuppressWarnings("java:S5738") // @MockBean deprecated — @MockitoBean cannot replace it here (EntityManager needs early registration)
-public class MetadataApiV1ControllerTest {
+class MetadataApiV1ControllerTest {
 
     @Autowired
     private WebApplicationContext context;
@@ -75,32 +75,32 @@ public class MetadataApiV1ControllerTest {
     }
 
     @Test
-    public void subjectQueryShouldReturnNoContentOnNonExistingSubject() throws Exception {
+    void subjectQueryShouldReturnNoContentOnNonExistingSubject() throws Exception {
         mockMvc.perform(get("/metadata/025146866af908340247fe4e9672d5ac7059f1e8534696b5f920c9e66362544843"))
                 .andExpect(status().isNoContent());
     }
 
     @Test
-    public void subjectQueryShouldReturnNoContentOnNonExistingSubjectOnPreprod() throws Exception {
+    void subjectQueryShouldReturnNoContentOnNonExistingSubjectOnPreprod() throws Exception {
         mockMvc.perform(get("/metadata/025146866af908340247fe4e9672d5ac7059f1e8534696b5f920c9e66362544843"))
                 .andExpect(status().isNoContent());
     }
 
     @Test
-    public void subjectQueryShouldReturnMetadata() throws Exception {
+    void subjectQueryShouldReturnMetadata() throws Exception {
         mockMvc.perform(get("/metadata/025146866af908340247fe4e9672d5ac7059f1e8534696b5f920c9e66362544848"))
                 .andExpect(status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.subject").value("025146866af908340247fe4e9672d5ac7059f1e8534696b5f920c9e66362544848"));
     }
 
     @Test
-    public void subjectPropertyQueryShouldReturnNoContentOnNonExistingSubject() throws Exception {
+    void subjectPropertyQueryShouldReturnNoContentOnNonExistingSubject() throws Exception {
         mockMvc.perform(get("/metadata/025146866af908340247fe4e9672d5ac7059f1e8534696b5f920c9e66362544843/properties/url"))
                 .andExpect(status().isNoContent());
     }
 
     @Test
-    public void subjectPropertyQueryShouldReturnMetadata() throws Exception {
+    void subjectPropertyQueryShouldReturnMetadata() throws Exception {
         mockMvc.perform(get("/metadata/025146866af908340247fe4e9672d5ac7059f1e8534696b5f920c9e66362544848/properties/url"))
                 .andExpect(status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.subject").value("025146866af908340247fe4e9672d5ac7059f1e8534696b5f920c9e66362544848"));
