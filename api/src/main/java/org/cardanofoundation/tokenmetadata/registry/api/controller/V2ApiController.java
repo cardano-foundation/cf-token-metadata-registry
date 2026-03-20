@@ -10,6 +10,7 @@ import org.cardanofoundation.tokenmetadata.registry.api.model.rest.BatchRequest;
 import org.cardanofoundation.tokenmetadata.registry.api.model.v2.*;
 import org.cardanofoundation.tokenmetadata.registry.api.service.Cip68FungibleTokenService;
 import org.cardanofoundation.tokenmetadata.registry.api.service.RegistryMetricsService;
+import org.cardanofoundation.tokenmetadata.registry.api.util.LogSanitizer;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -49,7 +50,7 @@ public class V2ApiController implements V2Api {
                                                final Boolean showCipsDetails) {
 
         log.info("subject: {}, properties: {}, priorities: {}, showCipsDetails: {}",
-                subject.replaceAll("[^a-fA-F0-9]", ""),
+                LogSanitizer.sanitizeHex(subject),
                 properties != null ? String.join(",", properties) : "",
                 priorities != null ? priorities.stream().map(QueryPriority::name).collect(Collectors.joining(",")) : "",
                 showCipsDetails);
