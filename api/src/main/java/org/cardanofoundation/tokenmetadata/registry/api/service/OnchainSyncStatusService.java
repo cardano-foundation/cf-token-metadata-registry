@@ -10,6 +10,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Tracks on-chain sync progress by comparing the local cursor position against the network tip.
@@ -28,8 +30,8 @@ public class OnchainSyncStatusService {
     private final CursorService cursorService;
     private final ChainTipService chainTipService;
 
-    private volatile NetworkTip cachedTip;
-    private volatile long lastTipFetchTime = 0;
+    private final AtomicReference<NetworkTip> cachedTip = new AtomicReference<>();
+    private final AtomicLong lastTipFetchTime = new AtomicLong(0);
 
     record NetworkTip(long block, long slot) {}
 
@@ -60,35 +62,37 @@ public class OnchainSyncStatusService {
 
     private Optional<NetworkTip> getCachedTip(long currentBlock) {
         long now = System.currentTimeMillis();
+        NetworkTip currentCachedTip = cachedTip.get();
 
-        if (cachedTip != null && currentBlock >= cachedTip.block()) {
-            return Optional.of(cachedTip);
+        if (currentCachedTip != null && currentBlock >= currentCachedTip.block()) {
+            return Optional.of(currentCachedTip);
         }
 
         long refreshInterval = INITIAL_SYNC_REFRESH_INTERVAL;
-        if (cachedTip != null) {
-            long blocksBehind = cachedTip.block() - currentBlock;
+        if (currentCachedTip != null) {
+            long blocksBehind = currentCachedTip.block() - currentBlock;
             if (blocksBehind <= SYNC_THRESHOLD_BLOCKS) {
                 refreshInterval = SYNCED_REFRESH_INTERVAL;
             }
         }
 
-        if (cachedTip != null && (now - lastTipFetchTime) < refreshInterval) {
-            return Optional.of(cachedTip);
+        if (currentCachedTip != null && (now - lastTipFetchTime.get()) < refreshInterval) {
+            return Optional.of(currentCachedTip);
         }
 
         try {
             Optional<Tuple<Tip, Integer>> tipAndEpoch = chainTipService.getTipAndCurrentEpoch();
             if (tipAndEpoch.isPresent()) {
                 Tip tip = tipAndEpoch.get()._1;
-                cachedTip = new NetworkTip(tip.getBlock(), tip.getPoint().getSlot());
-                lastTipFetchTime = now;
-                return Optional.of(cachedTip);
+                NetworkTip newTip = new NetworkTip(tip.getBlock(), tip.getPoint().getSlot());
+                cachedTip.set(newTip);
+                lastTipFetchTime.set(now);
+                return Optional.of(newTip);
             }
-            return Optional.ofNullable(cachedTip);
+            return Optional.ofNullable(currentCachedTip);
         } catch (Exception e) {
             log.debug("Could not get network tip: {}", e.getMessage());
-            return Optional.ofNullable(cachedTip);
+            return Optional.ofNullable(currentCachedTip);
         }
     }
 
