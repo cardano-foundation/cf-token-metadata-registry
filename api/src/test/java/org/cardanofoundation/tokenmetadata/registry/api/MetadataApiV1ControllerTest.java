@@ -9,7 +9,6 @@ import org.cardanofoundation.tokenmetadata.registry.api.model.rest.TokenMetadata
 import org.cardanofoundation.tokenmetadata.registry.api.service.RegistryMetricsService;
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.wellknownproperties.UrlProperty;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -85,13 +84,6 @@ public class MetadataApiV1ControllerTest {
     public void subjectQueryShouldReturnNoContentOnNonExistingSubjectOnPreprod() throws Exception {
         mockMvc.perform(get("/metadata/025146866af908340247fe4e9672d5ac7059f1e8534696b5f920c9e66362544843"))
                 .andExpect(status().isNoContent());
-    }
-
-    @Test
-    @Disabled
-    public void subjectQueryShouldReturnBadRequestOnNonMappedNetworkRequest() throws Exception {
-        mockMvc.perform(get("/metadata/025146866af908340247fe4e9672d5ac7059f1e8534696b5f920c9e66362544843"))
-                .andExpect(status().isBadRequest());
     }
 
     @Test
