@@ -38,6 +38,7 @@ public class Cip68IntegrationIT extends BaseIntegrationIT {
     @BeforeAll
     static void setUp() throws Exception {
         waitForApiReady();
+        waitForYaciStoreReady();
 
         // Mint a CIP-68 FT on the devnet
         Cip68TestMinter minter = new Cip68TestMinter(new BFBackendService(YACI_STORE_URL, "Dummy"), restTemplate);
