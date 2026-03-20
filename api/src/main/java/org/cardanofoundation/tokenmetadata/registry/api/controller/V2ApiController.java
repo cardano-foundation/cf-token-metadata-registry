@@ -48,7 +48,8 @@ public class V2ApiController implements V2Api {
                                                final List<QueryPriority> priorities,
                                                final Boolean showCipsDetails) {
 
-        log.info("subject: {}, properties: {}, priorities: {}, showCipsDetails: {}", subject,
+        log.info("subject: {}, properties: {}, priorities: {}, showCipsDetails: {}",
+                subject.replaceAll("[\\r\\n]", ""),
                 properties != null ? String.join(",", properties) : "",
                 priorities != null ? priorities.stream().map(QueryPriority::name).collect(Collectors.joining(",")) : "",
                 showCipsDetails);

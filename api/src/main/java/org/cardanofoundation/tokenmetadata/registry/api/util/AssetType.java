@@ -46,7 +46,8 @@ public record AssetType(String policyId, String assetName) {
         } else if (sanitizedUnit.length() == 56) {
             return new AssetType(sanitizedUnit, "");
         } else {
-            log.warn("Invalid unit '{}': must be at least 56 hex characters (28-byte policy id)", unit);
+            log.warn("Invalid unit '{}': must be at least 56 hex characters (28-byte policy id)",
+                    unit.replaceAll("[\\r\\n]", ""));
             return new AssetType(sanitizedUnit, "");
         }
     }
