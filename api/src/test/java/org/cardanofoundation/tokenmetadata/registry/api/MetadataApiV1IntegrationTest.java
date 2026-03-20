@@ -39,13 +39,13 @@ public class MetadataApiV1IntegrationTest {
     @Autowired
     private MockMvc mockMvc;
 
-    @MockBean
+    @MockBean // TODO migrate to @MockitoBean when WebMvcTest slice supports it cleanly
     private V1ApiMetadataIndexer v1ApiMetadataIndexer;
 
-    @MockBean
+    @MockBean // TODO migrate to @MockitoBean when WebMvcTest slice supports it cleanly
     private EntityManager entityManager;
 
-    @MockBean
+    @MockBean // TODO migrate to @MockitoBean when WebMvcTest slice supports it cleanly
     private RegistryMetricsService metricsService;
 
     @BeforeEach

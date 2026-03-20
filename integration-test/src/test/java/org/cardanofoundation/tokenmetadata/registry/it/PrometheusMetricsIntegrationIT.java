@@ -50,10 +50,14 @@ public class PrometheusMetricsIntegrationIT extends BaseIntegrationIT {
         restTemplate.getForEntity(API_BASE_URL + "/metadata/" + KNOWN_SUBJECT, String.class);
         try {
             restTemplate.getForEntity(API_BASE_URL + "/api/v2/subjects/" + KNOWN_SUBJECT, String.class);
-        } catch (Exception ignored) { }
+        } catch (Exception _) {
+            // V2 query may throw on 404 — expected for metrics population
+        }
         try {
             restTemplate.getForEntity(API_BASE_URL + "/api/v2/subjects/" + UNKNOWN_SUBJECT, String.class);
-        } catch (Exception ignored) { }
+        } catch (Exception _) {
+            // Unknown subject returns 404 — expected for not-found counter
+        }
     }
 
     private static String fetchPrometheusMetrics() {
@@ -231,7 +235,7 @@ public class PrometheusMetricsIntegrationIT extends BaseIntegrationIT {
         if (parts.length >= 2) {
             try {
                 return Double.parseDouble(parts[parts.length - 1]);
-            } catch (NumberFormatException e) {
+            } catch (NumberFormatException _) {
                 return 0;
             }
         }

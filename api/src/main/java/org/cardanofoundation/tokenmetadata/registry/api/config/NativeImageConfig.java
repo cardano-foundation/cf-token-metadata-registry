@@ -27,6 +27,9 @@ import static org.springframework.aot.hint.MemberCategory.*;
 @ImportRuntimeHints(NativeImageConfig.Hints.class)
 public class NativeImageConfig {
 
+    private NativeImageConfig() {
+    }
+
     static class Hints implements RuntimeHintsRegistrar {
 
         @Override
