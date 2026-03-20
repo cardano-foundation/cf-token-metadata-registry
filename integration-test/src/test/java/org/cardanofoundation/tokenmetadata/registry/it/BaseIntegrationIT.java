@@ -29,7 +29,7 @@ public abstract class BaseIntegrationIT {
     protected static void waitForYaciStoreReady() {
         String epochUrl = YACI_STORE_URL + "epochs/latest/parameters";
         log.info("Waiting for Yaci Store to serve protocol params at {} ...", epochUrl);
-        await().atMost(Duration.ofMinutes(2))
+        await().atMost(Duration.ofMinutes(5))
                 .pollInterval(Duration.ofSeconds(3))
                 .ignoreExceptions()
                 .until(() -> {
