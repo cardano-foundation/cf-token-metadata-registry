@@ -292,6 +292,53 @@ public class Cip26IntegrationIT extends BaseIntegrationIT {
         }
 
         @Test
+        void shortInvalidSubjects_returnsEmptyWithoutError() throws Exception {
+            String body = "{\"subjects\": [\"nonexistent\", \"abc\", \"42\"], \"properties\": []}";
+
+            ResponseEntity<String> response = postJson(API_BASE_URL + "/api/v2/subjects/query", body);
+
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+
+            JsonNode subjects = objectMapper.readTree(response.getBody()).get("subjects");
+            assertThat(subjects).isEmpty();
+        }
+
+        @Test
+        void mixedValidAndInvalidSubjects_returnsOnlyValid() throws Exception {
+            String body = String.format(
+                    "{\"subjects\": [\"nonexistent\", \"%s\", \"short\"], \"properties\": []}",
+                    FULL_TOKEN_SUBJECT);
+
+            ResponseEntity<String> response = postJson(API_BASE_URL + "/api/v2/subjects/query", body);
+
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+
+            JsonNode subjects = objectMapper.readTree(response.getBody()).get("subjects");
+            assertThat(subjects).hasSize(1);
+            assertThat(subjects.get(0).get("subject").asText()).isEqualTo(FULL_TOKEN_SUBJECT);
+        }
+
+        @Test
+        void knownSubject_returnsPopulatedMetadata() throws Exception {
+            String body = String.format(
+                    "{\"subjects\": [\"%s\"], \"properties\": []}", FULL_TOKEN_SUBJECT);
+
+            ResponseEntity<String> response = postJson(API_BASE_URL + "/api/v2/subjects/query", body);
+
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+
+            JsonNode subjects = objectMapper.readTree(response.getBody()).get("subjects");
+            assertThat(subjects).hasSize(1);
+
+            JsonNode metadata = subjects.get(0).get("metadata");
+            assertThat(metadata.get("name")).isNotNull();
+            assertThat(metadata.get("name").get("value").asText()).isEqualTo("Test Token Full");
+            assertThat(metadata.get("name").get("source").asText()).isNotEmpty();
+            assertThat(metadata.get("description")).isNotNull();
+            assertThat(metadata.get("description").get("value").asText()).isNotEmpty();
+        }
+
+        @Test
         void withPropertyFilter_returnsOnlyRequestedProperties() throws Exception {
             String body = String.format(
                     "{\"subjects\": [\"%s\"], \"properties\": [\"name\", \"description\", \"ticker\"]}",
