@@ -18,6 +18,8 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.within;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -134,6 +136,60 @@ class OnchainSyncStatusServiceTest {
             when(chainTipService.getTipAndCurrentEpoch()).thenReturn(Optional.empty());
 
             assertThat(syncStatusService.isSynced()).isFalse();
+        }
+    }
+
+    @Nested
+    @DisplayName("tip caching")
+    class TipCaching {
+
+        @Test
+        void secondCall_usesCachedTip_doesNotFetchAgain() {
+            when(cursorService.getCursor()).thenReturn(Optional.of(cursorAt(500)));
+            when(chainTipService.getTipAndCurrentEpoch()).thenReturn(tipAt(1000));
+
+            syncStatusService.getSyncPercentage(); // populates cache
+            syncStatusService.getSyncPercentage(); // should use cache
+
+            verify(chainTipService, times(1)).getTipAndCurrentEpoch();
+        }
+
+        @Test
+        void cursorAheadOfCachedTip_returnsCachedTip() {
+            // First call: cursor at 500, tip at 1000
+            when(cursorService.getCursor()).thenReturn(Optional.of(cursorAt(500)));
+            when(chainTipService.getTipAndCurrentEpoch()).thenReturn(tipAt(1000));
+            syncStatusService.getSyncPercentage();
+
+            // Second call: cursor has caught up past the cached tip
+            when(cursorService.getCursor()).thenReturn(Optional.of(cursorAt(1100)));
+            double percentage = syncStatusService.getSyncPercentage();
+
+            // Should use cached tip (1000), cursor (1100) > tip, so finalNetworkBlock = 1100
+            assertThat(percentage).isCloseTo(100.0, within(0.1));
+            verify(chainTipService, times(1)).getTipAndCurrentEpoch();
+        }
+
+        @Test
+        void networkBlockZero_returnsZero() {
+            when(cursorService.getCursor()).thenReturn(Optional.of(cursorAt(500)));
+            when(chainTipService.getTipAndCurrentEpoch()).thenReturn(tipAt(0));
+
+            assertThat(syncStatusService.getSyncPercentage()).isEqualTo(0.0);
+        }
+
+        @Test
+        void nearTip_usesShorterRefreshInterval() {
+            // First call at 999 blocks behind (near tip)
+            when(cursorService.getCursor()).thenReturn(Optional.of(cursorAt(9001)));
+            when(chainTipService.getTipAndCurrentEpoch()).thenReturn(tipAt(10000));
+            syncStatusService.getSyncPercentage();
+
+            // Second call still behind — should use cached (within 1min interval)
+            when(cursorService.getCursor()).thenReturn(Optional.of(cursorAt(9500)));
+            syncStatusService.getSyncPercentage();
+
+            verify(chainTipService, times(1)).getTipAndCurrentEpoch();
         }
     }
 
