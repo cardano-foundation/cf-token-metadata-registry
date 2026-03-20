@@ -10,6 +10,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -62,28 +64,13 @@ class OnchainSyncStatusServiceTest {
             assertThat(syncStatusService.getSyncPercentage()).isEqualTo(0.0);
         }
 
-        @Test
-        void halfwaySynced_returnsFiftyPercent() {
-            when(cursorService.getCursor()).thenReturn(Optional.of(cursorAt(500)));
+        @ParameterizedTest(name = "cursor at {0}, tip at 1000 → {1}%")
+        @CsvSource({"500, 50.0", "980, 98.0", "1000, 100.0"})
+        void syncPercentage_matchesCursorProgress(long cursorBlock, double expectedPercentage) {
+            when(cursorService.getCursor()).thenReturn(Optional.of(cursorAt(cursorBlock)));
             when(chainTipService.getTipAndCurrentEpoch()).thenReturn(tipAt(1000));
 
-            assertThat(syncStatusService.getSyncPercentage()).isCloseTo(50.0, within(0.1));
-        }
-
-        @Test
-        void fullySynced_returnsHundredPercent() {
-            when(cursorService.getCursor()).thenReturn(Optional.of(cursorAt(1000)));
-            when(chainTipService.getTipAndCurrentEpoch()).thenReturn(tipAt(1000));
-
-            assertThat(syncStatusService.getSyncPercentage()).isCloseTo(100.0, within(0.1));
-        }
-
-        @Test
-        void almostSynced_returnsHighPercentage() {
-            when(cursorService.getCursor()).thenReturn(Optional.of(cursorAt(980)));
-            when(chainTipService.getTipAndCurrentEpoch()).thenReturn(tipAt(1000));
-
-            assertThat(syncStatusService.getSyncPercentage()).isCloseTo(98.0, within(0.1));
+            assertThat(syncStatusService.getSyncPercentage()).isCloseTo(expectedPercentage, within(0.1));
         }
 
         @Test

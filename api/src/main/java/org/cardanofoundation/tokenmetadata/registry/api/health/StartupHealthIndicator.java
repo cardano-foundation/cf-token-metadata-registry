@@ -16,6 +16,8 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class StartupHealthIndicator implements HealthIndicator {
 
+    private static final String REASON = "reason";
+
     private final HealthService healthService;
 
     @Override
@@ -23,9 +25,9 @@ public class StartupHealthIndicator implements HealthIndicator {
         HealthStatus status;
         try {
             status = healthService.getHealthStatus();
-        } catch (NullPointerException e) {
+        } catch (NullPointerException _) {
             return Health.down()
-                    .withDetail("reason", "Block fetcher not initialized")
+                    .withDetail(REASON, "Block fetcher not initialized")
                     .build();
         }
 
@@ -35,19 +37,19 @@ public class StartupHealthIndicator implements HealthIndicator {
 
         if (!status.isConnectionAlive()) {
             return builder.down()
-                    .withDetail("reason", "Yaci Store connection not alive")
+                    .withDetail(REASON, "Yaci Store connection not alive")
                     .build();
         }
 
         if (!status.isReceivingBlocks()) {
             return builder.down()
-                    .withDetail("reason", "Not receiving blocks from node")
+                    .withDetail(REASON, "Not receiving blocks from node")
                     .build();
         }
 
         if (status.isScheduleToStop()) {
             return builder.down()
-                    .withDetail("reason", "Sync scheduled to stop")
+                    .withDetail(REASON, "Sync scheduled to stop")
                     .build();
         }
 
