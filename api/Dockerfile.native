@@ -1,0 +1,28 @@
+FROM ghcr.io/graalvm/graalvm-community:25 AS build
+
+RUN microdnf install -y maven findutils && microdnf clean all
+
+WORKDIR /app
+COPY pom.xml .
+COPY api/pom.xml api/
+COPY common/pom.xml common/
+COPY job/pom.xml job/
+COPY cli/pom.xml cli/
+COPY integration-test/pom.xml integration-test/
+RUN mvn dependency:go-offline -pl api,common -am -B
+
+COPY common/ common/
+COPY api/ api/
+RUN mvn clean package -pl api,common -am -DskipTests -Pnative -B
+
+FROM debian:bookworm-slim
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends libz-dev && \
+    rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+COPY --from=build /app/api/target/api /app/api
+
+EXPOSE 8080
+ENTRYPOINT ["/app/api"]

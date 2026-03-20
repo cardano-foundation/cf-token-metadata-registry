@@ -29,11 +29,13 @@ venv/
 
 # java
 target
+**/logs/
 
 .DS_Store
 .idea
 .vscode
-.flattened-pom.xml
+**/.flattened-pom.xml
+.mvn/wrapper/maven-wrapper.jar
 
 # yarn v2
 .yarn/cache

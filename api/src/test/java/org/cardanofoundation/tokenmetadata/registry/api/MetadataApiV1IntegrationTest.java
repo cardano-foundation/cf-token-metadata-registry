@@ -6,6 +6,7 @@ import org.cardanofoundation.tokenmetadata.registry.api.controller.MetadataApiCo
 import org.cardanofoundation.tokenmetadata.registry.api.indexer.V1ApiMetadataIndexer;
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.AnnotatedSignature;
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.TokenMetadata;
+import org.cardanofoundation.tokenmetadata.registry.api.service.RegistryMetricsService;
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.wellknownproperties.UrlProperty;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
@@ -30,6 +31,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(MetadataApiController.class)
 @Import(SpringWebSecurityConfig.class)
 @ActiveProfiles("test")
+@SuppressWarnings("java:S5738") // @MockBean deprecated — @MockitoBean cannot replace it here (EntityManager needs early registration)
 public class MetadataApiV1IntegrationTest {
 
     @Autowired
@@ -43,6 +45,9 @@ public class MetadataApiV1IntegrationTest {
 
     @MockBean
     private EntityManager entityManager;
+
+    @MockBean
+    private RegistryMetricsService metricsService;
 
     @BeforeEach
     void setUp() {

@@ -26,6 +26,23 @@ public abstract class BaseIntegrationIT {
         restTemplate = new RestTemplate(factory);
     }
 
+    protected static void waitForYaciStoreReady() {
+        String epochUrl = YACI_STORE_URL + "epochs/latest/parameters";
+        log.info("Waiting for Yaci Store to serve protocol params at {} ...", epochUrl);
+        await().atMost(Duration.ofMinutes(2))
+                .pollInterval(Duration.ofSeconds(3))
+                .ignoreExceptions()
+                .until(() -> {
+                    ResponseEntity<String> response = restTemplate.getForEntity(epochUrl, String.class);
+                    boolean ready = response.getStatusCode().is2xxSuccessful()
+                            && response.getBody() != null
+                            && !response.getBody().isBlank();
+                    log.info("Yaci Store protocol params check: status={}, ready={}", response.getStatusCode(), ready);
+                    return ready;
+                });
+        log.info("Yaci Store is ready.");
+    }
+
     protected static void waitForApiReady() {
         log.info("Waiting for API to become ready at {} ...", API_BASE_URL);
         await().atMost(Duration.ofMinutes(5))

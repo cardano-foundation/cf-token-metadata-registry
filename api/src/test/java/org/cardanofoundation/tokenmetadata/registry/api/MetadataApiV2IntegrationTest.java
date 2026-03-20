@@ -12,6 +12,7 @@ import org.cardanofoundation.tokenmetadata.registry.api.model.rest.BatchRequest;
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.TokenMetadata;
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.wellknownproperties.*;
 import org.cardanofoundation.tokenmetadata.registry.api.service.Cip68FungibleTokenService;
+import org.cardanofoundation.tokenmetadata.registry.api.service.RegistryMetricsService;
 import org.cardanofoundation.tokenmetadata.registry.api.util.AssetType;
 import org.cardanofoundation.tokenmetadata.registry.entity.MetadataReferenceNft;
 import org.cardanofoundation.tokenmetadata.registry.repository.MetadataReferenceNftRepository;
@@ -38,6 +39,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(V2ApiController.class)
 @Import({SpringWebSecurityConfig.class, Cip68FungibleTokenService.class, AppConfig.CipPriorityConfiguration.class})
 @ActiveProfiles("test")
+@SuppressWarnings("java:S5738") // @MockBean deprecated — @MockitoBean cannot replace it here (EntityManager needs early registration)
 public class MetadataApiV2IntegrationTest {
 
     @Autowired
@@ -54,6 +56,9 @@ public class MetadataApiV2IntegrationTest {
 
     @MockBean
     private EntityManager entityManager;
+
+    @MockBean
+    private RegistryMetricsService metricsService;
 
     @BeforeEach
     void setUp() {
