@@ -44,11 +44,11 @@ public class SyncStatusIntegrationIT extends BaseIntegrationIT {
     }
 
     @Nested
-    @DisplayName("Health endpoint")
+    @DisplayName("Legacy health endpoint (deprecated)")
     class HealthEndpoint {
 
         @Test
-        void afterSync_reportsSyncedAndDone() throws Exception {
+        void afterSync_reportsSyncedTrue() throws Exception {
             ResponseEntity<String> response = restTemplate.getForEntity(
                     API_BASE_URL + "/health", String.class);
 
@@ -56,7 +56,8 @@ public class SyncStatusIntegrationIT extends BaseIntegrationIT {
 
             JsonNode json = objectMapper.readTree(response.getBody());
             assertThat(json.get("synced").asBoolean()).isTrue();
-            assertThat(json.get("syncStatus").asText()).isEqualTo("Sync done");
+            assertThat(json.get("syncStatus").asText()).contains("offchain:");
+            assertThat(json.get("syncStatus").asText()).contains("onchain:");
         }
     }
 
@@ -68,6 +69,38 @@ public class SyncStatusIntegrationIT extends BaseIntegrationIT {
         void shouldBeUp() throws Exception {
             ResponseEntity<String> response = restTemplate.getForEntity(
                     API_BASE_URL + "/actuator/health", String.class);
+
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+
+            JsonNode json = objectMapper.readTree(response.getBody());
+            assertThat(json.get("status").asText()).isEqualTo("UP");
+        }
+    }
+
+    @Nested
+    @DisplayName("Readiness probe")
+    class ReadinessProbe {
+
+        @Test
+        void shouldBeUp_whenSynced() throws Exception {
+            ResponseEntity<String> response = restTemplate.getForEntity(
+                    API_BASE_URL + "/actuator/health/readiness", String.class);
+
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+
+            JsonNode json = objectMapper.readTree(response.getBody());
+            assertThat(json.get("status").asText()).isEqualTo("UP");
+        }
+    }
+
+    @Nested
+    @DisplayName("Liveness probe")
+    class LivenessProbe {
+
+        @Test
+        void shouldBeUp() throws Exception {
+            ResponseEntity<String> response = restTemplate.getForEntity(
+                    API_BASE_URL + "/actuator/health/liveness", String.class);
 
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
 
