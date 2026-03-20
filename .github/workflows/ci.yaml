@@ -19,17 +19,3 @@ jobs:
     uses: ./.github/workflows/integration-tests.yml
     with:
       target: jar
-
-  docker-build-jvm:
-    needs: java-build
-    uses: ./.github/workflows/docker-build.yaml
-    with:
-      app: api
-      variant: jvm
-
-  integration-test-docker-jvm:
-    needs: docker-build-jvm
-    uses: ./.github/workflows/integration-tests.yml
-    with:
-      target: docker-jvm
-      image-tag: ${{ needs.docker-build-jvm.outputs.image-tag }}
