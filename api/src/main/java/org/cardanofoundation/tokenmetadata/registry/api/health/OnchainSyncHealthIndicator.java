@@ -3,6 +3,7 @@ package org.cardanofoundation.tokenmetadata.registry.api.health;
 import com.bloxbean.cardano.yaci.store.common.domain.HealthStatus;
 import com.bloxbean.cardano.yaci.store.core.service.HealthService;
 import lombok.RequiredArgsConstructor;
+import org.cardanofoundation.tokenmetadata.registry.api.service.OnchainSyncStatusService;
 import org.springframework.boot.actuate.health.Health;
 import org.springframework.boot.actuate.health.HealthIndicator;
 import org.springframework.stereotype.Component;
@@ -10,13 +11,15 @@ import org.springframework.stereotype.Component;
 /**
  * Health indicator for on-chain token sync via Yaci indexer.
  * Covers CIP-68, CIP-113, and future on-chain token standards.
- * Uses Yaci Store's HealthService to check N2N connection and block sync status.
+ * Uses Yaci Store's HealthService for connection status and
+ * OnchainSyncStatusService to verify the indexer is near the chain tip.
  */
 @Component
 @RequiredArgsConstructor
 public class OnchainSyncHealthIndicator implements HealthIndicator {
 
     private final HealthService healthService;
+    private final OnchainSyncStatusService syncStatusService;
 
     @Override
     public Health health() {
@@ -57,8 +60,17 @@ public class OnchainSyncHealthIndicator implements HealthIndicator {
                     .build();
         }
 
+        double syncPercentage = syncStatusService.getSyncPercentage();
+        builder.withDetail("syncPercentage", String.format("%.2f%%", syncPercentage));
+
+        if (!syncStatusService.isSynced()) {
+            return builder.outOfService()
+                    .withDetail("syncStatus", "Catching up")
+                    .build();
+        }
+
         return builder.up()
-                .withDetail("syncStatus", "Syncing")
+                .withDetail("syncStatus", "Synced")
                 .build();
     }
 
