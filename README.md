@@ -7,67 +7,85 @@
 
 # Cardano offchain metadata registry
 
-A reference implementation of a Cardano [CIP-26](https://github.com/cardano-foundation/CIPs/tree/master/CIP-0026) compliant offchain metadata registry.
+A reference implementation of a Cardano [CIP-26](https://github.com/cardano-foundation/CIPs/tree/master/CIP-0026) compliant offchain metadata registry with [CIP-68](https://github.com/cardano-foundation/CIPs/tree/master/CIP-0068) support.
 
-## Introduction
+## Overview
 
-This repository contains an implementaiton of a [CIP-26](https://github.com/cardano-foundation/CIPs/tree/master/CIP-0026) compliant offchain metadata registry for Cardano. It exposes an extended API (see the OpenAPI v3 spec hosted by our staging deployments [here](https://api.metadata.staging.cf-deployments.org/apidocs)) with regards to the one specified in [CIP-26](https://github.com/cardano-foundation/CIPs/tree/master/CIP-0026) to allow for more querying options and also write access to the registry to get rid of parts of the GitHub based process (but still stick to the known [GitHub repository](https://github.com/cardano-foundation/cardano-token-registry) as a single source of truth for now).
+The registry is a Spring Boot application backed by PostgreSQL. It serves token metadata from two sources:
 
-Implementation of client tools for metadata creation can be found [here](https://github.com/cardano-foundation/cf-metadata-app) and at [IOG's reference implementation repository](https://github.com/input-output-hk/offchain-metadata-tools).
+- **CIP-26 (offchain)**: metadata is synced from a [GitHub repository](https://github.com/cardano-foundation/cardano-token-registry) on a scheduled basis (every 60 minutes by default).
+- **CIP-68 (on-chain)**: metadata is read directly from the Cardano blockchain via [Yaci Store](https://github.com/bloxbean/yaci-store), which connects to a Cardano node and indexes CIP-68 reference NFT datums.
 
-## How to build?
-For building you need
+The V2 API queries both standards by priority (`CIP_68,CIP_26` by default). CIP-68 on-chain data takes precedence when available.
+
+> [!NOTE]
+> By default, Yaci Store connects to a public Cardano node (`STORE_CARDANO_HOST` in `.env`). You can point it to your own node if preferred.
+
+See the [API Reference](https://cardano-foundation.github.io/cf-token-metadata-registry/) for the full API definition.
+
+## Quick Start
+
+### Prerequisites
+- [Docker](https://docs.docker.com/get-docker/) and Docker Compose
+- 2+ CPU cores, 4GB RAM, 10GB storage
+
+### Mainnet
+
+```console
+docker compose up
+```
+
+### Preprod
+
+```console
+docker compose --env-file .env.preprod up
+```
+
+## API Endpoints
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/v2/subjects/{subject}` | Token metadata with CIP priority selection |
+| POST | `/api/v2/subjects/query` | Batch query with priority and detail options |
+| GET | `/health` | Sync status (`SYNC_NOT_STARTED`, `SYNC_IN_PROGRESS`, `SYNC_COMPLETED`) |
+| GET | `/actuator/health` | Spring Boot liveness check |
+| GET | `/actuator/prometheus` | Prometheus metrics |
+
+For the full API reference (including V1 endpoints and query parameters), see the [API Reference](https://cardano-foundation.github.io/cf-token-metadata-registry/).
+
+## Configuration
+
+All settings are controlled via environment variables. See [`.env`](./.env) (mainnet) and [`.env.preprod`](./.env.preprod) (preprod) for the full list.
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `TOKEN_METADATA_SYNC_JOB` | Enable scheduled GitHub sync | `true` |
+| `CIP_QUERY_PRIORITY` | CIP priority order for V2 queries | `CIP_68,CIP_26` |
+| `STORE_CARDANO_HOST` | Cardano node host for CIP-68 sync | `backbone.mainnet.cardanofoundation.org` |
+| `STORE_CARDANO_PROTOCOL_MAGIC` | Network protocol magic | `764824073` (mainnet) |
+
+## How to build
+
+For building from source you need:
 - [Apache Maven](https://maven.apache.org/)
-- [Java SDK](https://adoptium.net/installation/)
+- [Java SDK 21+](https://adoptium.net/installation/)
 - [Git](https://git-scm.com/)
 
-### Building from source
-Clone this repository
 ```console
-$ git clone git@github.com:cardano-foundation/cf-token-metadata-registry.git
-```
-
-`cd` into the directory where `git` did clone the sources into and build the application via Maven
-```console
-$ cd cf-token-metadata-registry
-$ mvn package
-```
-
-## How to run?
-
-The simplest approach to running the application after having built it is to use the provided [Docker Compose](./docker-compose.yml) setup and Docker containers included in the various sub folders. This is done simply by calling the following command in the root directory of this repository:
-```console
-$ docker compose up
+git clone git@github.com:cardano-foundation/cf-token-metadata-registry.git
+cd cf-token-metadata-registry
+mvn package
 ```
 
 > [!NOTE]
-> If you change the code, in order to make the changes visible to docker compose you need to rebuild the local image 
-> with `docker compose build` and then `docker compose up` will take care to restart containers who have a new image available
-
-The complete Docker Compose setup runs the following services:
-1. Setup a Postgres database in a docker container and exposes it to `localhost` on port `5432` (service name `db`)
-2. Starts the actual Spring application that exposes the CIP-26 REST API and exposes it to `localhost` on port `8081` (service name `api`)
-
-To test if the API is running query its health endpoint by executing:
-```console
-$ curl http://localhost:8081/actuator/health
-```
-
-Have a look at the [.env file](./.env) for the various configuration options.
-
-At the moment the application needs a PostgreSQL database as a storage layer which might change in the future. Database evolutions
-are managed by the `api` project using [flyway](https://flywaydb.org/).
+> If you change the code, rebuild the local image with `docker compose build` before running `docker compose up`.
 
 ## Features
 
-Offchain metadata related:
-- [x] Expose CIP-26 compliant REST API
-
-WIP:
-- [ ] Add [CIP-88](https://github.com/cardano-foundation/CIPs/tree/master/CIP-0088) support
-- [ ] Expose verification API for offchain metadata based on extended CIP-26 trust concept
-- [ ] Provide a CLI application for metadata creation and verification
-- [ ] Implement metadata verification based on public key registries
+- [x] CIP-26 compliant REST API
+- [x] CIP-68 fungible token support (V2 API with priority-based querying)
+- [x] Prometheus metrics (`/actuator/prometheus`)
+- [x] Kubernetes / Helm deployment support (`deploy/`)
 
 ## Contributing
 
