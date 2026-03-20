@@ -28,7 +28,7 @@ public class AppConfig {
 
         @PostConstruct
         public void init() {
-            var priority = defaultPriority.stream().map(QueryPriority::name).collect(Collectors.joining(","));
+            String priority = defaultPriority.stream().map(QueryPriority::name).collect(Collectors.joining(","));
             log.info("INIT - CIP priority, higher to lower: {}", priority);
         }
 

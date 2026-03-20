@@ -9,7 +9,6 @@ import org.cardanofoundation.tokenmetadata.registry.api.model.rest.TokenMetadata
 import org.cardanofoundation.tokenmetadata.registry.api.service.RegistryMetricsService;
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.wellknownproperties.UrlProperty;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -32,7 +31,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Import(SpringWebSecurityConfig.class)
 @ActiveProfiles("test")
 @SuppressWarnings("java:S5738") // @MockBean deprecated — @MockitoBean cannot replace it here (EntityManager needs early registration)
-public class MetadataApiV1IntegrationTest {
+class MetadataApiV1ControllerTest {
 
     @Autowired
     private WebApplicationContext context;
@@ -76,39 +75,32 @@ public class MetadataApiV1IntegrationTest {
     }
 
     @Test
-    public void subjectQueryShouldReturnNoContentOnNonExistingSubject() throws Exception {
+    void subjectQueryShouldReturnNoContentOnNonExistingSubject() throws Exception {
         mockMvc.perform(get("/metadata/025146866af908340247fe4e9672d5ac7059f1e8534696b5f920c9e66362544843"))
                 .andExpect(status().isNoContent());
     }
 
     @Test
-    public void subjectQueryShouldReturnNoContentOnNonExistingSubjectOnPreprod() throws Exception {
+    void subjectQueryShouldReturnNoContentOnNonExistingSubjectOnPreprod() throws Exception {
         mockMvc.perform(get("/metadata/025146866af908340247fe4e9672d5ac7059f1e8534696b5f920c9e66362544843"))
                 .andExpect(status().isNoContent());
     }
 
     @Test
-    @Disabled
-    public void subjectQueryShouldReturnBadRequestOnNonMappedNetworkRequest() throws Exception {
-        mockMvc.perform(get("/metadata/025146866af908340247fe4e9672d5ac7059f1e8534696b5f920c9e66362544843"))
-                .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    public void subjectQueryShouldReturnMetadata() throws Exception {
+    void subjectQueryShouldReturnMetadata() throws Exception {
         mockMvc.perform(get("/metadata/025146866af908340247fe4e9672d5ac7059f1e8534696b5f920c9e66362544848"))
                 .andExpect(status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.subject").value("025146866af908340247fe4e9672d5ac7059f1e8534696b5f920c9e66362544848"));
     }
 
     @Test
-    public void subjectPropertyQueryShouldReturnNoContentOnNonExistingSubject() throws Exception {
+    void subjectPropertyQueryShouldReturnNoContentOnNonExistingSubject() throws Exception {
         mockMvc.perform(get("/metadata/025146866af908340247fe4e9672d5ac7059f1e8534696b5f920c9e66362544843/properties/url"))
                 .andExpect(status().isNoContent());
     }
 
     @Test
-    public void subjectPropertyQueryShouldReturnMetadata() throws Exception {
+    void subjectPropertyQueryShouldReturnMetadata() throws Exception {
         mockMvc.perform(get("/metadata/025146866af908340247fe4e9672d5ac7059f1e8534696b5f920c9e66362544848/properties/url"))
                 .andExpect(status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.subject").value("025146866af908340247fe4e9672d5ac7059f1e8534696b5f920c9e66362544848"));

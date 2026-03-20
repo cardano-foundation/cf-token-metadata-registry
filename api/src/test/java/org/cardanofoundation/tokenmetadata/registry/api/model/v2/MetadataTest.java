@@ -16,17 +16,17 @@ class MetadataTest {
     @Test
     public void testFromTokenMetadata() {
 
-        var nameProperty = new NameProperty();
+        NameProperty nameProperty = new NameProperty();
         nameProperty.setValue("name");
 
-        var tickerProperty = new TickerProperty();
+        TickerProperty tickerProperty = new TickerProperty();
         tickerProperty.setValue("ticker");
 
-        var actual = Metadata.from(TokenMetadata.builder()
+        Metadata actual = Metadata.from(TokenMetadata.builder()
                 .name(nameProperty)
                 .ticker(tickerProperty)
                 .build());
-        var expected = Metadata.builder()
+        Metadata expected = Metadata.builder()
                 .name(new StringProperty("name", CIP_26.name()))
                 .ticker(new StringProperty("ticker", CIP_26.name()))
                 .build();
@@ -37,15 +37,15 @@ class MetadataTest {
     @Test
     public void testFromFungibleTokenMetadata() {
 
-        var nameProperty = new NameProperty();
+        NameProperty nameProperty = new NameProperty();
         nameProperty.setValue("name");
 
-        var tickerProperty = new TickerProperty();
+        TickerProperty tickerProperty = new TickerProperty();
         tickerProperty.setValue("ticker");
 
-        var actual = Metadata.from(new FungibleTokenMetadata(9L, "description", "logo" , "name", "ticker", null, 1L));
+        Metadata actual = Metadata.from(new FungibleTokenMetadata(9L, "description", "logo" , "name", "ticker", null, 1L));
 
-        var expected = Metadata.builder()
+        Metadata expected = Metadata.builder()
                 .name(new StringProperty("name", CIP_68.name()))
                 .ticker(new StringProperty("ticker", CIP_68.name()))
                 .description(new StringProperty("description", CIP_68.name()))

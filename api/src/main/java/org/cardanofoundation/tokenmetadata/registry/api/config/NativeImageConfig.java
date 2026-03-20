@@ -16,6 +16,7 @@ import org.cardanofoundation.tokenmetadata.registry.entity.MetadataReferenceNft;
 import org.cardanofoundation.tokenmetadata.registry.entity.MetadataReferenceNftId;
 import org.cardanofoundation.tokenmetadata.registry.entity.OffChainSyncState;
 import org.cardanofoundation.tokenmetadata.registry.entity.TokenLogo;
+import org.springframework.aot.hint.ReflectionHints;
 import org.springframework.aot.hint.RuntimeHints;
 import org.springframework.aot.hint.RuntimeHintsRegistrar;
 import org.springframework.context.annotation.Configuration;
@@ -34,10 +35,10 @@ public class NativeImageConfig {
 
         @Override
         public void registerHints(RuntimeHints hints, ClassLoader classLoader) {
-            var reflection = hints.reflection();
+            ReflectionHints reflection = hints.reflection();
 
             // JPA entities
-            for (var clazz : new Class<?>[]{
+            for (Class<?> clazz : new Class<?>[]{
                     org.cardanofoundation.tokenmetadata.registry.entity.TokenMetadata.class,
                     TokenLogo.class,
                     MetadataReferenceNft.class,
@@ -51,7 +52,7 @@ public class NativeImageConfig {
             }
 
             // REST model classes (Jackson serialization)
-            for (var clazz : new Class<?>[]{
+            for (Class<?> clazz : new Class<?>[]{
                     AnnotatedSignature.class,
                     BatchRequest.class,
                     BatchResponse.class,

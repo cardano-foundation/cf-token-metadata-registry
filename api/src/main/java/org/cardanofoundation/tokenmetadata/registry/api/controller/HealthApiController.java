@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.cardanofoundation.tokenmetadata.registry.api.health.OffchainSyncHealthIndicator;
 import org.cardanofoundation.tokenmetadata.registry.api.health.OnchainSyncHealthIndicator;
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.HealthResponse;
+import org.springframework.boot.actuate.health.Health;
 import org.springframework.boot.actuate.health.Status;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -28,8 +29,8 @@ public class HealthApiController implements HealthApi {
 
     @Override
     public ResponseEntity<HealthResponse> getHealthStatus() {
-        var offchainHealth = offchainSyncHealthIndicator.health();
-        var onchainHealth = onchainSyncHealthIndicator.health();
+        Health offchainHealth = offchainSyncHealthIndicator.health();
+        Health onchainHealth = onchainSyncHealthIndicator.health();
 
         boolean synced = Status.UP.equals(offchainHealth.getStatus())
                 && Status.UP.equals(onchainHealth.getStatus());

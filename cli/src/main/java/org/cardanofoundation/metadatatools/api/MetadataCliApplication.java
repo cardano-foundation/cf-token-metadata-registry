@@ -100,12 +100,12 @@ public class MetadataCliApplication implements CommandLineRunner {
         }
     }
 
-    private void runEntry(final String[] args) {
-
+    private void runEntry(@SuppressWarnings("unused") final String[] args) {
+        // TODO: implement entry command
     }
 
-    private void runValidate(final String[] args) {
-
+    private void runValidate(@SuppressWarnings("unused") final String[] args) {
+        // TODO: implement validate command
     }
 
     private void printHelp(final Options options) {
