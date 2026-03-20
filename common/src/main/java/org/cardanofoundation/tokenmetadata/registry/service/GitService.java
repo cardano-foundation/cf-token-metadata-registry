@@ -90,7 +90,7 @@ public class GitService {
     private boolean openExistingRepo() {
         try {
             cleanup();
-            git = Git.open(getGitFolder());
+            git = Git.open(getGitFolder()); // codeql[java/relative-path-command] - JGit is a pure Java Git implementation, no shell commands
             return true;
         } catch (IOException e) {
             log.warn("Failed to open existing git repository", e);
@@ -101,7 +101,7 @@ public class GitService {
     private boolean cloneRepo() {
         try {
             String url = String.format("https://github.com/%s/%s.git", organization, projectName);
-            git = Git.cloneRepository()
+            git = Git.cloneRepository() // codeql[java/relative-path-command] - JGit is a pure Java Git implementation, no shell commands
                     .setURI(url)
                     .setDirectory(getGitFolder())
                     .call();
@@ -119,7 +119,7 @@ public class GitService {
                 log.info("No remote configured, skipping pull");
                 return true;
             }
-            git.pull()
+            git.pull() // codeql[java/relative-path-command] - JGit is a pure Java Git implementation, no shell commands
                     .setRebase(BranchConfig.BranchRebaseMode.REBASE)
                     .call();
             return true;

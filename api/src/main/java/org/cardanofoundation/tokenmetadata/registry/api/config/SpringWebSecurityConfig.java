@@ -16,7 +16,7 @@ public class SpringWebSecurityConfig {
         // CSRF protection is intentionally disabled: this is a public, read-only REST API
         // with no session-based authentication, so CSRF attacks are not applicable.
         return http
-                .csrf(AbstractHttpConfigurer::disable) // lgtm[java/spring-disabled-csrf-protection]
+                .csrf(AbstractHttpConfigurer::disable) // codeql[java/spring-disabled-csrf-protection] - public read-only REST API, no session auth
                 .authorizeHttpRequests((matcherRegistry) -> matcherRegistry.anyRequest().permitAll())
                 .headers((headers) -> headers
                         .contentSecurityPolicy((policy) -> policy
