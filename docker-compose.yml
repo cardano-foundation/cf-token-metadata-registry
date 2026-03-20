@@ -43,10 +43,10 @@ services:
       API_LOCAL_BIND_PORT: "${API_LOCAL_BIND_PORT}"
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:${API_EXPOSED_PORT}/actuator/health/readiness || exit 1"]
-      interval: 10s
+      interval: 60s
       timeout: 5s
-      retries: 12
-      start_period: 30s
+      retries: 15
+      start_period: 72h
     depends_on:
       db:
         condition: service_healthy
