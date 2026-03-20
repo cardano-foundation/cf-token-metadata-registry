@@ -36,24 +36,19 @@ public record AssetType(String policyId, String assetName) {
     }
 
     public static AssetType fromUnit(String unit) {
-        try {
-
-            if (unit.equalsIgnoreCase(LOVELACE) || unit.trim().isEmpty()) {
-                return Ada;
-            }
-
-            String sanitizedUnit = unit.replaceAll("\\.", "");
-            if (sanitizedUnit.length() > 56) {
-                return new AssetType(sanitizedUnit.substring(0, 56), sanitizedUnit.substring(56));
-            } else {
-                return new AssetType(sanitizedUnit.substring(0, 56), "");
-            }
-
-        } catch (Exception e) {
-            log.warn("Invalid unit '{}'", unit);
-            throw new RuntimeException(e);
+        if (unit.equalsIgnoreCase(LOVELACE) || unit.trim().isEmpty()) {
+            return Ada;
         }
 
+        String sanitizedUnit = unit.replaceAll("\\.", "");
+        if (sanitizedUnit.length() > 56) {
+            return new AssetType(sanitizedUnit.substring(0, 56), sanitizedUnit.substring(56));
+        } else if (sanitizedUnit.length() == 56) {
+            return new AssetType(sanitizedUnit, "");
+        } else {
+            log.warn("Invalid unit '{}': must be at least 56 hex characters (28-byte policy id)", unit);
+            return new AssetType(sanitizedUnit, "");
+        }
     }
 
     public static AssetType ada() {

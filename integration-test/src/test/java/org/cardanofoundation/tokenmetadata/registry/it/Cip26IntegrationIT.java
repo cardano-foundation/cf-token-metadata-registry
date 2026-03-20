@@ -187,30 +187,27 @@ public class Cip26IntegrationIT extends BaseIntegrationIT {
     class V2PropertyFilter {
 
         @Test
-        void singleProperty_returnsOnlyRequested() throws Exception {
+        void requiredPlusOptionalProperties_returnsRequested() throws Exception {
             ResponseEntity<String> response = restTemplate.getForEntity(
-                    API_BASE_URL + "/api/v2/subjects/" + FULL_TOKEN_SUBJECT + "?property=name",
+                    API_BASE_URL + "/api/v2/subjects/" + FULL_TOKEN_SUBJECT
+                            + "?property=name&property=description&property=ticker",
                     String.class);
 
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
 
             JsonNode metadata = objectMapper.readTree(response.getBody()).get("subject").get("metadata");
-            assertThat(metadata.get("name")).isNotNull();
             assertThat(metadata.get("name").get("value").asText()).isEqualTo("Test Token Full");
+            assertThat(metadata.get("description").get("value").asText())
+                    .isEqualTo("A test token with all properties for integration testing");
+            assertThat(metadata.get("ticker").get("value").asText()).isEqualTo("TSTF");
         }
 
         @Test
-        void multipleProperties_returnsOnlyRequested() throws Exception {
-            ResponseEntity<String> response = restTemplate.getForEntity(
-                    API_BASE_URL + "/api/v2/subjects/" + FULL_TOKEN_SUBJECT
-                            + "?property=name&property=ticker",
-                    String.class);
-
-            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-
-            JsonNode metadata = objectMapper.readTree(response.getBody()).get("subject").get("metadata");
-            assertThat(metadata.get("name").get("value").asText()).isEqualTo("Test Token Full");
-            assertThat(metadata.get("ticker").get("value").asText()).isEqualTo("TSTF");
+        void missingRequiredProperties_returnsBadRequest() {
+            assertThatThrownBy(() -> restTemplate.getForEntity(
+                    API_BASE_URL + "/api/v2/subjects/" + FULL_TOKEN_SUBJECT + "?property=ticker",
+                    String.class))
+                    .isInstanceOf(HttpClientErrorException.BadRequest.class);
         }
     }
 
@@ -286,8 +283,16 @@ public class Cip26IntegrationIT extends BaseIntegrationIT {
         }
 
         @Test
+        void missingRequiredProperties_returnsBadRequest() {
+            String body = String.format(
+                    "{\"subjects\": [\"%s\"], \"properties\": [\"ticker\"]}", FULL_TOKEN_SUBJECT);
+
+            assertThatThrownBy(() -> postJson(API_BASE_URL + "/api/v2/subjects/query", body))
+                    .isInstanceOf(HttpClientErrorException.BadRequest.class);
+        }
+
+        @Test
         void withPropertyFilter_returnsOnlyRequestedProperties() throws Exception {
-            // name + description are required for a valid subject, so include them
             String body = String.format(
                     "{\"subjects\": [\"%s\"], \"properties\": [\"name\", \"description\", \"ticker\"]}",
                     FULL_TOKEN_SUBJECT);

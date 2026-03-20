@@ -100,8 +100,10 @@ public class MetadataApiV2IntegrationTest {
                         .url(urlProperty)
                         .build()));
 
-        when(v1ApiMetadataIndexer.findSubjectSelectProperties(knownAssetType.toUnit(), List.of("url")))
+        when(v1ApiMetadataIndexer.findSubjectSelectProperties(knownAssetType.toUnit(), List.of("name", "description", "url")))
                 .thenReturn(Optional.of(TokenMetadata.builder()
+                        .name(nameProperty)
+                        .description(descriptionProperty)
                         .subject(knownAssetType.toUnit())
                         .url(urlProperty)
                         .build()));
@@ -172,11 +174,18 @@ public class MetadataApiV2IntegrationTest {
         expectedArray.add("CIP_68");
         expectedArray.add("CIP_26");
         mockMvc.perform(get("/api/v2/subjects/025146866af908340247fe4e9672d5ac7059f1e8534696b5f920c9e66362544848")
-                        .queryParam("property", "url"))
+                        .queryParam("property", "name", "description", "url"))
                 .andExpect(status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.subject.subject").value("025146866af908340247fe4e9672d5ac7059f1e8534696b5f920c9e66362544848"))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.subject.metadata.url.value").value("https://fivebinaries.com/nutcoin"))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.queryPriority").value(expectedArray));
+    }
+
+    @Test
+    public void subjectPropertyQueryShouldReturnBadRequest_whenMissingRequiredProperties() throws Exception {
+        mockMvc.perform(get("/api/v2/subjects/025146866af908340247fe4e9672d5ac7059f1e8534696b5f920c9e66362544848")
+                        .queryParam("property", "url"))
+                .andExpect(status().isBadRequest());
     }
 
     @Test
@@ -248,6 +257,19 @@ public class MetadataApiV2IntegrationTest {
                 .andExpect(MockMvcResultMatchers.jsonPath("$.subjects[1].metadata.url.source").value("CIP_26"))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.queryPriority").value(expectedArray)
                 );
+    }
+
+    @Test
+    public void getSubjectsBatchShouldReturnBadRequest_whenMissingRequiredProperties() throws Exception {
+
+        var objectMapper = new ObjectMapper();
+
+        var request = new BatchRequest(List.of("025146866af908340247fe4e9672d5ac7059f1e8534696b5f920c9e66362544848"), List.of("ticker"));
+
+        mockMvc.perform(post("/api/v2/subjects/query")
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
     }
 
     @Test

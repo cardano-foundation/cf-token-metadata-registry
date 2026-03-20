@@ -10,9 +10,11 @@ import org.cardanofoundation.tokenmetadata.registry.api.model.rest.BatchRequest;
 import org.cardanofoundation.tokenmetadata.registry.api.model.v2.*;
 import org.cardanofoundation.tokenmetadata.registry.api.service.Cip68FungibleTokenService;
 import org.cardanofoundation.tokenmetadata.registry.api.service.RegistryMetricsService;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.Optional;
@@ -29,6 +31,8 @@ public class V2ApiController implements V2Api {
     public static final Pair<Metadata, Standards> IDENTITY = new Pair<>(Metadata.empty(), Standards.empty());
 
     private static final List<String> ALL_PROPERTIES = List.of();
+
+    private static final List<String> REQUIRED_PROPERTIES = List.of("name", "description");
 
     private final AppConfig.CipPriorityConfiguration priorityConfiguration;
 
@@ -52,12 +56,16 @@ public class V2ApiController implements V2Api {
         metricsService.recordV2Query(1);
 
         var queryProperties = properties != null ? properties : ALL_PROPERTIES;
+        if (!queryProperties.isEmpty() && !queryProperties.containsAll(REQUIRED_PROPERTIES)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "When filtering properties, 'name' and 'description' are required and must be included");
+        }
         var queryPriority = priorities != null ? priorities : priorityConfiguration.getDefaultPriority();
 
         var tokenMetadata = queryPriority.stream()
                 .reduce(IDENTITY, combineStandards(subject, queryProperties), aggregateResults());
 
-        if (tokenMetadata.first().isEmpty()) {
+        if (tokenMetadata.first().isEmpty() || !tokenMetadata.first().isValid()) {
             metricsService.recordNotFound();
             return ResponseEntity.notFound().build();
         } else {
@@ -77,6 +85,10 @@ public class V2ApiController implements V2Api {
         metricsService.recordV2Query(body.getSubjects().size());
 
         var queryProperties = body.getProperties() != null ? body.getProperties() : ALL_PROPERTIES;
+        if (!queryProperties.isEmpty() && !queryProperties.containsAll(REQUIRED_PROPERTIES)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "When filtering properties, 'name' and 'description' are required and must be included");
+        }
         var queryPriority = priorities != null ? priorities : priorityConfiguration.getDefaultPriority();
 
         var subjects = body.getSubjects()
