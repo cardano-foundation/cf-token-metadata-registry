@@ -17,7 +17,7 @@ import java.util.concurrent.atomic.AtomicLong;
 @Service
 @Slf4j
 @RequiredArgsConstructor
-public class MetricsService {
+public class RegistryMetricsService {
 
     private static final String NAMESPACE = "cftr";
 
@@ -45,7 +45,7 @@ public class MetricsService {
                 .description("Total number of CIP-68 reference NFTs in the registry")
                 .register(meterRegistry);
 
-        Gauge.builder(NAMESPACE + ".sync.status", this, MetricsService::getSyncStatusValue)
+        Gauge.builder(NAMESPACE + ".sync.status", this, RegistryMetricsService::getSyncStatusValue)
                 .description("Sync status: 0=not_started, 1=in_progress, 2=done, 3=error, 4=external_job")
                 .register(meterRegistry);
 

@@ -6,7 +6,7 @@ import org.cardanofoundation.tokenmetadata.registry.api.controller.MetadataApiCo
 import org.cardanofoundation.tokenmetadata.registry.api.indexer.V1ApiMetadataIndexer;
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.AnnotatedSignature;
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.TokenMetadata;
-import org.cardanofoundation.tokenmetadata.registry.api.service.MetricsService;
+import org.cardanofoundation.tokenmetadata.registry.api.service.RegistryMetricsService;
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.wellknownproperties.UrlProperty;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
@@ -46,7 +46,7 @@ public class MetadataApiV1IntegrationTest {
     private EntityManager entityManager;
 
     @MockBean
-    private MetricsService metricsService;
+    private RegistryMetricsService metricsService;
 
     @BeforeEach
     void setUp() {

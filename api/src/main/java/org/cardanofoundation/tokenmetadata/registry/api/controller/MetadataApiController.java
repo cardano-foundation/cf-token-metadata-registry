@@ -6,7 +6,7 @@ import org.cardanofoundation.tokenmetadata.registry.api.indexer.V1ApiMetadataInd
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.BatchRequest;
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.BatchResponse;
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.TokenMetadata;
-import org.cardanofoundation.tokenmetadata.registry.api.service.MetricsService;
+import org.cardanofoundation.tokenmetadata.registry.api.service.RegistryMetricsService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -25,7 +25,7 @@ import java.util.Map;
 public class MetadataApiController implements MetadataApi {
 
     private final V1ApiMetadataIndexer v1ApiMetadataIndexer;
-    private final MetricsService metricsService;
+    private final RegistryMetricsService metricsService;
 
     @Override
     public ResponseEntity<BatchResponse> getSubjects(final BatchRequest body) {

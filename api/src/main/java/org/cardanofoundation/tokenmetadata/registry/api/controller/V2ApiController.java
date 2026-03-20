@@ -9,7 +9,7 @@ import org.cardanofoundation.tokenmetadata.registry.api.model.QueryPriority;
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.BatchRequest;
 import org.cardanofoundation.tokenmetadata.registry.api.model.v2.*;
 import org.cardanofoundation.tokenmetadata.registry.api.service.Cip68FungibleTokenService;
-import org.cardanofoundation.tokenmetadata.registry.api.service.MetricsService;
+import org.cardanofoundation.tokenmetadata.registry.api.service.RegistryMetricsService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -36,7 +36,7 @@ public class V2ApiController implements V2Api {
 
     private final V1ApiMetadataIndexer v1ApiMetadataIndexer;
 
-    private final MetricsService metricsService;
+    private final RegistryMetricsService metricsService;
 
     @Override
     public ResponseEntity<Response> getSubject(final String subject,
