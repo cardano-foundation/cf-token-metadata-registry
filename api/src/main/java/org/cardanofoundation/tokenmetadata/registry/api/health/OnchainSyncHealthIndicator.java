@@ -1,9 +1,10 @@
 package org.cardanofoundation.tokenmetadata.registry.api.health;
 
 import com.bloxbean.cardano.yaci.store.common.domain.HealthStatus;
+import com.bloxbean.cardano.yaci.store.common.domain.SyncStatus;
 import com.bloxbean.cardano.yaci.store.core.service.HealthService;
+import com.bloxbean.cardano.yaci.store.core.service.SyncStatusService;
 import lombok.RequiredArgsConstructor;
-import org.cardanofoundation.tokenmetadata.registry.api.service.OnchainSyncStatusService;
 import org.springframework.boot.actuate.health.Health;
 import org.springframework.boot.actuate.health.HealthIndicator;
 import org.springframework.stereotype.Component;
@@ -12,14 +13,14 @@ import org.springframework.stereotype.Component;
  * Health indicator for on-chain token sync via Yaci indexer.
  * Covers CIP-68, CIP-113, and future on-chain token standards.
  * Uses Yaci Store's HealthService for connection status and
- * OnchainSyncStatusService to verify the indexer is near the chain tip.
+ * SyncStatusService to verify the indexer is near the chain tip.
  */
 @Component
 @RequiredArgsConstructor
 public class OnchainSyncHealthIndicator implements HealthIndicator {
 
     private final HealthService healthService;
-    private final OnchainSyncStatusService syncStatusService;
+    private final SyncStatusService syncStatusService;
 
     @Override
     public Health health() {
@@ -60,10 +61,10 @@ public class OnchainSyncHealthIndicator implements HealthIndicator {
                     .build();
         }
 
-        double syncPercentage = syncStatusService.getSyncPercentage();
-        builder.withDetail("syncPercentage", String.format("%.2f%%", syncPercentage));
+        SyncStatus syncStatus = syncStatusService.getSyncStatus();
+        builder.withDetail("syncPercentage", String.format("%.2f%%", syncStatus.syncPercentage()));
 
-        if (!syncStatusService.isSynced()) {
+        if (!syncStatus.synced()) {
             return builder.outOfService()
                     .withDetail("syncStatus", "Syncing")
                     .build();

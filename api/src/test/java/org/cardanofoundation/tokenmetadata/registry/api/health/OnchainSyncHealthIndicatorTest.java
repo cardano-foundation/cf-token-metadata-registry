@@ -1,8 +1,9 @@
 package org.cardanofoundation.tokenmetadata.registry.api.health;
 
 import com.bloxbean.cardano.yaci.store.common.domain.HealthStatus;
+import com.bloxbean.cardano.yaci.store.common.domain.SyncStatus;
 import com.bloxbean.cardano.yaci.store.core.service.HealthService;
-import org.cardanofoundation.tokenmetadata.registry.api.service.OnchainSyncStatusService;
+import com.bloxbean.cardano.yaci.store.core.service.SyncStatusService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -21,7 +22,7 @@ class OnchainSyncHealthIndicatorTest {
     private HealthService healthService;
 
     @Mock
-    private OnchainSyncStatusService syncStatusService;
+    private SyncStatusService syncStatusService;
 
     @InjectMocks
     private OnchainSyncHealthIndicator onchainSyncHealthIndicator;
@@ -36,11 +37,32 @@ class OnchainSyncHealthIndicatorTest {
                 .build();
     }
 
+    private SyncStatus syncedStatus() {
+        return SyncStatus.builder()
+                .block(10000)
+                .slot(200000)
+                .syncPercentage(100.0)
+                .synced(true)
+                .networkBlock(10000)
+                .networkSlot(200000)
+                .build();
+    }
+
+    private SyncStatus syncingStatus(double percentage) {
+        return SyncStatus.builder()
+                .block(4500)
+                .slot(90000)
+                .syncPercentage(percentage)
+                .synced(false)
+                .networkBlock(10000)
+                .networkSlot(200000)
+                .build();
+    }
+
     @Test
     void healthyAndSynced_shouldReturnUp() {
         when(healthService.getHealthStatus()).thenReturn(healthyStatus());
-        when(syncStatusService.isSynced()).thenReturn(true);
-        when(syncStatusService.getSyncPercentage()).thenReturn(100.0);
+        when(syncStatusService.getSyncStatus()).thenReturn(syncedStatus());
 
         Health health = onchainSyncHealthIndicator.health();
 
@@ -51,8 +73,7 @@ class OnchainSyncHealthIndicatorTest {
     @Test
     void healthyButCatchingUp_shouldReturnOutOfService() {
         when(healthService.getHealthStatus()).thenReturn(healthyStatus());
-        when(syncStatusService.isSynced()).thenReturn(false);
-        when(syncStatusService.getSyncPercentage()).thenReturn(45.0);
+        when(syncStatusService.getSyncStatus()).thenReturn(syncingStatus(45.0));
 
         Health health = onchainSyncHealthIndicator.health();
 
