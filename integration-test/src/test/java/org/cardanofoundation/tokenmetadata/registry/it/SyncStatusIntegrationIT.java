@@ -16,7 +16,7 @@ import static org.awaitility.Awaitility.await;
 
 /**
  * Integration tests for health and sync status endpoints.
- * Verifies that /health reports correct sync state and /actuator/health is available.
+ * Verifies startup, liveness, readiness probes and legacy health endpoint.
  */
 public class SyncStatusIntegrationIT extends BaseIntegrationIT {
 
@@ -75,21 +75,56 @@ public class SyncStatusIntegrationIT extends BaseIntegrationIT {
             JsonNode json = objectMapper.readTree(response.getBody());
             assertThat(json.get("status").asText()).isEqualTo("UP");
         }
+
+        @Test
+        void shouldExposeAllGroups() throws Exception {
+            ResponseEntity<String> response = restTemplate.getForEntity(
+                    API_BASE_URL + "/actuator/health", String.class);
+
+            JsonNode json = objectMapper.readTree(response.getBody());
+            JsonNode groups = json.get("groups");
+            assertThat(groups).isNotNull();
+            assertThat(groups.toString()).contains("startup");
+            assertThat(groups.toString()).contains("liveness");
+            assertThat(groups.toString()).contains("readiness");
+        }
     }
 
     @Nested
-    @DisplayName("Readiness probe")
-    class ReadinessProbe {
+    @DisplayName("Startup probe")
+    class StartupProbe {
 
         @Test
-        void shouldBeUp_whenSynced() throws Exception {
+        void shouldBeUp_whenInitialized() throws Exception {
             ResponseEntity<String> response = restTemplate.getForEntity(
-                    API_BASE_URL + "/actuator/health/readiness", String.class);
+                    API_BASE_URL + "/actuator/health/startup", String.class);
 
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
 
             JsonNode json = objectMapper.readTree(response.getBody());
             assertThat(json.get("status").asText()).isEqualTo("UP");
+        }
+
+        @Test
+        void shouldIncludeDbComponent() throws Exception {
+            ResponseEntity<String> response = restTemplate.getForEntity(
+                    API_BASE_URL + "/actuator/health/startup", String.class);
+
+            JsonNode components = objectMapper.readTree(response.getBody()).get("components");
+            assertThat(components.get("db")).isNotNull();
+            assertThat(components.get("db").get("status").asText()).isEqualTo("UP");
+        }
+
+        @Test
+        void shouldIncludeStartupComponent() throws Exception {
+            ResponseEntity<String> response = restTemplate.getForEntity(
+                    API_BASE_URL + "/actuator/health/startup", String.class);
+
+            JsonNode components = objectMapper.readTree(response.getBody()).get("components");
+            assertThat(components.get("startup")).isNotNull();
+            assertThat(components.get("startup").get("status").asText()).isEqualTo("UP");
+            assertThat(components.get("startup").get("details").get("connectionAlive").asBoolean()).isTrue();
+            assertThat(components.get("startup").get("details").get("receivingBlocks").asBoolean()).isTrue();
         }
     }
 
@@ -106,6 +141,65 @@ public class SyncStatusIntegrationIT extends BaseIntegrationIT {
 
             JsonNode json = objectMapper.readTree(response.getBody());
             assertThat(json.get("status").asText()).isEqualTo("UP");
+        }
+
+        @Test
+        void shouldIncludeSyncIndicators() throws Exception {
+            ResponseEntity<String> response = restTemplate.getForEntity(
+                    API_BASE_URL + "/actuator/health/liveness", String.class);
+
+            JsonNode components = objectMapper.readTree(response.getBody()).get("components");
+            assertThat(components.get("livenessState")).isNotNull();
+            assertThat(components.get("offchainSync")).isNotNull();
+            assertThat(components.get("onchainSync")).isNotNull();
+        }
+    }
+
+    @Nested
+    @DisplayName("Readiness probe")
+    class ReadinessProbe {
+
+        @Test
+        void shouldBeUp_whenSynced() throws Exception {
+            ResponseEntity<String> response = restTemplate.getForEntity(
+                    API_BASE_URL + "/actuator/health/readiness", String.class);
+
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+
+            JsonNode json = objectMapper.readTree(response.getBody());
+            assertThat(json.get("status").asText()).isEqualTo("UP");
+        }
+
+        @Test
+        void shouldIncludeOffchainSync() throws Exception {
+            ResponseEntity<String> response = restTemplate.getForEntity(
+                    API_BASE_URL + "/actuator/health/readiness", String.class);
+
+            JsonNode components = objectMapper.readTree(response.getBody()).get("components");
+            assertThat(components.get("offchainSync")).isNotNull();
+            assertThat(components.get("offchainSync").get("status").asText()).isEqualTo("UP");
+        }
+
+        @Test
+        void shouldIncludeOnchainSync() throws Exception {
+            ResponseEntity<String> response = restTemplate.getForEntity(
+                    API_BASE_URL + "/actuator/health/readiness", String.class);
+
+            JsonNode components = objectMapper.readTree(response.getBody()).get("components");
+            assertThat(components.get("onchainSync")).isNotNull();
+            assertThat(components.get("onchainSync").get("status").asText()).isEqualTo("UP");
+            assertThat(components.get("onchainSync").get("details").get("syncStatus").asText()).isEqualTo("Synced");
+            assertThat(components.get("onchainSync").get("details").get("syncPercentage")).isNotNull();
+        }
+
+        @Test
+        void shouldIncludeDb() throws Exception {
+            ResponseEntity<String> response = restTemplate.getForEntity(
+                    API_BASE_URL + "/actuator/health/readiness", String.class);
+
+            JsonNode components = objectMapper.readTree(response.getBody()).get("components");
+            assertThat(components.get("db")).isNotNull();
+            assertThat(components.get("db").get("status").asText()).isEqualTo("UP");
         }
     }
 }

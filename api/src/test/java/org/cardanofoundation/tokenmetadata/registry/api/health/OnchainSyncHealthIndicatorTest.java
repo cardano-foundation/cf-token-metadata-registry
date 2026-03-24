@@ -2,6 +2,7 @@ package org.cardanofoundation.tokenmetadata.registry.api.health;
 
 import com.bloxbean.cardano.yaci.store.common.domain.HealthStatus;
 import com.bloxbean.cardano.yaci.store.core.service.HealthService;
+import org.cardanofoundation.tokenmetadata.registry.api.service.OnchainSyncStatusService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -19,23 +20,45 @@ class OnchainSyncHealthIndicatorTest {
     @Mock
     private HealthService healthService;
 
+    @Mock
+    private OnchainSyncStatusService syncStatusService;
+
     @InjectMocks
     private OnchainSyncHealthIndicator onchainSyncHealthIndicator;
 
-    @Test
-    void healthyAndReceivingBlocks_shouldReturnUp() {
-        when(healthService.getHealthStatus()).thenReturn(HealthStatus.builder()
+    private HealthStatus healthyStatus() {
+        return HealthStatus.builder()
                 .isConnectionAlive(true)
                 .isReceivingBlocks(true)
                 .isError(false)
                 .isScheduleToStop(false)
                 .timeSinceLastBlock(1000)
-                .build());
+                .build();
+    }
+
+    @Test
+    void healthyAndSynced_shouldReturnUp() {
+        when(healthService.getHealthStatus()).thenReturn(healthyStatus());
+        when(syncStatusService.isSynced()).thenReturn(true);
+        when(syncStatusService.getSyncPercentage()).thenReturn(100.0);
 
         Health health = onchainSyncHealthIndicator.health();
 
         assertThat(health.getStatus()).isEqualTo(Status.UP);
+        assertThat(health.getDetails()).containsEntry("syncStatus", "Synced");
+    }
+
+    @Test
+    void healthyButCatchingUp_shouldReturnOutOfService() {
+        when(healthService.getHealthStatus()).thenReturn(healthyStatus());
+        when(syncStatusService.isSynced()).thenReturn(false);
+        when(syncStatusService.getSyncPercentage()).thenReturn(45.0);
+
+        Health health = onchainSyncHealthIndicator.health();
+
+        assertThat(health.getStatus()).isEqualTo(Status.OUT_OF_SERVICE);
         assertThat(health.getDetails()).containsEntry("syncStatus", "Syncing");
+        assertThat(health.getDetails()).containsEntry("syncPercentage", "45.00%");
     }
 
     @Test

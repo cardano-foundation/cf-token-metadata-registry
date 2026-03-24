@@ -42,11 +42,11 @@ services:
       CIP_QUERY_PRIORITY: "${CIP_QUERY_PRIORITY}"
       API_LOCAL_BIND_PORT: "${API_LOCAL_BIND_PORT}"
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:${API_EXPOSED_PORT}/actuator/health/readiness || exit 1"]
-      interval: 60s
+      test: ["CMD-SHELL", "curl -f http://localhost:${API_EXPOSED_PORT}/actuator/health/startup || exit 1"]
+      interval: 30s
       timeout: 5s
-      retries: 15
-      start_period: 72h
+      retries: 10
+      start_period: 5m
     depends_on:
       db:
         condition: service_healthy

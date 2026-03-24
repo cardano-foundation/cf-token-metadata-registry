@@ -20,7 +20,7 @@ runs:
         java -jar api/target/api-*.jar &
         echo "Waiting for API to be ready..."
         for i in $(seq 1 60); do
-          if curl -sf http://localhost:8081/actuator/health > /dev/null 2>&1; then
+          if curl -sf http://localhost:8081/actuator/health/startup > /dev/null 2>&1; then
             echo "API is ready."
             break
           fi
@@ -75,7 +75,7 @@ runs:
           ${{ inputs.image-tag }}
         echo "Waiting for API to be ready..."
         for i in $(seq 1 60); do
-          if curl -sf http://localhost:8081/actuator/health > /dev/null 2>&1; then
+          if curl -sf http://localhost:8081/actuator/health/startup > /dev/null 2>&1; then
             echo "API is ready."
             break
           fi
