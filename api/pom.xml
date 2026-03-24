@@ -147,6 +147,12 @@
             <artifactId>yaci-store-admin-spring-boot-starter</artifactId>
             <version>${version.yaci}</version>
         </dependency>
+        <!-- Admin UI -->
+        <dependency>
+            <groupId>com.bloxbean.cardano</groupId>
+            <artifactId>yaci-store-admin-ui</artifactId>
+            <version>${version.yaci}</version>
+        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-docker-compose</artifactId>
