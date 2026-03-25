@@ -29,18 +29,20 @@ We configure three Spring Boot Actuator health groups mapped to Kubernetes probe
 2. **Liveness group** (`/actuator/health/liveness`):
    - Spring Boot's built-in liveness state
    - `OffchainSyncHealthIndicator`: Reports off-chain sync status
-   - `OnchainSyncHealthIndicator`: Reports on-chain sync status with sync percentage
-   - Purpose: Detects application deadlocks or unrecoverable failures.
+   - `OnchainLivenessHealthIndicator`: Checks node connection and block reception only (no sync percentage)
+   - Purpose: Detects application deadlocks or unrecoverable failures. Does NOT check sync progress — liveness runs in parallel with readiness, and the pod must not be killed during initial sync.
 
 3. **Readiness group** (`/actuator/health/readiness`):
    - Spring Boot's built-in readiness state
-   - Both sync health indicators
+   - `OffchainSyncHealthIndicator`: Reports off-chain sync status
+   - `OnchainReadinessHealthIndicator`: Requires 100% sync to chain tip
    - Database health check
-   - Purpose: Only routes traffic to pods that have completed initial sync and have a healthy database connection.
+   - Purpose: Only routes traffic to pods that are fully synced to the chain tip and have a healthy database connection.
 
 **Custom health indicators**:
 
-- `OnchainSyncHealthIndicator`: Reports UP (synced), OUT_OF_SERVICE (syncing with percentage), or DOWN (error/no connection). Uses `OnchainSyncStatusService` which caches the network tip with adaptive refresh intervals.
+- `OnchainLivenessHealthIndicator`: Reports UP (connected and receiving blocks), OUT_OF_SERVICE (not receiving blocks), or DOWN (error/no connection). Does not check sync progress.
+- `OnchainReadinessHealthIndicator`: Reports UP (100% synced), OUT_OF_SERVICE (syncing with percentage), or DOWN (error/no connection). Uses `OnchainSyncStatusService` which requires full sync (100%) to report as synced.
 - `OffchainSyncHealthIndicator`: Maps sync states to health: UP (done/extra job), OUT_OF_SERVICE (in progress/not started), DOWN (error).
 - `StartupHealthIndicator`: Checks Yaci Store's `BlockFetcherInitialized` and `ConnectionAlive` flags.
 

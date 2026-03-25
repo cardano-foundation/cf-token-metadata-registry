@@ -87,7 +87,7 @@ class OnchainSyncStatusServiceTest {
     class IsSynced {
 
         @Test
-        void below98Percent_returnsNotSynced() {
+        void below100Percent_returnsNotSynced() {
             when(cursorService.getCursor()).thenReturn(Optional.of(cursorAt(500)));
             when(chainTipService.getTipAndCurrentEpoch()).thenReturn(tipAt(1000));
 
@@ -95,11 +95,11 @@ class OnchainSyncStatusServiceTest {
         }
 
         @Test
-        void at98Percent_returnsSynced() {
+        void at98Percent_returnsNotSynced() {
             when(cursorService.getCursor()).thenReturn(Optional.of(cursorAt(980)));
             when(chainTipService.getTipAndCurrentEpoch()).thenReturn(tipAt(1000));
 
-            assertThat(syncStatusService.isSynced()).isTrue();
+            assertThat(syncStatusService.isSynced()).isFalse();
         }
 
         @Test

@@ -9,14 +9,13 @@ import org.springframework.boot.actuate.health.HealthIndicator;
 import org.springframework.stereotype.Component;
 
 /**
- * Health indicator for on-chain token sync via Yaci indexer.
- * Covers CIP-68, CIP-113, and future on-chain token standards.
- * Uses Yaci Store's HealthService for connection status and
- * OnchainSyncStatusService to verify the indexer is near the chain tip.
+ * Readiness health indicator for on-chain sync — checks that the indexer is fully synced
+ * to the chain tip (100%). Used by Kubernetes readiness probe to gate traffic routing.
+ * A pod that is still catching up will not receive requests.
  */
 @Component
 @RequiredArgsConstructor
-public class OnchainSyncHealthIndicator implements HealthIndicator {
+public class OnchainReadinessHealthIndicator implements HealthIndicator {
 
     private static final String DETAIL_SYNC_STATUS = "syncStatus";
 
@@ -29,10 +28,6 @@ public class OnchainSyncHealthIndicator implements HealthIndicator {
         try {
             status = healthService.getHealthStatus();
         } catch (NullPointerException e) {
-            // Workaround for yaci-store bug: BlockRangeSync.isRunning() throws NPE
-            // when blockFetcher is null (node not connected yet).
-            // See: BlockRangeSync.java:99 in yaci-helper.
-            // TODO: remove once fixed upstream in yaci-store/yaci-helper
             return Health.unknown()
                     .withDetail(DETAIL_SYNC_STATUS, "Block fetcher not initialized")
                     .build();

@@ -25,7 +25,7 @@ public class OnchainSyncStatusService {
     private static final long INITIAL_SYNC_REFRESH_INTERVAL = 15L * 60 * 1000; // 15 minutes
     private static final long SYNCED_REFRESH_INTERVAL = 60L * 1000;             // 1 minute
     private static final long SYNC_THRESHOLD_BLOCKS = 1000;
-    private static final double SYNCED_PERCENTAGE_THRESHOLD = 98.0;
+    private static final double SYNCED_PERCENTAGE_THRESHOLD = 100.0;
 
     private final CursorService cursorService;
     private final ChainTipService chainTipService;

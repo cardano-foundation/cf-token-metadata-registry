@@ -15,7 +15,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class OnchainSyncHealthIndicatorTest {
+class OnchainReadinessHealthIndicatorTest {
 
     @Mock
     private HealthService healthService;
@@ -24,7 +24,7 @@ class OnchainSyncHealthIndicatorTest {
     private OnchainSyncStatusService syncStatusService;
 
     @InjectMocks
-    private OnchainSyncHealthIndicator onchainSyncHealthIndicator;
+    private OnchainReadinessHealthIndicator indicator;
 
     private HealthStatus healthyStatus() {
         return HealthStatus.builder()
@@ -37,24 +37,38 @@ class OnchainSyncHealthIndicatorTest {
     }
 
     @Test
-    void healthyAndSynced_shouldReturnUp() {
+    void fullySynced_shouldReturnUp() {
         when(healthService.getHealthStatus()).thenReturn(healthyStatus());
         when(syncStatusService.isSynced()).thenReturn(true);
         when(syncStatusService.getSyncPercentage()).thenReturn(100.0);
 
-        Health health = onchainSyncHealthIndicator.health();
+        Health health = indicator.health();
 
         assertThat(health.getStatus()).isEqualTo(Status.UP);
         assertThat(health.getDetails()).containsEntry("syncStatus", "Synced");
+        assertThat(health.getDetails()).containsEntry("syncPercentage", "100.00%");
     }
 
     @Test
-    void healthyButCatchingUp_shouldReturnOutOfService() {
+    void at98Percent_shouldReturnOutOfService() {
+        when(healthService.getHealthStatus()).thenReturn(healthyStatus());
+        when(syncStatusService.isSynced()).thenReturn(false);
+        when(syncStatusService.getSyncPercentage()).thenReturn(98.0);
+
+        Health health = indicator.health();
+
+        assertThat(health.getStatus()).isEqualTo(Status.OUT_OF_SERVICE);
+        assertThat(health.getDetails()).containsEntry("syncStatus", "Syncing");
+        assertThat(health.getDetails()).containsEntry("syncPercentage", "98.00%");
+    }
+
+    @Test
+    void catchingUp_shouldReturnOutOfService() {
         when(healthService.getHealthStatus()).thenReturn(healthyStatus());
         when(syncStatusService.isSynced()).thenReturn(false);
         when(syncStatusService.getSyncPercentage()).thenReturn(45.0);
 
-        Health health = onchainSyncHealthIndicator.health();
+        Health health = indicator.health();
 
         assertThat(health.getStatus()).isEqualTo(Status.OUT_OF_SERVICE);
         assertThat(health.getDetails()).containsEntry("syncStatus", "Syncing");
@@ -71,7 +85,7 @@ class OnchainSyncHealthIndicatorTest {
                 .timeSinceLastBlock(60000)
                 .build());
 
-        Health health = onchainSyncHealthIndicator.health();
+        Health health = indicator.health();
 
         assertThat(health.getStatus()).isEqualTo(Status.DOWN);
         assertThat(health.getDetails()).containsEntry("connectionAlive", false);
@@ -87,7 +101,7 @@ class OnchainSyncHealthIndicatorTest {
                 .timeSinceLastBlock(1000)
                 .build());
 
-        Health health = onchainSyncHealthIndicator.health();
+        Health health = indicator.health();
 
         assertThat(health.getStatus()).isEqualTo(Status.DOWN);
         assertThat(health.getDetails()).containsEntry("error", true);
@@ -103,7 +117,7 @@ class OnchainSyncHealthIndicatorTest {
                 .timeSinceLastBlock(120000)
                 .build());
 
-        Health health = onchainSyncHealthIndicator.health();
+        Health health = indicator.health();
 
         assertThat(health.getStatus()).isEqualTo(Status.OUT_OF_SERVICE);
         assertThat(health.getDetails()).containsEntry("syncStatus", "Not receiving blocks");
@@ -113,7 +127,7 @@ class OnchainSyncHealthIndicatorTest {
     void blockFetcherNotInitialized_shouldReturnUnknown() {
         when(healthService.getHealthStatus()).thenThrow(new NullPointerException("blockFetcher is null"));
 
-        Health health = onchainSyncHealthIndicator.health();
+        Health health = indicator.health();
 
         assertThat(health.getStatus()).isEqualTo(Status.UNKNOWN);
         assertThat(health.getDetails()).containsEntry("syncStatus", "Block fetcher not initialized");
@@ -129,7 +143,7 @@ class OnchainSyncHealthIndicatorTest {
                 .timeSinceLastBlock(1000)
                 .build());
 
-        Health health = onchainSyncHealthIndicator.health();
+        Health health = indicator.health();
 
         assertThat(health.getStatus()).isEqualTo(Status.OUT_OF_SERVICE);
         assertThat(health.getDetails()).containsEntry("syncStatus", "Scheduled to stop");
