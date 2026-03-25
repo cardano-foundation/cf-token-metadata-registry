@@ -24,6 +24,10 @@ runs:
             echo "API is ready."
             break
           fi
+          if [ "$i" = "60" ]; then
+            echo "ERROR: API failed to start within 120s"
+            exit 1
+          fi
           echo "Attempt $i/60 - waiting 2s..."
           sleep 2
         done
@@ -78,6 +82,11 @@ runs:
           if curl -sf http://localhost:8081/actuator/health/startup > /dev/null 2>&1; then
             echo "API is ready."
             break
+          fi
+          if [ "$i" = "60" ]; then
+            echo "ERROR: API failed to start within 120s"
+            docker logs api || true
+            exit 1
           fi
           echo "Attempt $i/60 - waiting 2s..."
           sleep 2

@@ -98,6 +98,9 @@ docker build -t cardanofoundation/cf-token-metadata-registry-api:latest -f api/D
 > [!NOTE]
 > The native image build takes 10-15 minutes and requires 8+ GB of RAM during compilation.
 
+> [!NOTE]
+> The native image is **built** with [Oracle GraalVM](https://www.oracle.com/java/graalvm/) under the [GraalVM Free Terms and Conditions (GFTC)](https://www.oracle.com/downloads/licenses/graal-free-license.html). Oracle GraalVM is free for development and production use, but redistribution of the GraalVM SDK itself is restricted. This does not affect the final Docker image or binary — the multi-stage build ensures only the compiled native binary (not the GraalVM toolchain) is included in the runtime image. Users who build from source need to accept the GFTC to pull the Oracle GraalVM build image.
+
 ### Running locally with Docker Compose
 
 After building either image variant:

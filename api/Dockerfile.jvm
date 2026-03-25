@@ -1,24 +1,14 @@
-FROM eclipse-temurin:25-jdk AS build
+# Dockerfile used in compose to build and run project.
+FROM eclipse-temurin:25-jdk AS builder
 
 RUN apt-get update && apt-get install -y maven && apt-get clean
 
+ADD . /app
 WORKDIR /app
-COPY pom.xml .
-COPY api/pom.xml api/
-COPY common/pom.xml common/
-COPY job/pom.xml job/
-COPY cli/pom.xml cli/
-COPY integration-test/pom.xml integration-test/
-RUN mvn dependency:go-offline -pl api,common -am -B
-
-COPY common/ common/
-COPY api/ api/
-RUN mvn clean package -pl api,common -am -DskipTests -B
+RUN mvn clean package -DskipTests
 
 FROM eclipse-temurin:25-jre
 
+COPY --from=builder /app/api/target/*.jar /app/app.jar
 WORKDIR /app
-COPY --from=build /app/api/target/*.jar app.jar
-
-EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "app.jar"]

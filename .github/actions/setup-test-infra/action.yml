@@ -38,13 +38,27 @@ runs:
     - name: Wait for devnet to be ready
       shell: bash
       run: |
-        echo "Waiting for Store API to be ready..."
+        echo "Waiting for Store API port to be open..."
         for i in $(seq 1 30); do
           if nc -z localhost 8080 2>/dev/null; then
-            echo "Store API is ready!"
+            echo "Store API port is open!"
             break
           fi
           echo "Attempt $i/30 - Store API not ready yet, waiting..."
+          sleep 2
+        done
+
+        echo "Waiting for Yaci Store to have protocol params indexed..."
+        for i in $(seq 1 90); do
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/api/v1/epochs/latest/parameters 2>/dev/null || echo "000")
+          if [ "$HTTP_STATUS" = "200" ]; then
+            echo "Protocol params available!"
+            break
+          fi
+          if [ "$i" = "90" ]; then
+            echo "WARNING: Protocol params not available after 90 attempts (3 min)"
+          fi
+          echo "Attempt $i/90 - protocol params not ready (HTTP $HTTP_STATUS), waiting..."
           sleep 2
         done
 
