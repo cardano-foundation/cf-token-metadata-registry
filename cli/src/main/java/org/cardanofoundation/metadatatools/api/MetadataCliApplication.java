@@ -78,7 +78,9 @@ public class MetadataCliApplication implements CommandLineRunner {
         options.addOption(Option.builder()
                 .longOpt(OPT_OUTFILE)
                 .desc("If specified the output is written to the specified file or following the CIP-26 conventions. Otherwise output is written to stdout.")
-                .optionalArg(true).build());
+                .optionalArg(true)
+                .build());
+
         return options;
     }
 
@@ -115,13 +117,13 @@ public class MetadataCliApplication implements CommandLineRunner {
     }
 
     @SuppressWarnings("unused")
-    private void runEntry(final String[] args) {
+    private void runEntry() {
         // TODO: implement entry command
         log.warn("Entry command not yet implemented.");
     }
 
     @SuppressWarnings("unused")
-    private void runValidate(final String[] args) {
+    private void runValidate() {
         // TODO: implement validate command
         log.warn("Validate command not yet implemented.");
     }
@@ -144,8 +146,8 @@ public class MetadataCliApplication implements CommandLineRunner {
 
         switch (args[0]) {
             case "init" -> runInit(Arrays.copyOfRange(args, 1, args.length));
-            case "entry" -> runEntry(Arrays.copyOfRange(args, 1, args.length));
-            case "validate" -> runValidate(Arrays.copyOfRange(args, 1, args.length));
+            case "entry" -> runEntry();
+            case "validate" -> runValidate();
             default -> printHelp();
         }
 
@@ -156,4 +158,5 @@ public class MetadataCliApplication implements CommandLineRunner {
         // cip26 entry --sign --subject (mandatory: the subject itself) --key (mandatory: the signing key file)
         // cip26 validate --file (mandatory: the file that shall be validated) --old-file (optional: predecessor
     }
+
 }
