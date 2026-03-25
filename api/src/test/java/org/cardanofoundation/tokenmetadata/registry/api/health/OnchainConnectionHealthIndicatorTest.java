@@ -14,13 +14,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class OnchainLivenessHealthIndicatorTest {
+class OnchainConnectionHealthIndicatorTest {
 
     @Mock
     private HealthService healthService;
 
     @InjectMocks
-    private OnchainLivenessHealthIndicator indicator;
+    private OnchainConnectionHealthIndicator indicator;
 
     private HealthStatus healthyStatus() {
         return HealthStatus.builder()

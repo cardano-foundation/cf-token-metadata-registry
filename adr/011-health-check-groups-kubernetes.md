@@ -23,14 +23,15 @@ The registry has a complex startup sequence: Flyway migrations must complete, Ya
 We configure three Spring Boot Actuator health groups mapped to Kubernetes probe endpoints:
 
 1. **Startup group** (`/actuator/health/startup`):
-   - `StartupHealthIndicator`: Checks that Yaci Store's block fetcher is initialized and the connection to the Cardano node is alive.
+   - `OnchainConnectionHealthIndicator` (reused): Checks that Yaci Store's block fetcher is initialized, the connection to the Cardano node is alive, and blocks are being received.
+   - Database health check
    - Purpose: Prevents liveness checks from killing the pod during the potentially long initial chain sync.
 
 2. **Liveness group** (`/actuator/health/liveness`):
    - Spring Boot's built-in liveness state
    - `OffchainSyncHealthIndicator`: Reports off-chain sync status
-   - `OnchainLivenessHealthIndicator`: Checks node connection and block reception only (no sync percentage)
-   - Purpose: Detects application deadlocks or unrecoverable failures. Does NOT check sync progress — liveness runs in parallel with readiness, and the pod must not be killed during initial sync.
+   - `OnchainConnectionHealthIndicator`: Checks node connection and block reception only (no sync percentage)
+   - Purpose: Detects application deadlocks or unrecoverable failures. Does NOT check sync progress — liveness runs in parallel with readiness, and the pod must not be killed during initial sync. Reuses the same indicator as the startup group since the checks are identical.
 
 3. **Readiness group** (`/actuator/health/readiness`):
    - Spring Boot's built-in readiness state
@@ -41,10 +42,9 @@ We configure three Spring Boot Actuator health groups mapped to Kubernetes probe
 
 **Custom health indicators**:
 
-- `OnchainLivenessHealthIndicator`: Reports UP (connected and receiving blocks), OUT_OF_SERVICE (not receiving blocks), or DOWN (error/no connection). Does not check sync progress.
+- `OnchainConnectionHealthIndicator`: Reports UP (connected and receiving blocks), OUT_OF_SERVICE (not receiving blocks), or DOWN (error/no connection). Does not check sync progress.
 - `OnchainReadinessHealthIndicator`: Reports UP (100% synced), OUT_OF_SERVICE (syncing with percentage), or DOWN (error/no connection). Uses `OnchainSyncStatusService` which requires full sync (100%) to report as synced.
 - `OffchainSyncHealthIndicator`: Maps sync states to health: UP (done/extra job), OUT_OF_SERVICE (in progress/not started), DOWN (error).
-- `StartupHealthIndicator`: Checks Yaci Store's `BlockFetcherInitialized` and `ConnectionAlive` flags.
 
 ## Consequences
 
