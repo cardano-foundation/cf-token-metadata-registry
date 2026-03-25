@@ -51,7 +51,7 @@ public class TokenMetadataSyncService {
 
     public void synchronizeDatabase() {
 
-        syncStatus.setSyncStatus(SyncStatusEnum.SYNC_IN_PROGRESS);
+        syncStatus.setStatus(SyncStatusEnum.SYNC_IN_PROGRESS);
 
         Optional<OffChainSyncState> lastSyncState = syncStateRepository.findTopByOrderByIdDesc();
         String lastHash = lastSyncState
@@ -68,7 +68,7 @@ public class TokenMetadataSyncService {
 
             if (newHashOpt.isPresent() && newHashOpt.get().equals(lastHash)) {
                 log.info("No new commits since last sync. Skipping processing.");
-                syncStatus.setSyncStatus(SyncStatusEnum.SYNC_DONE);
+                syncStatus.setStatus(SyncStatusEnum.SYNC_DONE);
                 syncStatus.setInitialSyncDone(true);
                 return;
             }
@@ -116,12 +116,12 @@ public class TokenMetadataSyncService {
                 syncStateRepository.save(offChainSyncStateToSave);
             }
 
-            syncStatus.setSyncStatus(SyncStatusEnum.SYNC_DONE);
+            syncStatus.setStatus(SyncStatusEnum.SYNC_DONE);
             syncStatus.setInitialSyncDone(true);
 
         } else {
             log.warn("cardano-token-registry could not be cloned");
-            syncStatus.setSyncStatus(SyncStatusEnum.SYNC_ERROR);
+            syncStatus.setStatus(SyncStatusEnum.SYNC_ERROR);
         }
 
     }

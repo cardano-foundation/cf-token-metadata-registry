@@ -1,6 +1,5 @@
 package org.cardanofoundation.tokenmetadata.registry.api.model.v2;
 
-import org.cardanofoundation.tokenmetadata.registry.api.model.QueryPriority;
 import org.cardanofoundation.tokenmetadata.registry.api.model.cip68.FungibleTokenMetadata;
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.TokenMetadata;
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.wellknownproperties.NameProperty;
@@ -14,7 +13,7 @@ import static org.cardanofoundation.tokenmetadata.registry.api.model.QueryPriori
 class MetadataTest {
 
     @Test
-    public void testFromTokenMetadata() {
+    void testFromTokenMetadata() {
 
         NameProperty nameProperty = new NameProperty();
         nameProperty.setValue("name");
@@ -35,7 +34,7 @@ class MetadataTest {
     }
 
     @Test
-    public void testFromFungibleTokenMetadata() {
+    void testFromFungibleTokenMetadata() {
 
         NameProperty nameProperty = new NameProperty();
         nameProperty.setValue("name");

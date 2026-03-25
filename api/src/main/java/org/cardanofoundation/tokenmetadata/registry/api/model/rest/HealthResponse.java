@@ -6,7 +6,6 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.cardanofoundation.tokenmetadata.registry.model.enums.SyncStatusEnum;
 
 @Data
 @NoArgsConstructor

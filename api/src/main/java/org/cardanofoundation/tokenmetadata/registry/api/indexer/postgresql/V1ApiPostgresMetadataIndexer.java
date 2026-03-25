@@ -35,33 +35,43 @@ public class V1ApiPostgresMetadataIndexer implements V1ApiMetadataIndexer {
                         : new ArrayList<>(MetadataQueryResult.DEFAULT_PROPERTY_NAMES);
         propertiesToExclude.removeAll(properties);
         for (final MetadataQueryResult metadataQueryResult : queryResults) {
-            if (metadataQueryResult.getProperties() != null) {
-                try {
-                    final TokenMetadata tokenMetadata =
-                            objectMapper.readValue(metadataQueryResult.getProperties(), TokenMetadata.class);
-                    if (!propertiesToExclude.isEmpty()) {
-                        for (final String fieldName : propertiesToExclude) {
-                            switch (fieldName) {
-                                case "name" -> tokenMetadata.setName(null);
-                                case "ticker" -> tokenMetadata.setTicker(null);
-                                case "url" -> tokenMetadata.setUrl(null);
-                                case "description" -> tokenMetadata.setDescription(null);
-                                case "decimals" -> tokenMetadata.setDecimals(null);
-                                case "logo" -> tokenMetadata.setLogo(null);
-                                default -> tokenMetadata.removeProperty(fieldName);
-                            }
-                        }
-                    }
-                    metadata.put(metadataQueryResult.getSubject(), tokenMetadata);
-                } catch (final JsonProcessingException e) {
-                    log.warn(
-                            String.format(
-                                    "Could not parse properties of subject %s.", metadataQueryResult.getSubject()),
-                            e);
-                }
-            }
+            parseQueryResult(metadataQueryResult, propertiesToExclude)
+                    .ifPresent(tokenMetadata -> metadata.put(metadataQueryResult.getSubject(), tokenMetadata));
         }
         return metadata;
+    }
+
+    private Optional<TokenMetadata> parseQueryResult(final MetadataQueryResult metadataQueryResult,
+                                                      final List<String> propertiesToExclude) {
+        if (metadataQueryResult.getProperties() == null) {
+            return Optional.empty();
+        }
+        try {
+            final TokenMetadata tokenMetadata =
+                    objectMapper.readValue(metadataQueryResult.getProperties(), TokenMetadata.class);
+            excludeProperties(tokenMetadata, propertiesToExclude);
+            return Optional.of(tokenMetadata);
+        } catch (final JsonProcessingException e) {
+            log.warn(
+                    String.format(
+                            "Could not parse properties of subject %s.", metadataQueryResult.getSubject()),
+                    e);
+            return Optional.empty();
+        }
+    }
+
+    private void excludeProperties(final TokenMetadata tokenMetadata, final List<String> propertiesToExclude) {
+        for (final String fieldName : propertiesToExclude) {
+            switch (fieldName) {
+                case "name" -> tokenMetadata.setName(null);
+                case "ticker" -> tokenMetadata.setTicker(null);
+                case "url" -> tokenMetadata.setUrl(null);
+                case "description" -> tokenMetadata.setDescription(null);
+                case "decimals" -> tokenMetadata.setDecimals(null);
+                case "logo" -> tokenMetadata.setLogo(null);
+                default -> tokenMetadata.removeProperty(fieldName);
+            }
+        }
     }
 
     /**

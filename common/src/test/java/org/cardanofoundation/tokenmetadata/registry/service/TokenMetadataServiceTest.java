@@ -37,7 +37,7 @@ class TokenMetadataServiceTest {
     private TokenLogoRepository tokenLogoRepository;
 
     @Test
-    public void insertMappingTest() throws IOException {
+    void insertMappingTest() throws IOException {
 
         File mappingFile = ResourceUtils.getFile("classpath:mappings/ff7cad970d3a755a1ff0335ccb3f3c1cabf31aacf3f23dd13db61b0630313030.json");
         Optional<Mapping> mappingsOpt = tokenMappingService.parseMappings(mappingFile);
@@ -70,7 +70,7 @@ class TokenMetadataServiceTest {
     }
 
     @Test
-    public void insertLogoTest() throws IOException {
+    void insertLogoTest() throws IOException {
 
         File mappingFile = ResourceUtils.getFile("classpath:mappings/ff7cad970d3a755a1ff0335ccb3f3c1cabf31aacf3f23dd13db61b0630313030.json");
         File logoFile = ResourceUtils.getFile("classpath:mappings/ff7cad970d3a755a1ff0335ccb3f3c1cabf31aacf3f23dd13db61b0630313030-logo.txt");
@@ -102,7 +102,7 @@ class TokenMetadataServiceTest {
     }
 
     @Test
-    public void insertMappingTest_ShouldRejectTokenWithNameExceedingMaxLength() {
+    void insertMappingTest_ShouldRejectTokenWithNameExceedingMaxLength() {
         LocalDateTime now = LocalDateTime.now();
         String testUser = "test-user";
 
@@ -128,7 +128,7 @@ class TokenMetadataServiceTest {
     }
 
     @Test
-    public void insertMappingTest_ShouldRejectTokenWithTickerExceedingMaxLength() {
+    void insertMappingTest_ShouldRejectTokenWithTickerExceedingMaxLength() {
         LocalDateTime now = LocalDateTime.now();
         String testUser = "test-user";
 
@@ -154,7 +154,7 @@ class TokenMetadataServiceTest {
     }
 
     @Test
-    public void insertMappingTest_ShouldRejectTokenWithDescriptionExceedingMaxLength() {
+    void insertMappingTest_ShouldRejectTokenWithDescriptionExceedingMaxLength() {
         LocalDateTime now = LocalDateTime.now();
         String testUser = "test-user";
 
@@ -180,7 +180,7 @@ class TokenMetadataServiceTest {
     }
 
     @Test
-    public void insertLogoTest_ShouldRejectLogoWithInvalidSubject() {
+    void insertLogoTest_ShouldRejectLogoWithInvalidSubject() {
         // Create a mapping with a subject that exceeds CIP-26 specification (max 120 hex characters)
         // This tests that subject validation is also performed when inserting logos
         // Validation is performed by cf-metadata-core library
@@ -205,7 +205,7 @@ class TokenMetadataServiceTest {
     }
 
     @Test
-    public void insertLogoTest_ShouldRejectLogoExceedingMaxLength() {
+    void insertLogoTest_ShouldRejectLogoExceedingMaxLength() {
         // Create a mapping with a logo that exceeds the CIP-26 specification limit (87,400 characters)
         // This limit is defined in cf-metadata-core library, not hardcoded in our service
         String longLogo = "a".repeat(87401);

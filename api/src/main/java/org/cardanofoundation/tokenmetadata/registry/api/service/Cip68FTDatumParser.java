@@ -79,7 +79,7 @@ public class Cip68FTDatumParser {
     private Optional<String> getStringProperty(String propertyName, MapPlutusData mapPlutusData) {
         PlutusData property = mapPlutusData.getMap().get(BytesPlutusData.of(propertyName));
         if (property instanceof BytesPlutusData bytes) {
-            return Optional.of(new String(bytes.getValue()).replaceAll("\0", ""));
+            return Optional.of(new String(bytes.getValue()).replace("\0", ""));
         } else {
             return Optional.empty();
         }

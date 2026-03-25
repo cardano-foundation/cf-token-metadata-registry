@@ -24,8 +24,18 @@ import java.util.List;
 public class MetadataQueryResult {
   public static final String DEFAULT_QUERY_STRING =
       "SELECT subject, properties, updated, updated_by FROM metadata";
+
+  private static final String PROP_NAME = "name";
+  private static final String PROP_TICKER = "ticker";
+  private static final String PROP_URL = "url";
+  private static final String PROP_DESCRIPTION = "description";
+  private static final String PROP_LOGO = "logo";
+  private static final String PROP_DECIMALS = "decimals";
+  private static final String PROP_UPDATED = "updated";
+  private static final String PROP_UPDATED_BY = "updatedBy";
+
   public static final List<String> DEFAULT_PROPERTY_NAMES =
-      Arrays.asList("name", "ticker", "url", "description", "logo", "decimals", "tools");
+      List.of(PROP_NAME, PROP_TICKER, PROP_URL, PROP_DESCRIPTION, PROP_LOGO, PROP_DECIMALS, "tools");
   static final ObjectMapper VALUE_MAPPER = new ObjectMapper();
 
   private String subject;
@@ -51,19 +61,19 @@ public class MetadataQueryResult {
             VALUE_MAPPER.readValue(this.properties, TokenMetadata.class);
         for (final String fieldName : fieldsToExclude) {
           switch (fieldName) {
-            case "name" -> tokenMetadata.setName(null);
-            case "ticker" -> tokenMetadata.setTicker(null);
-            case "url" -> tokenMetadata.setUrl(null);
-            case "description" -> tokenMetadata.setDescription(null);
-            case "decimals" -> tokenMetadata.setDecimals(null);
-            case "logo" -> tokenMetadata.setLogo(null);
+            case PROP_NAME -> tokenMetadata.setName(null);
+            case PROP_TICKER -> tokenMetadata.setTicker(null);
+            case PROP_URL -> tokenMetadata.setUrl(null);
+            case PROP_DESCRIPTION -> tokenMetadata.setDescription(null);
+            case PROP_DECIMALS -> tokenMetadata.setDecimals(null);
+            case PROP_LOGO -> tokenMetadata.setLogo(null);
             default -> tokenMetadata.removeProperty(fieldName);
           }
         }
-        if (!fieldsToExclude.contains("updated")) {
+        if (!fieldsToExclude.contains(PROP_UPDATED)) {
           tokenMetadata.setUpdated(this.updated);
         }
-        if (!fieldsToExclude.contains("updatedBy")) {
+        if (!fieldsToExclude.contains(PROP_UPDATED_BY)) {
           tokenMetadata.setUpdatedBy(this.updatedBy);
         }
         return tokenMetadata;

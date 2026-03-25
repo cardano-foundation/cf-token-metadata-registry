@@ -26,7 +26,7 @@ class OffchainSyncHealthIndicatorTest {
     @Test
     void syncDone_shouldReturnUp() {
         when(tokenMetadataSyncService.getSyncStatus())
-                .thenReturn(SyncStatus.builder().isInitialSyncDone(true).syncStatus(SyncStatusEnum.SYNC_DONE).build());
+                .thenReturn(SyncStatus.builder().isInitialSyncDone(true).status(SyncStatusEnum.SYNC_DONE).build());
 
         Health health = offchainSyncHealthIndicator.health();
 
@@ -37,7 +37,7 @@ class OffchainSyncHealthIndicatorTest {
     @Test
     void syncInExtraJob_shouldReturnUp() {
         when(tokenMetadataSyncService.getSyncStatus())
-                .thenReturn(SyncStatus.builder().isInitialSyncDone(true).syncStatus(SyncStatusEnum.SYNC_IN_EXTRA_JOB).build());
+                .thenReturn(SyncStatus.builder().isInitialSyncDone(true).status(SyncStatusEnum.SYNC_IN_EXTRA_JOB).build());
 
         Health health = offchainSyncHealthIndicator.health();
 
@@ -47,7 +47,7 @@ class OffchainSyncHealthIndicatorTest {
     @Test
     void syncInProgress_shouldReturnOutOfService() {
         when(tokenMetadataSyncService.getSyncStatus())
-                .thenReturn(SyncStatus.builder().isInitialSyncDone(false).syncStatus(SyncStatusEnum.SYNC_IN_PROGRESS).build());
+                .thenReturn(SyncStatus.builder().isInitialSyncDone(false).status(SyncStatusEnum.SYNC_IN_PROGRESS).build());
 
         Health health = offchainSyncHealthIndicator.health();
 
@@ -58,7 +58,7 @@ class OffchainSyncHealthIndicatorTest {
     @Test
     void syncNotStarted_shouldReturnOutOfService() {
         when(tokenMetadataSyncService.getSyncStatus())
-                .thenReturn(SyncStatus.builder().isInitialSyncDone(false).syncStatus(SyncStatusEnum.SYNC_NOT_STARTED).build());
+                .thenReturn(SyncStatus.builder().isInitialSyncDone(false).status(SyncStatusEnum.SYNC_NOT_STARTED).build());
 
         Health health = offchainSyncHealthIndicator.health();
 
@@ -69,7 +69,7 @@ class OffchainSyncHealthIndicatorTest {
     @Test
     void syncError_shouldReturnDown() {
         when(tokenMetadataSyncService.getSyncStatus())
-                .thenReturn(SyncStatus.builder().isInitialSyncDone(false).syncStatus(SyncStatusEnum.SYNC_ERROR).build());
+                .thenReturn(SyncStatus.builder().isInitialSyncDone(false).status(SyncStatusEnum.SYNC_ERROR).build());
 
         Health health = offchainSyncHealthIndicator.health();
 

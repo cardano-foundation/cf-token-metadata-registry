@@ -115,7 +115,7 @@ public class RegistryMetricsService {
     }
 
     private double getSyncStatusValue() {
-        SyncStatusEnum status = tokenMetadataSyncService.getSyncStatus().getSyncStatus();
+        SyncStatusEnum status = tokenMetadataSyncService.getSyncStatus().getStatus();
         return switch (status) {
             case SYNC_NOT_STARTED -> 0;
             case SYNC_IN_PROGRESS -> 1;

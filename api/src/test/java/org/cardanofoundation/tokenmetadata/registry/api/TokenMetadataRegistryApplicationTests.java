@@ -6,14 +6,17 @@ import org.springframework.boot.test.autoconfigure.jdbc.JdbcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
 @JdbcTest
 @ActiveProfiles("test")
 class TokenMetadataRegistryApplicationTests {
 
     @MockBean
     private EntityManager entityManager;
-  
+
     @Test
     void contextLoads() {
+        assertNotNull(entityManager);
     }
 }

@@ -20,7 +20,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Slf4j
-public class TokenMappingServiceTest {
+class TokenMappingServiceTest {
 
     private final TokenMappingService tokenMappingService = new TokenMappingService(new ObjectMapper());
 
@@ -30,7 +30,7 @@ public class TokenMappingServiceTest {
             "ff7cad970d3a755a1ff0335ccb3f3c1cabf31aacf3f23dd13db61b0630313030.json",
     })
     @ParameterizedTest
-    public void deserializeOk(String mappingFileName) throws FileNotFoundException {
+    void deserializeOk(String mappingFileName) throws FileNotFoundException {
         File mappingFile = ResourceUtils.getFile(String.format("classpath:mappings/%s", mappingFileName));
         Optional<Mapping> mappingsOpt = tokenMappingService.parseMappings(mappingFile);
         Assertions.assertTrue(mappingsOpt.isPresent(), "Mappings are supposed to be present");
@@ -38,7 +38,7 @@ public class TokenMappingServiceTest {
 
 
     @Test
-    public void mappingsAreCorrectlyDeserialized() throws IOException {
+    void mappingsAreCorrectlyDeserialized() throws IOException {
         File mappingFile = ResourceUtils.getFile("classpath:mappings/4ffaa4ef3217df37c4995bb96066af4cb68dfcc66b9f2a10e0c333b95779726d73746f6e65.json");
         File logoFile = ResourceUtils.getFile("classpath:mappings/4ffaa4ef3217df37c4995bb96066af4cb68dfcc66b9f2a10e0c333b95779726d73746f6e65-logo.txt");
         Optional<Mapping> mappingsOpt = tokenMappingService.parseMappings(mappingFile);
@@ -71,7 +71,7 @@ public class TokenMappingServiceTest {
     }
 
     @Test
-    public void mappingsAreCorrectlyDeserialized_2() throws IOException {
+    void mappingsAreCorrectlyDeserialized_2() throws IOException {
         File mappingFile = ResourceUtils.getFile("classpath:mappings/ff7cad970d3a755a1ff0335ccb3f3c1cabf31aacf3f23dd13db61b0630313030.json");
         File logoFile = ResourceUtils.getFile("classpath:mappings/ff7cad970d3a755a1ff0335ccb3f3c1cabf31aacf3f23dd13db61b0630313030-logo.txt");
         Optional<Mapping> mappingsOpt = tokenMappingService.parseMappings(mappingFile);

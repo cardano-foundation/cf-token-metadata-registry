@@ -12,10 +12,10 @@ import lombok.NoArgsConstructor;
 public class AnnotatedSignature {
 
   @JsonProperty("signature")
-  @Schema(name = "signature", required = true)
+  @Schema(name = "signature", requiredMode = Schema.RequiredMode.REQUIRED)
   private String signature;
 
   @JsonProperty("publicKey")
-  @Schema(name = "publicKey", required = true)
+  @Schema(name = "publicKey", requiredMode = Schema.RequiredMode.REQUIRED)
   private String publicKey;
 }

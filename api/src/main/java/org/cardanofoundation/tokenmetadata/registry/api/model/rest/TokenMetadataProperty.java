@@ -18,13 +18,13 @@ import java.util.List;
 public class TokenMetadataProperty<T> {
   @JsonProperty("signatures")
   @Valid
-  @Schema(name = "signatures", required = true)
+  @Schema(name = "signatures", requiredMode = Schema.RequiredMode.REQUIRED)
   private List<AnnotatedSignature> signatures = new ArrayList<>();
 
   @JsonProperty("sequenceNumber")
   @Valid
   @DecimalMin("0")
-  @Schema(name = "sequenceNumber", required = true)
+  @Schema(name = "sequenceNumber", requiredMode = Schema.RequiredMode.REQUIRED)
   private BigDecimal sequenceNumber;
 
   @JsonProperty("value")

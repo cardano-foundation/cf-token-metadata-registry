@@ -18,7 +18,7 @@ public class DecimalsProperty extends TokenMetadataProperty<BigDecimal> {
   @Valid
   @DecimalMin("0")
   @DecimalMax("255")
-  @Schema(name = "value", example = "1", required = true)
+  @Schema(name = "value", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
   @Override
   public BigDecimal getValue() {
     return super.getValue();

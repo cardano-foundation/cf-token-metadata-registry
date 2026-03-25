@@ -8,8 +8,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.HealthResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.GetMapping;
 
 /**
  * @deprecated Use /actuator/health/readiness instead. This endpoint will be removed in a future release.
@@ -23,7 +22,7 @@ public interface HealthApi {
     @Operation(operationId = "getHealthStatus", summary = "Returns health status of service including if the initial sync is done", deprecated = true, responses = {
             @ApiResponse(responseCode = "200", content = @Content(mediaType = "application/json", schema = @Schema(implementation = HealthResponse.class)))
     })
-    @RequestMapping(method = RequestMethod.GET, value = "/health", produces = {"application/json;charset=utf-8"})
+    @GetMapping(value = "/health", produces = {"application/json;charset=utf-8"})
     ResponseEntity<HealthResponse> getHealthStatus();
 
 }

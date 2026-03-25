@@ -28,7 +28,7 @@ public class TokenMetadata {
   @Schema(
       name = "subject",
       example = "b377d03a568dde663534e040fc32a57323ec00970df0e863eba3f098717569640a",
-      required = true)
+      requiredMode = Schema.RequiredMode.REQUIRED)
   private String subject;
 
   @JsonProperty("policy")
@@ -39,12 +39,12 @@ public class TokenMetadata {
 
   @JsonProperty("name")
   @Valid
-  @Schema(name = "name", required = true)
+  @Schema(name = "name", requiredMode = Schema.RequiredMode.REQUIRED)
   private NameProperty name;
 
   @JsonProperty("description")
   @Valid
-  @Schema(name = "description", required = true)
+  @Schema(name = "description", requiredMode = Schema.RequiredMode.REQUIRED)
   private DescriptionProperty description;
 
   @JsonProperty("url")
@@ -123,7 +123,6 @@ public class TokenMetadata {
   }
 
   public Metadata toCip26Metadata() {
-    final Metadata metadata = new Metadata();
-    return metadata;
+    return new Metadata();
   }
 }

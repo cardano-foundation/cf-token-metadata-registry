@@ -10,7 +10,7 @@ class Cip68FungibleTokenServiceTest {
 
 
     @Test
-    public void convertAssetNameInReferenceNft() {
+    void convertAssetNameInReferenceNft() {
         String fltdUnit = "577f0b1342f8f8f4aed3388b80a8535812950c7a892495c0ecdf0f1e0014df10464c4454";
 
         AssetType assetType = AssetType.fromUnit(fltdUnit);

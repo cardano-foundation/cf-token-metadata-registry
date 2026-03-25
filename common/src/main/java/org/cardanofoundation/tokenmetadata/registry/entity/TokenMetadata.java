@@ -1,6 +1,5 @@
 package org.cardanofoundation.tokenmetadata.registry.entity;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;

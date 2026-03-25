@@ -61,7 +61,7 @@ public class OnchainSyncHealthIndicator implements HealthIndicator {
         }
 
         double syncPercentage = syncStatusService.getSyncPercentage();
-        builder.withDetail("syncPercentage", String.format("%.2f%%", syncPercentage));
+        builder.withDetail("syncPercentage", String.format(java.util.Locale.US, "%.2f%%", syncPercentage));
 
         if (!syncStatusService.isSynced()) {
             return builder.outOfService()

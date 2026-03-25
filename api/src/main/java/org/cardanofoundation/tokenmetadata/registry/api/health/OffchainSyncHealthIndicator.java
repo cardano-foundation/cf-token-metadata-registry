@@ -16,9 +16,9 @@ public class OffchainSyncHealthIndicator implements HealthIndicator {
     @Override
     public Health health() {
         SyncStatus syncStatus = tokenMetadataSyncService.getSyncStatus();
-        String statusText = syncStatus.getSyncStatus().toString();
+        String statusText = syncStatus.getStatus().toString();
 
-        return switch (syncStatus.getSyncStatus()) {
+        return switch (syncStatus.getStatus()) {
             case SYNC_DONE, SYNC_IN_EXTRA_JOB -> Health.up()
                     .withDetail("syncStatus", statusText)
                     .build();
