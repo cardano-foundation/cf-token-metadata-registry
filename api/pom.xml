@@ -220,6 +220,11 @@
                         <artifactId>native-maven-plugin</artifactId>
                         <configuration>
                             <mainClass>org.cardanofoundation.tokenmetadata.registry.api.TokenMetadataRegistryApplication</mainClass>
+                            <buildArgs>
+                                <buildArg>-O3</buildArg>
+                                <buildArg>-march=native</buildArg>
+                                <buildArg>--gc=G1</buildArg>
+                            </buildArgs>
                         </configuration>
                         <executions>
                             <execution>
