@@ -116,15 +116,15 @@ public class SyncStatusIntegrationIT extends BaseIntegrationIT {
         }
 
         @Test
-        void shouldIncludeStartupComponent() throws Exception {
+        void shouldIncludeOnchainConnectionComponent() throws Exception {
             ResponseEntity<String> response = restTemplate.getForEntity(
                     API_BASE_URL + "/actuator/health/startup", String.class);
 
             JsonNode components = objectMapper.readTree(response.getBody()).get("components");
-            assertThat(components.get("startup")).isNotNull();
-            assertThat(components.get("startup").get("status").asText()).isEqualTo("UP");
-            assertThat(components.get("startup").get("details").get("connectionAlive").asBoolean()).isTrue();
-            assertThat(components.get("startup").get("details").get("receivingBlocks").asBoolean()).isTrue();
+            assertThat(components.get("onchainConnection")).isNotNull();
+            assertThat(components.get("onchainConnection").get("status").asText()).isEqualTo("UP");
+            assertThat(components.get("onchainConnection").get("details").get("connectionAlive").asBoolean()).isTrue();
+            assertThat(components.get("onchainConnection").get("details").get("receivingBlocks").asBoolean()).isTrue();
         }
     }
 
@@ -151,7 +151,7 @@ public class SyncStatusIntegrationIT extends BaseIntegrationIT {
             JsonNode components = objectMapper.readTree(response.getBody()).get("components");
             assertThat(components.get("livenessState")).isNotNull();
             assertThat(components.get("offchainSync")).isNotNull();
-            assertThat(components.get("onchainSync")).isNotNull();
+            assertThat(components.get("onchainConnection")).isNotNull();
         }
     }
 
@@ -186,10 +186,10 @@ public class SyncStatusIntegrationIT extends BaseIntegrationIT {
                     API_BASE_URL + "/actuator/health/readiness", String.class);
 
             JsonNode components = objectMapper.readTree(response.getBody()).get("components");
-            assertThat(components.get("onchainSync")).isNotNull();
-            assertThat(components.get("onchainSync").get("status").asText()).isEqualTo("UP");
-            assertThat(components.get("onchainSync").get("details").get("syncStatus").asText()).isEqualTo("Synced");
-            assertThat(components.get("onchainSync").get("details").get("syncPercentage")).isNotNull();
+            assertThat(components.get("onchainReadiness")).isNotNull();
+            assertThat(components.get("onchainReadiness").get("status").asText()).isEqualTo("UP");
+            assertThat(components.get("onchainReadiness").get("details").get("syncStatus").asText()).isEqualTo("Synced");
+            assertThat(components.get("onchainReadiness").get("details").get("syncPercentage")).isNotNull();
         }
 
         @Test
