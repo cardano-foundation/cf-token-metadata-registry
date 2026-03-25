@@ -71,8 +71,8 @@ Two Docker image variants are available:
 
 | Variant | Base image | Startup | Memory | Image size | Use case |
 |---------|-----------|---------|--------|------------|----------|
-| **JVM** | Eclipse Temurin 25 LTS | ~15s | ~2 GB | ~637 MB | Development, debugging |
-| **Native** | GraalVM 25 LTS (AOT-compiled) | ~3s | ~150 MB | ~200 MB | Production, Kubernetes |
+| **JVM** | Eclipse Temurin 25 LTS | ~15s | ~2 GB | ~637 MB | Production, development |
+| **Native** | GraalVM 25 LTS (AOT-compiled) | ~3s | ~150 MB | ~200 MB | Experimental |
 
 ### Building the JVM image
 
