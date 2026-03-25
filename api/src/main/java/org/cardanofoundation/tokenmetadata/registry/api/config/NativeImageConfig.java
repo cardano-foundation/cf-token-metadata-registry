@@ -73,9 +73,14 @@ public class NativeImageConfig {
                         DECLARED_FIELDS);
             }
 
-            // Flyway migration resources
-            hints.resources().registerPattern("db/migration/postgresql/*");
-            hints.resources().registerPattern("db/store/*");
+            // Flyway migration resources — register directories and files explicitly
+            // so Flyway's ClassPathScanner can enumerate them in native images.
+            // Application migrations
+            hints.resources().registerPattern("db/migration/postgresql/.*");
+            // Yaci Store migrations (from dependency JARs)
+            hints.resources().registerPattern("db/store/postgresql/.*");
+            hints.resources().registerPattern("db/store/mysql/.*");
+            hints.resources().registerPattern("db/store/h2/.*");
         }
     }
 }
