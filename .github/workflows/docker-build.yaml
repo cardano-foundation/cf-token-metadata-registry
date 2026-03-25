@@ -71,7 +71,7 @@ jobs:
 
       - name: Download JAR artifact
         if: inputs.variant == 'jvm'
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: ${{ inputs.app }}-jar
           path: ${{ inputs.app }}/target
@@ -101,7 +101,7 @@ jobs:
 
       - name: Upload Docker image artifact
         if: ${{ !inputs.push }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: docker-image-${{ inputs.app }}-${{ inputs.variant }}
           path: /tmp/docker-image.tar

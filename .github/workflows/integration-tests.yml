@@ -32,7 +32,7 @@ jobs:
 
       - name: Download Docker image
         if: startsWith(inputs.target, 'docker-')
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: docker-image-api-${{ inputs.target == 'docker-jvm' && 'jvm' || 'native' }}
           path: /tmp
