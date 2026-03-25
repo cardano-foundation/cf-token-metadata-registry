@@ -64,21 +64,113 @@ All settings are controlled via environment variables. See [`.env`](./.env) (mai
 | `STORE_CARDANO_HOST` | Cardano node host for CIP-68 sync | `backbone.mainnet.cardanofoundation.org` |
 | `STORE_CARDANO_PROTOCOL_MAGIC` | Network protocol magic | `764824073` (mainnet) |
 
-## How to build
+## Docker Images
+
+Two Docker image variants are available:
+
+| Variant | Base image | Startup | Memory | Image size | Use case |
+|---------|-----------|---------|--------|------------|----------|
+| **JVM** | Eclipse Temurin 25 LTS | ~15s | ~2 GB | ~637 MB | Development, debugging |
+| **Native** | GraalVM 25 LTS (AOT-compiled) | ~3s | ~150 MB | ~200 MB | Production, Kubernetes |
+
+### Building the JVM image
+
+The default `docker compose build` builds a JVM image:
+
+```console
+docker compose build
+```
+
+Or build it directly:
+
+```console
+docker build -t cardanofoundation/cf-token-metadata-registry-api:latest -f api/Dockerfile.jvm .
+```
+
+### Building the Native image (GraalVM)
+
+The native image compiles the application ahead-of-time into a standalone binary. No JVM is needed at runtime.
+
+```console
+docker build -t cardanofoundation/cf-token-metadata-registry-api:latest -f api/Dockerfile.native .
+```
+
+> [!NOTE]
+> The native image build takes 10-15 minutes and requires 8+ GB of RAM during compilation.
+
+### Running locally with Docker Compose
+
+After building either image variant:
+
+```console
+# Mainnet
+docker compose up -d
+
+# Preprod
+docker compose --env-file .env.preprod up -d
+```
+
+To start fresh (wipe database and resync from scratch):
+
+```console
+docker compose down -v
+docker compose up -d
+```
+
+### Verifying the deployment
+
+Once started, the API syncs both offchain (GitHub) and on-chain (Cardano node) metadata. Check the health endpoints:
+
+```console
+# Startup probe — is the app initialized?
+curl http://localhost:8080/actuator/health/startup
+
+# Readiness probe — is the app ready to serve traffic?
+curl http://localhost:8080/actuator/health/readiness
+
+# Liveness probe — is the app still healthy?
+curl http://localhost:8080/actuator/health/liveness
+
+# Prometheus metrics (sync progress, token counts)
+curl http://localhost:8080/actuator/prometheus | grep cftr_
+```
+
+Key metrics to watch during sync:
+- `cftr_sync_status` — offchain sync: `0`=not started, `1`=in progress, `2`=done
+- `cftr_tokens_cip26_count` — number of CIP-26 tokens loaded from GitHub
+- `cftr_tokens_cip68_count` — number of CIP-68 tokens indexed from chain
+- `yaci_store_current_block` — current block being processed
+
+> [!TIP]
+> A full mainnet sync from genesis takes approximately 15 hours. The readiness probe will report `OUT_OF_SERVICE` until the on-chain sync reaches 98%.
+
+## How to build from source
 
 For building from source you need:
 - [Apache Maven](https://maven.apache.org/)
-- [Java SDK 21+](https://adoptium.net/installation/)
+- [Java SDK 25 LTS](https://adoptium.net/installation/) (e.g. Amazon Corretto or Eclipse Temurin)
 - [Git](https://git-scm.com/)
 
 ```console
 git clone git@github.com:cardano-foundation/cf-token-metadata-registry.git
 cd cf-token-metadata-registry
-mvn package
+mvn clean package -DskipTests
 ```
 
-> [!NOTE]
-> If you change the code, rebuild the local image with `docker compose build` before running `docker compose up`.
+### Building a native binary locally
+
+To build a native binary without Docker, you need [GraalVM 25 LTS](https://www.graalvm.org/downloads/):
+
+```console
+# Using SDKMAN
+sdk install java 25.0.2-graal
+sdk use java 25.0.2-graal
+
+# Build the native binary
+mvn clean package -pl api,common -am -DskipTests -Pnative
+
+# The binary is at api/target/api
+```
 
 ## Features
 
