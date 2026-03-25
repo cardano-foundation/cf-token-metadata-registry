@@ -63,6 +63,7 @@ All settings are controlled via environment variables. See [`.env`](./.env) (mai
 | `CIP_QUERY_PRIORITY` | CIP priority order for V2 queries | `CIP_68,CIP_26` |
 | `STORE_CARDANO_HOST` | Cardano node host for CIP-68 sync | `backbone.mainnet.cardanofoundation.org` |
 | `STORE_CARDANO_PROTOCOL_MAGIC` | Network protocol magic | `764824073` (mainnet) |
+| `API_DOCKERFILE` | Dockerfile variant for `docker compose build` | `api/Dockerfile.jvm` |
 
 ## Docker Images
 
@@ -103,11 +104,14 @@ docker build -t cardanofoundation/cf-token-metadata-registry-api:latest -f api/D
 
 ### Running locally with Docker Compose
 
-After building either image variant:
+By default, `docker compose` uses the JVM Dockerfile. To use the native image instead, set `API_DOCKERFILE`:
 
 ```console
-# Mainnet
+# Mainnet (JVM, default)
 docker compose up -d
+
+# Mainnet (native image)
+API_DOCKERFILE=api/Dockerfile.native docker compose up -d --build
 
 # Preprod
 docker compose --env-file .env.preprod up -d
