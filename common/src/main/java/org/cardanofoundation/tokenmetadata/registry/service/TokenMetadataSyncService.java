@@ -15,9 +15,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.File;
 import java.nio.file.Path;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Stream;
 
@@ -75,40 +73,9 @@ public class TokenMetadataSyncService {
 
             List<File> filesToProcess = resolveFilesToProcess(lastHash, newHashOpt, repoPathOpt.get());
 
-            AtomicBoolean hasFailures = new AtomicBoolean(false);
+            boolean hasFailures = processMappingFiles(filesToProcess);
 
-            filesToProcess.stream()
-                    .flatMap(mappingFile -> {
-
-                        Optional<Mapping> mapping = tokenMappingService.parseMappings(mappingFile);
-                        Optional<MappingUpdateDetails> mappingUpdateDetails = gitService.getMappingDetails(mappingFile);
-
-                        if (mapping.isPresent() && mappingUpdateDetails.isPresent()) {
-                            return Stream.of(new MappingDetails(mapping.get(), mappingUpdateDetails.get()));
-                        } else {
-                            return Stream.empty();
-                        }
-
-                    })
-                    .forEach(mappingDetails -> {
-                        try {
-                            boolean metadataInserted = tokenMetadataService.insertMapping(
-                                    mappingDetails.mapping(),
-                                    mappingDetails.mappingUpdateDetails().updatedAt(),
-                                    mappingDetails.mappingUpdateDetails().updatedBy());
-
-                            // Only insert logo if metadata was successfully inserted
-                            if (metadataInserted) {
-                                tokenMetadataService.insertLogo(mappingDetails.mapping());
-                            }
-                        } catch (Exception e) {
-                            hasFailures.set(true);
-                            log.warn("Failed to process token '{}': {}. Continuing with next token.",
-                                    mappingDetails.mapping().subject(), e.getMessage());
-                        }
-                    });
-
-            if (hasFailures.get()) {
+            if (hasFailures) {
                 log.warn("Some mappings failed to process. Commit hash will not be advanced so failed mappings are retried on next sync.");
             } else if (newHashOpt.isPresent()) {
                 OffChainSyncState offChainSyncStateToSave = lastSyncState.orElse(new OffChainSyncState());
@@ -124,6 +91,40 @@ public class TokenMetadataSyncService {
             syncStatus.setStatus(SyncStatusEnum.SYNC_ERROR);
         }
 
+    }
+
+    private boolean processMappingFiles(List<File> filesToProcess) {
+        AtomicBoolean failures = new AtomicBoolean(false);
+
+        filesToProcess.stream()
+                .flatMap(this::toMappingDetails)
+                .forEach(mappingDetails -> {
+                    try {
+                        boolean metadataInserted = tokenMetadataService.insertMapping(
+                                mappingDetails.mapping(),
+                                mappingDetails.mappingUpdateDetails().updatedAt(),
+                                mappingDetails.mappingUpdateDetails().updatedBy());
+                        if (metadataInserted) {
+                            tokenMetadataService.insertLogo(mappingDetails.mapping());
+                        }
+                    } catch (Exception e) {
+                        failures.set(true);
+                        log.warn("Failed to process token '{}': {}. Continuing with next token.",
+                                mappingDetails.mapping().subject(), e.getMessage());
+                    }
+                });
+
+        return failures.get();
+    }
+
+    private Stream<MappingDetails> toMappingDetails(File mappingFile) {
+        Optional<Mapping> mapping = tokenMappingService.parseMappings(mappingFile);
+        Optional<MappingUpdateDetails> updateDetails = gitService.getMappingDetails(mappingFile);
+
+        if (mapping.isPresent() && updateDetails.isPresent()) {
+            return Stream.of(new MappingDetails(mapping.get(), updateDetails.get()));
+        }
+        return Stream.empty();
     }
 
     private List<File> resolveFilesToProcess(String lastHash, Optional<String> newHashOpt, Path repoPath) {

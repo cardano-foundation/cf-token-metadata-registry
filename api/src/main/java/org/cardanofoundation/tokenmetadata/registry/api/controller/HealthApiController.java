@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 /**
  * @deprecated Use /actuator/health/readiness instead. This endpoint will be removed in a future release.
  */
-@Deprecated
+@Deprecated(since = "1.5.0", forRemoval = true)
 @Controller
 @CrossOrigin
 @RequestMapping("${openapi.metadataServer.base-path:}")

@@ -349,6 +349,7 @@ class GitServiceTest {
         @Test
         void handlesNullGitGracefully() {
             gitService.cleanup();
+            assertThat(gitService.git).isNull();
         }
     }
 
@@ -375,6 +376,7 @@ class GitServiceTest {
                         .setURI(remoteDir.toUri().toString())
                         .setDirectory(repoDir.toFile())
                         .call()) {
+                    // auto-close is the intent — clone and release resources
                 }
             }
 

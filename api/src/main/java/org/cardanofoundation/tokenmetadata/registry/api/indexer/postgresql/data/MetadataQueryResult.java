@@ -121,13 +121,13 @@ public class MetadataQueryResult {
     final MetadataQueryResult queryResult = new MetadataQueryResult();
     queryResult.setSubject(getColumnValue(resultSet, "subject", null, String.class));
     queryResult.setPolicy(getColumnValue(resultSet, "policy", null, String.class));
-    queryResult.setName(getColumnValue(resultSet, "name", null, String.class));
-    queryResult.setTicker(getColumnValue(resultSet, "ticker", null, String.class));
-    queryResult.setUrl(getColumnValue(resultSet, "url", null, String.class));
-    queryResult.setDescription(getColumnValue(resultSet, "description", null, String.class));
-    queryResult.setLogo(getColumnValue(resultSet, "logo", null, String.class));
-    queryResult.setDecimals(getColumnValue(resultSet, "decimals", null, Integer.class));
-    queryResult.setUpdated(getColumnValue(resultSet, "updated", null, Date.class));
+    queryResult.setName(getColumnValue(resultSet, PROP_NAME, null, String.class));
+    queryResult.setTicker(getColumnValue(resultSet, PROP_TICKER, null, String.class));
+    queryResult.setUrl(getColumnValue(resultSet, PROP_URL, null, String.class));
+    queryResult.setDescription(getColumnValue(resultSet, PROP_DESCRIPTION, null, String.class));
+    queryResult.setLogo(getColumnValue(resultSet, PROP_LOGO, null, String.class));
+    queryResult.setDecimals(getColumnValue(resultSet, PROP_DECIMALS, null, Integer.class));
+    queryResult.setUpdated(getColumnValue(resultSet, PROP_UPDATED, null, Date.class));
     queryResult.setUpdatedBy(getColumnValue(resultSet, "updated_by", null, String.class));
     queryResult.setProperties(
         getColumnValue(resultSet, "properties", null, PGobject.class).getValue());

@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @JdbcTest
 @ActiveProfiles("test")
+@SuppressWarnings("java:S5738") // @MockBean deprecated — @MockitoBean cannot replace it here (EntityManager needs early registration)
 class TokenMetadataRegistryApplicationTests {
 
     @MockBean
