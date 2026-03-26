@@ -1,7 +1,7 @@
 package org.cardanofoundation.tokenmetadata.registry.it;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jayway.jsonpath.DocumentContext;
+import com.jayway.jsonpath.JsonPath;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -14,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.HttpClientErrorException;
 
 import java.time.Duration;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -31,8 +32,6 @@ public class Cip26IntegrationIT extends BaseIntegrationIT {
     private static final String FULL_TOKEN_SUBJECT = "a0b1c2d3e4f5a0b1c2d3e4f5a0b1c2d3e4f5a0b1c2d3e4f5a0b1c2d354455354544f4b454e";
     private static final String MINIMAL_TOKEN_SUBJECT = "b1c2d3e4f5a0b1c2d3e4f5a0b1c2d3e4f5a0b1c2d3e4f5a0b1c2d3e44d494e544f4b454e";
     private static final String UNKNOWN_SUBJECT = "ffffffffffffffffffffffffffffffffffffffffffffffffffffffff556e6b6e6f776e";
-
-    private static final ObjectMapper objectMapper = new ObjectMapper();
 
     @BeforeAll
     static void setUp() {
@@ -65,21 +64,21 @@ public class Cip26IntegrationIT extends BaseIntegrationIT {
     class V1SingleSubject {
 
         @Test
-        void knownSubject_returnsAllProperties() throws Exception {
+        void knownSubject_returnsAllProperties() {
             ResponseEntity<String> response = restTemplate.getForEntity(
                     API_BASE_URL + "/metadata/" + FULL_TOKEN_SUBJECT, String.class);
 
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
 
-            JsonNode json = objectMapper.readTree(response.getBody());
-            assertThat(json.get("subject").asText()).isEqualTo(FULL_TOKEN_SUBJECT);
-            assertThat(json.get("name").get("value").asText()).isEqualTo("Test Token Full");
-            assertThat(json.get("ticker").get("value").asText()).isEqualTo("TSTF");
-            assertThat(json.get("description").get("value").asText())
+            DocumentContext json = JsonPath.parse(response.getBody());
+            assertThat(json.read("$.subject", String.class)).isEqualTo(FULL_TOKEN_SUBJECT);
+            assertThat(json.read("$.name.value", String.class)).isEqualTo("Test Token Full");
+            assertThat(json.read("$.ticker.value", String.class)).isEqualTo("TSTF");
+            assertThat(json.read("$.description.value", String.class))
                     .isEqualTo("A test token with all properties for integration testing");
-            assertThat(json.get("url").get("value").asText())
+            assertThat(json.read("$.url.value", String.class))
                     .isEqualTo("https://test.cardanofoundation.org");
-            assertThat(json.get("decimals").get("value").asText()).isEqualTo("6");
+            assertThat(json.read("$.decimals.value", String.class)).isEqualTo("6");
         }
 
         @Test
@@ -96,15 +95,15 @@ public class Cip26IntegrationIT extends BaseIntegrationIT {
     class V1PropertyFilter {
 
         @Test
-        void singleProperty_returnsOnlyThatProperty() throws Exception {
+        void singleProperty_returnsOnlyThatProperty() {
             ResponseEntity<String> response = restTemplate.getForEntity(
                     API_BASE_URL + "/metadata/" + FULL_TOKEN_SUBJECT + "/properties/ticker", String.class);
 
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
 
-            JsonNode json = objectMapper.readTree(response.getBody());
-            assertThat(json.get("subject").asText()).isEqualTo(FULL_TOKEN_SUBJECT);
-            assertThat(json.get("ticker").get("value").asText()).isEqualTo("TSTF");
+            DocumentContext json = JsonPath.parse(response.getBody());
+            assertThat(json.read("$.subject", String.class)).isEqualTo(FULL_TOKEN_SUBJECT);
+            assertThat(json.read("$.ticker.value", String.class)).isEqualTo("TSTF");
         }
     }
 
@@ -113,7 +112,7 @@ public class Cip26IntegrationIT extends BaseIntegrationIT {
     class V1BatchQuery {
 
         @Test
-        void mixedSubjects_returnsOnlyExisting() throws Exception {
+        void mixedSubjects_returnsOnlyExisting() {
             String body = String.format(
                     "{\"subjects\": [\"%s\", \"%s\"], \"properties\": []}",
                     FULL_TOKEN_SUBJECT, UNKNOWN_SUBJECT);
@@ -122,10 +121,10 @@ public class Cip26IntegrationIT extends BaseIntegrationIT {
 
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
 
-            JsonNode subjects = objectMapper.readTree(response.getBody()).get("subjects");
-            assertThat(subjects).hasSize(1);
-            assertThat(subjects.get(0).get("subject").asText()).isEqualTo(FULL_TOKEN_SUBJECT);
-            assertThat(subjects.get(0).get("name").get("value").asText()).isEqualTo("Test Token Full");
+            DocumentContext json = JsonPath.parse(response.getBody());
+            assertThat(json.read("$.subjects", List.class)).hasSize(1);
+            assertThat(json.read("$.subjects[0].subject", String.class)).isEqualTo(FULL_TOKEN_SUBJECT);
+            assertThat(json.read("$.subjects[0].name.value", String.class)).isEqualTo("Test Token Full");
         }
     }
 
@@ -134,19 +133,16 @@ public class Cip26IntegrationIT extends BaseIntegrationIT {
     class V2SingleSubject {
 
         @Test
-        void knownSubject_returnsMetadataWithSource() throws Exception {
+        void knownSubject_returnsMetadataWithSource() {
             ResponseEntity<String> response = restTemplate.getForEntity(
                     API_BASE_URL + "/api/v2/subjects/" + FULL_TOKEN_SUBJECT, String.class);
 
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
 
-            JsonNode json = objectMapper.readTree(response.getBody());
-            JsonNode subject = json.get("subject");
-            assertThat(subject.get("subject").asText()).isEqualTo(FULL_TOKEN_SUBJECT);
-
-            JsonNode metadata = subject.get("metadata");
-            assertThat(metadata.get("name").get("value").asText()).isEqualTo("Test Token Full");
-            assertThat(metadata.get("name").get("source").asText()).isEqualTo("CIP_26");
+            DocumentContext json = JsonPath.parse(response.getBody());
+            assertThat(json.read("$.subject.subject", String.class)).isEqualTo(FULL_TOKEN_SUBJECT);
+            assertThat(json.read("$.subject.metadata.name.value", String.class)).isEqualTo("Test Token Full");
+            assertThat(json.read("$.subject.metadata.name.source", String.class)).isEqualTo("CIP_26");
         }
 
         @Test
@@ -157,28 +153,27 @@ public class Cip26IntegrationIT extends BaseIntegrationIT {
         }
 
         @Test
-        void minimalToken_returnsOnlyNameAndDescription() throws Exception {
+        void minimalToken_returnsOnlyNameAndDescription() {
             ResponseEntity<String> response = restTemplate.getForEntity(
                     API_BASE_URL + "/api/v2/subjects/" + MINIMAL_TOKEN_SUBJECT, String.class);
 
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
 
-            JsonNode metadata = objectMapper.readTree(response.getBody()).get("subject").get("metadata");
-            assertThat(metadata.get("name").get("value").asText()).isEqualTo("Test Token Minimal");
-            assertThat(metadata.get("description").get("value").asText())
+            DocumentContext json = JsonPath.parse(response.getBody());
+            assertThat(json.read("$.subject.metadata.name.value", String.class)).isEqualTo("Test Token Minimal");
+            assertThat(json.read("$.subject.metadata.description.value", String.class))
                     .isEqualTo("A minimal test token with only required properties");
-            JsonNode ticker = metadata.get("ticker");
-            assertThat(ticker == null || ticker.isNull()).isTrue();
+            assertThat(json.read("$.subject.metadata.ticker", Object.class)).isNull();
         }
 
         @Test
-        void defaultQueryPriority_returnsCip68ThenCip26() throws Exception {
+        void defaultQueryPriority_returnsCip68ThenCip26() {
             ResponseEntity<String> response = restTemplate.getForEntity(
                     API_BASE_URL + "/api/v2/subjects/" + FULL_TOKEN_SUBJECT, String.class);
 
-            JsonNode queryPriority = objectMapper.readTree(response.getBody()).get("queryPriority");
-            assertThat(queryPriority.get(0).asText()).isEqualTo("CIP_68");
-            assertThat(queryPriority.get(1).asText()).isEqualTo("CIP_26");
+            DocumentContext json = JsonPath.parse(response.getBody());
+            assertThat(json.read("$.queryPriority[0]", String.class)).isEqualTo("CIP_68");
+            assertThat(json.read("$.queryPriority[1]", String.class)).isEqualTo("CIP_26");
         }
     }
 
@@ -187,7 +182,7 @@ public class Cip26IntegrationIT extends BaseIntegrationIT {
     class V2PropertyFilter {
 
         @Test
-        void requiredPlusOptionalProperties_returnsRequested() throws Exception {
+        void requiredPlusOptionalProperties_returnsRequested() {
             ResponseEntity<String> response = restTemplate.getForEntity(
                     API_BASE_URL + "/api/v2/subjects/" + FULL_TOKEN_SUBJECT
                             + "?property=name&property=description&property=ticker",
@@ -195,11 +190,11 @@ public class Cip26IntegrationIT extends BaseIntegrationIT {
 
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
 
-            JsonNode metadata = objectMapper.readTree(response.getBody()).get("subject").get("metadata");
-            assertThat(metadata.get("name").get("value").asText()).isEqualTo("Test Token Full");
-            assertThat(metadata.get("description").get("value").asText())
+            DocumentContext json = JsonPath.parse(response.getBody());
+            assertThat(json.read("$.subject.metadata.name.value", String.class)).isEqualTo("Test Token Full");
+            assertThat(json.read("$.subject.metadata.description.value", String.class))
                     .isEqualTo("A test token with all properties for integration testing");
-            assertThat(metadata.get("ticker").get("value").asText()).isEqualTo("TSTF");
+            assertThat(json.read("$.subject.metadata.ticker.value", String.class)).isEqualTo("TSTF");
         }
 
         @Test
@@ -216,7 +211,7 @@ public class Cip26IntegrationIT extends BaseIntegrationIT {
     class V2CipsDetails {
 
         @Test
-        void showCipsDetails_returnsCip26StandardBlock() throws Exception {
+        void showCipsDetails_returnsCip26StandardBlock() {
             ResponseEntity<String> response = restTemplate.getForEntity(
                     API_BASE_URL + "/api/v2/subjects/" + FULL_TOKEN_SUBJECT
                             + "?show_cips_details=true",
@@ -224,14 +219,13 @@ public class Cip26IntegrationIT extends BaseIntegrationIT {
 
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
 
-            JsonNode standards = objectMapper.readTree(response.getBody()).get("subject").get("standards");
-            assertThat(standards).isNotNull();
-            assertThat(standards.get("cip26")).isNotNull();
-            assertThat(standards.get("cip26").get("name").get("value").asText())
+            DocumentContext json = JsonPath.parse(response.getBody());
+            assertThat(json.read("$.subject.standards", Object.class)).isNotNull();
+            assertThat(json.read("$.subject.standards.cip26", Object.class)).isNotNull();
+            assertThat(json.read("$.subject.standards.cip26.name.value", String.class))
                     .isEqualTo("Test Token Full");
             // CIP-26-only token should not have cip68 standard
-            JsonNode cip68 = standards.get("cip68");
-            assertThat(cip68 == null || cip68.isNull()).isTrue();
+            assertThat(json.read("$.subject.standards.cip68", Object.class)).isNull();
         }
     }
 
@@ -240,7 +234,7 @@ public class Cip26IntegrationIT extends BaseIntegrationIT {
     class V2BatchQuery {
 
         @Test
-        void mixedSubjects_returnsOnlyExisting() throws Exception {
+        void mixedSubjects_returnsOnlyExisting() {
             String body = String.format(
                     "{\"subjects\": [\"%s\", \"%s\"], \"properties\": []}",
                     FULL_TOKEN_SUBJECT, UNKNOWN_SUBJECT);
@@ -249,14 +243,13 @@ public class Cip26IntegrationIT extends BaseIntegrationIT {
 
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
 
-            JsonNode json = objectMapper.readTree(response.getBody());
-            JsonNode subjects = json.get("subjects");
-            assertThat(subjects).hasSize(1);
-            assertThat(subjects.get(0).get("subject").asText()).isEqualTo(FULL_TOKEN_SUBJECT);
+            DocumentContext json = JsonPath.parse(response.getBody());
+            assertThat(json.read("$.subjects", List.class)).hasSize(1);
+            assertThat(json.read("$.subjects[0].subject", String.class)).isEqualTo(FULL_TOKEN_SUBJECT);
         }
 
         @Test
-        void allUnknownSubjects_returnsEmptyList() throws Exception {
+        void allUnknownSubjects_returnsEmptyList() {
             String body = String.format(
                     "{\"subjects\": [\"%s\"], \"properties\": []}", UNKNOWN_SUBJECT);
 
@@ -264,12 +257,12 @@ public class Cip26IntegrationIT extends BaseIntegrationIT {
 
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
 
-            JsonNode subjects = objectMapper.readTree(response.getBody()).get("subjects");
-            assertThat(subjects).isEmpty();
+            DocumentContext json = JsonPath.parse(response.getBody());
+            assertThat(json.read("$.subjects", List.class)).isEmpty();
         }
 
         @Test
-        void multipleKnownSubjects_returnsAll() throws Exception {
+        void multipleKnownSubjects_returnsAll() {
             String body = String.format(
                     "{\"subjects\": [\"%s\", \"%s\"], \"properties\": []}",
                     FULL_TOKEN_SUBJECT, MINIMAL_TOKEN_SUBJECT);
@@ -278,8 +271,8 @@ public class Cip26IntegrationIT extends BaseIntegrationIT {
 
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
 
-            JsonNode subjects = objectMapper.readTree(response.getBody()).get("subjects");
-            assertThat(subjects).hasSize(2);
+            DocumentContext json = JsonPath.parse(response.getBody());
+            assertThat(json.read("$.subjects", List.class)).hasSize(2);
         }
 
         @Test
@@ -292,19 +285,19 @@ public class Cip26IntegrationIT extends BaseIntegrationIT {
         }
 
         @Test
-        void shortInvalidSubjects_returnsEmptyWithoutError() throws Exception {
+        void shortInvalidSubjects_returnsEmptyWithoutError() {
             String body = "{\"subjects\": [\"nonexistent\", \"abc\", \"42\"], \"properties\": []}";
 
             ResponseEntity<String> response = postJson(API_BASE_URL + "/api/v2/subjects/query", body);
 
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
 
-            JsonNode subjects = objectMapper.readTree(response.getBody()).get("subjects");
-            assertThat(subjects).isEmpty();
+            DocumentContext json = JsonPath.parse(response.getBody());
+            assertThat(json.read("$.subjects", List.class)).isEmpty();
         }
 
         @Test
-        void mixedValidAndInvalidSubjects_returnsOnlyValid() throws Exception {
+        void mixedValidAndInvalidSubjects_returnsOnlyValid() {
             String body = String.format(
                     "{\"subjects\": [\"nonexistent\", \"%s\", \"short\"], \"properties\": []}",
                     FULL_TOKEN_SUBJECT);
@@ -313,13 +306,13 @@ public class Cip26IntegrationIT extends BaseIntegrationIT {
 
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
 
-            JsonNode subjects = objectMapper.readTree(response.getBody()).get("subjects");
-            assertThat(subjects).hasSize(1);
-            assertThat(subjects.get(0).get("subject").asText()).isEqualTo(FULL_TOKEN_SUBJECT);
+            DocumentContext json = JsonPath.parse(response.getBody());
+            assertThat(json.read("$.subjects", List.class)).hasSize(1);
+            assertThat(json.read("$.subjects[0].subject", String.class)).isEqualTo(FULL_TOKEN_SUBJECT);
         }
 
         @Test
-        void knownSubject_returnsPopulatedMetadata() throws Exception {
+        void knownSubject_returnsPopulatedMetadata() {
             String body = String.format(
                     "{\"subjects\": [\"%s\"], \"properties\": []}", FULL_TOKEN_SUBJECT);
 
@@ -327,19 +320,17 @@ public class Cip26IntegrationIT extends BaseIntegrationIT {
 
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
 
-            JsonNode subjects = objectMapper.readTree(response.getBody()).get("subjects");
-            assertThat(subjects).hasSize(1);
-
-            JsonNode metadata = subjects.get(0).get("metadata");
-            assertThat(metadata.get("name")).isNotNull();
-            assertThat(metadata.get("name").get("value").asText()).isEqualTo("Test Token Full");
-            assertThat(metadata.get("name").get("source").asText()).isNotEmpty();
-            assertThat(metadata.get("description")).isNotNull();
-            assertThat(metadata.get("description").get("value").asText()).isNotEmpty();
+            DocumentContext json = JsonPath.parse(response.getBody());
+            assertThat(json.read("$.subjects", List.class)).hasSize(1);
+            assertThat(json.read("$.subjects[0].metadata.name", Object.class)).isNotNull();
+            assertThat(json.read("$.subjects[0].metadata.name.value", String.class)).isEqualTo("Test Token Full");
+            assertThat(json.read("$.subjects[0].metadata.name.source", String.class)).isNotEmpty();
+            assertThat(json.read("$.subjects[0].metadata.description", Object.class)).isNotNull();
+            assertThat(json.read("$.subjects[0].metadata.description.value", String.class)).isNotEmpty();
         }
 
         @Test
-        void withPropertyFilter_returnsOnlyRequestedProperties() throws Exception {
+        void withPropertyFilter_returnsOnlyRequestedProperties() {
             String body = String.format(
                     "{\"subjects\": [\"%s\"], \"properties\": [\"name\", \"description\", \"ticker\"]}",
                     FULL_TOKEN_SUBJECT);
@@ -348,14 +339,12 @@ public class Cip26IntegrationIT extends BaseIntegrationIT {
 
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
 
-            JsonNode subjects = objectMapper.readTree(response.getBody()).get("subjects");
-            assertThat(subjects).hasSize(1);
-
-            JsonNode metadata = subjects.get(0).get("metadata");
-            assertThat(metadata.get("name").get("value").asText()).isEqualTo("Test Token Full");
-            assertThat(metadata.get("description").get("value").asText())
+            DocumentContext json = JsonPath.parse(response.getBody());
+            assertThat(json.read("$.subjects", List.class)).hasSize(1);
+            assertThat(json.read("$.subjects[0].metadata.name.value", String.class)).isEqualTo("Test Token Full");
+            assertThat(json.read("$.subjects[0].metadata.description.value", String.class))
                     .isEqualTo("A test token with all properties for integration testing");
-            assertThat(metadata.get("ticker").get("value").asText()).isEqualTo("TSTF");
+            assertThat(json.read("$.subjects[0].metadata.ticker.value", String.class)).isEqualTo("TSTF");
         }
     }
 }

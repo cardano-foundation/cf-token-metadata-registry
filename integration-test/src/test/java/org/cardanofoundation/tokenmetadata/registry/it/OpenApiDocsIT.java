@@ -1,13 +1,15 @@
 package org.cardanofoundation.tokenmetadata.registry.it;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jayway.jsonpath.DocumentContext;
+import com.jayway.jsonpath.JsonPath;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -17,27 +19,25 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 public class OpenApiDocsIT extends BaseIntegrationIT {
 
-    private static final ObjectMapper objectMapper = new ObjectMapper();
-    private static JsonNode apiDocs;
+    private static DocumentContext apiDocs;
 
     @BeforeAll
-    static void setUp() throws Exception {
+    static void setUp() {
         waitForApiReady();
 
         ResponseEntity<String> response = restTemplate.getForEntity(API_BASE_URL + "/apidocs", String.class);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).isNotNull();
 
-        apiDocs = objectMapper.readTree(response.getBody());
+        apiDocs = JsonPath.parse(response.getBody());
     }
 
     @Test
     @DisplayName("API docs should contain OpenAPI version and paths")
     void apiDocsShouldContainBasicStructure() {
-        assertThat(apiDocs.has("openapi")).isTrue();
-        assertThat(apiDocs.get("openapi").asText()).startsWith("3.");
-        assertThat(apiDocs.has("paths")).isTrue();
-        assertThat(apiDocs.get("paths").size()).isGreaterThan(0);
+        assertThat(apiDocs.read("$.openapi", String.class)).startsWith("3.");
+        Map<String, Object> paths = apiDocs.read("$.paths", Map.class);
+        assertThat(paths).isNotEmpty();
     }
 
     @Nested
@@ -46,26 +46,29 @@ public class OpenApiDocsIT extends BaseIntegrationIT {
 
         @Test
         void singleSubjectEndpointDocumented() {
-            JsonNode path = apiDocs.at("/paths/~1metadata~1{subject}/get");
-            assertThat(path.isMissingNode()).isFalse();
-            assertThat(path.get("operationId").asText()).isEqualTo("getAllPropertiesForSubject");
-            assertThat(path.has("summary")).isTrue();
+            Object path = apiDocs.read("$.paths['/metadata/{subject}'].get", Object.class);
+            assertThat(path).isNotNull();
+            assertThat(apiDocs.read("$.paths['/metadata/{subject}'].get.operationId", String.class))
+                    .isEqualTo("getAllPropertiesForSubject");
+            assertThat(apiDocs.read("$.paths['/metadata/{subject}'].get.summary", String.class)).isNotNull();
         }
 
         @Test
         void singlePropertyEndpointDocumented() {
-            JsonNode path = apiDocs.at("/paths/~1metadata~1{subject}~1properties~1{property}/get");
-            assertThat(path.isMissingNode()).isFalse();
-            assertThat(path.get("operationId").asText()).isEqualTo("getPropertyForSubject");
-            assertThat(path.has("summary")).isTrue();
+            Object path = apiDocs.read("$.paths['/metadata/{subject}/properties/{property}'].get", Object.class);
+            assertThat(path).isNotNull();
+            assertThat(apiDocs.read("$.paths['/metadata/{subject}/properties/{property}'].get.operationId", String.class))
+                    .isEqualTo("getPropertyForSubject");
+            assertThat(apiDocs.read("$.paths['/metadata/{subject}/properties/{property}'].get.summary", String.class)).isNotNull();
         }
 
         @Test
         void batchQueryEndpointDocumented() {
-            JsonNode path = apiDocs.at("/paths/~1metadata~1query/post");
-            assertThat(path.isMissingNode()).isFalse();
-            assertThat(path.get("operationId").asText()).isEqualTo("getSubjects");
-            assertThat(path.has("summary")).isTrue();
+            Object path = apiDocs.read("$.paths['/metadata/query'].post", Object.class);
+            assertThat(path).isNotNull();
+            assertThat(apiDocs.read("$.paths['/metadata/query'].post.operationId", String.class))
+                    .isEqualTo("getSubjects");
+            assertThat(apiDocs.read("$.paths['/metadata/query'].post.summary", String.class)).isNotNull();
         }
     }
 
@@ -75,18 +78,19 @@ public class OpenApiDocsIT extends BaseIntegrationIT {
 
         @Test
         void singleSubjectEndpointDocumented() {
-            JsonNode path = apiDocs.at("/paths/~1api~1v2~1subjects~1{subject}/get");
-            assertThat(path.isMissingNode()).isFalse();
-            assertThat(path.get("operationId").asText()).isEqualTo("getSubject");
-            assertThat(path.has("summary")).isTrue();
+            Object path = apiDocs.read("$.paths['/api/v2/subjects/{subject}'].get", Object.class);
+            assertThat(path).isNotNull();
+            assertThat(apiDocs.read("$.paths['/api/v2/subjects/{subject}'].get.operationId", String.class))
+                    .isEqualTo("getSubject");
+            assertThat(apiDocs.read("$.paths['/api/v2/subjects/{subject}'].get.summary", String.class)).isNotNull();
         }
 
         @Test
         void batchQueryEndpointDocumented() {
-            JsonNode path = apiDocs.at("/paths/~1api~1v2~1subjects~1query/post");
-            assertThat(path.isMissingNode()).isFalse();
-            assertThat(path.hasNonNull("operationId")).isTrue();
-            assertThat(path.has("summary")).isTrue();
+            Object path = apiDocs.read("$.paths['/api/v2/subjects/query'].post", Object.class);
+            assertThat(path).isNotNull();
+            assertThat(apiDocs.read("$.paths['/api/v2/subjects/query'].post.operationId", String.class)).isNotNull();
+            assertThat(apiDocs.read("$.paths['/api/v2/subjects/query'].post.summary", String.class)).isNotNull();
         }
     }
 
@@ -96,10 +100,10 @@ public class OpenApiDocsIT extends BaseIntegrationIT {
 
         @Test
         void shouldIncludeKeySchemas() {
-            JsonNode schemas = apiDocs.at("/components/schemas");
-            assertThat(schemas.isMissingNode()).isFalse();
-            assertThat(schemas.has("TokenMetadata")).isTrue();
-            assertThat(schemas.has("BatchRequest")).isTrue();
+            Object schemas = apiDocs.read("$.components.schemas", Object.class);
+            assertThat(schemas).isNotNull();
+            assertThat(apiDocs.read("$.components.schemas.TokenMetadata", Object.class)).isNotNull();
+            assertThat(apiDocs.read("$.components.schemas.BatchRequest", Object.class)).isNotNull();
         }
     }
 

@@ -1,8 +1,8 @@
 package org.cardanofoundation.tokenmetadata.registry.it;
 
 import com.bloxbean.cardano.client.backend.blockfrost.service.BFBackendService;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jayway.jsonpath.DocumentContext;
+import com.jayway.jsonpath.JsonPath;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -27,7 +27,6 @@ import static org.awaitility.Awaitility.await;
  */
 public class Cip68IntegrationIT extends BaseIntegrationIT {
 
-    private static final ObjectMapper objectMapper = new ObjectMapper();
     private static final String TOKEN_NAME = "IntTestFT";
     private static final String TOKEN_DESCRIPTION = "Integration test fungible token";
     private static final String TOKEN_TICKER = "ITFT";
@@ -59,10 +58,9 @@ public class Cip68IntegrationIT extends BaseIntegrationIT {
                     ResponseEntity<String> response = restTemplate.getForEntity(
                             API_BASE_URL + "/api/v2/subjects/" + subject, String.class);
                     if (response.getStatusCode() == HttpStatus.OK) {
-                        JsonNode json = objectMapper.readTree(response.getBody());
-                        JsonNode metadata = json.get("subject").get("metadata");
-                        boolean indexed = metadata.get("name") != null
-                                && "CIP_68".equals(metadata.get("name").get("source").asText());
+                        DocumentContext json = JsonPath.parse(response.getBody());
+                        String nameSource = json.read("$.subject.metadata.name.source", String.class);
+                        boolean indexed = "CIP_68".equals(nameSource);
                         log.info("CIP-68 index poll: status={}, indexed={}", response.getStatusCode(), indexed);
                         return indexed;
                     }
@@ -87,17 +85,15 @@ public class Cip68IntegrationIT extends BaseIntegrationIT {
 
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
 
-            JsonNode json = objectMapper.readTree(response.getBody());
-            JsonNode subjectNode = json.get("subject");
-            assertThat(subjectNode.get("subject").asText()).isEqualTo(subject());
+            DocumentContext json = JsonPath.parse(response.getBody());
+            assertThat(json.read("$.subject.subject", String.class)).isEqualTo(subject());
 
-            JsonNode metadata = subjectNode.get("metadata");
-            assertThat(metadata.get("name").get("value").asText()).isEqualTo(TOKEN_NAME);
-            assertThat(metadata.get("name").get("source").asText()).isEqualTo("CIP_68");
-            assertThat(metadata.get("description").get("value").asText()).isEqualTo(TOKEN_DESCRIPTION);
-            assertThat(metadata.get("description").get("source").asText()).isEqualTo("CIP_68");
-            assertThat(metadata.get("ticker").get("value").asText()).isEqualTo(TOKEN_TICKER);
-            assertThat(metadata.get("decimals").get("value").asInt()).isEqualTo(TOKEN_DECIMALS);
+            assertThat(json.read("$.subject.metadata.name.value", String.class)).isEqualTo(TOKEN_NAME);
+            assertThat(json.read("$.subject.metadata.name.source", String.class)).isEqualTo("CIP_68");
+            assertThat(json.read("$.subject.metadata.description.value", String.class)).isEqualTo(TOKEN_DESCRIPTION);
+            assertThat(json.read("$.subject.metadata.description.source", String.class)).isEqualTo("CIP_68");
+            assertThat(json.read("$.subject.metadata.ticker.value", String.class)).isEqualTo(TOKEN_TICKER);
+            assertThat(json.read("$.subject.metadata.decimals.value", Integer.class)).isEqualTo(TOKEN_DECIMALS);
         }
     }
 
@@ -113,13 +109,10 @@ public class Cip68IntegrationIT extends BaseIntegrationIT {
 
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
 
-            JsonNode standards = objectMapper.readTree(response.getBody()).get("subject").get("standards");
-            assertThat(standards).isNotNull();
-
-            JsonNode cip68 = standards.get("cip68");
-            assertThat(cip68).isNotNull();
-            assertThat(cip68.get("name").asText()).isEqualTo(TOKEN_NAME);
-            assertThat(cip68.get("description").asText()).isEqualTo(TOKEN_DESCRIPTION);
+            DocumentContext json = JsonPath.parse(response.getBody());
+            assertThat(json.read("$.subject.standards.cip68", Object.class)).isNotNull();
+            assertThat(json.read("$.subject.standards.cip68.name", String.class)).isEqualTo(TOKEN_NAME);
+            assertThat(json.read("$.subject.standards.cip68.description", String.class)).isEqualTo(TOKEN_DESCRIPTION);
         }
     }
 
@@ -136,14 +129,12 @@ public class Cip68IntegrationIT extends BaseIntegrationIT {
 
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
 
-            JsonNode json = objectMapper.readTree(response.getBody());
-            JsonNode metadata = json.get("subject").get("metadata");
-            assertThat(metadata.get("name").get("value").asText()).isEqualTo(TOKEN_NAME);
-            assertThat(metadata.get("name").get("source").asText()).isEqualTo("CIP_68");
+            DocumentContext json = JsonPath.parse(response.getBody());
+            assertThat(json.read("$.subject.metadata.name.value", String.class)).isEqualTo(TOKEN_NAME);
+            assertThat(json.read("$.subject.metadata.name.source", String.class)).isEqualTo("CIP_68");
 
-            JsonNode queryPriority = json.get("queryPriority");
-            assertThat(queryPriority.get(0).asText()).isEqualTo("CIP_26");
-            assertThat(queryPriority.get(1).asText()).isEqualTo("CIP_68");
+            assertThat(json.read("$.queryPriority[0]", String.class)).isEqualTo("CIP_26");
+            assertThat(json.read("$.queryPriority[1]", String.class)).isEqualTo("CIP_68");
         }
     }
 }
