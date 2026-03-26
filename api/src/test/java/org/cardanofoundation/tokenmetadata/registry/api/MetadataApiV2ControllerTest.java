@@ -11,8 +11,10 @@ import org.cardanofoundation.tokenmetadata.registry.api.model.rest.AnnotatedSign
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.BatchRequest;
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.TokenMetadata;
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.wellknownproperties.*;
+import org.cardanofoundation.tokenmetadata.registry.api.model.cip113.ProgrammableTokenCip113;
 import org.cardanofoundation.tokenmetadata.registry.api.service.Cip68FungibleTokenService;
 import org.cardanofoundation.tokenmetadata.registry.api.service.RegistryMetricsService;
+import org.cardanofoundation.tokenmetadata.registry.api.service.cip113.Cip113RegistryService;
 import org.cardanofoundation.tokenmetadata.registry.api.util.AssetType;
 import org.cardanofoundation.tokenmetadata.registry.entity.MetadataReferenceNft;
 import org.cardanofoundation.tokenmetadata.registry.repository.MetadataReferenceNftRepository;
@@ -29,8 +31,10 @@ import org.springframework.web.context.WebApplicationContext;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
+import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -56,6 +60,9 @@ class MetadataApiV2ControllerTest {
 
     @MockBean
     private EntityManager entityManager;
+
+    @MockBean
+    private Cip113RegistryService cip113RegistryService;
 
     @MockBean
     private RegistryMetricsService metricsService;
@@ -140,6 +147,28 @@ class MetadataApiV2ControllerTest {
                         .description("The official token of FluidTokens, a leading DeFi ecosystem fueled by innovation and community backing.")
                         .ticker("FLDT")
                         .build()));
+
+        // CIP-113: FLDT is a programmable token
+        when(cip113RegistryService.findByPolicyId(fldtAssetType.policyId()))
+                .thenReturn(Optional.of(new ProgrammableTokenCip113(
+                        "aabbccdd11223344aabbccdd11223344aabbccdd11223344aabbccdd",
+                        "11223344aabbccdd11223344aabbccdd11223344aabbccdd11223344",
+                        "eeff0011eeff0011eeff0011eeff0011eeff0011eeff0011eeff0011"
+                )));
+
+        // CIP-113: non-programmable tokens return empty
+        when(cip113RegistryService.findByPolicyId(knownAssetType.policyId()))
+                .thenReturn(Optional.empty());
+        when(cip113RegistryService.findByPolicyId(unknownAssetType.policyId()))
+                .thenReturn(Optional.empty());
+
+        // CIP-113 batch: return map with FLDT only
+        when(cip113RegistryService.findByPolicyIds(anyCollection()))
+                .thenReturn(Map.of(fldtAssetType.policyId(), new ProgrammableTokenCip113(
+                        "aabbccdd11223344aabbccdd11223344aabbccdd11223344aabbccdd",
+                        "11223344aabbccdd11223344aabbccdd11223344aabbccdd11223344",
+                        "eeff0011eeff0011eeff0011eeff0011eeff0011eeff0011eeff0011"
+                )));
 
     }
 
@@ -298,5 +327,44 @@ class MetadataApiV2ControllerTest {
                 );
     }
 
+    @Test
+    void cip113ExtensionShouldAppearInResponse() throws Exception {
+        mockMvc.perform(get("/api/v2/subjects/577f0b1342f8f8f4aed3388b80a8535812950c7a892495c0ecdf0f1e0014df10464c4454"))
+                .andExpect(status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.subject.extensions.cip113.transfer_logic_script")
+                        .value("aabbccdd11223344aabbccdd11223344aabbccdd11223344aabbccdd"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.subject.extensions.cip113.third_party_transfer_logic_script")
+                        .value("11223344aabbccdd11223344aabbccdd11223344aabbccdd11223344"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.subject.extensions.cip113.global_state_policy_id")
+                        .value("eeff0011eeff0011eeff0011eeff0011eeff0011eeff0011eeff0011"));
+    }
+
+    @Test
+    void nonProgrammableTokenShouldNotHaveExtensions() throws Exception {
+        mockMvc.perform(get("/api/v2/subjects/025146866af908340247fe4e9672d5ac7059f1e8534696b5f920c9e66362544848"))
+                .andExpect(status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.subject.extensions").doesNotExist());
+    }
+
+    @Test
+    void batchQueryShouldIncludeExtensionsForProgrammableTokenOnly() throws Exception {
+
+        ObjectMapper objectMapper = new ObjectMapper();
+
+        BatchRequest request = new BatchRequest(List.of(
+                "025146866af908340247fe4e9672d5ac7059f1e8534696b5f920c9e66362544848",
+                "577f0b1342f8f8f4aed3388b80a8535812950c7a892495c0ecdf0f1e0014df10464c4454"), List.of());
+
+        mockMvc.perform(post("/api/v2/subjects/query")
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.subjects.length()").value(2))
+                // First subject (non-programmable) should NOT have extensions
+                .andExpect(MockMvcResultMatchers.jsonPath("$.subjects[0].extensions").doesNotExist())
+                // Second subject (FLDT, programmable) should have cip113 extension
+                .andExpect(MockMvcResultMatchers.jsonPath("$.subjects[1].extensions.cip113.transfer_logic_script")
+                        .value("aabbccdd11223344aabbccdd11223344aabbccdd11223344aabbccdd"));
+    }
 
 }

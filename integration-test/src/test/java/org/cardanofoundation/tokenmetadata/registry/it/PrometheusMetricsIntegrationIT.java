@@ -108,6 +108,11 @@ public class PrometheusMetricsIntegrationIT extends BaseIntegrationIT {
         }
 
         @Test
+        void cip113TokenCountGaugeIsPresent() {
+            assertThat(prometheusBody).contains("cftr_tokens_cip113_count");
+        }
+
+        @Test
         void syncStatusGaugeIsPresent() {
             assertThat(prometheusBody).contains("cftr_sync_status");
         }

@@ -6,10 +6,13 @@ import org.cardanofoundation.tokenmetadata.registry.api.config.AppConfig;
 import org.cardanofoundation.tokenmetadata.registry.api.indexer.V1ApiMetadataIndexer;
 import org.cardanofoundation.tokenmetadata.registry.api.model.Pair;
 import org.cardanofoundation.tokenmetadata.registry.api.model.QueryPriority;
+import org.cardanofoundation.tokenmetadata.registry.api.model.cip113.ProgrammableTokenCip113;
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.BatchRequest;
 import org.cardanofoundation.tokenmetadata.registry.api.model.v2.*;
 import org.cardanofoundation.tokenmetadata.registry.api.service.Cip68FungibleTokenService;
 import org.cardanofoundation.tokenmetadata.registry.api.service.RegistryMetricsService;
+import org.cardanofoundation.tokenmetadata.registry.api.service.cip113.Cip113RegistryService;
+import org.cardanofoundation.tokenmetadata.registry.api.util.AssetType;
 import org.cardanofoundation.tokenmetadata.registry.api.util.LogSanitizer;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,7 +20,9 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.BinaryOperator;
@@ -40,6 +45,8 @@ public class V2ApiController implements V2Api {
     private final Cip68FungibleTokenService cip68FungibleTokenService;
 
     private final V1ApiMetadataIndexer v1ApiMetadataIndexer;
+
+    private final Cip113RegistryService cip113RegistryService;
 
     private final RegistryMetricsService metricsService;
 
@@ -73,8 +80,11 @@ public class V2ApiController implements V2Api {
         } else {
             recordCipHits(tokenMetadata.second());
             Standards standards = tokenMetadata.second();
+            Map<String, Extension> extensions = buildExtensions(subject);
+            boolean includeCipsDetails = Boolean.TRUE.equals(showCipsDetails);
             List<String> stringPriorities = queryPriority.stream().map(QueryPriority::name).toList();
-            Response response = new Response(new Subject(subject, tokenMetadata.first(), showCipsDetails ? standards : null), stringPriorities);
+            Response response = new Response(new Subject(subject, tokenMetadata.first(),
+                    includeCipsDetails ? standards : null, extensions), stringPriorities);
 
             return ResponseEntity.ok(response);
         }
@@ -93,19 +103,18 @@ public class V2ApiController implements V2Api {
         }
         List<QueryPriority> queryPriority = priorities != null ? priorities : priorityConfiguration.getDefaultPriority();
 
+        // Pre-fetch CIP-113 data for all subjects to avoid N+1
+        List<String> policyIds = body.getSubjects().stream()
+                .map(s -> AssetType.fromUnit(s).policyId())
+                .distinct()
+                .toList();
+        Map<String, ProgrammableTokenCip113> cip113Map = cip113RegistryService.findByPolicyIds(policyIds);
+        boolean includeCipsDetails = Boolean.TRUE.equals(showCipsDetails);
+
         List<Subject> subjects = body.getSubjects()
                 .stream()
-                .map(subject -> {
-                    Pair<Metadata, Standards> pair = queryPriority.stream().reduce(IDENTITY, combineStandards(subject, queryProperties), aggregateResults());
-                    Subject subjectResult = new Subject(subject, pair.first(), showCipsDetails ? pair.second() : null);
-                    if (pair.first().isEmpty()) {
-                        metricsService.recordNotFound();
-                    } else {
-                        recordCipHits(pair.second());
-                    }
-                    return subjectResult;
-                })
-                .filter(metadata -> !metadata.metadata().isEmpty() && metadata.metadata().isValid())
+                .map(subject -> buildSubject(subject, queryPriority, queryProperties, cip113Map, includeCipsDetails))
+                .filter(s -> !s.metadata().isEmpty() && s.metadata().isValid())
                 .toList();
         List<String> stringPriorities = queryPriority.stream().map(QueryPriority::name).toList();
         return ResponseEntity.ok(new BatchResponse(subjects, stringPriorities));
@@ -144,6 +153,39 @@ public class V2ApiController implements V2Api {
                 .map(metadataObjectPair -> new Pair<>(accumulatedResults.first().merge(metadataObjectPair.first()),
                         accumulatedResults.second().merge(metadataObjectPair.second())))
                 .orElse(accumulatedResults);
+    }
+
+    private Map<String, Extension> buildExtensions(String subject) {
+        Map<String, Extension> extensions = new LinkedHashMap<>();
+        cip113RegistryService.findByPolicyId(AssetType.fromUnit(subject).policyId())
+                .ifPresent(cip113 -> {
+                    extensions.put(ProgrammableTokenCip113.EXTENSION_KEY, cip113);
+                    metricsService.recordCip113Hit();
+                });
+        return extensions.isEmpty() ? null : extensions;
+    }
+
+    private Subject buildSubject(String subject, List<QueryPriority> queryPriority, List<String> queryProperties,
+                                 Map<String, ProgrammableTokenCip113> cip113Map, boolean includeCipsDetails) {
+        Pair<Metadata, Standards> pair = queryPriority.stream()
+                .reduce(IDENTITY, combineStandards(subject, queryProperties), aggregateResults());
+
+        Map<String, Extension> extensions = new LinkedHashMap<>();
+        ProgrammableTokenCip113 cip113 = cip113Map.get(AssetType.fromUnit(subject).policyId());
+        if (cip113 != null) {
+            extensions.put(ProgrammableTokenCip113.EXTENSION_KEY, cip113);
+            metricsService.recordCip113Hit();
+        }
+
+        if (pair.first().isEmpty()) {
+            metricsService.recordNotFound();
+        } else {
+            recordCipHits(pair.second());
+        }
+
+        return new Subject(subject, pair.first(),
+                includeCipsDetails ? pair.second() : null,
+                extensions.isEmpty() ? null : extensions);
     }
 
 }

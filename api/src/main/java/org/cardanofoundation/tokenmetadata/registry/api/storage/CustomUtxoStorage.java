@@ -9,6 +9,7 @@ import com.bloxbean.cardano.yaci.store.utxo.storage.impl.repository.TxInputRepos
 import com.bloxbean.cardano.yaci.store.utxo.storage.impl.repository.UtxoRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.cardanofoundation.tokenmetadata.registry.api.service.Cip68FungibleTokenService;
+import org.cardanofoundation.tokenmetadata.registry.api.service.cip113.Cip113RegistryService;
 import org.jooq.DSLContext;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -23,22 +24,27 @@ public class CustomUtxoStorage extends UtxoStorageImpl {
 
     private final Cip68FungibleTokenService cip68FungibleTokenService;
 
+    private final Cip113RegistryService cip113RegistryService;
+
     public CustomUtxoStorage(UtxoRepository utxoRepository,
                              TxInputRepository spentOutputRepository,
                              DSLContext dsl,
                              UtxoCache utxoCache,
                              PlatformTransactionManager platformTransactionManager,
-                             Cip68FungibleTokenService cip68FungibleTokenService) {
+                             Cip68FungibleTokenService cip68FungibleTokenService,
+                             Cip113RegistryService cip113RegistryService) {
         super(utxoRepository, spentOutputRepository, dsl, utxoCache, platformTransactionManager);
         this.utxoRepository = utxoRepository;
         this.cip68FungibleTokenService = cip68FungibleTokenService;
+        this.cip113RegistryService = cip113RegistryService;
     }
 
     @Override
     public void saveUnspent(List<AddressUtxo> addressUtxoList) {
         List<AddressUtxo> automaticPaymentsUtxos = addressUtxoList
                 .stream()
-                .filter(cip68FungibleTokenService::containsReferenceNft)
+                .filter(utxo -> cip68FungibleTokenService.containsReferenceNft(utxo)
+                        || cip113RegistryService.containsRegistryNode(utxo))
                 .toList();
 
         super.saveUnspent(automaticPaymentsUtxos);

@@ -20,6 +20,7 @@ import java.util.concurrent.atomic.AtomicLong;
 public class RegistryMetricsService {
 
     private static final String NAMESPACE = "cftr";
+    private static final String CIP_HITS_METRIC = NAMESPACE + ".api.cip.hits";
 
     private final MeterRegistry meterRegistry;
     private final JdbcTemplate jdbcTemplate;
@@ -27,11 +28,13 @@ public class RegistryMetricsService {
 
     private final AtomicLong cip26Count = new AtomicLong(0);
     private final AtomicLong cip68Count = new AtomicLong(0);
+    private final AtomicLong cip113Count = new AtomicLong(0);
 
     private Counter v1QueryCounter;
     private Counter v2QueryCounter;
     private Counter v2Cip26HitCounter;
     private Counter v2Cip68HitCounter;
+    private Counter v2Cip113HitCounter;
     private Counter subjectsQueriedCounter;
     private Counter notFoundCounter;
 
@@ -43,6 +46,10 @@ public class RegistryMetricsService {
 
         Gauge.builder(NAMESPACE + ".tokens.cip68.count", cip68Count, AtomicLong::doubleValue)
                 .description("Total number of CIP-68 reference NFTs in the registry")
+                .register(meterRegistry);
+
+        Gauge.builder(NAMESPACE + ".tokens.cip113.count", cip113Count, AtomicLong::doubleValue)
+                .description("Total number of CIP-113 programmable tokens in the registry")
                 .register(meterRegistry);
 
         Gauge.builder(NAMESPACE + ".sync.status", this, RegistryMetricsService::getSyncStatusValue)
@@ -59,14 +66,19 @@ public class RegistryMetricsService {
                 .description("Number of V2 API queries")
                 .register(meterRegistry);
 
-        v2Cip26HitCounter = Counter.builder(NAMESPACE + ".api.cip.hits")
+        v2Cip26HitCounter = Counter.builder(CIP_HITS_METRIC)
                 .tag("cip", "26")
                 .description("Number of V2 queries resolved via CIP-26")
                 .register(meterRegistry);
 
-        v2Cip68HitCounter = Counter.builder(NAMESPACE + ".api.cip.hits")
+        v2Cip68HitCounter = Counter.builder(CIP_HITS_METRIC)
                 .tag("cip", "68")
                 .description("Number of V2 queries resolved via CIP-68")
+                .register(meterRegistry);
+
+        v2Cip113HitCounter = Counter.builder(CIP_HITS_METRIC)
+                .tag("cip", "113")
+                .description("Number of V2 queries enriched with CIP-113 data")
                 .register(meterRegistry);
 
         subjectsQueriedCounter = Counter.builder(NAMESPACE + ".api.subjects.queried")
@@ -87,6 +99,10 @@ public class RegistryMetricsService {
             Long refNftCount = jdbcTemplate.queryForObject(
                     "SELECT count(DISTINCT policy_id || asset_name) FROM metadata_reference_nft", Long.class);
             cip68Count.set(refNftCount != null ? refNftCount : 0);
+
+            Long cip113TokenCount = jdbcTemplate.queryForObject(
+                    "SELECT count(DISTINCT policy_id) FROM cip113_registry_node", Long.class);
+            cip113Count.set(cip113TokenCount != null ? cip113TokenCount : 0);
         } catch (Exception e) {
             log.warn("Failed to refresh token counts for metrics: {}", e.getMessage());
         }
@@ -108,6 +124,10 @@ public class RegistryMetricsService {
 
     public void recordCip68Hit() {
         v2Cip68HitCounter.increment();
+    }
+
+    public void recordCip113Hit() {
+        v2Cip113HitCounter.increment();
     }
 
     public void recordNotFound() {
