@@ -116,7 +116,7 @@ public class Cip113IntegrationIT extends BaseIntegrationIT {
                                         String valueStr = line.substring(line.lastIndexOf(' ') + 1).trim();
                                         double value = Double.parseDouble(valueStr);
                                         return value >= 1.0;
-                                    } catch (NumberFormatException e) {
+                                    } catch (NumberFormatException _) {
                                         return false;
                                     }
                                 });
