@@ -50,7 +50,6 @@ runs:
         STORE_CARDANO_SHELLEY_GENESIS_FILE: ${{ env.DEVNET_DIR }}/node/genesis/shelley-genesis.json
         STORE_CARDANO_ALONZO_GENESIS_FILE: ${{ env.DEVNET_DIR }}/node/genesis/alonzo-genesis.json
         STORE_CARDANO_CONWAY_GENESIS_FILE: ${{ env.DEVNET_DIR }}/node/genesis/conway-genesis.json
-        CIP113_ENABLED: "true"
         CIP113_REGISTRY_NFT_POLICY_IDS: "3a888d65f16790950a72daee1f63aa05add6d268434107cfa5b67712"
 
     - name: Start API (docker)
@@ -78,7 +77,6 @@ runs:
           -e STORE_CARDANO_SHELLEY_GENESIS_FILE=/genesis/shelley-genesis.json \
           -e STORE_CARDANO_ALONZO_GENESIS_FILE=/genesis/alonzo-genesis.json \
           -e STORE_CARDANO_CONWAY_GENESIS_FILE=/genesis/conway-genesis.json \
-          -e CIP113_ENABLED=true \
           -e CIP113_REGISTRY_NFT_POLICY_IDS=3a888d65f16790950a72daee1f63aa05add6d268434107cfa5b67712 \
           -v /tmp/test-token-registry:/tmp/test-token-registry \
           -v "${DEVNET_DIR}/node/genesis:/genesis:ro" \

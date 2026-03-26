@@ -59,7 +59,7 @@ public class Cip113RegistryService {
      * Used by CustomUtxoStorage to decide which UTxOs to persist.
      */
     public boolean containsRegistryNode(AddressUtxo utxo) {
-        if (!cip113Configuration.isEnabled() || cip113Configuration.getRegistryNftPolicyIdSet().isEmpty()) {
+        if (!cip113Configuration.isEnabled()) {
             return false;
         }
 

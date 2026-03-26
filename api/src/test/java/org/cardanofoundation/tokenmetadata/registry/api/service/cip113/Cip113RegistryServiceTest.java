@@ -38,7 +38,6 @@ class Cip113RegistryServiceTest {
     @BeforeEach
     void setUp() {
         config = new Cip113Configuration();
-        config.setEnabled(true);
         config.setRegistryNftPolicyIds(List.of(MONITORED_POLICY));
         config.init();
         service = new Cip113RegistryService(repository, config);
@@ -78,7 +77,8 @@ class Cip113RegistryServiceTest {
 
         @Test
         void returnsEmptyWhenDisabled() {
-            config.setEnabled(false);
+            config.setRegistryNftPolicyIds(List.of());
+            config.init();
             assertThat(service.findByPolicyId("deadbeef")).isEmpty();
         }
     }
@@ -108,7 +108,8 @@ class Cip113RegistryServiceTest {
 
         @Test
         void returnsEmptyMapWhenDisabled() {
-            config.setEnabled(false);
+            config.setRegistryNftPolicyIds(List.of());
+            config.init();
             assertThat(service.findByPolicyIds(List.of("policy1"))).isEmpty();
         }
 
@@ -142,7 +143,8 @@ class Cip113RegistryServiceTest {
 
         @Test
         void returnsFalseWhenDisabled() {
-            config.setEnabled(false);
+            config.setRegistryNftPolicyIds(List.of());
+            config.init();
             AddressUtxo utxo = utxoWithAmount(MONITORED_POLICY + "deadbeef", BigInteger.ONE);
             assertThat(service.containsRegistryNode(utxo)).isFalse();
         }

@@ -25,7 +25,7 @@ public class Cip113EventListener {
 
     @EventListener
     public void processTransaction(AddressUtxoEvent addressUtxoEvent) {
-        if (!cip113Configuration.isEnabled() || cip113Configuration.getRegistryNftPolicyIdSet().isEmpty()) {
+        if (!cip113Configuration.isEnabled()) {
             return;
         }
 

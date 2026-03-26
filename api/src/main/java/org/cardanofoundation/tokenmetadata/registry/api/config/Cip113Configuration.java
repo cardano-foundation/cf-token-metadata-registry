@@ -15,11 +15,6 @@ import java.util.stream.Collectors;
 @Slf4j
 public class Cip113Configuration {
 
-    @Getter
-    @Setter
-    @Value("${cip113.enabled:false}")
-    private boolean enabled;
-
     @Setter
     @Value("${cip113.registry.nft.policy-ids:}")
     private List<String> registryNftPolicyIds;
@@ -33,7 +28,11 @@ public class Cip113Configuration {
                 .filter(id -> !id.isBlank())
                 .collect(Collectors.toUnmodifiableSet());
         log.info("INIT - CIP-113 programmable tokens: enabled={}, registryNftPolicyIds={}",
-                enabled, registryNftPolicyIdSet);
+                isEnabled(), registryNftPolicyIdSet);
+    }
+
+    public boolean isEnabled() {
+        return !registryNftPolicyIdSet.isEmpty();
     }
 
     public boolean isMonitoredPolicyId(String policyId) {

@@ -46,7 +46,6 @@ class Cip113EventListenerTest {
     @BeforeEach
     void setUp() {
         config = new Cip113Configuration();
-        config.setEnabled(true);
         config.setRegistryNftPolicyIds(List.of(REGISTRY_NFT_POLICY_ID));
         config.init();
 
@@ -85,7 +84,8 @@ class Cip113EventListenerTest {
 
         @Test
         void skipsWhenDisabled() {
-            config.setEnabled(false);
+            config.setRegistryNftPolicyIds(List.of());
+            config.init();
             listener.processTransaction(buildEvent(100L, REGISTRY_NFT_POLICY_ID, REGISTERED_POLICY_ID, "d8799f40ff", TX_HASH));
             verifyNoInteractions(repository);
         }

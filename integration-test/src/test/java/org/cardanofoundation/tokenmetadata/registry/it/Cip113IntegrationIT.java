@@ -21,8 +21,8 @@ import static org.awaitility.Awaitility.await;
  * Requires:
  * - PostgreSQL running
  * - Yaci devnet running (yaci-store on port 8080, admin on port 10000)
- * - API application started with CIP113_ENABLED=true and
- *   CIP113_REGISTRY_NFT_POLICY_ID set to the always-true script's policy ID
+ * - API application started with CIP113_REGISTRY_NFT_POLICY_IDS set to
+ *   the always-true script's policy ID
  *
  * Flow: mint CIP-113 registry node NFT on devnet -> yaci-store indexes UTXO ->
  * Cip113EventListener parses datum -> cip113_registry_node table ->
@@ -43,7 +43,7 @@ public class Cip113IntegrationIT extends BaseIntegrationIT {
 
         // Skip entire test class if CIP-113 is not enabled on the API
         Assumptions.assumeTrue(isCip113Enabled(),
-                "CIP-113 not enabled on API — set CIP113_ENABLED=true and CIP113_REGISTRY_NFT_POLICY_ID");
+                "CIP-113 IT not enabled — set CIP113_IT_ENABLED=true and CIP113_REGISTRY_NFT_POLICY_IDS on the API");
 
         waitForYaciStoreReady();
 
@@ -53,7 +53,7 @@ public class Cip113IntegrationIT extends BaseIntegrationIT {
         // Verify the API is configured with the correct registry NFT policy ID
         String expectedPolicyId = Cip113TestMinter.getRegistryNftPolicyId();
         log.info("CIP-113 registry NFT policy ID (always-true script): {}", expectedPolicyId);
-        log.info("Ensure the API is started with CIP113_ENABLED=true and CIP113_REGISTRY_NFT_POLICY_ID={}", expectedPolicyId);
+        log.info("Ensure the API is started with CIP113_REGISTRY_NFT_POLICY_IDS={}", expectedPolicyId);
 
         minter.mintRegistryNode(
                 REGISTERED_POLICY_ID,
@@ -199,7 +199,7 @@ public class Cip113IntegrationIT extends BaseIntegrationIT {
     /**
      * Check if CIP-113 integration tests should run.
      * Requires CIP113_IT_ENABLED=true environment variable — this must be set alongside
-     * the API's CIP113_ENABLED and CIP113_REGISTRY_NFT_POLICY_ID in the CI environment.
+     * the API's CIP113_REGISTRY_NFT_POLICY_IDS in the CI environment.
      */
     private static boolean isCip113Enabled() {
         boolean enabled = "true".equalsIgnoreCase(System.getenv("CIP113_IT_ENABLED"));

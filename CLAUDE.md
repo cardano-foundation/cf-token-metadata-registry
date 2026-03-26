@@ -18,7 +18,7 @@ Multi-standard Cardano token metadata registry built with Spring Boot 3 and Java
 
 - **CIP-26** (offchain): JSON metadata files synced from GitHub, stored in `metadata` table
 - **CIP-68** (on-chain): Reference NFT datum parsed from blockchain UTxOs (prefix `000643b0`), stored in `metadata_reference_nft` table. Fungible tokens (prefix `0014df10`) are mapped to their reference NFT counterpart
-- **CIP-113** (programmable tokens): Registry node NFTs with transfer logic scripts, stored in `cip113_registry_node` table. Feature-flagged via `CIP113_ENABLED`
+- **CIP-113** (programmable tokens): Registry node NFTs with transfer logic scripts, stored in `cip113_registry_node` table. Enabled when `CIP113_REGISTRY_NFT_POLICY_IDS` is non-empty
 
 ### V2 Query Priority
 
@@ -83,8 +83,7 @@ Main configuration is in `api/src/main/resources/application.properties`. Key en
 | `TOKEN_METADATA_SYNC_JOB` | Enable CIP-26 GitHub sync | `false` |
 | `GITHUB_ORGANIZATION` | Source GitHub org | `cardano-foundation` |
 | `GITHUB_PROJECT_NAME` | Source repo name | `cardano-token-registry` |
-| `CIP113_ENABLED` | Enable CIP-113 programmable token support | `false` |
-| `CIP113_REGISTRY_NFT_POLICY_IDS` | Comma-separated monitored policy IDs | (empty) |
+| `CIP113_REGISTRY_NFT_POLICY_IDS` | Comma-separated monitored policy IDs (CIP-113 enabled when non-empty) | (empty) |
 | `STORE_CARDANO_HOST` | Cardano node hostname | `backbone.mainnet.cardanofoundation.org` |
 | `STORE_CARDANO_PORT` | Cardano node port | `3001` |
 
