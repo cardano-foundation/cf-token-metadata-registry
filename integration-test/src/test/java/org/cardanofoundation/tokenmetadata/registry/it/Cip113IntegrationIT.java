@@ -1,8 +1,8 @@
 package org.cardanofoundation.tokenmetadata.registry.it;
 
 import com.bloxbean.cardano.client.backend.blockfrost.service.BFBackendService;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jayway.jsonpath.DocumentContext;
+import com.jayway.jsonpath.JsonPath;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -29,8 +29,6 @@ import static org.awaitility.Awaitility.await;
  * V2 API query returns programmable_token_cip113 field
  */
 public class Cip113IntegrationIT extends BaseIntegrationIT {
-
-    private static final ObjectMapper objectMapper = new ObjectMapper();
 
     // Test registry node fields
     private static final String REGISTERED_POLICY_ID = "aabbccdd11223344aabbccdd11223344aabbccdd11223344aabbccdd";
@@ -170,13 +168,9 @@ public class Cip113IntegrationIT extends BaseIntegrationIT {
                         ResponseEntity<String> resp = restTemplate.getForEntity(
                                 API_BASE_URL + "/api/v2/subjects/" + cip68Subject, String.class);
                         if (resp.getStatusCode() == HttpStatus.OK) {
-                            JsonNode json = objectMapper.readTree(resp.getBody());
-                            JsonNode subjectNode = json.get("subject");
-                            JsonNode metadata = subjectNode.get("metadata");
-                            JsonNode cip113 = subjectNode.path("extensions").get("cip113");
-                            boolean hasCip68 = metadata != null && metadata.get("name") != null
-                                    && "CIP_68".equals(metadata.get("name").get("source").asText());
-                            boolean hasCip113 = cip113 != null;
+                            DocumentContext json = JsonPath.parse(resp.getBody());
+                            boolean hasCip68 = "CIP_68".equals(json.read("$.subject.metadata.name.source", String.class));
+                            boolean hasCip113 = json.read("$.subject.extensions.cip113") != null;
                             log.info("Combined poll: hasCip68={}, hasCip113={}", hasCip68, hasCip113);
                             return hasCip68 && hasCip113;
                         }
@@ -189,20 +183,16 @@ public class Cip113IntegrationIT extends BaseIntegrationIT {
 
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
 
-            JsonNode json = objectMapper.readTree(response.getBody());
-            JsonNode subjectNode = json.get("subject");
+            DocumentContext json = JsonPath.parse(response.getBody());
 
             // Verify CIP-68 metadata
-            JsonNode metadata = subjectNode.get("metadata");
-            assertThat(metadata.get("name").get("value").asText()).isEqualTo("ProgToken");
-            assertThat(metadata.get("name").get("source").asText()).isEqualTo("CIP_68");
-            assertThat(metadata.get("description").get("value").asText()).isEqualTo("A programmable test token");
+            assertThat(json.read("$.subject.metadata.name.value", String.class)).isEqualTo("ProgToken");
+            assertThat(json.read("$.subject.metadata.name.source", String.class)).isEqualTo("CIP_68");
+            assertThat(json.read("$.subject.metadata.description.value", String.class)).isEqualTo("A programmable test token");
 
             // Verify CIP-113 extension
-            JsonNode cip113 = subjectNode.path("extensions").get("cip113");
-            assertThat(cip113).isNotNull();
-            assertThat(cip113.get("transfer_logic_script").asText()).isEqualTo(TRANSFER_LOGIC_SCRIPT);
-            assertThat(cip113.get("third_party_transfer_logic_script").asText()).isEqualTo(THIRD_PARTY_SCRIPT);
+            assertThat(json.read("$.subject.extensions.cip113.transfer_logic_script", String.class)).isEqualTo(TRANSFER_LOGIC_SCRIPT);
+            assertThat(json.read("$.subject.extensions.cip113.third_party_transfer_logic_script", String.class)).isEqualTo(THIRD_PARTY_SCRIPT);
         }
     }
 
