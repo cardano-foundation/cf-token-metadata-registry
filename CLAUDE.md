@@ -73,3 +73,4 @@ The API implements CIP-26 endpoints plus extensions:
 - Test coverage tracked via JaCoCo, reports in `api/target/site/jacoco/`
 - Do not test POJOs/records — focus on real logic (parsing, filtering, query behavior, edge cases)
 - **Do not use `var`** — always use explicit types for local variables
+- **Annotate nullable returns with `@Nullable`** — use `jakarta.annotation.Nullable` on any method that can return null

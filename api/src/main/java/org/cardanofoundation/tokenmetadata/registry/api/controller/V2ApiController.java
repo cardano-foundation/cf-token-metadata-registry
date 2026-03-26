@@ -1,5 +1,6 @@
 package org.cardanofoundation.tokenmetadata.registry.api.controller;
 
+import jakarta.annotation.Nullable;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.cardanofoundation.tokenmetadata.registry.api.config.AppConfig;
@@ -155,7 +156,7 @@ public class V2ApiController implements V2Api {
                 .orElse(accumulatedResults);
     }
 
-    private Map<String, Extension> buildExtensions(String subject) {
+    private @Nullable Map<String, Extension> buildExtensions(String subject) {
         Map<String, Extension> extensions = new LinkedHashMap<>();
         cip113RegistryService.findByPolicyId(AssetType.fromUnit(subject).policyId())
                 .ifPresent(cip113 -> {
