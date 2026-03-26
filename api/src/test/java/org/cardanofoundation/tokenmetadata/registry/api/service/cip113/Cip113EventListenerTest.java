@@ -83,14 +83,6 @@ class Cip113EventListenerTest {
     class SkippedUtxos {
 
         @Test
-        void skipsWhenDisabled() {
-            config.setRegistryNftPolicyIds(List.of());
-            config.init();
-            listener.processTransaction(buildEvent(100L, REGISTRY_NFT_POLICY_ID, REGISTERED_POLICY_ID, "d8799f40ff", TX_HASH));
-            verifyNoInteractions(repository);
-        }
-
-        @Test
         void skipsWhenNoPolicyIdsConfigured() {
             config.setRegistryNftPolicyIds(List.of());
             config.init();
