@@ -27,9 +27,7 @@ public class Cip68EventListener {
     }
 
     private final Cip68FungibleTokenService cip68FungibleTokenService;
-
     private final Cip68FTDatumParser cip68DatumParser;
-
     private final MetadataReferenceNftRepository metadataReferenceNftRepository;
 
     @EventListener

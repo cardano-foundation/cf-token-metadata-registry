@@ -22,7 +22,6 @@ import java.util.stream.Collectors;
 public class Cip113RegistryService {
 
     private final Cip113RegistryNodeRepository cip113RegistryNodeRepository;
-
     private final Cip113Configuration cip113Configuration;
 
     /**

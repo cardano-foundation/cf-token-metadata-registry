@@ -41,13 +41,9 @@ public class V2ApiController implements V2Api {
     private static final List<String> REQUIRED_PROPERTIES = List.of("name", "description");
 
     private final AppConfig.CipPriorityConfiguration priorityConfiguration;
-
     private final Cip68FungibleTokenService cip68FungibleTokenService;
-
     private final V1ApiMetadataIndexer v1ApiMetadataIndexer;
-
     private final Cip113RegistryService cip113RegistryService;
-
     private final RegistryMetricsService metricsService;
 
     @Override

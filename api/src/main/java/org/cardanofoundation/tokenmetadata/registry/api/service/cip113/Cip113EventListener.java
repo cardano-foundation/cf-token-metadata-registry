@@ -16,11 +16,8 @@ import org.springframework.stereotype.Service;
 public class Cip113EventListener {
 
     private final Cip113Configuration cip113Configuration;
-
     private final Cip113RegistryNodeParser registryNodeParser;
-
     private final Cip113RegistryNodeRepository cip113RegistryNodeRepository;
-
     private final Cip113RegistryService cip113RegistryService;
 
     @EventListener

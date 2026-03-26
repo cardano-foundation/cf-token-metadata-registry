@@ -21,9 +21,7 @@ import java.util.List;
 public class CustomUtxoStorage extends UtxoStorageImpl {
 
     private final UtxoRepository utxoRepository;
-
     private final Cip68FungibleTokenService cip68FungibleTokenService;
-
     private final Cip113RegistryService cip113RegistryService;
 
     public CustomUtxoStorage(UtxoRepository utxoRepository,
