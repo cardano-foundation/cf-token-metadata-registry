@@ -148,7 +148,7 @@ class MetadataApiV2ControllerTest {
                         .ticker("FLDT")
                         .build()));
 
-        // CIP-113: FLDT is a programmable token
+        // CIP-113: mock FLDT as programmable for testing (not a real programmable token on mainnet)
         when(cip113RegistryService.findByPolicyId(fldtAssetType.policyId()))
                 .thenReturn(Optional.of(new ProgrammableTokenCip113(
                         "aabbccdd11223344aabbccdd11223344aabbccdd11223344aabbccdd",
@@ -162,7 +162,7 @@ class MetadataApiV2ControllerTest {
         when(cip113RegistryService.findByPolicyId(unknownAssetType.policyId()))
                 .thenReturn(Optional.empty());
 
-        // CIP-113 batch: return map with FLDT only
+        // CIP-113 batch: mock FLDT as the only programmable token in batch results
         when(cip113RegistryService.findByPolicyIds(anyCollection()))
                 .thenReturn(Map.of(fldtAssetType.policyId(), new ProgrammableTokenCip113(
                         "aabbccdd11223344aabbccdd11223344aabbccdd11223344aabbccdd",
@@ -362,7 +362,7 @@ class MetadataApiV2ControllerTest {
                 .andExpect(MockMvcResultMatchers.jsonPath("$.subjects.length()").value(2))
                 // First subject (non-programmable) should NOT have extensions
                 .andExpect(MockMvcResultMatchers.jsonPath("$.subjects[0].extensions").doesNotExist())
-                // Second subject (FLDT, programmable) should have cip113 extension
+                // Second subject (FLDT, mocked as programmable) should have cip113 extension
                 .andExpect(MockMvcResultMatchers.jsonPath("$.subjects[1].extensions.cip113.transfer_logic_script")
                         .value("aabbccdd11223344aabbccdd11223344aabbccdd11223344aabbccdd"));
     }
