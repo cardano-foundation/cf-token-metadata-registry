@@ -9,6 +9,6 @@ import org.cardanofoundation.tokenmetadata.registry.model.enums.SyncStatusEnum;
 public class SyncStatus {
 
     private boolean isInitialSyncDone;
-    private SyncStatusEnum syncStatus;
+    private SyncStatusEnum status;
 
 }

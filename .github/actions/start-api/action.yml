@@ -24,6 +24,10 @@ runs:
             echo "API is ready."
             break
           fi
+          if [ "$i" = "60" ]; then
+            echo "ERROR: API failed to start within 120s"
+            exit 1
+          fi
           echo "Attempt $i/60 - waiting 2s..."
           sleep 2
         done
@@ -50,6 +54,8 @@ runs:
     - name: Start API (docker)
       if: inputs.mode == 'docker'
       shell: bash
+      env:
+        INPUT_IMAGE_TAG: ${{ inputs.image-tag }}
       run: |
         docker run -d --name api --network host \
           -e DB_URL=jdbc:postgresql://localhost:5432/cf_token_metadata_registry \
@@ -71,13 +77,18 @@ runs:
           -e STORE_CARDANO_ALONZO_GENESIS_FILE=/genesis/alonzo-genesis.json \
           -e STORE_CARDANO_CONWAY_GENESIS_FILE=/genesis/conway-genesis.json \
           -v /tmp/test-token-registry:/tmp/test-token-registry \
-          -v ${{ env.DEVNET_DIR }}/node/genesis:/genesis:ro \
-          ${{ inputs.image-tag }}
+          -v "${DEVNET_DIR}/node/genesis:/genesis:ro" \
+          "${INPUT_IMAGE_TAG}"
         echo "Waiting for API to be ready..."
         for i in $(seq 1 60); do
           if curl -sf http://localhost:8081/actuator/health/startup > /dev/null 2>&1; then
             echo "API is ready."
             break
+          fi
+          if [ "$i" = "60" ]; then
+            echo "ERROR: API failed to start within 120s"
+            docker logs api || true
+            exit 1
           fi
           echo "Attempt $i/60 - waiting 2s..."
           sleep 2

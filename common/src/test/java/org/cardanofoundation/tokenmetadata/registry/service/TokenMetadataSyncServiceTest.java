@@ -66,7 +66,7 @@ public class TokenMetadataSyncServiceTest {
             tokenMetadataSyncService.synchronizeDatabase();
 
             verify(syncStateRepository).save(any(OffChainSyncState.class));
-            assertEquals(SyncStatusEnum.SYNC_DONE, tokenMetadataSyncService.getSyncStatus().getSyncStatus());
+            assertEquals(SyncStatusEnum.SYNC_DONE, tokenMetadataSyncService.getSyncStatus().getStatus());
         }
 
         @Test
@@ -92,7 +92,7 @@ public class TokenMetadataSyncServiceTest {
             verify(tokenMetadataService).insertMapping(any(), any(), any());
             verify(gitService, never()).getMappingDetails(argThat(f -> !f.equals(mockFile)));
             verify(syncStateRepository).save(any(OffChainSyncState.class));
-            assertEquals(SyncStatusEnum.SYNC_DONE, tokenMetadataSyncService.getSyncStatus().getSyncStatus());
+            assertEquals(SyncStatusEnum.SYNC_DONE, tokenMetadataSyncService.getSyncStatus().getStatus());
         }
 
         @Test
@@ -106,7 +106,7 @@ public class TokenMetadataSyncServiceTest {
 
             verify(tokenMappingService, never()).parseMappings(any());
             verify(syncStateRepository, never()).save(any());
-            assertEquals(SyncStatusEnum.SYNC_DONE, tokenMetadataSyncService.getSyncStatus().getSyncStatus());
+            assertEquals(SyncStatusEnum.SYNC_DONE, tokenMetadataSyncService.getSyncStatus().getStatus());
         }
 
         @Test
@@ -117,7 +117,7 @@ public class TokenMetadataSyncServiceTest {
             tokenMetadataSyncService.synchronizeDatabase();
 
             verify(syncStateRepository, never()).save(any());
-            assertEquals(SyncStatusEnum.SYNC_ERROR, tokenMetadataSyncService.getSyncStatus().getSyncStatus());
+            assertEquals(SyncStatusEnum.SYNC_ERROR, tokenMetadataSyncService.getSyncStatus().getStatus());
         }
 
         @Test
@@ -133,7 +133,7 @@ public class TokenMetadataSyncServiceTest {
             tokenMetadataSyncService.synchronizeDatabase();
 
             verify(syncStateRepository, never()).save(any());
-            assertEquals(SyncStatusEnum.SYNC_DONE, tokenMetadataSyncService.getSyncStatus().getSyncStatus());
+            assertEquals(SyncStatusEnum.SYNC_DONE, tokenMetadataSyncService.getSyncStatus().getStatus());
         }
 
         @Test
@@ -158,7 +158,7 @@ public class TokenMetadataSyncServiceTest {
             tokenMetadataSyncService.synchronizeDatabase();
 
             verify(syncStateRepository, never()).save(any());
-            assertEquals(SyncStatusEnum.SYNC_DONE, tokenMetadataSyncService.getSyncStatus().getSyncStatus());
+            assertEquals(SyncStatusEnum.SYNC_DONE, tokenMetadataSyncService.getSyncStatus().getStatus());
         }
     }
 }

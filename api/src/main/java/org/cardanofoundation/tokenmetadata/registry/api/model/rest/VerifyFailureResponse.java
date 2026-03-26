@@ -16,6 +16,6 @@ import java.util.List;
 public class VerifyFailureResponse {
   @JsonProperty("errors")
   @Valid
-  @Schema(name = "errors", required = true)
+  @Schema(name = "errors", requiredMode = Schema.RequiredMode.REQUIRED)
   private List<String> errors = new ArrayList<>();
 }

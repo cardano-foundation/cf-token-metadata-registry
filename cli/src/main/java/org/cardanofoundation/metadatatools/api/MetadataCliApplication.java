@@ -22,6 +22,11 @@ import java.util.Locale;
 @SpringBootApplication
 public class MetadataCliApplication implements CommandLineRunner {
 
+    private static final String OPT_SUBJECT = "subject";
+    private static final String OPT_OUTFILE = "outfile";
+    private static final String OPT_POLICY = "policy";
+    private static final String OPT_ASSETNAME = "assetname";
+
     public static void main(final String[] args) {
         SpringApplication.run(MetadataCliApplication.class, args);
     }
@@ -38,59 +43,12 @@ public class MetadataCliApplication implements CommandLineRunner {
     }
 
     private void runInit(final String[] args) {
-        final Options options = new Options();
-        options.addOption(Option.builder()
-                .longOpt("subject")
-                .desc("Specify the subject of the metadata entry.")
-                .hasArg()
-                .type(String.class).build());
-        options.addOption(Option.builder()
-                .longOpt("policy")
-                .desc("Specify the CBOR hex representation of the monetary policy script of asset this metadata entry relates to.")
-                .hasArg()
-                .type(String.class).build());
-        options.addOption(Option.builder()
-                .longOpt("assetname")
-                .desc("Specify the name of the asset that was specified in the minting operation.")
-                .hasArg()
-                .type(String.class).build());
-		options.addOption(Option.builder()
-                .longOpt("outfile")
-                .desc("If specified the output is written to the specified file or following the CIP-26 conventions. Otherwise output is written to stdout.")
-                .optionalArg(true).build());
+        final Options options = buildInitOptions();
 
         try {
             final CommandLineParser parser = new DefaultParser();
             final CommandLine cmd = parser.parse(options, args);
-
-            if (cmd.hasOption("subject")) {
-                final String subject = cmd.getOptionValue("subject").toLowerCase(Locale.ROOT).strip();
-                if (validateSubject(subject)) {
-                    final Metadata tokenMetadata = new Metadata();
-                    tokenMetadata.setSubject(subject);
-                    tokenMetadata.addProperty("name", new MetadataProperty<>("", 0, List.of()));
-                    tokenMetadata.addProperty("description", new MetadataProperty<>("", 0, List.of()));
-                    final ObjectMapper objectMapper = getObjectMapper();
-                    if (cmd.hasOption("outfile")) {
-                        final String outfilePath;
-                        if (cmd.getOptionValue("outfile") != null) {
-                            outfilePath = cmd.getOptionValue("outfile");
-                        } else {
-                            outfilePath = String.format("%s.json", subject);
-                        }
-                        objectMapper.writeValue(new File(outfilePath), tokenMetadata);
-                    } else {
-                        System.out.println(objectMapper.writeValueAsString(tokenMetadata));
-                    }
-                } else {
-                    System.out.println("The given subject is not a hexadecimal string or its length is not even.");
-                }
-            } else if (cmd.hasOption("policy") && cmd.hasOption("assetname")) {
-                
-            } else {
-                System.out.println("You have to either specify a subject or a policy and assetname.");
-                printHelp(options);
-            }
+            processInitCommand(cmd, options);
         } catch (final ParseException e) {
             printHelp(options);
         } catch (final JsonProcessingException e) {
@@ -100,12 +58,74 @@ public class MetadataCliApplication implements CommandLineRunner {
         }
     }
 
-    private void runEntry(@SuppressWarnings("unused") final String[] args) {
-        // TODO: implement entry command
+    private Options buildInitOptions() {
+        final Options options = new Options();
+        options.addOption(Option.builder()
+                .longOpt(OPT_SUBJECT)
+                .desc("Specify the subject of the metadata entry.")
+                .hasArg()
+                .type(String.class).build());
+        options.addOption(Option.builder()
+                .longOpt(OPT_POLICY)
+                .desc("Specify the CBOR hex representation of the monetary policy script of asset this metadata entry relates to.")
+                .hasArg()
+                .type(String.class).build());
+        options.addOption(Option.builder()
+                .longOpt(OPT_ASSETNAME)
+                .desc("Specify the name of the asset that was specified in the minting operation.")
+                .hasArg()
+                .type(String.class).build());
+        options.addOption(Option.builder()
+                .longOpt(OPT_OUTFILE)
+                .desc("If specified the output is written to the specified file or following the CIP-26 conventions. Otherwise output is written to stdout.")
+                .optionalArg(true)
+                .build());
+
+        return options;
     }
 
-    private void runValidate(@SuppressWarnings("unused") final String[] args) {
+    private void processInitCommand(final CommandLine cmd, final Options options) throws IOException {
+        if (cmd.hasOption(OPT_SUBJECT)) {
+            handleSubjectInit(cmd);
+        } else if (cmd.hasOption(OPT_POLICY) && cmd.hasOption(OPT_ASSETNAME)) {
+            log.info("Policy and assetname init not yet implemented.");
+        } else {
+            log.info("You have to either specify a subject or a policy and assetname.");
+            printHelp(options);
+        }
+    }
+
+    private void handleSubjectInit(final CommandLine cmd) throws IOException {
+        final String subject = cmd.getOptionValue(OPT_SUBJECT).toLowerCase(Locale.ROOT).strip();
+        if (!validateSubject(subject)) {
+            log.info("The given subject is not a hexadecimal string or its length is not even.");
+            return;
+        }
+        final Metadata tokenMetadata = new Metadata();
+        tokenMetadata.setSubject(subject);
+        tokenMetadata.addProperty("name", new MetadataProperty<>("", 0, List.of()));
+        tokenMetadata.addProperty("description", new MetadataProperty<>("", 0, List.of()));
+        final ObjectMapper objectMapper = getObjectMapper();
+        if (cmd.hasOption(OPT_OUTFILE)) {
+            final String outfilePath = cmd.getOptionValue(OPT_OUTFILE) != null
+                    ? cmd.getOptionValue(OPT_OUTFILE)
+                    : String.format("%s.json", subject);
+            objectMapper.writeValue(new File(outfilePath), tokenMetadata);
+        } else {
+            log.info(objectMapper.writeValueAsString(tokenMetadata));
+        }
+    }
+
+    @SuppressWarnings("unused")
+    private void runEntry() {
+        // TODO: implement entry command
+        log.warn("Entry command not yet implemented.");
+    }
+
+    @SuppressWarnings("unused")
+    private void runValidate() {
         // TODO: implement validate command
+        log.warn("Validate command not yet implemented.");
     }
 
     private void printHelp(final Options options) {
@@ -114,7 +134,7 @@ public class MetadataCliApplication implements CommandLineRunner {
     }
 
     private void printHelp() {
-        System.err.println("Invalid number of arguments: metadata-tool [entry|init|validate]");
+        log.error("Invalid number of arguments: metadata-tool [entry|init|validate]");
     }
 
     @Override
@@ -126,8 +146,8 @@ public class MetadataCliApplication implements CommandLineRunner {
 
         switch (args[0]) {
             case "init" -> runInit(Arrays.copyOfRange(args, 1, args.length));
-            case "entry" -> runEntry(Arrays.copyOfRange(args, 1, args.length));
-            case "validate" -> runValidate(Arrays.copyOfRange(args, 1, args.length));
+            case "entry" -> runEntry();
+            case "validate" -> runValidate();
             default -> printHelp();
         }
 
@@ -138,4 +158,5 @@ public class MetadataCliApplication implements CommandLineRunner {
         // cip26 entry --sign --subject (mandatory: the subject itself) --key (mandatory: the signing key file)
         // cip26 validate --file (mandatory: the file that shall be validated) --old-file (optional: predecessor
     }
+
 }

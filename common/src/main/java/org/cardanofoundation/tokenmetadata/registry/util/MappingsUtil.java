@@ -12,7 +12,10 @@ import java.util.Optional;
 import java.util.function.Function;
 
 @Slf4j
-public class MappingsUtil {
+public final class MappingsUtil {
+
+    private MappingsUtil() {
+    }
 
     public static TokenMetadata toTokenMetadata(Mapping mapping, String updateBy, LocalDateTime updatedAt) {
         TokenMetadata tokenMetadata = new TokenMetadata();

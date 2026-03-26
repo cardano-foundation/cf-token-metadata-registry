@@ -1,4 +1,4 @@
-FROM ghcr.io/graalvm/graalvm-community:25 AS build
+FROM container-registry.oracle.com/graalvm/native-image:25 AS build
 
 RUN microdnf install -y maven findutils && microdnf clean all
 
@@ -15,14 +15,14 @@ COPY common/ common/
 COPY api/ api/
 RUN mvn clean package -pl api,common -am -DskipTests -Pnative -B
 
-FROM debian:bookworm-slim
+FROM debian:trixie-slim
 
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends libz-dev && \
+    apt-get install -y --no-install-recommends libz-dev curl && \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 COPY --from=build /app/api/target/api /app/api
 
 EXPOSE 8080
-ENTRYPOINT ["/app/api"]
+ENTRYPOINT ["/app/api", "-Xmx2g", "-Djava.net.preferIPv4Stack=true"]

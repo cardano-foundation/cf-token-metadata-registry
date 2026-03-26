@@ -26,6 +26,7 @@ import org.springframework.util.FileSystemUtils;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Iterator;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -34,6 +35,8 @@ import java.util.Optional;
 @Service
 @Slf4j
 public class GitService {
+
+    private static final String GIT_NOT_INITIALIZED = "Git repository not initialized";
 
     @Value("${git.organization:cardano-foundation}")
     String organization;
@@ -143,20 +146,20 @@ private boolean isGitRepo() {
 
     public Optional<MappingUpdateDetails> getMappingDetails(File mappingFile) {
         if (git == null) {
-            log.warn("Git repository not initialized");
+            log.warn(GIT_NOT_INITIALIZED);
             return Optional.empty();
         }
         try {
             String relativePath = mappingsFolderName + "/" + mappingFile.getName();
 
-            Iterable<RevCommit> commits = git.log()
+            Iterator<RevCommit> commits = git.log()
                     .addPath(relativePath)
                     .setRevFilter(RevFilter.NO_MERGES)
                     .setMaxCount(1)
-                    .call();
+                    .call().iterator();
 
-            for (RevCommit commit : commits) {
-                PersonIdent author = commit.getAuthorIdent();
+            if (commits.hasNext()) {
+                PersonIdent author = commits.next().getAuthorIdent();
                 String email = author.getEmailAddress();
                 LocalDateTime updatedAt = LocalDateTime.ofInstant(
                         author.getWhenAsInstant(), ZoneOffset.UTC);
@@ -173,7 +176,7 @@ private boolean isGitRepo() {
 
     public Optional<String> getHeadCommitHash() {
         if (git == null) {
-            log.warn("Git repository not initialized");
+            log.warn(GIT_NOT_INITIALIZED);
             return Optional.empty();
         }
         try {
@@ -190,7 +193,7 @@ private boolean isGitRepo() {
 
     public List<Path> getChangedFiles(String fromHash, String toHash) {
         if (git == null) {
-            log.warn("Git repository not initialized");
+            log.warn(GIT_NOT_INITIALIZED);
             return List.of();
         }
         try {

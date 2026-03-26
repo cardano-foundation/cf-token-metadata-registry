@@ -147,6 +147,12 @@
             <artifactId>yaci-store-admin-spring-boot-starter</artifactId>
             <version>${version.yaci}</version>
         </dependency>
+        <!-- Admin UI -->
+        <dependency>
+            <groupId>com.bloxbean.cardano</groupId>
+            <artifactId>yaci-store-admin-ui</artifactId>
+            <version>${version.yaci}</version>
+        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-docker-compose</artifactId>
@@ -212,6 +218,14 @@
                     <plugin>
                         <groupId>org.graalvm.buildtools</groupId>
                         <artifactId>native-maven-plugin</artifactId>
+                        <configuration>
+                            <mainClass>org.cardanofoundation.tokenmetadata.registry.api.TokenMetadataRegistryApplication</mainClass>
+                            <buildArgs>
+                                <buildArg>-O3</buildArg>
+                                <buildArg>--gc=G1</buildArg>
+                                <buildArg>--initialize-at-run-time=sun.net.dns.ResolverConfigurationImpl</buildArg>
+                            </buildArgs>
+                        </configuration>
                         <executions>
                             <execution>
                                 <id>build-native</id>
@@ -226,6 +240,14 @@
                         <groupId>org.springframework.boot</groupId>
                         <artifactId>spring-boot-maven-plugin</artifactId>
                         <version>${version.spring-boot}</version>
+                        <executions>
+                            <execution>
+                                <id>process-aot</id>
+                                <goals>
+                                    <goal>process-aot</goal>
+                                </goals>
+                            </execution>
+                        </executions>
                         <configuration>
                             <image>
                                 <builder>paketobuildpacks/builder-jammy-tiny:latest</builder>

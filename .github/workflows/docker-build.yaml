@@ -42,31 +42,36 @@ jobs:
 
       - name: Set image metadata
         id: meta
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+          INPUT_APP: ${{ inputs.app }}
+          INPUT_VARIANT: ${{ inputs.variant }}
+          INPUT_PUSH: ${{ inputs.push }}
         run: |
-          VERSION="${{ inputs.version }}"
+          VERSION="${INPUT_VERSION}"
           if [ -z "$VERSION" ]; then
             VERSION=$(cat version.txt)
           fi
-          REPO="cardanofoundation/cf-token-metadata-registry-${{ inputs.app }}"
-          PRIMARY_TAG="${REPO}:${VERSION}-${{ inputs.variant }}"
+          REPO="cardanofoundation/cf-token-metadata-registry-${INPUT_APP}"
+          PRIMARY_TAG="${REPO}:${VERSION}-${INPUT_VARIANT}"
           echo "image-tag=${PRIMARY_TAG}" >> "$GITHUB_OUTPUT"
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
           echo "repo=${REPO}" >> "$GITHUB_OUTPUT"
 
           # Build tag list
           TAGS="${PRIMARY_TAG}"
-          if [ "${{ inputs.push }}" == "true" ]; then
-            if [ "${{ inputs.variant }}" == "jvm" ]; then
+          if [ "${INPUT_PUSH}" == "true" ]; then
+            if [ "${INPUT_VARIANT}" == "jvm" ]; then
               TAGS="${TAGS},${REPO}:${VERSION},${REPO}:latest"
             else
-              TAGS="${TAGS},${REPO}:latest-${{ inputs.variant }}"
+              TAGS="${TAGS},${REPO}:latest-${INPUT_VARIANT}"
             fi
           fi
           echo "tags=${TAGS}" >> "$GITHUB_OUTPUT"
 
       - name: Download JAR artifact
         if: inputs.variant == 'jvm'
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: ${{ inputs.app }}-jar
           path: ${{ inputs.app }}/target
@@ -96,7 +101,7 @@ jobs:
 
       - name: Upload Docker image artifact
         if: ${{ !inputs.push }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: docker-image-${{ inputs.app }}-${{ inputs.variant }}
           path: /tmp/docker-image.tar

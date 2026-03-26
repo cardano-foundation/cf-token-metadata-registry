@@ -27,7 +27,7 @@ class MappingsUtilTest {
     private TokenMappingService tokenMappingService;
 
     @Test
-    public void testTokenMetadata() throws FileNotFoundException {
+    void testTokenMetadata() throws FileNotFoundException {
         File mappingFile = ResourceUtils.getFile("classpath:mappings/4ffaa4ef3217df37c4995bb96066af4cb68dfcc66b9f2a10e0c333b95779726d73746f6e65.json");
         Optional<Mapping> mappingsOpt = tokenMappingService.parseMappings(mappingFile);
 
@@ -57,7 +57,7 @@ class MappingsUtilTest {
     }
 
     @Test
-    public void testTokenLogo() throws IOException {
+    void testTokenLogo() throws IOException {
 
         File mappingFile = ResourceUtils.getFile("classpath:mappings/ff7cad970d3a755a1ff0335ccb3f3c1cabf31aacf3f23dd13db61b0630313030.json");
         File logoFile = ResourceUtils.getFile("classpath:mappings/ff7cad970d3a755a1ff0335ccb3f3c1cabf31aacf3f23dd13db61b0630313030-logo.txt");

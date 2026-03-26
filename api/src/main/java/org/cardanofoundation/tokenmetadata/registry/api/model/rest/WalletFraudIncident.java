@@ -18,20 +18,20 @@ public class WalletFraudIncident {
   @Schema(
       name = "addressHash",
       example = "b377d03a568dde663534e040fc32a57323ec00970df0e863eba3f098717569640a",
-      required = true)
+      requiredMode = Schema.RequiredMode.REQUIRED)
   private String addressHash;
 
   @JsonProperty("incidentId")
-  @Schema(name = "incidentId", required = true)
+  @Schema(name = "incidentId", requiredMode = Schema.RequiredMode.REQUIRED)
   private Integer incidentId;
 
   @JsonProperty("scamSiteDomain")
-  @Schema(name = "scamSiteDomain", example = "adagain.com", required = true)
+  @Schema(name = "scamSiteDomain", example = "adagain.com", requiredMode = Schema.RequiredMode.REQUIRED)
   private String scamSiteDomain;
 
   @JsonProperty("reportedDate")
   @Valid
   @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
-  @Schema(name = "reportedDate", required = true)
+  @Schema(name = "reportedDate", requiredMode = Schema.RequiredMode.REQUIRED)
   private LocalDate reportedDate;
 }

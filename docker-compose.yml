@@ -19,7 +19,7 @@ services:
     image: cardanofoundation/cf-token-metadata-registry-api:${API_IMAGE_TAG}
     build:
       context: .
-      dockerfile: api/compose.dockerfile
+      dockerfile: ${API_DOCKERFILE:-api/Dockerfile.jvm}
     ports:
       - "${API_LOCAL_BIND_PORT}:${API_EXPOSED_PORT}"
     environment:
@@ -41,6 +41,7 @@ services:
       STORE_BLOCKS_EPOCH_CALCULATION_INTERVAL: "${STORE_BLOCKS_EPOCH_CALCULATION_INTERVAL}"
       CIP_QUERY_PRIORITY: "${CIP_QUERY_PRIORITY}"
       API_LOCAL_BIND_PORT: "${API_LOCAL_BIND_PORT}"
+      JAVA_OPTS: "${JAVA_OPTS:--Xmx2g}"
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:${API_EXPOSED_PORT}/actuator/health/startup || exit 1"]
       interval: 30s

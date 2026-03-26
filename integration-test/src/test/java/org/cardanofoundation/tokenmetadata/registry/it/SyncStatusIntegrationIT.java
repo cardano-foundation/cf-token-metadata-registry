@@ -1,7 +1,7 @@
 package org.cardanofoundation.tokenmetadata.registry.it;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jayway.jsonpath.DocumentContext;
+import com.jayway.jsonpath.JsonPath;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -10,6 +10,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
 import java.time.Duration;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
@@ -21,7 +22,6 @@ import static org.awaitility.Awaitility.await;
 public class SyncStatusIntegrationIT extends BaseIntegrationIT {
 
     private static final String KNOWN_SUBJECT = "a0b1c2d3e4f5a0b1c2d3e4f5a0b1c2d3e4f5a0b1c2d3e4f5a0b1c2d354455354544f4b454e";
-    private static final ObjectMapper objectMapper = new ObjectMapper();
 
     @BeforeAll
     static void setUp() {
@@ -48,16 +48,16 @@ public class SyncStatusIntegrationIT extends BaseIntegrationIT {
     class HealthEndpoint {
 
         @Test
-        void afterSync_reportsSyncedTrue() throws Exception {
+        void afterSync_reportsSyncedTrue() {
             ResponseEntity<String> response = restTemplate.getForEntity(
                     API_BASE_URL + "/health", String.class);
 
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
 
-            JsonNode json = objectMapper.readTree(response.getBody());
-            assertThat(json.get("synced").asBoolean()).isTrue();
-            assertThat(json.get("syncStatus").asText()).contains("offchain:");
-            assertThat(json.get("syncStatus").asText()).contains("onchain:");
+            DocumentContext json = JsonPath.parse(response.getBody());
+            assertThat(json.read("$.synced", Boolean.class)).isTrue();
+            assertThat(json.read("$.syncStatus", String.class)).contains("offchain:");
+            assertThat(json.read("$.syncStatus", String.class)).contains("onchain:");
         }
     }
 
@@ -66,27 +66,27 @@ public class SyncStatusIntegrationIT extends BaseIntegrationIT {
     class ActuatorHealth {
 
         @Test
-        void shouldBeUp() throws Exception {
+        void shouldBeUp() {
             ResponseEntity<String> response = restTemplate.getForEntity(
                     API_BASE_URL + "/actuator/health", String.class);
 
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
 
-            JsonNode json = objectMapper.readTree(response.getBody());
-            assertThat(json.get("status").asText()).isEqualTo("UP");
+            DocumentContext json = JsonPath.parse(response.getBody());
+            assertThat(json.read("$.status", String.class)).isEqualTo("UP");
         }
 
         @Test
-        void shouldExposeAllGroups() throws Exception {
+        void shouldExposeAllGroups() {
             ResponseEntity<String> response = restTemplate.getForEntity(
                     API_BASE_URL + "/actuator/health", String.class);
 
-            JsonNode json = objectMapper.readTree(response.getBody());
-            JsonNode groups = json.get("groups");
+            DocumentContext json = JsonPath.parse(response.getBody());
+            List<String> groups = json.read("$.groups", List.class);
             assertThat(groups).isNotNull();
-            assertThat(groups.toString()).contains("startup");
-            assertThat(groups.toString()).contains("liveness");
-            assertThat(groups.toString()).contains("readiness");
+            assertThat(groups).contains("startup");
+            assertThat(groups).contains("liveness");
+            assertThat(groups).contains("readiness");
         }
     }
 
@@ -95,36 +95,36 @@ public class SyncStatusIntegrationIT extends BaseIntegrationIT {
     class StartupProbe {
 
         @Test
-        void shouldBeUp_whenInitialized() throws Exception {
+        void shouldBeUp_whenInitialized() {
             ResponseEntity<String> response = restTemplate.getForEntity(
                     API_BASE_URL + "/actuator/health/startup", String.class);
 
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
 
-            JsonNode json = objectMapper.readTree(response.getBody());
-            assertThat(json.get("status").asText()).isEqualTo("UP");
+            DocumentContext json = JsonPath.parse(response.getBody());
+            assertThat(json.read("$.status", String.class)).isEqualTo("UP");
         }
 
         @Test
-        void shouldIncludeDbComponent() throws Exception {
+        void shouldIncludeDbComponent() {
             ResponseEntity<String> response = restTemplate.getForEntity(
                     API_BASE_URL + "/actuator/health/startup", String.class);
 
-            JsonNode components = objectMapper.readTree(response.getBody()).get("components");
-            assertThat(components.get("db")).isNotNull();
-            assertThat(components.get("db").get("status").asText()).isEqualTo("UP");
+            DocumentContext json = JsonPath.parse(response.getBody());
+            assertThat(json.read("$.components.db", Object.class)).isNotNull();
+            assertThat(json.read("$.components.db.status", String.class)).isEqualTo("UP");
         }
 
         @Test
-        void shouldIncludeStartupComponent() throws Exception {
+        void shouldIncludeOnchainConnectionComponent() {
             ResponseEntity<String> response = restTemplate.getForEntity(
                     API_BASE_URL + "/actuator/health/startup", String.class);
 
-            JsonNode components = objectMapper.readTree(response.getBody()).get("components");
-            assertThat(components.get("startup")).isNotNull();
-            assertThat(components.get("startup").get("status").asText()).isEqualTo("UP");
-            assertThat(components.get("startup").get("details").get("connectionAlive").asBoolean()).isTrue();
-            assertThat(components.get("startup").get("details").get("receivingBlocks").asBoolean()).isTrue();
+            DocumentContext json = JsonPath.parse(response.getBody());
+            assertThat(json.read("$.components.onchainConnection", Object.class)).isNotNull();
+            assertThat(json.read("$.components.onchainConnection.status", String.class)).isEqualTo("UP");
+            assertThat(json.read("$.components.onchainConnection.details.connectionAlive", Boolean.class)).isTrue();
+            assertThat(json.read("$.components.onchainConnection.details.receivingBlocks", Boolean.class)).isTrue();
         }
     }
 
@@ -133,25 +133,25 @@ public class SyncStatusIntegrationIT extends BaseIntegrationIT {
     class LivenessProbe {
 
         @Test
-        void shouldBeUp() throws Exception {
+        void shouldBeUp() {
             ResponseEntity<String> response = restTemplate.getForEntity(
                     API_BASE_URL + "/actuator/health/liveness", String.class);
 
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
 
-            JsonNode json = objectMapper.readTree(response.getBody());
-            assertThat(json.get("status").asText()).isEqualTo("UP");
+            DocumentContext json = JsonPath.parse(response.getBody());
+            assertThat(json.read("$.status", String.class)).isEqualTo("UP");
         }
 
         @Test
-        void shouldIncludeSyncIndicators() throws Exception {
+        void shouldIncludeSyncIndicators() {
             ResponseEntity<String> response = restTemplate.getForEntity(
                     API_BASE_URL + "/actuator/health/liveness", String.class);
 
-            JsonNode components = objectMapper.readTree(response.getBody()).get("components");
-            assertThat(components.get("livenessState")).isNotNull();
-            assertThat(components.get("offchainSync")).isNotNull();
-            assertThat(components.get("onchainSync")).isNotNull();
+            DocumentContext json = JsonPath.parse(response.getBody());
+            assertThat(json.read("$.components.livenessState", Object.class)).isNotNull();
+            assertThat(json.read("$.components.offchainSync", Object.class)).isNotNull();
+            assertThat(json.read("$.components.onchainConnection", Object.class)).isNotNull();
         }
     }
 
@@ -160,46 +160,46 @@ public class SyncStatusIntegrationIT extends BaseIntegrationIT {
     class ReadinessProbe {
 
         @Test
-        void shouldBeUp_whenSynced() throws Exception {
+        void shouldBeUp_whenSynced() {
             ResponseEntity<String> response = restTemplate.getForEntity(
                     API_BASE_URL + "/actuator/health/readiness", String.class);
 
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
 
-            JsonNode json = objectMapper.readTree(response.getBody());
-            assertThat(json.get("status").asText()).isEqualTo("UP");
+            DocumentContext json = JsonPath.parse(response.getBody());
+            assertThat(json.read("$.status", String.class)).isEqualTo("UP");
         }
 
         @Test
-        void shouldIncludeOffchainSync() throws Exception {
+        void shouldIncludeOffchainSync() {
             ResponseEntity<String> response = restTemplate.getForEntity(
                     API_BASE_URL + "/actuator/health/readiness", String.class);
 
-            JsonNode components = objectMapper.readTree(response.getBody()).get("components");
-            assertThat(components.get("offchainSync")).isNotNull();
-            assertThat(components.get("offchainSync").get("status").asText()).isEqualTo("UP");
+            DocumentContext json = JsonPath.parse(response.getBody());
+            assertThat(json.read("$.components.offchainSync", Object.class)).isNotNull();
+            assertThat(json.read("$.components.offchainSync.status", String.class)).isEqualTo("UP");
         }
 
         @Test
-        void shouldIncludeOnchainSync() throws Exception {
+        void shouldIncludeOnchainSync() {
             ResponseEntity<String> response = restTemplate.getForEntity(
                     API_BASE_URL + "/actuator/health/readiness", String.class);
 
-            JsonNode components = objectMapper.readTree(response.getBody()).get("components");
-            assertThat(components.get("onchainSync")).isNotNull();
-            assertThat(components.get("onchainSync").get("status").asText()).isEqualTo("UP");
-            assertThat(components.get("onchainSync").get("details").get("syncStatus").asText()).isEqualTo("Synced");
-            assertThat(components.get("onchainSync").get("details").get("syncPercentage")).isNotNull();
+            DocumentContext json = JsonPath.parse(response.getBody());
+            assertThat(json.read("$.components.onchainReadiness", Object.class)).isNotNull();
+            assertThat(json.read("$.components.onchainReadiness.status", String.class)).isEqualTo("UP");
+            assertThat(json.read("$.components.onchainReadiness.details.syncStatus", String.class)).isEqualTo("Synced");
+            assertThat(json.read("$.components.onchainReadiness.details.syncPercentage", Object.class)).isNotNull();
         }
 
         @Test
-        void shouldIncludeDb() throws Exception {
+        void shouldIncludeDb() {
             ResponseEntity<String> response = restTemplate.getForEntity(
                     API_BASE_URL + "/actuator/health/readiness", String.class);
 
-            JsonNode components = objectMapper.readTree(response.getBody()).get("components");
-            assertThat(components.get("db")).isNotNull();
-            assertThat(components.get("db").get("status").asText()).isEqualTo("UP");
+            DocumentContext json = JsonPath.parse(response.getBody());
+            assertThat(json.read("$.components.db", Object.class)).isNotNull();
+            assertThat(json.read("$.components.db.status", String.class)).isEqualTo("UP");
         }
     }
 }

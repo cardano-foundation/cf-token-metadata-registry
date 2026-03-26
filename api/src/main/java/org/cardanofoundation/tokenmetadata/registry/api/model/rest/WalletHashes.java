@@ -16,6 +16,6 @@ import java.util.List;
 public class WalletHashes {
   @JsonProperty("addressHashes")
   @Valid
-  @Schema(name = "addressHashes", required = true)
+  @Schema(name = "addressHashes", requiredMode = Schema.RequiredMode.REQUIRED)
   private List<String> addressHashes = new ArrayList<>();
 }

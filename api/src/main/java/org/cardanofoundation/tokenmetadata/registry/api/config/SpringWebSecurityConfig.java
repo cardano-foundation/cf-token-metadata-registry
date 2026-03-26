@@ -17,13 +17,13 @@ public class SpringWebSecurityConfig {
         // with no session-based authentication, so CSRF attacks are not applicable.
         return http
                 .csrf(AbstractHttpConfigurer::disable) // codeql[java/spring-disabled-csrf-protection] - public read-only REST API, no session auth
-                .authorizeHttpRequests((matcherRegistry) -> matcherRegistry.anyRequest().permitAll())
-                .headers((headers) -> headers
-                        .contentSecurityPolicy((policy) -> policy
+                .authorizeHttpRequests(matcherRegistry -> matcherRegistry.anyRequest().permitAll())
+                .headers(headers -> headers
+                        .contentSecurityPolicy(policy -> policy
                                 .policyDirectives("default-src 'self'; script-src 'self' 'unsafe-inline'; script-src-elem 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; style-src-elem 'self' 'unsafe-inline'; img-src 'self' 'unsafe-inline'"))
-                        .referrerPolicy((policy) -> policy
+                        .referrerPolicy(policy -> policy
                                 .policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.SAME_ORIGIN))
-                        .permissionsPolicy((policy) -> policy.policy("geolocation=(self)")))
+                        .permissionsPolicyHeader(policy -> policy.policy("geolocation=(self)")))
                 .build();
     }
 

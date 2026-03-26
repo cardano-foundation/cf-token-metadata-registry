@@ -16,7 +16,7 @@ class MetadataV2ParserTest {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     @Test
-    public void parseFLDTDatumTest() throws JsonProcessingException {
+    void parseFLDTDatumTest() throws JsonProcessingException {
 
         List<String> priorities = Stream.of(QueryPriority.values()).map(QueryPriority::name).toList();
 
