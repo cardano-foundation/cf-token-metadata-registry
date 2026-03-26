@@ -58,6 +58,13 @@ public class Cip113RegistryNodeParser {
             String thirdPartyTransferLogicScript = extractCredentialBytes(fields.get(3));
             String globalStatePolicyId = fields.size() > 4 ? extractBytes(fields.get(4)) : null;
 
+            if (transferLogicScript == null || thirdPartyTransferLogicScript == null) {
+                log.warn("CIP-113 registry node missing required scripts: transferLogic={}, thirdPartyLogic={}",
+                        transferLogicScript != null ? "present" : "null",
+                        thirdPartyTransferLogicScript != null ? "present" : "null");
+                return Optional.empty();
+            }
+
             return Optional.of(new ParsedRegistryNode(key, next, transferLogicScript,
                     thirdPartyTransferLogicScript, globalStatePolicyId));
 

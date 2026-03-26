@@ -96,6 +96,32 @@ class Cip113RegistryNodeParserTest {
         void returnsEmptyForBlank() {
             assertThat(parser.parse("  ")).isEmpty();
         }
+
+        @Test
+        void returnsEmptyWhenTransferLogicScriptMissing() throws Exception {
+            ConstrPlutusData registryNode = ConstrPlutusData.of(0,
+                    BytesPlutusData.of(HexUtil.decodeHexString("deadbeef")),
+                    BytesPlutusData.of(HexUtil.decodeHexString("cafebabe")),
+                    BytesPlutusData.of(new byte[0]),  // not wrapped in Constr — extractCredentialBytes returns null
+                    ConstrPlutusData.of(0, BytesPlutusData.of(HexUtil.decodeHexString("11223344")))
+            );
+            String inlineDatum = HexUtil.encodeHexString(CborSerializationUtil.serialize(registryNode.serialize()));
+
+            assertThat(parser.parse(inlineDatum)).isEmpty();
+        }
+
+        @Test
+        void returnsEmptyWhenThirdPartyLogicScriptMissing() throws Exception {
+            ConstrPlutusData registryNode = ConstrPlutusData.of(0,
+                    BytesPlutusData.of(HexUtil.decodeHexString("deadbeef")),
+                    BytesPlutusData.of(HexUtil.decodeHexString("cafebabe")),
+                    ConstrPlutusData.of(0, BytesPlutusData.of(HexUtil.decodeHexString("aabbccdd"))),
+                    BytesPlutusData.of(new byte[0])  // not wrapped in Constr — extractCredentialBytes returns null
+            );
+            String inlineDatum = HexUtil.encodeHexString(CborSerializationUtil.serialize(registryNode.serialize()));
+
+            assertThat(parser.parse(inlineDatum)).isEmpty();
+        }
     }
 
     private static String buildDatum(String key, String next, String transferLogic,

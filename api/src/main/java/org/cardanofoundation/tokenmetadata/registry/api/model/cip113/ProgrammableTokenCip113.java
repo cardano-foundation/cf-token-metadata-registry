@@ -15,14 +15,14 @@ public record ProgrammableTokenCip113(
                 + "This script runs on-chain via the withdraw-zero pattern whenever tokens move between addresses.",
                 example = "aaa513b0fcc01d635f8535d49f38acc33d4d6b62ee8732ca6e126102",
                 requiredMode = Schema.RequiredMode.REQUIRED)
-        @JsonProperty("transfer_logic_script") @Nullable String transferLogicScript,
+        @JsonProperty("transfer_logic_script") String transferLogicScript,
 
         @Schema(description = "Blake2b-224 hash of the Plutus script that validates issuer/admin operations "
                 + "such as freeze, seize, or burn. Allows a token issuer to perform privileged actions "
                 + "on tokens held by other addresses.",
                 example = "def513b0fcc01d635f8535d49f38acc33d4d6b62ee8732ca6e126103",
                 requiredMode = Schema.RequiredMode.REQUIRED)
-        @JsonProperty("third_party_transfer_logic_script") @Nullable String thirdPartyTransferLogicScript,
+        @JsonProperty("third_party_transfer_logic_script") String thirdPartyTransferLogicScript,
 
         @Schema(description = "Policy ID of an optional global state NFT used by the transfer logic. "
                 + "For example, a freeze-and-seize substandard uses this to reference a denylist "
