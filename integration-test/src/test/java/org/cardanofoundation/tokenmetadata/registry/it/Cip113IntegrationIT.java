@@ -114,9 +114,13 @@ public class Cip113IntegrationIT extends BaseIntegrationIT {
                         boolean hasRegisteredToken = body.lines()
                                 .filter(line -> line.startsWith("cftr_tokens_cip113_count"))
                                 .anyMatch(line -> {
-                                    String valueStr = line.substring(line.lastIndexOf(' ') + 1).trim();
-                                    double value = Double.parseDouble(valueStr);
-                                    return value >= 1.0;
+                                    try {
+                                        String valueStr = line.substring(line.lastIndexOf(' ') + 1).trim();
+                                        double value = Double.parseDouble(valueStr);
+                                        return value >= 1.0;
+                                    } catch (NumberFormatException e) {
+                                        return false;
+                                    }
                                 });
                         assertThat(hasRegisteredToken)
                                 .as("cftr_tokens_cip113_count should be >= 1")
