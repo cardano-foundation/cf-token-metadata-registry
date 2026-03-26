@@ -113,6 +113,20 @@ public class OpenApiDocsIT extends BaseIntegrationIT {
                     .as("extensions should be a map with additionalProperties schema")
                     .isTrue();
         }
+
+        @Test
+        void programmableTokenCip113SchemaDocumented() {
+            JsonNode schema = apiDocs.at("/components/schemas/ProgrammableTokenCip113");
+            assertThat(schema.isMissingNode())
+                    .as("ProgrammableTokenCip113 schema should exist")
+                    .isFalse();
+            assertThat(schema.get("description").asText()).containsIgnoringCase("CIP-113");
+
+            JsonNode properties = schema.path("properties");
+            assertThat(properties.has("transfer_logic_script")).isTrue();
+            assertThat(properties.has("third_party_transfer_logic_script")).isTrue();
+            assertThat(properties.has("global_state_policy_id")).isTrue();
+        }
     }
 
     @Nested
