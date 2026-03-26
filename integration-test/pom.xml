@@ -66,6 +66,13 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- JSON assertions -->
+        <dependency>
+            <groupId>com.jayway.jsonpath</groupId>
+            <artifactId>json-path</artifactId>
+            <scope>test</scope>
+        </dependency>
+
         <!-- Async polling -->
         <dependency>
             <groupId>org.awaitility</groupId>
