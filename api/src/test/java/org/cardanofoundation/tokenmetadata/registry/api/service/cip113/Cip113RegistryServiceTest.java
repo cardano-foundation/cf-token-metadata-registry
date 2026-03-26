@@ -1,5 +1,7 @@
 package org.cardanofoundation.tokenmetadata.registry.api.service.cip113;
 
+import com.bloxbean.cardano.yaci.store.common.domain.AddressUtxo;
+import com.bloxbean.cardano.yaci.store.common.domain.Amt;
 import org.cardanofoundation.tokenmetadata.registry.api.config.Cip113Configuration;
 import org.cardanofoundation.tokenmetadata.registry.api.model.cip113.ProgrammableTokenCip113;
 import org.cardanofoundation.tokenmetadata.registry.entity.Cip113RegistryNode;
@@ -10,6 +12,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.math.BigInteger;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -27,11 +30,14 @@ class Cip113RegistryServiceTest {
 
     private Cip113RegistryService service;
 
+    private static final String MONITORED_POLICY = "aabbccdd11223344aabbccdd11223344aabbccdd11223344aabbccdd";
+    private static final String OTHER_POLICY = "9999999999999999999999999999999999999999999999999999999999";
+
     @BeforeEach
     void setUp() {
         config = new Cip113Configuration();
         config.setEnabled(true);
-        config.setRegistryNftPolicyIds(List.of("abc123", "def456"));
+        config.setRegistryNftPolicyIds(List.of(MONITORED_POLICY));
         config.init();
         service = new Cip113RegistryService(repository, config);
     }
@@ -101,6 +107,56 @@ class Cip113RegistryServiceTest {
     void findByPolicyIdsReturnsEmptyMapWhenDisabled() {
         config.setEnabled(false);
         assertTrue(service.findByPolicyIds(List.of("policy1")).isEmpty());
+    }
+
+    @Test
+    void containsRegistryNodeReturnsTrueForMatchingNft() {
+        AddressUtxo utxo = AddressUtxo.builder()
+                .amounts(List.of(Amt.builder()
+                        .unit(MONITORED_POLICY + "deadbeef")
+                        .quantity(BigInteger.ONE)
+                        .build()))
+                .build();
+
+        assertTrue(service.containsRegistryNode(utxo));
+    }
+
+    @Test
+    void containsRegistryNodeReturnsFalseForNonMatchingPolicy() {
+        AddressUtxo utxo = AddressUtxo.builder()
+                .amounts(List.of(Amt.builder()
+                        .unit(OTHER_POLICY + "deadbeef")
+                        .quantity(BigInteger.ONE)
+                        .build()))
+                .build();
+
+        assertFalse(service.containsRegistryNode(utxo));
+    }
+
+    @Test
+    void containsRegistryNodeReturnsFalseWhenQuantityNotOne() {
+        AddressUtxo utxo = AddressUtxo.builder()
+                .amounts(List.of(Amt.builder()
+                        .unit(MONITORED_POLICY + "deadbeef")
+                        .quantity(BigInteger.TEN)
+                        .build()))
+                .build();
+
+        assertFalse(service.containsRegistryNode(utxo));
+    }
+
+    @Test
+    void containsRegistryNodeReturnsFalseWhenDisabled() {
+        config.setEnabled(false);
+
+        AddressUtxo utxo = AddressUtxo.builder()
+                .amounts(List.of(Amt.builder()
+                        .unit(MONITORED_POLICY + "deadbeef")
+                        .quantity(BigInteger.ONE)
+                        .build()))
+                .build();
+
+        assertFalse(service.containsRegistryNode(utxo));
     }
 
 }

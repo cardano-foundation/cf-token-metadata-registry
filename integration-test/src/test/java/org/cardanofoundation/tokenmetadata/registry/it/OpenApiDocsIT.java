@@ -91,6 +91,41 @@ public class OpenApiDocsIT extends BaseIntegrationIT {
     }
 
     @Nested
+    @DisplayName("CIP-113 - Programmable token extensions")
+    class Cip113 {
+
+        @Test
+        void subjectSchemaIncludesExtensionsField() {
+            JsonNode subjectProps = apiDocs.at("/components/schemas/Subject/properties");
+            assertThat(subjectProps.isMissingNode()).isFalse();
+            assertThat(subjectProps.has("extensions"))
+                    .as("Subject schema should have an 'extensions' field for CIP extensions")
+                    .isTrue();
+        }
+
+        @Test
+        void programmableTokenSchemaDocumented() {
+            JsonNode schemas = apiDocs.at("/components/schemas");
+            // Springdoc may name it ProgrammableTokenCip113 or inline it — find by scanning all schemas
+            boolean found = false;
+            var it = schemas.fields();
+            while (it.hasNext()) {
+                var entry = it.next();
+                JsonNode props = entry.getValue().path("properties");
+                if (props.has("transfer_logic_script")
+                        && props.has("third_party_transfer_logic_script")
+                        && props.has("global_state_policy_id")) {
+                    found = true;
+                    break;
+                }
+            }
+            assertThat(found)
+                    .as("A schema with CIP-113 fields (transfer_logic_script, third_party_transfer_logic_script, global_state_policy_id) should exist")
+                    .isTrue();
+        }
+    }
+
+    @Nested
     @DisplayName("Response schemas")
     class Schemas {
 
