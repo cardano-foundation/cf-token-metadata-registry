@@ -8,8 +8,9 @@ This is a CIP-26 compliant offchain metadata registry for Cardano tokens built w
 
 - **api**: REST API server implementing CIP-26 specification with extended querying capabilities
 - **job**: Background job processor for syncing token metadata from GitHub
-- **common**: Shared utilities and domain models  
+- **common**: Shared utilities and domain models
 - **cli**: Command-line tools for metadata operations
+- **integration-test**: End-to-end integration tests run against a live API instance
 
 The API integrates with Yaci Store for blockchain data and uses PostgreSQL for persistence with Flyway migrations.
 
@@ -69,7 +70,8 @@ The API implements CIP-26 endpoints plus extensions:
 
 - Unit tests use JUnit 5, Mockito, and **AssertJ** (`assertThat()`) for fluent assertions
 - Use **`@Nested`** inner classes to group tests by concern (e.g. `@Nested class FindByPolicyId`, `@Nested class ContainsRegistryNode`)
-- Integration tests use `@SpringBootTest`
+- Controller tests use `@WebMvcTest` with `MockMvc` and `@MockBean` for dependencies
+- End-to-end integration tests live in `integration-test/` module — they use `RestTemplate` against a running API (no Spring test context)
 - Test coverage tracked via JaCoCo, reports in `api/target/site/jacoco/`
 - Do not test POJOs/records — focus on real logic (parsing, filtering, query behavior, edge cases)
 - **Do not use `var`** — always use explicit types for local variables
