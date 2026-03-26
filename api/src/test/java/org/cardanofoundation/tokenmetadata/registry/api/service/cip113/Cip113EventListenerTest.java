@@ -13,6 +13,8 @@ import org.cardanofoundation.tokenmetadata.registry.api.config.Cip113Configurati
 import org.cardanofoundation.tokenmetadata.registry.entity.Cip113RegistryNode;
 import org.cardanofoundation.tokenmetadata.registry.repository.Cip113RegistryNodeRepository;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -21,12 +23,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigInteger;
 import java.util.List;
-import java.util.Set;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
+@DisplayName("Cip113EventListener")
 class Cip113EventListenerTest {
 
     private static final String REGISTRY_NFT_POLICY_ID = "aabbccdd11223344aabbccdd11223344aabbccdd11223344aabbccdd";
@@ -39,8 +41,6 @@ class Cip113EventListenerTest {
     private Cip113RegistryNodeRepository repository;
 
     private Cip113Configuration config;
-    private Cip113RegistryNodeParser parser;
-    private Cip113RegistryService registryService;
     private Cip113EventListener listener;
 
     @BeforeEach
@@ -50,120 +50,107 @@ class Cip113EventListenerTest {
         config.setRegistryNftPolicyIds(List.of(REGISTRY_NFT_POLICY_ID));
         config.init();
 
-        parser = new Cip113RegistryNodeParser();
-        registryService = new Cip113RegistryService(repository, config);
+        Cip113RegistryNodeParser parser = new Cip113RegistryNodeParser();
+        Cip113RegistryService registryService = new Cip113RegistryService(repository, config);
         listener = new Cip113EventListener(config, parser, repository, registryService);
     }
 
-    @Test
-    void processesValidRegistryNodeUtxo() throws Exception {
-        String datum = buildRegistryNodeDatum(REGISTERED_POLICY_ID, "ffffffffffff",
-                TRANSFER_LOGIC, THIRD_PARTY_LOGIC, "");
+    @Nested
+    @DisplayName("Valid registry node UTxOs")
+    class ValidRegistryNode {
 
-        AddressUtxoEvent event = buildEvent(100L, REGISTRY_NFT_POLICY_ID, REGISTERED_POLICY_ID, datum, TX_HASH);
+        @Test
+        void savesEntityWithCorrectFields() throws Exception {
+            String datum = buildRegistryNodeDatum(REGISTERED_POLICY_ID, "ffffffffffff",
+                    TRANSFER_LOGIC, THIRD_PARTY_LOGIC, "");
 
-        listener.processTransaction(event);
+            listener.processTransaction(buildEvent(100L, REGISTRY_NFT_POLICY_ID, REGISTERED_POLICY_ID, datum, TX_HASH));
 
-        ArgumentCaptor<Cip113RegistryNode> captor = ArgumentCaptor.forClass(Cip113RegistryNode.class);
-        verify(repository).save(captor.capture());
+            ArgumentCaptor<Cip113RegistryNode> captor = ArgumentCaptor.forClass(Cip113RegistryNode.class);
+            verify(repository).save(captor.capture());
 
-        Cip113RegistryNode saved = captor.getValue();
-        assertEquals(REGISTERED_POLICY_ID, saved.getPolicyId());
-        assertEquals(100L, saved.getSlot());
-        assertEquals(TX_HASH, saved.getTxHash());
-        assertEquals(TRANSFER_LOGIC, saved.getTransferLogicScript());
-        assertEquals(THIRD_PARTY_LOGIC, saved.getThirdPartyTransferLogicScript());
+            Cip113RegistryNode saved = captor.getValue();
+            assertThat(saved.getPolicyId()).isEqualTo(REGISTERED_POLICY_ID);
+            assertThat(saved.getSlot()).isEqualTo(100L);
+            assertThat(saved.getTxHash()).isEqualTo(TX_HASH);
+            assertThat(saved.getTransferLogicScript()).isEqualTo(TRANSFER_LOGIC);
+            assertThat(saved.getThirdPartyTransferLogicScript()).isEqualTo(THIRD_PARTY_LOGIC);
+            assertThat(saved.getDatum()).isEqualTo(datum);
+        }
     }
 
-    @Test
-    void skipsWhenDisabled() {
-        config.setEnabled(false);
+    @Nested
+    @DisplayName("Skipped UTxOs")
+    class SkippedUtxos {
 
-        AddressUtxoEvent event = buildEvent(100L, REGISTRY_NFT_POLICY_ID, REGISTERED_POLICY_ID, "d8799f40ff", TX_HASH);
+        @Test
+        void skipsWhenDisabled() {
+            config.setEnabled(false);
+            listener.processTransaction(buildEvent(100L, REGISTRY_NFT_POLICY_ID, REGISTERED_POLICY_ID, "d8799f40ff", TX_HASH));
+            verifyNoInteractions(repository);
+        }
 
-        listener.processTransaction(event);
+        @Test
+        void skipsWhenNoPolicyIdsConfigured() {
+            config.setRegistryNftPolicyIds(List.of());
+            config.init();
+            listener.processTransaction(buildEvent(100L, REGISTRY_NFT_POLICY_ID, REGISTERED_POLICY_ID, "d8799f40ff", TX_HASH));
+            verifyNoInteractions(repository);
+        }
 
-        verifyNoInteractions(repository);
-    }
+        @Test
+        void skipsNonMatchingPolicyId() throws Exception {
+            String otherPolicy = "9999999999999999999999999999999999999999999999999999999999";
+            String datum = buildRegistryNodeDatum(REGISTERED_POLICY_ID, "ff", TRANSFER_LOGIC, THIRD_PARTY_LOGIC, "");
+            listener.processTransaction(buildEvent(100L, otherPolicy, REGISTERED_POLICY_ID, datum, TX_HASH));
+            verifyNoInteractions(repository);
+        }
 
-    @Test
-    void skipsWhenNoPolicyIdsConfigured() {
-        config.setRegistryNftPolicyIds(List.of());
-        config.init();
+        @Test
+        void skipsUtxoWithoutInlineDatum() {
+            AddressUtxo utxo = AddressUtxo.builder()
+                    .txHash(TX_HASH)
+                    .inlineDatum(null)
+                    .amounts(List.of(Amt.builder()
+                            .unit(REGISTRY_NFT_POLICY_ID + REGISTERED_POLICY_ID)
+                            .quantity(BigInteger.ONE).build()))
+                    .build();
 
-        AddressUtxoEvent event = buildEvent(100L, REGISTRY_NFT_POLICY_ID, REGISTERED_POLICY_ID, "d8799f40ff", TX_HASH);
+            AddressUtxoEvent event = AddressUtxoEvent.builder()
+                    .metadata(EventMetadata.builder().slot(100L).build())
+                    .txInputOutputs(List.of(TxInputOutput.builder().outputs(List.of(utxo)).build()))
+                    .build();
 
-        listener.processTransaction(event);
+            listener.processTransaction(event);
+            verifyNoInteractions(repository);
+        }
 
-        verifyNoInteractions(repository);
-    }
+        @Test
+        void skipsNftWithQuantityGreaterThanOne() throws Exception {
+            String datum = buildRegistryNodeDatum(REGISTERED_POLICY_ID, "ff", TRANSFER_LOGIC, THIRD_PARTY_LOGIC, "");
 
-    @Test
-    void skipsUtxoWithNonMatchingPolicyId() throws Exception {
-        String datum = buildRegistryNodeDatum(REGISTERED_POLICY_ID, "ffffffffffff",
-                TRANSFER_LOGIC, THIRD_PARTY_LOGIC, "");
-        String otherPolicyId = "9999999999999999999999999999999999999999999999999999999999";
+            AddressUtxo utxo = AddressUtxo.builder()
+                    .txHash(TX_HASH)
+                    .inlineDatum(datum)
+                    .amounts(List.of(Amt.builder()
+                            .unit(REGISTRY_NFT_POLICY_ID + REGISTERED_POLICY_ID)
+                            .quantity(BigInteger.TWO).build()))
+                    .build();
 
-        AddressUtxoEvent event = buildEvent(100L, otherPolicyId, REGISTERED_POLICY_ID, datum, TX_HASH);
+            AddressUtxoEvent event = AddressUtxoEvent.builder()
+                    .metadata(EventMetadata.builder().slot(100L).build())
+                    .txInputOutputs(List.of(TxInputOutput.builder().outputs(List.of(utxo)).build()))
+                    .build();
 
-        listener.processTransaction(event);
+            listener.processTransaction(event);
+            verifyNoInteractions(repository);
+        }
 
-        verifyNoInteractions(repository);
-    }
-
-    @Test
-    void skipsUtxoWithoutInlineDatum() {
-        AddressUtxo utxo = AddressUtxo.builder()
-                .txHash(TX_HASH)
-                .inlineDatum(null)
-                .amounts(List.of(Amt.builder()
-                        .unit(REGISTRY_NFT_POLICY_ID + REGISTERED_POLICY_ID)
-                        .quantity(BigInteger.ONE)
-                        .build()))
-                .build();
-
-        AddressUtxoEvent event = AddressUtxoEvent.builder()
-                .metadata(EventMetadata.builder().slot(100L).build())
-                .txInputOutputs(List.of(TxInputOutput.builder().outputs(List.of(utxo)).build()))
-                .build();
-
-        listener.processTransaction(event);
-
-        verifyNoInteractions(repository);
-    }
-
-    @Test
-    void skipsUtxoWithInvalidDatum() {
-        AddressUtxoEvent event = buildEvent(100L, REGISTRY_NFT_POLICY_ID, REGISTERED_POLICY_ID,
-                "deadbeef", TX_HASH);
-
-        listener.processTransaction(event);
-
-        verifyNoInteractions(repository);
-    }
-
-    @Test
-    void skipsNftWithQuantityGreaterThanOne() throws Exception {
-        String datum = buildRegistryNodeDatum(REGISTERED_POLICY_ID, "ffffffffffff",
-                TRANSFER_LOGIC, THIRD_PARTY_LOGIC, "");
-
-        AddressUtxo utxo = AddressUtxo.builder()
-                .txHash(TX_HASH)
-                .inlineDatum(datum)
-                .amounts(List.of(Amt.builder()
-                        .unit(REGISTRY_NFT_POLICY_ID + REGISTERED_POLICY_ID)
-                        .quantity(BigInteger.TWO)
-                        .build()))
-                .build();
-
-        AddressUtxoEvent event = AddressUtxoEvent.builder()
-                .metadata(EventMetadata.builder().slot(100L).build())
-                .txInputOutputs(List.of(TxInputOutput.builder().outputs(List.of(utxo)).build()))
-                .build();
-
-        listener.processTransaction(event);
-
-        verifyNoInteractions(repository);
+        @Test
+        void skipsInvalidDatum() {
+            listener.processTransaction(buildEvent(100L, REGISTRY_NFT_POLICY_ID, REGISTERED_POLICY_ID, "deadbeef", TX_HASH));
+            verifyNoInteractions(repository);
+        }
     }
 
     private AddressUtxoEvent buildEvent(long slot, String nftPolicyId, String nftAssetName,
@@ -173,8 +160,7 @@ class Cip113EventListenerTest {
                 .inlineDatum(inlineDatum)
                 .amounts(List.of(Amt.builder()
                         .unit(nftPolicyId + nftAssetName)
-                        .quantity(BigInteger.ONE)
-                        .build()))
+                        .quantity(BigInteger.ONE).build()))
                 .build();
 
         return AddressUtxoEvent.builder()

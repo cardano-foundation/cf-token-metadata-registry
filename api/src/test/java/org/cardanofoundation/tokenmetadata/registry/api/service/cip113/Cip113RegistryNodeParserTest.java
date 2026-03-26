@@ -4,109 +4,109 @@ import com.bloxbean.cardano.client.common.cbor.CborSerializationUtil;
 import com.bloxbean.cardano.client.plutus.spec.BytesPlutusData;
 import com.bloxbean.cardano.client.plutus.spec.ConstrPlutusData;
 import com.bloxbean.cardano.client.util.HexUtil;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
+@DisplayName("Cip113RegistryNodeParser")
 class Cip113RegistryNodeParserTest {
 
     private final Cip113RegistryNodeParser parser = new Cip113RegistryNodeParser();
 
-    @Test
-    void parseRegistryNode() throws Exception {
-        String inlineDatum = buildRegistryNodeDatum(
-                "0befd1269cf3b5b41cce136c92c64b45dde93e4bfe11875839b713d1",
-                "ffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-                "aaa513b0fcc01d635f8535d49f38acc33d4d6b62ee8732ca6e126102",
-                "def513b0fcc01d635f8535d49f38acc33d4d6b62ee8732ca6e126103",
-                "1234567890abcdef1234567890abcdef1234567890abcdef12345678"
-        );
+    @Nested
+    @DisplayName("Valid datums")
+    class ValidDatums {
 
-        Optional<Cip113RegistryNodeParser.ParsedRegistryNode> result = parser.parse(inlineDatum);
+        @Test
+        void parsesFullRegistryNode() throws Exception {
+            String inlineDatum = buildDatum(
+                    "0befd1269cf3b5b41cce136c92c64b45dde93e4bfe11875839b713d1",
+                    "ffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                    "aaa513b0fcc01d635f8535d49f38acc33d4d6b62ee8732ca6e126102",
+                    "def513b0fcc01d635f8535d49f38acc33d4d6b62ee8732ca6e126103",
+                    "1234567890abcdef1234567890abcdef1234567890abcdef12345678"
+            );
 
-        assertTrue(result.isPresent());
-        Cip113RegistryNodeParser.ParsedRegistryNode node = result.get();
+            Optional<Cip113RegistryNodeParser.ParsedRegistryNode> result = parser.parse(inlineDatum);
 
-        assertEquals("0befd1269cf3b5b41cce136c92c64b45dde93e4bfe11875839b713d1", node.key());
-        assertEquals("ffffffffffffffffffffffffffffffffffffffffffffffffffffff", node.next());
-        assertEquals("aaa513b0fcc01d635f8535d49f38acc33d4d6b62ee8732ca6e126102", node.transferLogicScript());
-        assertEquals("def513b0fcc01d635f8535d49f38acc33d4d6b62ee8732ca6e126103", node.thirdPartyTransferLogicScript());
-        assertEquals("1234567890abcdef1234567890abcdef1234567890abcdef12345678", node.globalStatePolicyId());
+            assertThat(result).isPresent();
+            assertThat(result.get().key()).isEqualTo("0befd1269cf3b5b41cce136c92c64b45dde93e4bfe11875839b713d1");
+            assertThat(result.get().next()).isEqualTo("ffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+            assertThat(result.get().transferLogicScript()).isEqualTo("aaa513b0fcc01d635f8535d49f38acc33d4d6b62ee8732ca6e126102");
+            assertThat(result.get().thirdPartyTransferLogicScript()).isEqualTo("def513b0fcc01d635f8535d49f38acc33d4d6b62ee8732ca6e126103");
+            assertThat(result.get().globalStatePolicyId()).isEqualTo("1234567890abcdef1234567890abcdef1234567890abcdef12345678");
+        }
+
+        @Test
+        void parsesSentinelNode() throws Exception {
+            String inlineDatum = buildDatum(
+                    "",
+                    "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                    "aaa513b0fcc01d635f8535d49f38acc33d4d6b62ee8732ca6e126102",
+                    "def513b0fcc01d635f8535d49f38acc33d4d6b62ee8732ca6e126103",
+                    ""
+            );
+
+            Optional<Cip113RegistryNodeParser.ParsedRegistryNode> result = parser.parse(inlineDatum);
+
+            assertThat(result).isPresent();
+            assertThat(result.get().key()).isEmpty();
+            assertThat(result.get().next()).isEqualTo("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+        }
+
+        @Test
+        void parsesNodeWithoutGlobalState() throws Exception {
+            ConstrPlutusData registryNode = ConstrPlutusData.of(0,
+                    BytesPlutusData.of(HexUtil.decodeHexString("deadbeef")),
+                    BytesPlutusData.of(HexUtil.decodeHexString("cafebabe")),
+                    ConstrPlutusData.of(0, BytesPlutusData.of(HexUtil.decodeHexString("aabbccdd"))),
+                    ConstrPlutusData.of(0, BytesPlutusData.of(HexUtil.decodeHexString("11223344")))
+            );
+            String inlineDatum = HexUtil.encodeHexString(CborSerializationUtil.serialize(registryNode.serialize()));
+
+            Optional<Cip113RegistryNodeParser.ParsedRegistryNode> result = parser.parse(inlineDatum);
+
+            assertThat(result).isPresent();
+            assertThat(result.get().key()).isEqualTo("deadbeef");
+            assertThat(result.get().transferLogicScript()).isEqualTo("aabbccdd");
+            assertThat(result.get().thirdPartyTransferLogicScript()).isEqualTo("11223344");
+            assertThat(result.get().globalStatePolicyId()).isNull();
+        }
     }
 
-    @Test
-    void parseSentinelNode() throws Exception {
-        String inlineDatum = buildRegistryNodeDatum(
-                "",
-                "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-                "aaa513b0fcc01d635f8535d49f38acc33d4d6b62ee8732ca6e126102",
-                "def513b0fcc01d635f8535d49f38acc33d4d6b62ee8732ca6e126103",
-                ""
-        );
+    @Nested
+    @DisplayName("Invalid inputs")
+    class InvalidInputs {
 
-        Optional<Cip113RegistryNodeParser.ParsedRegistryNode> result = parser.parse(inlineDatum);
+        @Test
+        void returnsEmptyForInvalidHex() {
+            assertThat(parser.parse("invalid_hex")).isEmpty();
+        }
 
-        assertTrue(result.isPresent());
-        Cip113RegistryNodeParser.ParsedRegistryNode node = result.get();
+        @Test
+        void returnsEmptyForNull() {
+            assertThat(parser.parse(null)).isEmpty();
+        }
 
-        assertEquals("", node.key());
-        assertEquals("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", node.next());
+        @Test
+        void returnsEmptyForBlank() {
+            assertThat(parser.parse("  ")).isEmpty();
+        }
     }
 
-    @Test
-    void parseNodeWithoutGlobalState() throws Exception {
-        // 4 fields only, no globalStatePolicyId
-        ConstrPlutusData registryNode = ConstrPlutusData.of(0,
-                BytesPlutusData.of(HexUtil.decodeHexString("deadbeef")),
-                BytesPlutusData.of(HexUtil.decodeHexString("cafebabe")),
-                ConstrPlutusData.of(0, BytesPlutusData.of(HexUtil.decodeHexString("aabbccdd"))),
-                ConstrPlutusData.of(0, BytesPlutusData.of(HexUtil.decodeHexString("11223344")))
-        );
-        String inlineDatum = HexUtil.encodeHexString(CborSerializationUtil.serialize(registryNode.serialize()));
-
-        Optional<Cip113RegistryNodeParser.ParsedRegistryNode> result = parser.parse(inlineDatum);
-
-        assertTrue(result.isPresent());
-        assertEquals("deadbeef", result.get().key());
-        assertEquals("cafebabe", result.get().next());
-        assertEquals("aabbccdd", result.get().transferLogicScript());
-        assertEquals("11223344", result.get().thirdPartyTransferLogicScript());
-        assertNull(result.get().globalStatePolicyId());
-    }
-
-    @Test
-    void parseInvalidDatumReturnsEmpty() {
-        assertTrue(parser.parse("invalid_hex").isEmpty());
-    }
-
-    @Test
-    void parseNullDatumReturnsEmpty() {
-        assertTrue(parser.parse(null).isEmpty());
-    }
-
-    @Test
-    void parseBlankDatumReturnsEmpty() {
-        assertTrue(parser.parse("  ").isEmpty());
-    }
-
-    private static String buildRegistryNodeDatum(String key, String next,
-                                                  String transferLogic, String thirdPartyLogic,
-                                                  String globalState) throws Exception {
-        ConstrPlutusData transferLogicConstr = ConstrPlutusData.of(0,
-                BytesPlutusData.of(HexUtil.decodeHexString(transferLogic)));
-        ConstrPlutusData thirdPartyConstr = ConstrPlutusData.of(0,
-                BytesPlutusData.of(HexUtil.decodeHexString(thirdPartyLogic)));
-
+    private static String buildDatum(String key, String next, String transferLogic,
+                                      String thirdPartyLogic, String globalState) throws Exception {
         ConstrPlutusData registryNode = ConstrPlutusData.of(0,
                 BytesPlutusData.of(key.isEmpty() ? new byte[0] : HexUtil.decodeHexString(key)),
                 BytesPlutusData.of(HexUtil.decodeHexString(next)),
-                transferLogicConstr,
-                thirdPartyConstr,
+                ConstrPlutusData.of(0, BytesPlutusData.of(HexUtil.decodeHexString(transferLogic))),
+                ConstrPlutusData.of(0, BytesPlutusData.of(HexUtil.decodeHexString(thirdPartyLogic))),
                 BytesPlutusData.of(globalState.isEmpty() ? new byte[0] : HexUtil.decodeHexString(globalState))
         );
-
         return HexUtil.encodeHexString(CborSerializationUtil.serialize(registryNode.serialize()));
     }
 
