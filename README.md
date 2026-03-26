@@ -47,11 +47,21 @@ docker compose --env-file .env.preprod up
 |--------|------|-------------|
 | GET | `/api/v2/subjects/{subject}` | Token metadata with CIP priority selection |
 | POST | `/api/v2/subjects/query` | Batch query with priority and detail options |
-| GET | `/health` | Sync status (`SYNC_NOT_STARTED`, `SYNC_IN_PROGRESS`, `SYNC_COMPLETED`) |
-| GET | `/actuator/health` | Spring Boot liveness check |
-| GET | `/actuator/prometheus` | Prometheus metrics |
 
 For the full API reference (including V1 endpoints and query parameters), see the [API Reference](https://cardano-foundation.github.io/cf-token-metadata-registry/).
+
+## Operational Endpoints
+
+| Method | Path | Description | Kubernetes Probe |
+|--------|------|-------------|------------------|
+| GET | `/actuator/health` | Aggregated health status with details for all indicators | — |
+| GET | `/actuator/health/startup` | Checks database connectivity and Cardano node connection | Startup |
+| GET | `/actuator/health/liveness` | Checks offchain sync status and Cardano node connection | Liveness |
+| GET | `/actuator/health/readiness` | Checks offchain sync, on-chain sync progress (100%), and database | Readiness |
+| GET | `/actuator/info` | Application info | — |
+| GET | `/actuator/prometheus` | Prometheus metrics (Micrometer) | — |
+| GET | `/actuator/metrics` | Micrometer metrics listing and details | — |
+| GET | `/health` | **Deprecated** — legacy sync status endpoint, use `/actuator/health/readiness` instead | — |
 
 ## Configuration
 
