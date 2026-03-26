@@ -100,7 +100,7 @@ public class OpenApiDocsIT extends BaseIntegrationIT {
 
         @Test
         void subjectSchemaIncludesExtensionsField() {
-            assertThat((Object) apiDocs.read("$.components.schemas.Subject.properties.extensions"))
+            assertThat(apiDocs.read("$.components.schemas.Subject.properties.extensions", Object.class))
                     .as("Subject schema should have an 'extensions' field for CIP extensions")
                     .isNotNull();
         }
@@ -109,22 +109,22 @@ public class OpenApiDocsIT extends BaseIntegrationIT {
         void extensionsFieldIsAMapOfObjects() {
             assertThat(apiDocs.read("$.components.schemas.Subject.properties.extensions.type", String.class))
                     .isEqualTo("object");
-            assertThat((Object) apiDocs.read("$.components.schemas.Subject.properties.extensions.additionalProperties"))
+            assertThat(apiDocs.read("$.components.schemas.Subject.properties.extensions.additionalProperties", Object.class))
                     .as("extensions should be a map with additionalProperties schema")
                     .isNotNull();
         }
 
         @Test
         void programmableTokenCip113SchemaDocumented() {
-            assertThat((Object) apiDocs.read("$.components.schemas.ProgrammableTokenCip113"))
+            assertThat(apiDocs.read("$.components.schemas.ProgrammableTokenCip113", Object.class))
                     .as("ProgrammableTokenCip113 schema should exist")
                     .isNotNull();
             assertThat(apiDocs.read("$.components.schemas.ProgrammableTokenCip113.description", String.class))
                     .containsIgnoringCase("CIP-113");
 
-            assertThat((Object) apiDocs.read("$.components.schemas.ProgrammableTokenCip113.properties.transfer_logic_script")).isNotNull();
-            assertThat((Object) apiDocs.read("$.components.schemas.ProgrammableTokenCip113.properties.third_party_transfer_logic_script")).isNotNull();
-            assertThat((Object) apiDocs.read("$.components.schemas.ProgrammableTokenCip113.properties.global_state_policy_id")).isNotNull();
+            assertThat(apiDocs.read("$.components.schemas.ProgrammableTokenCip113.properties.transfer_logic_script", Object.class)).isNotNull();
+            assertThat(apiDocs.read("$.components.schemas.ProgrammableTokenCip113.properties.third_party_transfer_logic_script", Object.class)).isNotNull();
+            assertThat(apiDocs.read("$.components.schemas.ProgrammableTokenCip113.properties.global_state_policy_id", Object.class)).isNotNull();
         }
     }
 
@@ -134,8 +134,8 @@ public class OpenApiDocsIT extends BaseIntegrationIT {
 
         @Test
         void shouldIncludeKeySchemas() {
-            assertThat((Object) apiDocs.read("$.components.schemas.TokenMetadata")).isNotNull();
-            assertThat((Object) apiDocs.read("$.components.schemas.BatchRequest")).isNotNull();
+            assertThat(apiDocs.read("$.components.schemas.TokenMetadata", Object.class)).isNotNull();
+            assertThat(apiDocs.read("$.components.schemas.BatchRequest", Object.class)).isNotNull();
         }
     }
 
