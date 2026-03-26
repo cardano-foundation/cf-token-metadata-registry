@@ -2,6 +2,9 @@ package org.cardanofoundation.tokenmetadata.registry.it;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import java.util.Iterator;
+import java.util.Map;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -108,9 +111,9 @@ public class OpenApiDocsIT extends BaseIntegrationIT {
             JsonNode schemas = apiDocs.at("/components/schemas");
             // Springdoc may name it ProgrammableTokenCip113 or inline it — find by scanning all schemas
             boolean found = false;
-            var it = schemas.fields();
+            Iterator<Map.Entry<String, JsonNode>> it = schemas.fields();
             while (it.hasNext()) {
-                var entry = it.next();
+                Map.Entry<String, JsonNode> entry = it.next();
                 JsonNode props = entry.getValue().path("properties");
                 if (props.has("transfer_logic_script")
                         && props.has("third_party_transfer_logic_script")
