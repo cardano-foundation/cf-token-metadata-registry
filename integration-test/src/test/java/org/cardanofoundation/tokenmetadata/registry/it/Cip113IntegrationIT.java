@@ -14,6 +14,7 @@ import java.time.Duration;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
 
 /**
@@ -211,10 +212,9 @@ public class Cip113IntegrationIT extends BaseIntegrationIT {
         @Test
         void getPolicyForUnknownShouldReturn404() {
             String unknownPolicy = "0000000000000000000000000000000000000000000000000000000000";
-            ResponseEntity<String> response = restTemplate.getForEntity(
-                    API_BASE_URL + "/api/v2/policies/" + unknownPolicy, String.class);
-
-            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+            assertThatThrownBy(() -> restTemplate.getForEntity(
+                    API_BASE_URL + "/api/v2/policies/" + unknownPolicy, String.class))
+                    .isInstanceOf(org.springframework.web.client.HttpClientErrorException.NotFound.class);
         }
 
         @Test
