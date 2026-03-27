@@ -102,6 +102,30 @@ class TokenMetadataServiceTest {
     }
 
     @Test
+    void insertMappingTest_ShouldReturnFalseOnSaveException() throws IOException {
+        File mappingFile = ResourceUtils.getFile("classpath:mappings/ff7cad970d3a755a1ff0335ccb3f3c1cabf31aacf3f23dd13db61b0630313030.json");
+        Optional<Mapping> mappingsOpt = tokenMappingService.parseMappings(mappingFile);
+        Assertions.assertTrue(mappingsOpt.isPresent());
+
+        Mockito.when(tokenMetadataRepository.save(Mockito.any())).thenThrow(new RuntimeException("DB error"));
+
+        boolean result = tokenMetadataService.insertMapping(mappingsOpt.get(), LocalDateTime.now(), "test-user");
+        Assertions.assertFalse(result, "insertMapping should return false when save throws");
+    }
+
+    @Test
+    void insertLogoTest_ShouldReturnFalseOnSaveException() throws IOException {
+        File mappingFile = ResourceUtils.getFile("classpath:mappings/ff7cad970d3a755a1ff0335ccb3f3c1cabf31aacf3f23dd13db61b0630313030.json");
+        Optional<Mapping> mappingsOpt = tokenMappingService.parseMappings(mappingFile);
+        Assertions.assertTrue(mappingsOpt.isPresent());
+
+        Mockito.when(tokenLogoRepository.save(Mockito.any())).thenThrow(new RuntimeException("DB error"));
+
+        boolean result = tokenMetadataService.insertLogo(mappingsOpt.get());
+        Assertions.assertFalse(result, "insertLogo should return false when save throws");
+    }
+
+    @Test
     void insertMappingTest_ShouldRejectTokenWithNameExceedingMaxLength() {
         LocalDateTime now = LocalDateTime.now();
         String testUser = "test-user";
