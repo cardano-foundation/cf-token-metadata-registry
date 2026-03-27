@@ -55,6 +55,7 @@ class Cip113RegistryNodeParserTest {
 
             assertThat(result).isPresent();
             assertThat(result.get().key()).isEmpty();
+            assertThat(result.get().globalStatePolicyId()).isNull();
             assertThat(result.get().next()).isEqualTo("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
         }
 
