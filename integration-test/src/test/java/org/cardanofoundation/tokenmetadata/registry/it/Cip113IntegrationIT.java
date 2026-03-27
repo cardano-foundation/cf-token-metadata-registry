@@ -3,7 +3,6 @@ package org.cardanofoundation.tokenmetadata.registry.it;
 import com.bloxbean.cardano.client.backend.blockfrost.service.BFBackendService;
 import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.JsonPath;
-import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -12,6 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
 import java.time.Duration;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
@@ -40,11 +40,6 @@ public class Cip113IntegrationIT extends BaseIntegrationIT {
     @BeforeAll
     static void setUp() throws Exception {
         waitForApiReady();
-
-        // Skip entire test class if CIP-113 is not enabled on the API
-        Assumptions.assumeTrue(isCip113Enabled(),
-                "CIP-113 IT not enabled — set CIP113_IT_ENABLED=true and CIP113_REGISTRY_NFT_POLICY_IDS on the API");
-
         waitForYaciStoreReady();
 
         // Mint a CIP-113 registry node NFT on the devnet
@@ -196,16 +191,54 @@ public class Cip113IntegrationIT extends BaseIntegrationIT {
         }
     }
 
-    /**
-     * Check if CIP-113 integration tests should run.
-     * Requires CIP113_IT_ENABLED=true environment variable — this must be set alongside
-     * the API's CIP113_REGISTRY_NFT_POLICY_IDS in the CI environment.
-     */
-    private static boolean isCip113Enabled() {
-        boolean enabled = "true".equalsIgnoreCase(System.getenv("CIP113_IT_ENABLED"));
-        log.info("CIP-113 integration test enabled check: {} (CIP113_IT_ENABLED={})",
-                enabled, System.getenv("CIP113_IT_ENABLED"));
-        return enabled;
+    @Nested
+    @DisplayName("CIP-113 Registry API")
+    class Cip113RegistryApi {
+
+        @Test
+        void getRegistryEntryShouldReturnMintedToken() {
+            ResponseEntity<String> response = restTemplate.getForEntity(
+                    API_BASE_URL + "/api/v2/cip113/registry/" + REGISTERED_POLICY_ID, String.class);
+
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+
+            DocumentContext json = JsonPath.parse(response.getBody());
+            assertThat(json.read("$.policy_id", String.class)).isEqualTo(REGISTERED_POLICY_ID);
+            assertThat(json.read("$.transfer_logic_script", String.class)).isEqualTo(TRANSFER_LOGIC_SCRIPT);
+            assertThat(json.read("$.third_party_transfer_logic_script", String.class)).isEqualTo(THIRD_PARTY_SCRIPT);
+        }
+
+        @Test
+        void getRegistryEntryForUnknownPolicyShouldReturn404() {
+            String unknownPolicy = "0000000000000000000000000000000000000000000000000000000000";
+            ResponseEntity<String> response = restTemplate.getForEntity(
+                    API_BASE_URL + "/api/v2/cip113/registry/" + unknownPolicy, String.class);
+
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        }
+
+        @Test
+        void batchQueryShouldReturnMatchingEntries() {
+            String unknownPolicy = "0000000000000000000000000000000000000000000000000000000000";
+            String requestBody = "{\"policy_ids\":[\"" + REGISTERED_POLICY_ID + "\",\"" + unknownPolicy + "\"]}";
+
+            ResponseEntity<String> response = restTemplate.postForEntity(
+                    API_BASE_URL + "/api/v2/cip113/registry/query",
+                    new org.springframework.http.HttpEntity<>(requestBody, jsonHeaders()),
+                    String.class);
+
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+
+            DocumentContext json = JsonPath.parse(response.getBody());
+            List<String> policyIds = json.read("$[*].policy_id");
+            assertThat(policyIds).containsExactly(REGISTERED_POLICY_ID);
+        }
+
+        private org.springframework.http.HttpHeaders jsonHeaders() {
+            org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
+            headers.setContentType(org.springframework.http.MediaType.APPLICATION_JSON);
+            return headers;
+        }
     }
 
 }

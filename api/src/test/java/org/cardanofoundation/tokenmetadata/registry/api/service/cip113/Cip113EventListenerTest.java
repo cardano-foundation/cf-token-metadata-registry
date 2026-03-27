@@ -40,6 +40,9 @@ class Cip113EventListenerTest {
     @Mock
     private Cip113RegistryNodeRepository repository;
 
+    @Mock
+    private org.cardanofoundation.tokenmetadata.registry.repository.MetadataReferenceNftRepository metadataReferenceNftRepository;
+
     private Cip113Configuration config;
     private Cip113EventListener listener;
 
@@ -50,7 +53,7 @@ class Cip113EventListenerTest {
         config.init();
 
         Cip113RegistryNodeParser parser = new Cip113RegistryNodeParser();
-        Cip113RegistryService registryService = new Cip113RegistryService(repository, config);
+        Cip113RegistryService registryService = new Cip113RegistryService(repository, metadataReferenceNftRepository, config);
         listener = new Cip113EventListener(config, parser, repository, registryService);
     }
 
