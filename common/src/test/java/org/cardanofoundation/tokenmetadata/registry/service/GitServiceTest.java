@@ -359,7 +359,7 @@ class GitServiceTest {
         @Test
         void pullsWhenRepoAlreadyExists() throws Exception {
             Path remoteDir = tempDir.resolve("remote-repo");
-            try (Git _ = Git.init().setBare(true).setDirectory(remoteDir.toFile()).call()) {
+            try (@SuppressWarnings("java:S7466") Git _ = Git.init().setBare(true).setDirectory(remoteDir.toFile()).call()) {
                 Path seedDir = tempDir.resolve("seed");
                 try (Git seedGit = Git.init().setDirectory(seedDir.toFile()).call()) {
                     Files.createDirectories(seedDir.resolve("mappings"));
@@ -372,7 +372,7 @@ class GitServiceTest {
                 }
 
                 Path repoDir = tempDir.resolve("test-repo");
-                try (Git _ = Git.cloneRepository()
+                try (@SuppressWarnings("java:S7466") Git _ = Git.cloneRepository()
                         .setURI(remoteDir.toUri().toString())
                         .setDirectory(repoDir.toFile())
                         .call()) {
