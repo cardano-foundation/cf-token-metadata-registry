@@ -115,6 +115,22 @@ class AssetTypeTest {
     }
 
     @Nested
+    @DisplayName("unsafeHumanAssetName")
+    class UnsafeHumanAssetName {
+
+        @Test
+        void ada_returnsAda() {
+            assertThat(AssetType.ada().unsafeHumanAssetName()).isEqualTo("ada");
+        }
+
+        @Test
+        void nonAda_decodesHexAssetName() {
+            AssetType assetType = new AssetType(POLICY_ID_56, ASSET_NAME_HEX);
+            assertThat(assetType.unsafeHumanAssetName()).isEqualTo("tMIN");
+        }
+    }
+
+    @Nested
     @DisplayName("isAda")
     class IsAda {
 

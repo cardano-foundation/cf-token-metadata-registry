@@ -52,7 +52,7 @@ class MetadataApiControllerTest {
         @Test
         void foundSubjects_returnsOk() {
             TokenMetadata metadata = TokenMetadata.builder().subject("abc123").build();
-            when(v1ApiMetadataIndexer.findSubjectsSelectProperties(eq(List.of("abc123")), eq(List.of())))
+            when(v1ApiMetadataIndexer.findSubjectsSelectProperties(List.of("abc123"), List.of()))
                     .thenReturn(Map.of("abc123", metadata));
 
             BatchRequest request = new BatchRequest(List.of("abc123"), null);
