@@ -192,38 +192,38 @@ public class Cip113IntegrationIT extends BaseIntegrationIT {
     }
 
     @Nested
-    @DisplayName("CIP-113 Registry API")
-    class Cip113RegistryApi {
+    @DisplayName("V2 - Policy API")
+    class V2PolicyApi {
 
         @Test
-        void getRegistryEntryShouldReturnMintedToken() {
+        void getPolicyShouldReturnProgrammableData() {
             ResponseEntity<String> response = restTemplate.getForEntity(
-                    API_BASE_URL + "/api/v2/cip113/registry/" + REGISTERED_POLICY_ID, String.class);
+                    API_BASE_URL + "/api/v2/policies/" + REGISTERED_POLICY_ID, String.class);
 
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
 
             DocumentContext json = JsonPath.parse(response.getBody());
             assertThat(json.read("$.policy_id", String.class)).isEqualTo(REGISTERED_POLICY_ID);
-            assertThat(json.read("$.transfer_logic_script", String.class)).isEqualTo(TRANSFER_LOGIC_SCRIPT);
-            assertThat(json.read("$.third_party_transfer_logic_script", String.class)).isEqualTo(THIRD_PARTY_SCRIPT);
+            assertThat(json.read("$.extensions.cip113.transfer_logic_script", String.class)).isEqualTo(TRANSFER_LOGIC_SCRIPT);
+            assertThat(json.read("$.extensions.cip113.third_party_transfer_logic_script", String.class)).isEqualTo(THIRD_PARTY_SCRIPT);
         }
 
         @Test
-        void getRegistryEntryForUnknownPolicyShouldReturn404() {
+        void getPolicyForUnknownShouldReturn404() {
             String unknownPolicy = "0000000000000000000000000000000000000000000000000000000000";
             ResponseEntity<String> response = restTemplate.getForEntity(
-                    API_BASE_URL + "/api/v2/cip113/registry/" + unknownPolicy, String.class);
+                    API_BASE_URL + "/api/v2/policies/" + unknownPolicy, String.class);
 
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
         }
 
         @Test
-        void batchQueryShouldReturnMatchingEntries() {
+        void batchQueryShouldReturnMatchingPolicies() {
             String unknownPolicy = "0000000000000000000000000000000000000000000000000000000000";
             String requestBody = "{\"policy_ids\":[\"" + REGISTERED_POLICY_ID + "\",\"" + unknownPolicy + "\"]}";
 
             ResponseEntity<String> response = restTemplate.postForEntity(
-                    API_BASE_URL + "/api/v2/cip113/registry/query",
+                    API_BASE_URL + "/api/v2/policies/query",
                     new org.springframework.http.HttpEntity<>(requestBody, jsonHeaders()),
                     String.class);
 

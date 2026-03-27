@@ -54,9 +54,13 @@ CIP-113 registry nodes are indexed using the existing Yaci Store infrastructure:
 - **`Cip113EventListener`** processes `AddressUtxoEvent`s, filtering for UTxOs with inline datums that match monitored policy IDs
 - **`Cip113RegistryNodeParser`** deserializes the CBOR datum (ConstrPlutusData with 5 fields) into a structured record
 
-### 3. API response
+### 3. API response — two access patterns
 
-CIP-113 data is served as an extension (ADR-015) under the `cip113` key:
+CIP-113 data is served in two complementary ways:
+
+**a) As an extension on V2 subject endpoints (ADR-015)**
+
+When querying a specific token by subject, CIP-113 data appears under the `extensions.cip113` key:
 
 ```json
 {
@@ -70,6 +74,24 @@ CIP-113 data is served as an extension (ADR-015) under the `cip113` key:
         "global_state_policy_id": "12345678..."
       }
     }
+  }
+}
+```
+
+**b) Via the V2 policy endpoints (ADR-017)**
+
+When querying by policy ID, CIP-113 data appears as the `programmable` field alongside all tokens under that policy:
+
+```json
+{
+  "policy_id": "ae563991...",
+  "tokens": [
+    { "subject": "ae563991...0014df10555344432", "name": "USDC", "ticker": "USDC", "decimals": 6, "source": "CIP_68" }
+  ],
+  "programmable": {
+    "transfer_logic_script": "77014ec6...",
+    "third_party_transfer_logic_script": "4b348779...",
+    "global_state_policy_id": null
   }
 }
 ```
