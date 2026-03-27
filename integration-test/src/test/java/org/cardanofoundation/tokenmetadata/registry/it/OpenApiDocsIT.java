@@ -17,7 +17,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Sanity checks for the OpenAPI (Swagger) documentation endpoint.
  * Verifies that both V1 and V2 API endpoints are documented with basic information.
  */
-public class OpenApiDocsIT extends BaseIntegrationIT {
+class OpenApiDocsIT extends BaseIntegrationIT {
 
     private static DocumentContext apiDocs;
 

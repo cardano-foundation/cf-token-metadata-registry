@@ -25,7 +25,7 @@ public class OnchainConnectionHealthIndicator implements HealthIndicator {
         HealthStatus status;
         try {
             status = healthService.getHealthStatus();
-        } catch (NullPointerException e) {
+        } catch (NullPointerException _) {
             return Health.unknown()
                     .withDetail(DETAIL_SYNC_STATUS, "Block fetcher not initialized")
                     .build();

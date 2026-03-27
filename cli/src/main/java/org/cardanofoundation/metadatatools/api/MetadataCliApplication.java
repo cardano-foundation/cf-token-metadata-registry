@@ -49,7 +49,7 @@ public class MetadataCliApplication implements CommandLineRunner {
             final CommandLineParser parser = new DefaultParser();
             final CommandLine cmd = parser.parse(options, args);
             processInitCommand(cmd, options);
-        } catch (final ParseException e) {
+        } catch (final ParseException _) {
             printHelp(options);
         } catch (final JsonProcessingException e) {
             log.error("Unexpected error: Was not able to serialize output.", e);
