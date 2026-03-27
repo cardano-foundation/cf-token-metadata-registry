@@ -31,14 +31,26 @@ See the [API Reference](https://cardano-foundation.github.io/cf-token-metadata-r
 
 ### Mainnet
 
+Syncs CIP-26 offchain metadata from GitHub and CIP-68 on-chain metadata from a public Cardano mainnet node.
+
 ```console
 docker compose up
 ```
 
 ### Preprod
 
+Syncs CIP-26 metadata from the [testnet registry](https://github.com/input-output-hk/metadata-registry-testnet) and CIP-68 on-chain metadata from a public preprod node.
+
 ```console
 docker compose --env-file .env.preprod up
+```
+
+### Preview (CIP-113)
+
+Syncs CIP-68 on-chain metadata and [CIP-113](https://github.com/cardano-foundation/CIPs/tree/master/CIP-0113) programmable token registry nodes from the preview testnet. CIP-26 offchain sync is disabled since no offchain registry exists for preview.
+
+```console
+docker compose --env-file .env.preview up
 ```
 
 ## API Endpoints
@@ -65,7 +77,7 @@ For the full API reference (including V1 endpoints and query parameters), see th
 
 ## Configuration
 
-All settings are controlled via environment variables. See [`.env`](./.env) (mainnet) and [`.env.preprod`](./.env.preprod) (preprod) for the full list.
+All settings are controlled via environment variables. See [`.env`](./.env) (mainnet), [`.env.preprod`](./.env.preprod) (preprod), and [`.env.preview`](./.env.preview) (preview) for the full list.
 
 | Variable | Description | Default |
 |----------|-------------|---------|
@@ -73,6 +85,7 @@ All settings are controlled via environment variables. See [`.env`](./.env) (mai
 | `CIP_QUERY_PRIORITY` | CIP priority order for V2 queries | `CIP_68,CIP_26` |
 | `STORE_CARDANO_HOST` | Cardano node host for CIP-68 sync | `backbone.mainnet.cardanofoundation.org` |
 | `STORE_CARDANO_PROTOCOL_MAGIC` | Network protocol magic | `764824073` (mainnet) |
+| `CIP113_REGISTRY_NFT_POLICY_IDS` | Comma-separated CIP-113 registry NFT policy IDs (enables CIP-113 when non-empty) | _(empty)_ |
 | `API_DOCKERFILE` | Dockerfile variant for `docker compose build` | `api/Dockerfile.jvm` |
 
 ## Docker Images
@@ -125,6 +138,9 @@ API_DOCKERFILE=api/Dockerfile.native docker compose up -d --build
 
 # Preprod
 docker compose --env-file .env.preprod up -d
+
+# Preview (CIP-113 programmable tokens)
+docker compose --env-file .env.preview up -d
 ```
 
 To start fresh (wipe database and resync from scratch):
