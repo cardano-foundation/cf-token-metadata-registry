@@ -24,7 +24,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-public class TokenMetadataSyncServiceTest {
+class TokenMetadataSyncServiceTest {
 
     @Mock
     private GitService gitService;
@@ -45,16 +45,16 @@ public class TokenMetadataSyncServiceTest {
     private final String newHash = "2222222222222222222222222222222222222222";
 
     @BeforeEach
-    public void setUp() {
+    void setUp() {
         tokenMetadataSyncService.isMetadataJobEnabled = true;
         tokenMetadataSyncService.initSyncStatus();
     }
 
     @Nested
-    public class SynchronizeDatabase {
+    class SynchronizeDatabase {
 
         @Test
-        public void fullSync_whenNoHashStored() {
+        void fullSync_whenNoHashStored() {
             when(syncStateRepository.findTopByOrderByIdDesc()).thenReturn(Optional.empty());
             Path mockRepoPath = mock(Path.class);
             File mockMappingsDir = mock(File.class);
@@ -70,7 +70,7 @@ public class TokenMetadataSyncServiceTest {
         }
 
         @Test
-        public void incrementalSync_whenHashStoredAndChanged() {
+        void incrementalSync_whenHashStoredAndChanged() {
             when(syncStateRepository.findTopByOrderByIdDesc()).thenReturn(Optional.of(new OffChainSyncState(oldHash)));
             Path mockRepoPath = mock(Path.class);
             when(gitService.cloneCardanoTokenRegistryGitRepository()).thenReturn(Optional.of(mockRepoPath));
@@ -96,7 +96,7 @@ public class TokenMetadataSyncServiceTest {
         }
 
         @Test
-        public void noOp_whenHashesMatch() {
+        void noOp_whenHashesMatch() {
             when(syncStateRepository.findTopByOrderByIdDesc()).thenReturn(Optional.of(new OffChainSyncState(oldHash)));
             Path mockRepoPath = mock(Path.class);
             when(gitService.cloneCardanoTokenRegistryGitRepository()).thenReturn(Optional.of(mockRepoPath));
@@ -110,7 +110,7 @@ public class TokenMetadataSyncServiceTest {
         }
 
         @Test
-        public void error_whenCloneFails() {
+        void error_whenCloneFails() {
             when(syncStateRepository.findTopByOrderByIdDesc()).thenReturn(Optional.empty());
             when(gitService.cloneCardanoTokenRegistryGitRepository()).thenReturn(Optional.empty());
 
@@ -121,7 +121,7 @@ public class TokenMetadataSyncServiceTest {
         }
 
         @Test
-        public void fullSync_whenHeadHashUnavailable() {
+        void fullSync_whenHeadHashUnavailable() {
             when(syncStateRepository.findTopByOrderByIdDesc()).thenReturn(Optional.empty());
             Path mockRepoPath = mock(Path.class);
             File mockMappingsDir = mock(File.class);
@@ -137,7 +137,7 @@ public class TokenMetadataSyncServiceTest {
         }
 
         @Test
-        public void hashNotAdvanced_whenPartialFailure() {
+        void hashNotAdvanced_whenPartialFailure() {
             when(syncStateRepository.findTopByOrderByIdDesc()).thenReturn(Optional.of(new OffChainSyncState(oldHash)));
             Path mockRepoPath = mock(Path.class);
             when(gitService.cloneCardanoTokenRegistryGitRepository()).thenReturn(Optional.of(mockRepoPath));

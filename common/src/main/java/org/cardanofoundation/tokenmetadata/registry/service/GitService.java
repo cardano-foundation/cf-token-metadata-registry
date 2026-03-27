@@ -150,7 +150,7 @@ private boolean isGitRepo() {
             return Optional.empty();
         }
         try {
-            String relativePath = mappingsFolderName + "/" + mappingFile.getName();
+            String relativePath = mappingsFolderName + File.separator + mappingFile.getName();
 
             Iterator<RevCommit> commits = git.log()
                     .addPath(relativePath)

@@ -188,7 +188,7 @@ class GitServiceTest {
             List<Path> changed = gitService.getChangedFiles(fromHash, toHash);
 
             assertThat(changed).hasSize(1);
-            assertThat(changed.get(0).getFileName().toString()).isEqualTo("token1.json");
+            assertThat(changed.get(0).getFileName()).hasToString("token1.json");
         }
 
         @Test
@@ -204,7 +204,7 @@ class GitServiceTest {
             List<Path> changed = gitService.getChangedFiles(fromHash, toHash);
 
             assertThat(changed).hasSize(1);
-            assertThat(changed.get(0).getFileName().toString()).isEqualTo("token1.json");
+            assertThat(changed.get(0).getFileName()).hasToString("token1.json");
         }
 
         @Test
@@ -220,7 +220,7 @@ class GitServiceTest {
             List<Path> changed = gitService.getChangedFiles(fromHash, toHash);
 
             assertThat(changed).hasSize(1);
-            assertThat(changed.get(0).getFileName().toString()).isEqualTo("token1.json");
+            assertThat(changed.get(0).getFileName()).hasToString("token1.json");
         }
 
         @Test
@@ -242,7 +242,7 @@ class GitServiceTest {
             List<Path> changed = gitService.getChangedFiles(fromHash, toHash);
 
             assertThat(changed).hasSize(1);
-            assertThat(changed.get(0).getFileName().toString()).isEqualTo("token1.json");
+            assertThat(changed.get(0).getFileName()).hasToString("token1.json");
         }
 
         @Test
@@ -359,7 +359,7 @@ class GitServiceTest {
         @Test
         void pullsWhenRepoAlreadyExists() throws Exception {
             Path remoteDir = tempDir.resolve("remote-repo");
-            try (Git remoteGit = Git.init().setBare(true).setDirectory(remoteDir.toFile()).call()) {
+            try (Git ignored = Git.init().setBare(true).setDirectory(remoteDir.toFile()).call()) {
                 Path seedDir = tempDir.resolve("seed");
                 try (Git seedGit = Git.init().setDirectory(seedDir.toFile()).call()) {
                     Files.createDirectories(seedDir.resolve("mappings"));
@@ -372,7 +372,7 @@ class GitServiceTest {
                 }
 
                 Path repoDir = tempDir.resolve("test-repo");
-                try (Git clonedGit = Git.cloneRepository()
+                try (Git ignored2 = Git.cloneRepository()
                         .setURI(remoteDir.toUri().toString())
                         .setDirectory(repoDir.toFile())
                         .call()) {
@@ -384,7 +384,7 @@ class GitServiceTest {
 
             assertThat(result).isPresent();
             assertThat(result.get().toFile()).exists();
-            assertThat(result.get().getFileName().toString()).isEqualTo("mappings");
+            assertThat(result.get().getFileName()).hasToString("mappings");
         }
 
         @Test
