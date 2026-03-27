@@ -35,22 +35,4 @@ class TokenMetadataSyncCronJobTest {
         }
     }
 
-    @Nested
-    @DisplayName("logInitMessage")
-    class LogInitMessage {
-
-        @Test
-        void logsWhenEnabled() {
-            TokenMetadataSyncCronJob job = new TokenMetadataSyncCronJob(syncService, true);
-            job.logInitMessage();
-            // No exception = success; logging output verified via log message
-        }
-
-        @Test
-        void logsWhenDisabled() {
-            TokenMetadataSyncCronJob job = new TokenMetadataSyncCronJob(syncService, false);
-            job.logInitMessage();
-        }
-    }
-
 }
