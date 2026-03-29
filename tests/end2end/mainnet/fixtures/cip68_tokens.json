@@ -1,1 +1,44 @@
-[]
+[
+  {
+    "subject": "4614db6b6d990b9cd43a1ec3aaa90b4d7a9ffe31243d6c6d84b1ed550014df104152494741544f6b656e",
+    "policy_id": "4614db6b6d990b9cd43a1ec3aaa90b4d7a9ffe31243d6c6d84b1ed55",
+    "asset_name": "000643b04152494741544f6b656e",
+    "ft_asset_name": "0014df104152494741544f6b656e",
+    "slot": 76938634,
+    "name": "ARIGATOken",
+    "description": "A token for Cardano_Waifus project",
+    "ticker": "ARIGATO",
+    "url": "https://cardanowaifus.digital",
+    "decimals": 0,
+    "has_logo": true,
+    "version": 1
+  },
+  {
+    "subject": "7f4a004c55fb724b87257f8add440fbfee0b83b411753aa076b78c9c0014df104152494741544f6b656e",
+    "policy_id": "7f4a004c55fb724b87257f8add440fbfee0b83b411753aa076b78c9c",
+    "asset_name": "000643b04152494741544f6b656e",
+    "ft_asset_name": "0014df104152494741544f6b656e",
+    "slot": 76935444,
+    "name": "ARIGATOken",
+    "description": "A token for Cardano_Waifus project",
+    "ticker": "ARIGATO",
+    "url": "https://cardanowaifus.digital",
+    "decimals": 0,
+    "has_logo": true,
+    "version": 1
+  },
+  {
+    "subject": "f233d2a497ea2a0280e8a7453a35b4f14f8da62857fb43b56647c9c60014df104152494741544f6b656e",
+    "policy_id": "f233d2a497ea2a0280e8a7453a35b4f14f8da62857fb43b56647c9c6",
+    "asset_name": "000643b04152494741544f6b656e",
+    "ft_asset_name": "0014df104152494741544f6b656e",
+    "slot": 76939706,
+    "name": "ARIGATOken",
+    "description": "A token for Cardano_Waifus project",
+    "ticker": "ARIGATO",
+    "url": "https://cardanowaifus.digital",
+    "decimals": 0,
+    "has_logo": true,
+    "version": 1
+  }
+]
