@@ -49,7 +49,6 @@ def fetch_cip26_tokens(conn, max_tokens=1000):
             m.decimals,
             m.updated,
             m.updated_by,
-            m.properties::text as properties,
             l.logo
         FROM metadata m
         LEFT JOIN logo l ON m.subject = l.subject
@@ -72,15 +71,10 @@ def fetch_cip26_tokens(conn, max_tokens=1000):
             "decimals": row["decimals"],
             "updated": row["updated"].isoformat() if row["updated"] else None,
             "updated_by": row["updated_by"],
-            "logo": row["logo"],
+            "has_logo": row["logo"] is not None and len(row["logo"]) > 0,
         }
-        if row["properties"]:
-            try:
-                token["properties"] = json.loads(row["properties"])
-            except (json.JSONDecodeError, TypeError):
-                token["properties"] = None
-        else:
-            token["properties"] = None
+        # properties JSONB is excluded from fixtures to keep file size small
+        # (it contains logo blobs with signatures that can be 80KB+ per token)
         tokens.append(token)
 
     return tokens
@@ -131,7 +125,7 @@ def fetch_cip68_tokens(conn, max_tokens=1000):
             "ticker": row["ticker"],
             "url": row["url"],
             "decimals": row["decimals"],
-            "logo": row["logo"],
+            "has_logo": row["logo"] is not None and len(row["logo"]) > 0,
             "version": row["version"],
         }
         tokens.append(token)

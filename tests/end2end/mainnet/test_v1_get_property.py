@@ -70,16 +70,16 @@ class TestV1GetProperty:
         expected = CIP26_BY_SUBJECT[subject]
         resp = requests.get(f"{API_BASE_URL}/metadata/{subject}/properties/logo")
 
-        if expected.get("logo") is None:
+        if not expected.get("has_logo"):
             assert resp.status_code in (200, 204)
             return
 
         assert resp.status_code == 200
         data = resp.json()
         logo = data.get("logo")
-        if logo is not None:
-            assert logo["value"] is not None
-            assert len(logo["value"]) > 0
+        assert logo is not None, "Expected logo in response"
+        assert logo["value"] is not None
+        assert len(logo["value"]) > 0
 
     @allure.story("Return 204 for unknown subject property lookup")
     def test_get_property_unknown_subject(self):
