@@ -68,9 +68,10 @@ class TestV2GetSubjectCip26:
         if metadata.get("name"):
             assert metadata["name"]["source"] == "CIP_26"
 
-    @allure.story("show_cips_details=true returns standards object")
-    @pytest.mark.parametrize("subject", CIP26_SUBJECTS[:20], ids=lambda s: s[:16])
+    @allure.story("show_cips_details=true returns standards with correct values")
+    @pytest.mark.parametrize("subject", CIP26_SUBJECTS, ids=lambda s: s[:16])
     def test_show_cips_details(self, subject):
+        expected = CIP26_BY_SUBJECT[subject]
         resp = requests.get(
             f"{API_BASE_URL}/api/v2/subjects/{subject}",
             params={"show_cips_details": "true"},
@@ -79,7 +80,21 @@ class TestV2GetSubjectCip26:
         data = resp.json()
         standards = data["subject"]["standards"]
         assert standards is not None, "standards should be present when show_cips_details=true"
-        assert standards.get("cip26") is not None, "cip26 standard should be present for CIP-26 token"
+        cip26 = standards.get("cip26")
+        assert cip26 is not None, "cip26 standard should be present for CIP-26 token"
+
+        if expected["name"] and cip26.get("name"):
+            assert cip26["name"]["value"] == expected["name"]
+        if expected["description"] and cip26.get("description"):
+            assert cip26["description"]["value"] == expected["description"]
+        if expected["ticker"] and cip26.get("ticker"):
+            assert cip26["ticker"]["value"] == expected["ticker"]
+        if expected["url"] and cip26.get("url"):
+            assert cip26["url"]["value"] == expected["url"]
+        if expected["decimals"] is not None and cip26.get("decimals"):
+            assert cip26["decimals"]["value"] == expected["decimals"]
+        if expected["policy"] and cip26.get("policy"):
+            assert cip26["policy"] == expected["policy"]
 
     @allure.story("show_cips_details=false does not return standards")
     def test_hide_cips_details(self):

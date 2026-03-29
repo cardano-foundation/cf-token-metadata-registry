@@ -102,9 +102,9 @@ class TestV2BatchQuery:
             if expected["decimals"] is not None and metadata.get("decimals"):
                 assert metadata["decimals"]["value"] == expected["decimals"]
 
-    @allure.story("Batch query with show_cips_details=true")
+    @allure.story("Batch query with show_cips_details=true validates values")
     def test_batch_show_cips_details(self):
-        batch = VALID_CIP26_SUBJECTS[:10]
+        batch = VALID_CIP26_SUBJECTS[:50]
         resp = requests.post(
             f"{API_BASE_URL}/api/v2/subjects/query",
             json={"subjects": batch},
@@ -114,10 +114,24 @@ class TestV2BatchQuery:
         data = resp.json()
 
         for entry in data["subjects"]:
+            subject = entry["subject"]
+            expected = CIP26_BY_SUBJECT[subject]
             assert entry.get("standards") is not None, (
-                f"standards should be present for {entry['subject'][:16]}..."
+                f"standards should be present for {subject[:16]}..."
             )
-            assert entry["standards"].get("cip26") is not None
+            cip26 = entry["standards"].get("cip26")
+            assert cip26 is not None
+
+            if expected["name"] and cip26.get("name"):
+                assert cip26["name"]["value"] == expected["name"]
+            if expected["description"] and cip26.get("description"):
+                assert cip26["description"]["value"] == expected["description"]
+            if expected["ticker"] and cip26.get("ticker"):
+                assert cip26["ticker"]["value"] == expected["ticker"]
+            if expected["decimals"] is not None and cip26.get("decimals"):
+                assert cip26["decimals"]["value"] == expected["decimals"]
+            if expected["policy"] and cip26.get("policy"):
+                assert cip26["policy"] == expected["policy"]
 
     @allure.story("Batch query with show_cips_details=false hides standards")
     def test_batch_hide_cips_details(self):
