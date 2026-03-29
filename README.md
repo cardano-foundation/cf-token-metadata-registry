@@ -87,6 +87,19 @@ mvn package
 - [x] Prometheus metrics (`/actuator/prometheus`)
 - [x] Kubernetes / Helm deployment support (`deploy/`)
 
+## End-to-End Tests
+
+Python-based regression tests validate all V1 and V2 business endpoints against database snapshots.
+
+```console
+cd tests
+python3 -m venv venv && source venv/bin/activate && pip install -r requirements.txt
+python end2end/mainnet/fixtures/generate_fixtures.py
+cd end2end/mainnet && python -m pytest -v
+```
+
+See [`tests/README.md`](./tests/README.md) for full details on fixture generation, test markers, Allure reports, and configuration options.
+
 ## Contributing
 
 File an issue or a PR or reach out directly to us if you want to contribute.
