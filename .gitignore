@@ -52,8 +52,6 @@ node_modules/
 .coverage
 tests/venv/
 tests/allure-results/
-tests/end2end/mainnet/fixtures/cip26_tokens.json
-tests/end2end/mainnet/fixtures/cip68_tokens.json
 
 #terraform
 **/*.tfstate
