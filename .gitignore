@@ -50,6 +50,8 @@ node_modules/
 
 # testing
 .coverage
+tests/venv/
+tests/allure-results/
 
 #terraform
 **/*.tfstate
