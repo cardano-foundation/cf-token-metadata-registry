@@ -19,6 +19,7 @@ Environment variables:
 
 import json
 import os
+import random
 import sys
 from datetime import datetime
 
@@ -81,7 +82,12 @@ def fetch_cip26_tokens(conn, max_tokens=1000):
 
 
 def fetch_cip68_tokens(conn, max_tokens=1000):
-    """Fetch CIP-68 tokens from metadata_reference_nft table (latest slot per asset)."""
+    """Fetch CIP-68 tokens from metadata_reference_nft table (latest slot per asset).
+
+    Prioritises tokens with a ticker symbol (genuine FTs) then fills the
+    remainder with a random sample of the rest.
+    """
+    # Fetch ALL unique tokens (latest slot per asset)
     query = """
         SELECT DISTINCT ON (policy_id, asset_name)
             policy_id,
@@ -96,16 +102,12 @@ def fetch_cip68_tokens(conn, max_tokens=1000):
             version
         FROM metadata_reference_nft
         ORDER BY policy_id, asset_name, slot DESC
-        LIMIT %s
     """
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-        cur.execute(query, (max_tokens,))
+        cur.execute(query)
         rows = cur.fetchall()
 
-    tokens = []
-    for row in rows:
-        # Build the fungible token subject: policyId + "0014df10" + suffix
-        # The DB stores reference NFT asset names with "000643b0" prefix
+    def row_to_token(row):
         asset_name = row["asset_name"]
         ref_prefix = "000643b0"
         ft_prefix = "0014df10"
@@ -114,7 +116,7 @@ def fetch_cip68_tokens(conn, max_tokens=1000):
         else:
             ft_asset_name = asset_name
 
-        token = {
+        return {
             "subject": row["policy_id"] + ft_asset_name,
             "policy_id": row["policy_id"],
             "asset_name": row["asset_name"],
@@ -128,7 +130,26 @@ def fetch_cip68_tokens(conn, max_tokens=1000):
             "has_logo": row["logo"] is not None and len(row["logo"]) > 0,
             "version": row["version"],
         }
-        tokens.append(token)
+
+    # Split into tokens with tickers (genuine FTs) and without (quasi-NFTs)
+    with_ticker = [row for row in rows if row["ticker"] is not None]
+    without_ticker = [row for row in rows if row["ticker"] is None]
+
+    print(f"    {len(with_ticker)} with ticker, {len(without_ticker)} without ticker")
+
+    # Take all tokens with tickers first
+    tokens = [row_to_token(row) for row in with_ticker]
+
+    # Fill remainder with random sample from without-ticker pool
+    remaining = max_tokens - len(tokens)
+    if remaining > 0 and without_ticker:
+        sample_size = min(remaining, len(without_ticker))
+        random.seed(42)  # deterministic for reproducibility
+        sampled = random.sample(without_ticker, sample_size)
+        tokens.extend(row_to_token(row) for row in sampled)
+
+    # Sort by subject for stable ordering
+    tokens.sort(key=lambda t: t["subject"])
 
     return tokens
 
