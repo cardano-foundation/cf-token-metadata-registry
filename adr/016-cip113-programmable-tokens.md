@@ -86,9 +86,9 @@ The V2 `Subject` response includes a `type` field (`TokenType` enum):
 
 The type is derived from the presence of extensions: if any extension is present, the token is `PROGRAMMABLE`; otherwise `NATIVE`.
 
-### 5. Query priority
+### 5. Not a metadata source
 
-`CIP_113` is a valid value in the `QueryPriority` enum. While CIP-113 currently does not provide standard display metadata (name, description, ticker), it can participate in the priority chain for forward compatibility as the standard evolves.
+CIP-113 is a layer on top of existing metadata standards — it defines how to constrain CIP-26/CIP-68 tokens inside smart contracts with transfer validation logic. It does not provide display metadata (name, description, ticker). Display metadata for programmable tokens comes from CIP-26 or CIP-68, same as for any other Cardano token. Therefore, CIP-113 is not part of the `QueryPriority` enum and does not participate in the metadata merge.
 
 ### 6. Implicit enablement
 

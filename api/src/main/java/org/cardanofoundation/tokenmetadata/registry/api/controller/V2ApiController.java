@@ -140,7 +140,6 @@ public class V2ApiController implements V2Api {
             case CIP_68 -> cip68FungibleTokenService.getReferenceNftSubject(subject)
                     .flatMap(assetType -> cip68FungibleTokenService.findSubject(assetType.policyId(), assetType.assetName(), properties))
                     .map(fungibleTokenMetadata -> new Pair<>(Metadata.from(fungibleTokenMetadata), new Standards(null, fungibleTokenMetadata)));
-            case CIP_113 -> Optional.empty();
         };
     }
 

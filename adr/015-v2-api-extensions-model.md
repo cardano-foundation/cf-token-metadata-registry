@@ -56,9 +56,9 @@ The presence of extensions drives a `type` field on the `Subject` response:
 
 This allows consumers to quickly determine whether a token has on-chain constraints without inspecting the extensions map.
 
-### 4. Separate from display metadata, part of query priority
+### 4. Separate from display metadata and query priority
 
-Extensions are appended to the response *after* the priority-based metadata merge. They do not participate in the merge/fill logic for display metadata (name, description, etc.). However, their CIP identifiers (e.g. `CIP_113`) are valid values in the `QueryPriority` enum for forward compatibility.
+Extensions are appended to the response *after* the priority-based metadata merge. They do not participate in the merge/fill logic for display metadata (name, description, etc.) and are not part of the `QueryPriority` enum. CIP-113 is a layer on top of existing metadata standards (CIP-26/CIP-68), not a metadata source itself.
 
 ### 5. OpenAPI documentation
 
