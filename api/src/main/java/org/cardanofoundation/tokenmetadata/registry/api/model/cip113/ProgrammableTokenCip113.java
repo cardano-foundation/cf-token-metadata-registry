@@ -19,10 +19,11 @@ public record ProgrammableTokenCip113(
 
         @Schema(description = "Blake2b-224 hash of the Plutus script that validates issuer/admin operations "
                 + "such as freeze, seize, or burn. Allows a token issuer to perform privileged actions "
-                + "on tokens held by other addresses.",
+                + "on tokens held by other addresses. Null when the substandard has no third-party operations.",
                 example = "def513b0fcc01d635f8535d49f38acc33d4d6b62ee8732ca6e126103",
-                requiredMode = Schema.RequiredMode.REQUIRED)
-        @JsonProperty("third_party_transfer_logic_script") String thirdPartyTransferLogicScript,
+                nullable = true,
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        @JsonProperty("third_party_transfer_logic_script") @Nullable String thirdPartyTransferLogicScript,
 
         @Schema(description = "Policy ID of an optional global state NFT used by the transfer logic. "
                 + "For example, a freeze-and-seize substandard uses this to reference a denylist "

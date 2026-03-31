@@ -148,12 +148,12 @@ class MetadataApiV2ControllerTest {
                         .ticker("FLDT")
                         .build()));
 
-        // CIP-113: mock FLDT as programmable for testing (not a real programmable token on mainnet)
+        // CIP-113: mock FLDT as programmable with null third_party and global_state
         when(cip113RegistryService.findByPolicyId(fldtAssetType.policyId()))
                 .thenReturn(Optional.of(new ProgrammableTokenCip113(
                         "aabbccdd11223344aabbccdd11223344aabbccdd11223344aabbccdd",
-                        "11223344aabbccdd11223344aabbccdd11223344aabbccdd11223344",
-                        "eeff0011eeff0011eeff0011eeff0011eeff0011eeff0011eeff0011"
+                        null,
+                        null
                 )));
 
         // CIP-113: non-programmable tokens return empty
@@ -166,8 +166,8 @@ class MetadataApiV2ControllerTest {
         when(cip113RegistryService.findByPolicyIds(anyCollection()))
                 .thenReturn(Map.of(fldtAssetType.policyId(), new ProgrammableTokenCip113(
                         "aabbccdd11223344aabbccdd11223344aabbccdd11223344aabbccdd",
-                        "11223344aabbccdd11223344aabbccdd11223344aabbccdd11223344",
-                        "eeff0011eeff0011eeff0011eeff0011eeff0011eeff0011eeff0011"
+                        null,
+                        null
                 )));
 
     }
@@ -336,10 +336,8 @@ class MetadataApiV2ControllerTest {
                 .andExpect(MockMvcResultMatchers.jsonPath("$.subject.type").value("PROGRAMMABLE"))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.subject.extensions.cip113.transfer_logic_script")
                         .value("aabbccdd11223344aabbccdd11223344aabbccdd11223344aabbccdd"))
-                .andExpect(MockMvcResultMatchers.jsonPath("$.subject.extensions.cip113.third_party_transfer_logic_script")
-                        .value("11223344aabbccdd11223344aabbccdd11223344aabbccdd11223344"))
-                .andExpect(MockMvcResultMatchers.jsonPath("$.subject.extensions.cip113.global_state_policy_id")
-                        .value("eeff0011eeff0011eeff0011eeff0011eeff0011eeff0011eeff0011"));
+                .andExpect(MockMvcResultMatchers.jsonPath("$.subject.extensions.cip113.third_party_transfer_logic_script").doesNotExist())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.subject.extensions.cip113.global_state_policy_id").doesNotExist());
     }
 
     @Test
@@ -370,7 +368,9 @@ class MetadataApiV2ControllerTest {
                 // Second subject (FLDT, mocked as programmable) should be PROGRAMMABLE
                 .andExpect(MockMvcResultMatchers.jsonPath("$.subjects[1].type").value("PROGRAMMABLE"))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.subjects[1].extensions.cip113.transfer_logic_script")
-                        .value("aabbccdd11223344aabbccdd11223344aabbccdd11223344aabbccdd"));
+                        .value("aabbccdd11223344aabbccdd11223344aabbccdd11223344aabbccdd"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.subjects[1].extensions.cip113.third_party_transfer_logic_script").doesNotExist())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.subjects[1].extensions.cip113.global_state_policy_id").doesNotExist());
     }
 
 }

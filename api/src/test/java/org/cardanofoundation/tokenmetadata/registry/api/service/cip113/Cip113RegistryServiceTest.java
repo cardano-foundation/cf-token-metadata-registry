@@ -68,6 +68,26 @@ class Cip113RegistryServiceTest {
         }
 
         @Test
+        void normalizesNullableFieldsToNull() {
+            Cip113RegistryNode entity = Cip113RegistryNode.builder()
+                    .policyId("deadbeef")
+                    .transferLogicScript("script1")
+                    .thirdPartyTransferLogicScript(null)
+                    .globalStatePolicyId("")
+                    .build();
+
+            when(repository.findFirstByPolicyIdOrderBySlotDesc("deadbeef"))
+                    .thenReturn(Optional.of(entity));
+
+            Optional<ProgrammableTokenCip113> result = service.findByPolicyId("deadbeef");
+
+            assertThat(result).isPresent();
+            assertThat(result.get().transferLogicScript()).isEqualTo("script1");
+            assertThat(result.get().thirdPartyTransferLogicScript()).isNull();
+            assertThat(result.get().globalStatePolicyId()).isNull();
+        }
+
+        @Test
         void returnsEmptyWhenNotFound() {
             when(repository.findFirstByPolicyIdOrderBySlotDesc("unknown"))
                     .thenReturn(Optional.empty());
@@ -91,7 +111,7 @@ class Cip113RegistryServiceTest {
         void returnsMappedDtos() {
             Cip113RegistryNode entity1 = Cip113RegistryNode.builder()
                     .policyId("policy1").transferLogicScript("s1")
-                    .thirdPartyTransferLogicScript("s2").globalStatePolicyId("").build();
+                    .thirdPartyTransferLogicScript("").globalStatePolicyId("").build();
             Cip113RegistryNode entity2 = Cip113RegistryNode.builder()
                     .policyId("policy2").transferLogicScript("s3")
                     .thirdPartyTransferLogicScript("s4").globalStatePolicyId("gs").build();
@@ -103,7 +123,10 @@ class Cip113RegistryServiceTest {
 
             assertThat(result).hasSize(2);
             assertThat(result.get("policy1").transferLogicScript()).isEqualTo("s1");
+            assertThat(result.get("policy1").thirdPartyTransferLogicScript()).isNull();
+            assertThat(result.get("policy1").globalStatePolicyId()).isNull();
             assertThat(result.get("policy2").transferLogicScript()).isEqualTo("s3");
+            assertThat(result.get("policy2").globalStatePolicyId()).isEqualTo("gs");
         }
 
         @Test
