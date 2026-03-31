@@ -26,7 +26,10 @@ class TestV2GetSubjectCip26:
     @allure.story("Return metadata for known CIP-26 subject")
     @pytest.mark.parametrize("subject", CIP26_SUBJECTS, ids=lambda s: s[:16])
     def test_get_subject_returns_200(self, subject):
-        resp = requests.get(f"{API_BASE_URL}/api/v2/subjects/{subject}")
+        resp = requests.get(
+            f"{API_BASE_URL}/api/v2/subjects/{subject}",
+            params={"query_priority": "CIP_26"},
+        )
         assert resp.status_code == 200, f"Expected 200 for {subject[:16]}..., got {resp.status_code}"
 
         data = resp.json()
