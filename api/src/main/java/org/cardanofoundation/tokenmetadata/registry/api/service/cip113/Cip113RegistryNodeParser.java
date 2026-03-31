@@ -33,7 +33,7 @@ public class Cip113RegistryNodeParser {
      */
     public record ParsedRegistryNode(@Nullable String key,
                                      @Nullable String next,
-                                     @Nullable String transferLogicScript,
+                                     String transferLogicScript,
                                      @Nullable String thirdPartyTransferLogicScript,
                                      @Nullable String globalStatePolicyId) {
     }
