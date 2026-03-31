@@ -54,18 +54,15 @@ CIP-113 registry nodes are indexed using the existing Yaci Store infrastructure:
 - **`Cip113EventListener`** processes `AddressUtxoEvent`s, filtering for UTxOs with inline datums that match monitored policy IDs
 - **`Cip113RegistryNodeParser`** deserializes the CBOR datum (ConstrPlutusData with 5 fields) into a structured record
 
-### 3. API response — two access patterns
+### 3. API response
 
-CIP-113 data is served in two complementary ways:
-
-**a) As an extension on V2 subject endpoints (ADR-015)**
-
-When querying a specific token by subject, CIP-113 data appears under the `extensions.cip113` key:
+CIP-113 data is served as an extension on V2 subject endpoints (ADR-015). When querying a specific token by subject, CIP-113 data appears under the `extensions.cip113` key and the `type` field indicates whether the token is `NATIVE` or `PROGRAMMABLE`:
 
 ```json
 {
   "subject": {
     "subject": "577f0b...0014df10464c4454",
+    "type": "PROGRAMMABLE",
     "metadata": { "name": {...}, "description": {...} },
     "extensions": {
       "cip113": {
@@ -78,31 +75,26 @@ When querying a specific token by subject, CIP-113 data appears under the `exten
 }
 ```
 
-**b) Via the V2 policy endpoints (ADR-017)**
+The `ProgrammableTokenCip113` record implements the `Extension` interface. The `third_party_transfer_logic_script` and `global_state_policy_id` fields are nullable — not all programmable token substandards require them.
 
-When querying by policy ID, CIP-113 data appears as the `programmable` field alongside all tokens under that policy:
+### 4. Token type classification
 
-```json
-{
-  "policy_id": "ae563991...",
-  "tokens": [
-    { "subject": "ae563991...0014df10555344432", "name": "USDC", "ticker": "USDC", "decimals": 6, "source": "CIP_68" }
-  ],
-  "programmable": {
-    "transfer_logic_script": "77014ec6...",
-    "third_party_transfer_logic_script": "4b348779...",
-    "global_state_policy_id": null
-  }
-}
-```
+The V2 `Subject` response includes a `type` field (`TokenType` enum):
 
-The `ProgrammableTokenCip113` record implements the `Extension` interface. The `global_state_policy_id` field is nullable — not all programmable token substandards require global state.
+- **`NATIVE`** — standard token with no on-chain transfer logic
+- **`PROGRAMMABLE`** — token with CIP-113 (or future) extensions defining transfer validation rules
 
-### 4. Implicit enablement
+The type is derived from the presence of extensions: if any extension is present, the token is `PROGRAMMABLE`; otherwise `NATIVE`.
+
+### 5. Query priority
+
+`CIP_113` is a valid value in the `QueryPriority` enum. While CIP-113 currently does not provide standard display metadata (name, description, ticker), it can participate in the priority chain for forward compatibility as the standard evolves.
+
+### 6. Implicit enablement
 
 CIP-113 support is derived from configuration: it is active when `CIP113_REGISTRY_NFT_POLICY_IDS` contains at least one policy ID. No separate boolean flag is needed. An empty list means there are no registries to monitor, so all CIP-113 code paths short-circuit.
 
-### 5. Batch optimization
+### 7. Batch optimization
 
 For the batch query endpoint (`POST /api/v2/subjects/query`), CIP-113 data is pre-fetched for all unique policy IDs in a single query via `Cip113RegistryService.findByPolicyIds()`, avoiding N+1 database calls.
 

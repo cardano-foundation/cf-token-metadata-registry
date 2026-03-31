@@ -46,11 +46,20 @@ A marker interface `Extension` serves as the base type. Each CIP that enriches t
 
 The `extensions` field on the `Subject` record is a `Map<String, Extension>`, annotated with `@JsonInclude(NON_EMPTY)`. When a token has no extensions, the field is omitted entirely from the JSON response — existing consumers see no change.
 
-### 3. Separate from query priority
+### 3. Token type classification
 
-Extensions are appended to the response *after* the priority-based metadata merge. They are not part of the `QueryPriority` enum and do not participate in the merge/fill logic. This keeps the two concerns cleanly separated.
+The presence of extensions drives a `type` field on the `Subject` response:
 
-### 4. OpenAPI documentation
+- **`NATIVE`** — no extensions present, standard Cardano token
+- **`PROGRAMMABLE`** — extensions are present (e.g. CIP-113 transfer logic)
+
+This allows consumers to quickly determine whether a token has on-chain constraints without inspecting the extensions map.
+
+### 4. Separate from display metadata, part of query priority
+
+Extensions are appended to the response *after* the priority-based metadata merge. They do not participate in the merge/fill logic for display metadata (name, description, etc.). However, their CIP identifiers (e.g. `CIP_113`) are valid values in the `QueryPriority` enum for forward compatibility.
+
+### 5. OpenAPI documentation
 
 The `Extension` interface uses `@Schema(oneOf = {...})` to enumerate all known extension types in the OpenAPI spec, making the possible extension shapes discoverable via `/apidocs`.
 
