@@ -40,8 +40,7 @@ public class Cip113RegistryNode {
     @Column(name = "global_state_policy_id")
     private String globalStatePolicyId;
 
-    @Nullable
-    @Column(name = "next_key")
+    @Column(name = "next_key", nullable = false)
     private String nextKey;
 
     private String datum;

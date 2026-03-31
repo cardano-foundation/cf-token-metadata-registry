@@ -31,8 +31,8 @@ public class Cip113RegistryNodeParser {
     /**
      * Parsed registry node data.
      */
-    public record ParsedRegistryNode(@Nullable String key,
-                                     @Nullable String next,
+    public record ParsedRegistryNode(String key,
+                                     String next,
                                      String transferLogicScript,
                                      @Nullable String thirdPartyTransferLogicScript,
                                      @Nullable String globalStatePolicyId) {
@@ -48,7 +48,7 @@ public class Cip113RegistryNodeParser {
 
             List<PlutusData> fields = extractFields(plutusData);
             if (fields.size() < 4) {
-                log.warn("CIP-113 registry node datum has insufficient fields: {}", fields.size());
+                log.warn("Skipping invalid CIP-113 registry node datum: expected at least 4 fields, got {}", fields.size());
                 return Optional.empty();
             }
 
@@ -58,8 +58,10 @@ public class Cip113RegistryNodeParser {
             String thirdPartyTransferLogicScript = extractCredentialBytesOrNull(fields.get(3));
             String globalStatePolicyId = fields.size() > 4 ? extractBytesOrNull(fields.get(4)) : null;
 
-            if (transferLogicScript == null) {
-                log.warn("CIP-113 registry node missing required transfer logic script");
+            if (key == null || next == null || transferLogicScript == null) {
+                log.warn("Skipping invalid CIP-113 registry node: key={}, next={}, transferLogicScript={} — "
+                                + "all three fields are required by the on-chain linked list structure",
+                        key, next, transferLogicScript);
                 return Optional.empty();
             }
 

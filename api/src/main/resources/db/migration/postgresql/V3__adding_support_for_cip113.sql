@@ -5,7 +5,7 @@ CREATE TABLE cip113_registry_node (
     transfer_logic_script TEXT NOT NULL,
     third_party_transfer_logic_script TEXT,
     global_state_policy_id TEXT,
-    next_key TEXT,
+    next_key TEXT NOT NULL,
     datum TEXT NOT NULL,
     PRIMARY KEY (policy_id, slot, tx_hash)
 );
