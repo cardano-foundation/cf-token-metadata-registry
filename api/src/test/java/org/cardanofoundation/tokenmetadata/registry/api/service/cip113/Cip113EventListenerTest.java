@@ -76,6 +76,22 @@ class Cip113EventListenerTest {
             assertThat(saved.getThirdPartyTransferLogicScript()).isEqualTo(THIRD_PARTY_LOGIC);
             assertThat(saved.getDatum()).isEqualTo(datum);
         }
+
+        @Test
+        void savesEntityWithNullThirdPartyAndGlobalState() throws Exception {
+            String datum = buildRegistryNodeDatumNullThirdParty(REGISTERED_POLICY_ID, "ffffffffffff",
+                    TRANSFER_LOGIC);
+
+            listener.processTransaction(buildEvent(100L, REGISTRY_NFT_POLICY_ID, REGISTERED_POLICY_ID, datum, TX_HASH));
+
+            ArgumentCaptor<Cip113RegistryNode> captor = ArgumentCaptor.forClass(Cip113RegistryNode.class);
+            verify(repository).save(captor.capture());
+
+            Cip113RegistryNode saved = captor.getValue();
+            assertThat(saved.getTransferLogicScript()).isEqualTo(TRANSFER_LOGIC);
+            assertThat(saved.getThirdPartyTransferLogicScript()).isNull();
+            assertThat(saved.getGlobalStatePolicyId()).isNull();
+        }
     }
 
     @Nested
@@ -143,6 +159,22 @@ class Cip113EventListenerTest {
             listener.processTransaction(buildEvent(100L, REGISTRY_NFT_POLICY_ID, REGISTERED_POLICY_ID, "deadbeef", TX_HASH));
             verifyNoInteractions(repository);
         }
+
+        @Test
+        void skipsDatumWithMissingTransferLogicScript() throws Exception {
+            // transfer_logic_script is not wrapped in Constr — parser returns null, entry is skipped
+            ConstrPlutusData registryNode = ConstrPlutusData.of(0,
+                    BytesPlutusData.of(HexUtil.decodeHexString(REGISTERED_POLICY_ID)),
+                    BytesPlutusData.of(HexUtil.decodeHexString("ffffffffffff")),
+                    BytesPlutusData.of(new byte[0]),  // invalid: not a Constr-wrapped credential
+                    ConstrPlutusData.of(0, BytesPlutusData.of(HexUtil.decodeHexString(THIRD_PARTY_LOGIC)))
+            );
+            String datum = HexUtil.encodeHexString(CborSerializationUtil.serialize(registryNode.serialize()));
+
+            listener.processTransaction(buildEvent(100L, REGISTRY_NFT_POLICY_ID, REGISTERED_POLICY_ID, datum, TX_HASH));
+
+            verifyNoInteractions(repository);
+        }
     }
 
     private AddressUtxoEvent buildEvent(long slot, String nftPolicyId, String nftAssetName,
@@ -159,6 +191,17 @@ class Cip113EventListenerTest {
                 .metadata(EventMetadata.builder().slot(slot).build())
                 .txInputOutputs(List.of(TxInputOutput.builder().outputs(List.of(utxo)).build()))
                 .build();
+    }
+
+    private static String buildRegistryNodeDatumNullThirdParty(String key, String next,
+                                                               String transferLogic) throws Exception {
+        ConstrPlutusData registryNode = ConstrPlutusData.of(0,
+                BytesPlutusData.of(HexUtil.decodeHexString(key)),
+                BytesPlutusData.of(HexUtil.decodeHexString(next)),
+                ConstrPlutusData.of(0, BytesPlutusData.of(HexUtil.decodeHexString(transferLogic))),
+                BytesPlutusData.of(new byte[0])  // thirdParty as raw empty bytes (not Constr-wrapped) → null
+        );
+        return HexUtil.encodeHexString(CborSerializationUtil.serialize(registryNode.serialize()));
     }
 
     private static String buildRegistryNodeDatum(String key, String next,
