@@ -67,10 +67,11 @@ class Cip113EventListenerTest {
 
             listener.processTransaction(buildEvent(100L, REGISTRY_NFT_POLICY_ID, REGISTERED_POLICY_ID, datum, TX_HASH));
 
-            ArgumentCaptor<Cip113RegistryNode> captor = ArgumentCaptor.forClass(Cip113RegistryNode.class);
-            verify(repository).save(captor.capture());
+            @SuppressWarnings("unchecked")
+            ArgumentCaptor<List<Cip113RegistryNode>> captor = ArgumentCaptor.forClass(List.class);
+            verify(repository).saveAll(captor.capture());
 
-            Cip113RegistryNode saved = captor.getValue();
+            Cip113RegistryNode saved = captor.getValue().getFirst();
             assertThat(saved.getPolicyId()).isEqualTo(REGISTERED_POLICY_ID);
             assertThat(saved.getSlot()).isEqualTo(100L);
             assertThat(saved.getTxHash()).isEqualTo(TX_HASH);
@@ -86,10 +87,11 @@ class Cip113EventListenerTest {
 
             listener.processTransaction(buildEvent(100L, REGISTRY_NFT_POLICY_ID, REGISTERED_POLICY_ID, datum, TX_HASH));
 
-            ArgumentCaptor<Cip113RegistryNode> captor = ArgumentCaptor.forClass(Cip113RegistryNode.class);
-            verify(repository).save(captor.capture());
+            @SuppressWarnings("unchecked")
+            ArgumentCaptor<List<Cip113RegistryNode>> captor = ArgumentCaptor.forClass(List.class);
+            verify(repository).saveAll(captor.capture());
 
-            Cip113RegistryNode saved = captor.getValue();
+            Cip113RegistryNode saved = captor.getValue().getFirst();
             assertThat(saved.getTransferLogicScript()).isEqualTo(TRANSFER_LOGIC);
             assertThat(saved.getThirdPartyTransferLogicScript()).isNull();
             assertThat(saved.getGlobalStatePolicyId()).isNull();

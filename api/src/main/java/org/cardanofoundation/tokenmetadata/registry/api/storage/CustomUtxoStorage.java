@@ -15,6 +15,8 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.PlatformTransactionManager;
 
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Repository
 @Slf4j
@@ -50,9 +52,15 @@ public class CustomUtxoStorage extends UtxoStorageImpl {
 
     @Override
     public void saveSpent(List<TxInput> txInputs) {
-        List<TxInput> automaticPaymentInputs = txInputs
-                .stream()
-                .filter(txInput -> utxoRepository.findById(new UtxoId(txInput.getTxHash(), txInput.getOutputIndex())).isPresent())
+        List<UtxoId> utxoIds = txInputs.stream()
+                .map(txInput -> new UtxoId(txInput.getTxHash(), txInput.getOutputIndex()))
+                .toList();
+        Set<UtxoId> existingIds = utxoRepository.findAllById(utxoIds).stream()
+                .map(entity -> new UtxoId(entity.getTxHash(), entity.getOutputIndex()))
+                .collect(Collectors.toSet());
+
+        List<TxInput> automaticPaymentInputs = txInputs.stream()
+                .filter(txInput -> existingIds.contains(new UtxoId(txInput.getTxHash(), txInput.getOutputIndex())))
                 .toList();
         super.saveSpent(automaticPaymentInputs);
     }

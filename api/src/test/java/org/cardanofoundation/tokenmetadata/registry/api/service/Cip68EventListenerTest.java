@@ -73,10 +73,11 @@ class Cip68EventListenerTest {
 
             listener.processTransaction(buildEvent(100L, utxo));
 
-            ArgumentCaptor<MetadataReferenceNft> captor = ArgumentCaptor.forClass(MetadataReferenceNft.class);
-            verify(metadataReferenceNftRepository).save(captor.capture());
+            @SuppressWarnings("unchecked")
+            ArgumentCaptor<List<MetadataReferenceNft>> captor = ArgumentCaptor.forClass(List.class);
+            verify(metadataReferenceNftRepository).saveAll(captor.capture());
 
-            MetadataReferenceNft saved = captor.getValue();
+            MetadataReferenceNft saved = captor.getValue().getFirst();
             assertThat(saved.getPolicyId()).isEqualTo(POLICY_ID);
             assertThat(saved.getAssetName()).isEqualTo(REF_NFT_ASSET_NAME);
             assertThat(saved.getSlot()).isEqualTo(100L);
