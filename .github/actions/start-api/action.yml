@@ -9,6 +9,10 @@ inputs:
     description: 'Docker image tag (required for docker mode)'
     required: false
     default: ''
+  cip113-registry-nft-policy-ids:
+    description: 'CIP-113 registry NFT policy IDs (always-true script for integration tests)'
+    required: false
+    default: '3a888d65f16790950a72daee1f63aa05add6d268434107cfa5b67712'
 
 runs:
   using: composite
@@ -50,14 +54,14 @@ runs:
         STORE_CARDANO_SHELLEY_GENESIS_FILE: ${{ env.DEVNET_DIR }}/node/genesis/shelley-genesis.json
         STORE_CARDANO_ALONZO_GENESIS_FILE: ${{ env.DEVNET_DIR }}/node/genesis/alonzo-genesis.json
         STORE_CARDANO_CONWAY_GENESIS_FILE: ${{ env.DEVNET_DIR }}/node/genesis/conway-genesis.json
-        CIP113_REGISTRY_NFT_POLICY_IDS: "3a888d65f16790950a72daee1f63aa05add6d268434107cfa5b67712"
+        CIP113_REGISTRY_NFT_POLICY_IDS: ${{ inputs.cip113-registry-nft-policy-ids }}
 
     - name: Start API (docker)
       if: inputs.mode == 'docker'
       shell: bash
       env:
         INPUT_IMAGE_TAG: ${{ inputs.image-tag }}
-        CIP113_REGISTRY_NFT_POLICY_IDS: "3a888d65f16790950a72daee1f63aa05add6d268434107cfa5b67712"
+        CIP113_REGISTRY_NFT_POLICY_IDS: ${{ inputs.cip113-registry-nft-policy-ids }}
       run: |
         docker run -d --name api --network host \
           -e DB_URL=jdbc:postgresql://localhost:5432/cf_token_metadata_registry \
