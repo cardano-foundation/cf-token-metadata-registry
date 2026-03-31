@@ -8,7 +8,7 @@ import allure
 import pytest
 import requests
 
-from conftest import _cip26_sample, _load_json, API_BASE_URL
+from .conftest import _cip26_sample, _load_json, API_BASE_URL
 
 CIP26_SAMPLE = _cip26_sample(50)
 CIP26_BY_SUBJECT = {t["subject"]: t for t in _load_json("cip26_tokens.json")}
