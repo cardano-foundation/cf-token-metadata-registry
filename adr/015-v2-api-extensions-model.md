@@ -34,6 +34,7 @@ A marker interface `Extension` serves as the base type. Each CIP that enriches t
 {
   "subject": {
     "subject": "policyId + assetName",
+    "type": "PROGRAMMABLE",
     "metadata": { "..." },
     "extensions": {
       "cip113": { "..." }
