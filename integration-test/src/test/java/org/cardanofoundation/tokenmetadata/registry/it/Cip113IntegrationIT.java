@@ -11,10 +11,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
 import java.time.Duration;
-import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
 
 /**
@@ -181,6 +179,9 @@ public class Cip113IntegrationIT extends BaseIntegrationIT {
 
             DocumentContext json = JsonPath.parse(response.getBody());
 
+            // Verify type is PROGRAMMABLE
+            assertThat(json.read("$.subject.type", String.class)).isEqualTo("PROGRAMMABLE");
+
             // Verify CIP-68 metadata
             assertThat(json.read("$.subject.metadata.name.value", String.class)).isEqualTo("ProgToken");
             assertThat(json.read("$.subject.metadata.name.source", String.class)).isEqualTo("CIP_68");
@@ -189,55 +190,6 @@ public class Cip113IntegrationIT extends BaseIntegrationIT {
             // Verify CIP-113 extension
             assertThat(json.read("$.subject.extensions.cip113.transfer_logic_script", String.class)).isEqualTo(TRANSFER_LOGIC_SCRIPT);
             assertThat(json.read("$.subject.extensions.cip113.third_party_transfer_logic_script", String.class)).isEqualTo(THIRD_PARTY_SCRIPT);
-        }
-    }
-
-    @Nested
-    @DisplayName("V2 - Policy API")
-    class V2PolicyApi {
-
-        @Test
-        void getPolicyShouldReturnProgrammableData() {
-            ResponseEntity<String> response = restTemplate.getForEntity(
-                    API_BASE_URL + "/api/v2/policies/" + REGISTERED_POLICY_ID, String.class);
-
-            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-
-            DocumentContext json = JsonPath.parse(response.getBody());
-            assertThat(json.read("$.policy_id", String.class)).isEqualTo(REGISTERED_POLICY_ID);
-            assertThat(json.read("$.extensions.cip113.transfer_logic_script", String.class)).isEqualTo(TRANSFER_LOGIC_SCRIPT);
-            assertThat(json.read("$.extensions.cip113.third_party_transfer_logic_script", String.class)).isEqualTo(THIRD_PARTY_SCRIPT);
-        }
-
-        @Test
-        void getPolicyForUnknownShouldReturn404() {
-            String unknownPolicy = "0000000000000000000000000000000000000000000000000000000000";
-            assertThatThrownBy(() -> restTemplate.getForEntity(
-                    API_BASE_URL + "/api/v2/policies/" + unknownPolicy, String.class))
-                    .isInstanceOf(org.springframework.web.client.HttpClientErrorException.NotFound.class);
-        }
-
-        @Test
-        void batchQueryShouldReturnMatchingPolicies() {
-            String unknownPolicy = "0000000000000000000000000000000000000000000000000000000000";
-            String requestBody = "{\"policy_ids\":[\"" + REGISTERED_POLICY_ID + "\",\"" + unknownPolicy + "\"]}";
-
-            ResponseEntity<String> response = restTemplate.postForEntity(
-                    API_BASE_URL + "/api/v2/policies/query",
-                    new org.springframework.http.HttpEntity<>(requestBody, jsonHeaders()),
-                    String.class);
-
-            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-
-            DocumentContext json = JsonPath.parse(response.getBody());
-            List<String> policyIds = json.read("$[*].policy_id");
-            assertThat(policyIds).containsExactly(REGISTERED_POLICY_ID);
-        }
-
-        private org.springframework.http.HttpHeaders jsonHeaders() {
-            org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
-            headers.setContentType(org.springframework.http.MediaType.APPLICATION_JSON);
-            return headers;
         }
     }
 

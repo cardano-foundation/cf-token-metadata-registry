@@ -57,6 +57,7 @@ runs:
       shell: bash
       env:
         INPUT_IMAGE_TAG: ${{ inputs.image-tag }}
+        CIP113_REGISTRY_NFT_POLICY_IDS: "3a888d65f16790950a72daee1f63aa05add6d268434107cfa5b67712"
       run: |
         docker run -d --name api --network host \
           -e DB_URL=jdbc:postgresql://localhost:5432/cf_token_metadata_registry \
@@ -77,7 +78,7 @@ runs:
           -e STORE_CARDANO_SHELLEY_GENESIS_FILE=/genesis/shelley-genesis.json \
           -e STORE_CARDANO_ALONZO_GENESIS_FILE=/genesis/alonzo-genesis.json \
           -e STORE_CARDANO_CONWAY_GENESIS_FILE=/genesis/conway-genesis.json \
-          -e CIP113_REGISTRY_NFT_POLICY_IDS=3a888d65f16790950a72daee1f63aa05add6d268434107cfa5b67712 \
+          -e CIP113_REGISTRY_NFT_POLICY_IDS=${CIP113_REGISTRY_NFT_POLICY_IDS} \
           -v /tmp/test-token-registry:/tmp/test-token-registry \
           -v "${DEVNET_DIR}/node/genesis:/genesis:ro" \
           "${INPUT_IMAGE_TAG}"

@@ -187,8 +187,10 @@ class MetadataApiV2ControllerTest {
     @Test
     void subjectQueryShouldReturnMetadata() throws Exception {
         mockMvc.perform(get("/api/v2/subjects/025146866af908340247fe4e9672d5ac7059f1e8534696b5f920c9e66362544848"))
-                .andExpect(status().isOk()).andExpect(MockMvcResultMatchers.jsonPath("$.subject.subject")
-                        .value("025146866af908340247fe4e9672d5ac7059f1e8534696b5f920c9e66362544848"));
+                .andExpect(status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.subject.subject")
+                        .value("025146866af908340247fe4e9672d5ac7059f1e8534696b5f920c9e66362544848"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.subject.type").value("NATIVE"));
     }
 
     @Test
@@ -331,6 +333,7 @@ class MetadataApiV2ControllerTest {
     void cip113ExtensionShouldAppearInResponse() throws Exception {
         mockMvc.perform(get("/api/v2/subjects/577f0b1342f8f8f4aed3388b80a8535812950c7a892495c0ecdf0f1e0014df10464c4454"))
                 .andExpect(status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.subject.type").value("PROGRAMMABLE"))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.subject.extensions.cip113.transfer_logic_script")
                         .value("aabbccdd11223344aabbccdd11223344aabbccdd11223344aabbccdd"))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.subject.extensions.cip113.third_party_transfer_logic_script")
@@ -343,6 +346,7 @@ class MetadataApiV2ControllerTest {
     void nonProgrammableTokenShouldNotHaveExtensions() throws Exception {
         mockMvc.perform(get("/api/v2/subjects/025146866af908340247fe4e9672d5ac7059f1e8534696b5f920c9e66362544848"))
                 .andExpect(status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.subject.type").value("NATIVE"))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.subject.extensions").doesNotExist());
     }
 
@@ -360,9 +364,11 @@ class MetadataApiV2ControllerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.subjects.length()").value(2))
-                // First subject (non-programmable) should NOT have extensions
+                // First subject (non-programmable) should be NATIVE
+                .andExpect(MockMvcResultMatchers.jsonPath("$.subjects[0].type").value("NATIVE"))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.subjects[0].extensions").doesNotExist())
-                // Second subject (FLDT, mocked as programmable) should have cip113 extension
+                // Second subject (FLDT, mocked as programmable) should be PROGRAMMABLE
+                .andExpect(MockMvcResultMatchers.jsonPath("$.subjects[1].type").value("PROGRAMMABLE"))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.subjects[1].extensions.cip113.transfer_logic_script")
                         .value("aabbccdd11223344aabbccdd11223344aabbccdd11223344aabbccdd"));
     }

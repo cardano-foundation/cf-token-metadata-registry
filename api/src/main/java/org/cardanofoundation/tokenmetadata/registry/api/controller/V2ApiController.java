@@ -8,7 +8,13 @@ import org.cardanofoundation.tokenmetadata.registry.api.model.Pair;
 import org.cardanofoundation.tokenmetadata.registry.api.model.QueryPriority;
 import org.cardanofoundation.tokenmetadata.registry.api.model.cip113.ProgrammableTokenCip113;
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.BatchRequest;
-import org.cardanofoundation.tokenmetadata.registry.api.model.v2.*;
+import org.cardanofoundation.tokenmetadata.registry.api.model.v2.Extension;
+import org.cardanofoundation.tokenmetadata.registry.api.model.v2.Metadata;
+import org.cardanofoundation.tokenmetadata.registry.api.model.v2.Response;
+import org.cardanofoundation.tokenmetadata.registry.api.model.v2.BatchResponse;
+import org.cardanofoundation.tokenmetadata.registry.api.model.v2.Standards;
+import org.cardanofoundation.tokenmetadata.registry.api.model.v2.Subject;
+import org.cardanofoundation.tokenmetadata.registry.api.model.v2.TokenType;
 import org.cardanofoundation.tokenmetadata.registry.api.service.Cip68FungibleTokenService;
 import org.cardanofoundation.tokenmetadata.registry.api.service.RegistryMetricsService;
 import org.cardanofoundation.tokenmetadata.registry.api.service.cip113.Cip113RegistryService;
@@ -77,9 +83,10 @@ public class V2ApiController implements V2Api {
             recordCipHits(tokenMetadata.second());
             Standards standards = tokenMetadata.second();
             Map<String, Extension> extensions = buildExtensions(subject);
+            TokenType type = extensions.isEmpty() ? TokenType.NATIVE : TokenType.PROGRAMMABLE;
             boolean includeCipsDetails = Boolean.TRUE.equals(showCipsDetails);
             List<String> stringPriorities = queryPriority.stream().map(QueryPriority::name).toList();
-            Response response = new Response(new Subject(subject, tokenMetadata.first(),
+            Response response = new Response(new Subject(subject, type, tokenMetadata.first(),
                     includeCipsDetails ? standards : null, extensions), stringPriorities);
 
             return ResponseEntity.ok(response);
@@ -133,6 +140,7 @@ public class V2ApiController implements V2Api {
             case CIP_68 -> cip68FungibleTokenService.getReferenceNftSubject(subject)
                     .flatMap(assetType -> cip68FungibleTokenService.findSubject(assetType.policyId(), assetType.assetName(), properties))
                     .map(fungibleTokenMetadata -> new Pair<>(Metadata.from(fungibleTokenMetadata), new Standards(null, fungibleTokenMetadata)));
+            case CIP_113 -> Optional.empty();
         };
     }
 
@@ -179,7 +187,8 @@ public class V2ApiController implements V2Api {
             recordCipHits(pair.second());
         }
 
-        return new Subject(subject, pair.first(),
+        TokenType type = extensions.isEmpty() ? TokenType.NATIVE : TokenType.PROGRAMMABLE;
+        return new Subject(subject, type, pair.first(),
                 includeCipsDetails ? pair.second() : null,
                 extensions.isEmpty() ? null : extensions);
     }

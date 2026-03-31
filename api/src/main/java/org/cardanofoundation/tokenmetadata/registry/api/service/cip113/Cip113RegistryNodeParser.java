@@ -55,13 +55,11 @@ public class Cip113RegistryNodeParser {
             String key = extractBytes(fields.get(0));
             String next = extractBytes(fields.get(1));
             String transferLogicScript = extractCredentialBytes(fields.get(2));
-            String thirdPartyTransferLogicScript = extractCredentialBytes(fields.get(3));
+            String thirdPartyTransferLogicScript = extractCredentialBytesOrNull(fields.get(3));
             String globalStatePolicyId = fields.size() > 4 ? extractBytesOrNull(fields.get(4)) : null;
 
-            if (transferLogicScript == null || thirdPartyTransferLogicScript == null) {
-                log.warn("CIP-113 registry node missing required scripts: transferLogic={}, thirdPartyLogic={}",
-                        transferLogicScript != null ? "present" : "null",
-                        thirdPartyTransferLogicScript != null ? "present" : "null");
+            if (transferLogicScript == null) {
+                log.warn("CIP-113 registry node missing required transfer logic script");
                 return Optional.empty();
             }
 
@@ -98,6 +96,16 @@ public class Cip113RegistryNodeParser {
     @Nullable
     private String extractBytesOrNull(PlutusData data) {
         String hex = extractBytes(data);
+        return (hex == null || hex.isEmpty()) ? null : hex;
+    }
+
+    /**
+     * Credentials are wrapped in a ConstrPlutusData: Constr(0, [ByteString]).
+     * Returns null for empty or absent credentials.
+     */
+    @Nullable
+    private String extractCredentialBytesOrNull(PlutusData data) {
+        String hex = extractCredentialBytes(data);
         return (hex == null || hex.isEmpty()) ? null : hex;
     }
 

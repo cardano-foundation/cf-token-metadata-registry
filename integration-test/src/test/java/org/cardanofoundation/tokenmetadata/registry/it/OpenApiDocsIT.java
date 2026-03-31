@@ -99,6 +99,13 @@ class OpenApiDocsIT extends BaseIntegrationIT {
     class Cip113 {
 
         @Test
+        void subjectSchemaIncludesTypeField() {
+            assertThat(apiDocs.read("$.components.schemas.Subject.properties.type", Object.class))
+                    .as("Subject schema should have a 'type' field for token classification")
+                    .isNotNull();
+        }
+
+        @Test
         void subjectSchemaIncludesExtensionsField() {
             assertThat(apiDocs.read("$.components.schemas.Subject.properties.extensions", Object.class))
                     .as("Subject schema should have an 'extensions' field for CIP extensions")
