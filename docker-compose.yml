@@ -14,6 +14,7 @@ x-api-service-common: &api-service-common
   restart: always
 
 x-api-common-environment: &api-common-environment
+  DB_URL: "${DB_URL}"
   DB_USERNAME: "${DB_USERNAME}"
   DB_PASSWORD: "${DB_PASSWORD}"
   STORE_CARDANO_PROTOCOL_MAGIC: "${STORE_CARDANO_PROTOCOL_MAGIC}"
@@ -49,7 +50,6 @@ services:
       - "${API_LOCAL_BIND_PORT}:${API_EXPOSED_PORT}"
     environment:
       <<: *api-common-environment
-      DB_URL: "${DB_URL}"
       TOKEN_METADATA_SYNC_JOB: "${TOKEN_METADATA_SYNC_JOB}"
       GITHUB_ORGANIZATION: "${GITHUB_ORGANIZATION:-cardano-foundation}"
       GITHUB_PROJECT_NAME: "${GITHUB_PROJECT_NAME:-cardano-token-registry}"
@@ -66,7 +66,6 @@ services:
       - "${API_RO_LOCAL_BIND_PORT:-18081}:${API_EXPOSED_PORT}"
     environment:
       <<: *api-common-environment
-      DB_URL: "jdbc:postgresql://db:${DB_PORT}/${DB_NAME}"
       TOKEN_METADATA_SYNC_JOB: "false"
       STORE_SYNCAUTOSTART: "false"
       STORE_READONLYMODE: "true"
