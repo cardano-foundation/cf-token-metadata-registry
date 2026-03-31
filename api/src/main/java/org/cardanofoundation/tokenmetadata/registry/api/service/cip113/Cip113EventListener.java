@@ -1,6 +1,7 @@
 package org.cardanofoundation.tokenmetadata.registry.api.service.cip113;
 
 import com.bloxbean.cardano.yaci.store.common.domain.AddressUtxo;
+import com.bloxbean.cardano.yaci.store.events.RollbackEvent;
 import com.bloxbean.cardano.yaci.store.utxo.domain.AddressUtxoEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -9,6 +10,7 @@ import org.cardanofoundation.tokenmetadata.registry.entity.Cip113RegistryNode;
 import org.cardanofoundation.tokenmetadata.registry.repository.Cip113RegistryNodeRepository;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -19,6 +21,14 @@ public class Cip113EventListener {
     private final Cip113RegistryNodeParser registryNodeParser;
     private final Cip113RegistryNodeRepository cip113RegistryNodeRepository;
     private final Cip113RegistryService cip113RegistryService;
+
+    @EventListener
+    @Transactional
+    public void handleRollback(RollbackEvent rollbackEvent) {
+        long rollbackSlot = rollbackEvent.getRollbackTo().getSlot();
+        int count = cip113RegistryNodeRepository.deleteBySlotGreaterThan(rollbackSlot);
+        log.info("CIP-113 rollback to slot {}: deleted {} registry node records", rollbackSlot, count);
+    }
 
     @EventListener
     public void processTransaction(AddressUtxoEvent addressUtxoEvent) {

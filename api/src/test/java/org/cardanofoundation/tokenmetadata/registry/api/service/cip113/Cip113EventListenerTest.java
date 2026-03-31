@@ -4,9 +4,11 @@ import com.bloxbean.cardano.client.common.cbor.CborSerializationUtil;
 import com.bloxbean.cardano.client.plutus.spec.BytesPlutusData;
 import com.bloxbean.cardano.client.plutus.spec.ConstrPlutusData;
 import com.bloxbean.cardano.client.util.HexUtil;
+import com.bloxbean.cardano.yaci.core.protocol.chainsync.messages.Point;
 import com.bloxbean.cardano.yaci.store.common.domain.AddressUtxo;
 import com.bloxbean.cardano.yaci.store.common.domain.Amt;
 import com.bloxbean.cardano.yaci.store.events.EventMetadata;
+import com.bloxbean.cardano.yaci.store.events.RollbackEvent;
 import com.bloxbean.cardano.yaci.store.utxo.domain.AddressUtxoEvent;
 import com.bloxbean.cardano.yaci.store.utxo.domain.TxInputOutput;
 import org.cardanofoundation.tokenmetadata.registry.api.config.Cip113Configuration;
@@ -174,6 +176,37 @@ class Cip113EventListenerTest {
             listener.processTransaction(buildEvent(100L, REGISTRY_NFT_POLICY_ID, REGISTERED_POLICY_ID, datum, TX_HASH));
 
             verifyNoInteractions(repository);
+        }
+    }
+
+    @Nested
+    @DisplayName("Rollback handling")
+    class Rollback {
+
+        @Test
+        void deletesEntriesAfterRollbackSlot() {
+            when(repository.deleteBySlotGreaterThan(500L)).thenReturn(3);
+
+            RollbackEvent event = RollbackEvent.builder()
+                    .rollbackTo(new Point(500L, "blockhash"))
+                    .build();
+
+            listener.handleRollback(event);
+
+            verify(repository).deleteBySlotGreaterThan(500L);
+        }
+
+        @Test
+        void handlesRollbackWithNoEntries() {
+            when(repository.deleteBySlotGreaterThan(1000L)).thenReturn(0);
+
+            RollbackEvent event = RollbackEvent.builder()
+                    .rollbackTo(new Point(1000L, "blockhash"))
+                    .build();
+
+            listener.handleRollback(event);
+
+            verify(repository).deleteBySlotGreaterThan(1000L);
         }
     }
 

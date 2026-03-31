@@ -30,4 +30,6 @@ public interface Cip113RegistryNodeRepository extends JpaRepository<Cip113Regist
             nativeQuery = true)
     List<Cip113RegistryNode> findLatestByPolicyIds(@Param("policyIds") Collection<String> policyIds);
 
+    int deleteBySlotGreaterThan(Long slot);
+
 }

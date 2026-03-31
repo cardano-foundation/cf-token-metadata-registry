@@ -108,6 +108,28 @@ CIP-113 support is derived from configuration: it is active when `CIP113_REGISTR
 
 For the batch query endpoint (`POST /api/v2/subjects/query`), CIP-113 data is pre-fetched for all unique policy IDs in a single query via `Cip113RegistryService.findByPolicyIds()`, avoiding N+1 database calls.
 
+### 8. Rollback handling
+
+Both CIP-113 and CIP-68 event listeners handle Yaci Store's `RollbackEvent`. When the Cardano node reports a chain rollback, all indexed entries with `slot > rollbackSlot` are deleted. This follows the same pattern used by all Yaci Store modules (UTxO, assets, transactions, etc.).
+
+```java
+@EventListener
+@Transactional
+public void handleRollback(RollbackEvent rollbackEvent) {
+    long rollbackSlot = rollbackEvent.getRollbackTo().getSlot();
+    int count = repository.deleteBySlotGreaterThan(rollbackSlot);
+}
+```
+
+The `ORDER BY slot DESC` query pattern then naturally picks up the correct pre-rollback entry (if one exists at a lower slot).
+
+**Edge cases:**
+
+- **Rolled-back mint that reappears**: The re-indexed block produces a new `AddressUtxoEvent`, so the entry is re-created at the correct slot. No data loss.
+- **Rolled-back mint that never reappears** (e.g., transaction dropped from mempool): The entry is deleted and the token reverts to `NATIVE` (no CIP-113 extension). This is correct — the registration never confirmed on-chain.
+- **Rollback deeper than the initial registration**: If the rollback slot is earlier than when the token was first registered, all entries for that token are deleted. The token appears as unregistered until re-indexed. This is correct — the registration didn't happen yet at that chain point.
+- **Multiple updates at different slots**: Only entries after the rollback point are deleted. Earlier entries (at lower slots) survive and become the latest via `ORDER BY slot DESC`.
+
 ## Consequences
 
 ### Positive
@@ -115,12 +137,12 @@ For the batch query endpoint (`POST /api/v2/subjects/query`), CIP-113 data is pr
 - **Complete token picture**: Wallets and explorers can show both display metadata and programmable token constraints in a single API call.
 - **Validates the extensions model**: CIP-113 serves as the first real-world test of ADR-015, proving the pattern works for orthogonal CIP data.
 - **Reuses existing infrastructure**: Yaci Store, Flyway migrations, and the V2 controller extension-building pattern are shared with CIP-68, minimizing new code.
+- **Chain-consistent**: Rollback handling ensures the DB always reflects confirmed on-chain state. No phantom entries for rolled-back registrations.
 
 ### Negative
 
 - **Operator configuration**: Operators must know the policy ID(s) of the CIP-113 registry NFT minting script(s) deployed on their target network. If new registries are deployed, the configuration must be updated.
 - **CBOR parsing brittleness**: The datum parser assumes a specific ConstrPlutusData layout (constructor 0, 5 fields). If the CIP-113 datum format evolves, the parser must be updated.
-- **No rollback handling**: Registry node updates are tracked by slot, but if a blockchain rollback occurs, stale entries may persist until the next valid entry is indexed.
 
 ## Alternatives Considered
 

@@ -2,6 +2,7 @@ package org.cardanofoundation.tokenmetadata.registry.api.service;
 
 import com.bloxbean.cardano.yaci.store.common.domain.AddressUtxo;
 import com.bloxbean.cardano.yaci.store.common.domain.Amt;
+import com.bloxbean.cardano.yaci.store.events.RollbackEvent;
 import com.bloxbean.cardano.yaci.store.utxo.domain.AddressUtxoEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -12,6 +13,7 @@ import org.cardanofoundation.tokenmetadata.registry.entity.MetadataReferenceNft;
 import org.cardanofoundation.tokenmetadata.registry.repository.MetadataReferenceNftRepository;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.stream.Stream;
 
@@ -29,6 +31,14 @@ public class Cip68EventListener {
     private final Cip68FungibleTokenService cip68FungibleTokenService;
     private final Cip68FTDatumParser cip68DatumParser;
     private final MetadataReferenceNftRepository metadataReferenceNftRepository;
+
+    @EventListener
+    @Transactional
+    public void handleRollback(RollbackEvent rollbackEvent) {
+        long rollbackSlot = rollbackEvent.getRollbackTo().getSlot();
+        int count = metadataReferenceNftRepository.deleteBySlotGreaterThan(rollbackSlot);
+        log.info("CIP-68 rollback to slot {}: deleted {} reference NFT records", rollbackSlot, count);
+    }
 
     @EventListener
     public void processTransaction(AddressUtxoEvent addressUtxoEvent) {

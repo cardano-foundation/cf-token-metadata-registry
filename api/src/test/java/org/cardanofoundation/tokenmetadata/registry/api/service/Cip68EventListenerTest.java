@@ -1,8 +1,10 @@
 package org.cardanofoundation.tokenmetadata.registry.api.service;
 
+import com.bloxbean.cardano.yaci.core.protocol.chainsync.messages.Point;
 import com.bloxbean.cardano.yaci.store.common.domain.AddressUtxo;
 import com.bloxbean.cardano.yaci.store.common.domain.Amt;
 import com.bloxbean.cardano.yaci.store.events.EventMetadata;
+import com.bloxbean.cardano.yaci.store.events.RollbackEvent;
 import com.bloxbean.cardano.yaci.store.utxo.domain.AddressUtxoEvent;
 import com.bloxbean.cardano.yaci.store.utxo.domain.TxInputOutput;
 import org.cardanofoundation.tokenmetadata.registry.api.model.cip68.FungibleTokenMetadata;
@@ -153,6 +155,37 @@ class Cip68EventListenerTest {
             listener.processTransaction(buildEvent(100L, utxo));
 
             verifyNoInteractions(metadataReferenceNftRepository);
+        }
+    }
+
+    @Nested
+    @DisplayName("Rollback handling")
+    class Rollback {
+
+        @Test
+        void deletesEntriesAfterRollbackSlot() {
+            when(metadataReferenceNftRepository.deleteBySlotGreaterThan(500L)).thenReturn(5);
+
+            RollbackEvent event = RollbackEvent.builder()
+                    .rollbackTo(new Point(500L, "blockhash"))
+                    .build();
+
+            listener.handleRollback(event);
+
+            verify(metadataReferenceNftRepository).deleteBySlotGreaterThan(500L);
+        }
+
+        @Test
+        void handlesRollbackWithNoEntries() {
+            when(metadataReferenceNftRepository.deleteBySlotGreaterThan(1000L)).thenReturn(0);
+
+            RollbackEvent event = RollbackEvent.builder()
+                    .rollbackTo(new Point(1000L, "blockhash"))
+                    .build();
+
+            listener.handleRollback(event);
+
+            verify(metadataReferenceNftRepository).deleteBySlotGreaterThan(1000L);
         }
     }
 

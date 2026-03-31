@@ -18,4 +18,6 @@ public interface MetadataReferenceNftRepository extends JpaRepository<MetadataRe
      */
     Optional<MetadataReferenceNft> findFirstByPolicyIdAndAssetNameOrderBySlotDesc(String policyId, String assetName);
 
+    int deleteBySlotGreaterThan(Long slot);
+
 }
