@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.cardanofoundation.tokenmetadata.registry.api.service.OnchainSyncStatusService;
 import org.springframework.boot.actuate.health.Health;
 import org.springframework.boot.actuate.health.HealthIndicator;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.stereotype.Component;
 
 /**
@@ -14,6 +15,7 @@ import org.springframework.stereotype.Component;
  * A pod that is still catching up will not receive requests.
  */
 @Component
+@ConditionalOnBean(HealthService.class)
 @RequiredArgsConstructor
 public class OnchainReadinessHealthIndicator implements HealthIndicator {
 

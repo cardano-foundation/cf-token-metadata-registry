@@ -1,6 +1,6 @@
 package org.cardanofoundation.tokenmetadata.registry.api.controller;
 
-import lombok.RequiredArgsConstructor;
+import jakarta.annotation.Nullable;
 import lombok.extern.slf4j.Slf4j;
 import org.cardanofoundation.tokenmetadata.registry.api.health.OffchainSyncHealthIndicator;
 import org.cardanofoundation.tokenmetadata.registry.api.health.OnchainReadinessHealthIndicator;
@@ -21,16 +21,24 @@ import org.springframework.web.bind.annotation.RequestMapping;
 @CrossOrigin
 @RequestMapping("${openapi.metadataServer.base-path:}")
 @Slf4j
-@RequiredArgsConstructor
 public class HealthApiController implements HealthApi {
 
     private final OffchainSyncHealthIndicator offchainSyncHealthIndicator;
+    @Nullable
     private final OnchainReadinessHealthIndicator onchainSyncHealthIndicator;
+
+    public HealthApiController(OffchainSyncHealthIndicator offchainSyncHealthIndicator,
+                               @Nullable OnchainReadinessHealthIndicator onchainSyncHealthIndicator) {
+        this.offchainSyncHealthIndicator = offchainSyncHealthIndicator;
+        this.onchainSyncHealthIndicator = onchainSyncHealthIndicator;
+    }
 
     @Override
     public ResponseEntity<HealthResponse> getHealthStatus() {
         Health offchainHealth = offchainSyncHealthIndicator.health();
-        Health onchainHealth = onchainSyncHealthIndicator.health();
+        Health onchainHealth = onchainSyncHealthIndicator != null
+                ? onchainSyncHealthIndicator.health()
+                : Health.unknown().withDetail("syncStatus", "On-chain sync disabled").build();
 
         boolean synced = Status.UP.equals(offchainHealth.getStatus())
                 && Status.UP.equals(onchainHealth.getStatus());

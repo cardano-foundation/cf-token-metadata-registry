@@ -5,8 +5,10 @@ import com.bloxbean.cardano.yaci.store.common.domain.Cursor;
 import com.bloxbean.cardano.yaci.store.common.service.CursorService;
 import com.bloxbean.cardano.yaci.store.common.util.Tuple;
 import com.bloxbean.cardano.yaci.store.core.service.ChainTipService;
+import com.bloxbean.cardano.yaci.store.core.service.HealthService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
@@ -18,6 +20,7 @@ import java.util.concurrent.atomic.AtomicReference;
  * Ported and simplified from yaci-store's admin-ui SyncStatusService.
  */
 @Service
+@ConditionalOnBean(HealthService.class)
 @RequiredArgsConstructor
 @Slf4j
 public class OnchainSyncStatusService {
