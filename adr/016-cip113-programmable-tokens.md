@@ -16,8 +16,8 @@ CIP-113 introduces an on-chain **registry** of programmable tokens. Each registr
 
 - **key** — the policy ID of the token being registered as programmable
 - **next** — linked-list pointer to the next registry entry
-- **transfer_logic_script** — hash of the Plutus script that validates every transfer
-- **third_party_transfer_logic_script** — hash of the script for issuer/admin operations (freeze, seize, burn)
+- **transfer_logic_script** — optional hash of the Plutus script that validates every transfer
+- **third_party_transfer_logic_script** — optional hash of the script for issuer/admin operations (freeze, seize, burn)
 - **global_state_policy_id** — optional policy ID of a global state NFT (e.g., a denylist for freeze-and-seize)
 
 The token metadata registry should surface this information so that wallets, dApps, and explorers can identify programmable tokens and display their transfer constraints alongside standard display metadata.
@@ -85,7 +85,7 @@ CIP-113 data is served as an extension on V2 subject endpoints (ADR-015). When q
 }
 ```
 
-The `ProgrammableTokenCip113` record implements the `Extension` interface. The `third_party_transfer_logic_script` and `global_state_policy_id` fields are nullable — not all programmable token substandards require them.
+The `ProgrammableTokenCip113` record implements the `Extension` interface. All three fields (`transfer_logic_script`, `third_party_transfer_logic_script`, `global_state_policy_id`) are nullable — registry nodes may omit any of them depending on the substandard.
 
 ### 4. Token type classification
 
