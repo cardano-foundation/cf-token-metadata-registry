@@ -50,7 +50,7 @@ jobs:
         run: |
           VERSION="${INPUT_VERSION}"
           if [ -z "$VERSION" ]; then
-            VERSION=$(cat version.txt)
+            VERSION=$(jq '.["."]' -r .release-please-manifest.json)
           fi
           REPO="cardanofoundation/cf-token-metadata-registry-${INPUT_APP}"
           PRIMARY_TAG="${REPO}:${VERSION}-${INPUT_VARIANT}"

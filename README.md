@@ -141,7 +141,13 @@ docker compose --env-file .env.preprod up -d
 
 # Preview (CIP-113 programmable tokens)
 docker compose --env-file .env.preview up -d
+
+# Read-only mode (adds a second API instance with no sync, no node connection)
+docker compose --profile ro up -d
 ```
+
+> [!TIP]
+> The `ro` profile starts an additional `api-ro` container on port `18081` that serves queries from the existing database without connecting to a Cardano node or syncing metadata. Useful for testing query behavior without waiting for a full sync.
 
 To start fresh (wipe database and resync from scratch):
 
@@ -211,6 +217,19 @@ mvn clean package -pl api,common -am -DskipTests -Pnative
 - [x] CIP-68 fungible token support (V2 API with priority-based querying)
 - [x] Prometheus metrics (`/actuator/prometheus`)
 - [x] Kubernetes / Helm deployment support (`deploy/`)
+
+## End-to-End Tests
+
+Python-based regression tests validate all V1 and V2 business endpoints against database snapshots.
+
+```console
+cd tests
+python3 -m venv venv && source venv/bin/activate && pip install -r requirements.txt
+python end2end/mainnet/fixtures/generate_fixtures.py
+cd end2end/mainnet && python -m pytest -v
+```
+
+See [`tests/README.md`](./tests/README.md) for full details on fixture generation, test markers, Allure reports, and configuration options.
 
 ## Contributing
 
