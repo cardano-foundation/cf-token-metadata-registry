@@ -23,6 +23,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 @Slf4j
 public class HealthApiController implements HealthApi {
 
+    public static final String SYNC_STATUS = "syncStatus";
+
     private final OffchainSyncHealthIndicator offchainSyncHealthIndicator;
 
     /**
@@ -45,14 +47,14 @@ public class HealthApiController implements HealthApi {
         Health offchainHealth = offchainSyncHealthIndicator.health();
         Health onchainHealth = onchainSyncHealthIndicator != null
                 ? onchainSyncHealthIndicator.health()
-                : Health.up().withDetail("syncStatus", "On-chain sync disabled (read-only mode)").build();
+                : Health.up().withDetail(SYNC_STATUS, "On-chain sync disabled (read-only mode)").build();
 
         boolean synced = Status.UP.equals(offchainHealth.getStatus())
                 && Status.UP.equals(onchainHealth.getStatus());
 
         String syncStatus = "offchain: %s, onchain: %s".formatted(
-                offchainHealth.getDetails().get("syncStatus"),
-                onchainHealth.getDetails().get("syncStatus"));
+                offchainHealth.getDetails().get(SYNC_STATUS),
+                onchainHealth.getDetails().get(SYNC_STATUS));
 
         return new ResponseEntity<>(HealthResponse.builder()
                 .synced(synced)
