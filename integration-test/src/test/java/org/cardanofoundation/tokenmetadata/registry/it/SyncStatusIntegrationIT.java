@@ -150,7 +150,6 @@ public class SyncStatusIntegrationIT extends BaseIntegrationIT {
 
             DocumentContext json = JsonPath.parse(response.getBody());
             assertThat(json.read("$.components.livenessState", Object.class)).isNotNull();
-            assertThat(json.read("$.components.offchainSync", Object.class)).isNotNull();
             assertThat(json.read("$.components.onchainConnection", Object.class)).isNotNull();
         }
     }

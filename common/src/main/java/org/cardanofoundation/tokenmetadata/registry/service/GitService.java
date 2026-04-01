@@ -18,6 +18,7 @@ import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.revwalk.filter.RevFilter;
 import org.eclipse.jgit.treewalk.AbstractTreeIterator;
 import org.eclipse.jgit.treewalk.CanonicalTreeParser;
+import org.eclipse.jgit.treewalk.TreeWalk;
 import org.eclipse.jgit.treewalk.filter.PathFilter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -241,14 +242,16 @@ private boolean isGitRepo() {
             throws IOException {
         if (commit.getParentCount() == 0) {
             // Root commit — all files in the tree are "touched"
-            CanonicalTreeParser treeParser = new CanonicalTreeParser();
-            treeParser.reset(reader, commit.getTree().getId());
-            List<String> files = new ArrayList<>();
-            while (!treeParser.eof()) {
-                files.add(treeParser.getEntryPathString());
-                treeParser.next();
+            try (TreeWalk treeWalk = new TreeWalk(repository)) {
+                treeWalk.addTree(commit.getTree());
+                treeWalk.setRecursive(true);
+                treeWalk.setFilter(PathFilter.create(mappingsFolderName));
+                List<String> files = new ArrayList<>();
+                while (treeWalk.next()) {
+                    files.add(treeWalk.getPathString());
+                }
+                return files;
             }
-            return files;
         }
 
         try (RevWalk parentWalk = new RevWalk(repository)) {
