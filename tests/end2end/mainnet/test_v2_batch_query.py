@@ -240,15 +240,11 @@ class TestV2BatchQuery:
         assert len(data["subjects"]) > 0
 
     @allure.story("Batch query with partial properties filter may exclude results")
-    def test_batch_with_partial_properties_filter(self):
-        """When filtering to only name (no description), V2 validity check filters results out."""
+    def test_batch_with_partial_properties_filter_missing_required(self):
+        """V2 requires name and description in property filter — omitting them returns 400."""
         batch = VALID_CIP26_SUBJECTS[:20]
         resp = requests.post(
             f"{API_BASE_URL}/api/v2/subjects/query",
             json={"subjects": batch, "properties": ["name", "ticker"]},
         )
-        assert resp.status_code == 200
-        data = resp.json()
-        # V2 requires both name and description for validity, so filtering to
-        # only name+ticker should result in empty (description is null)
-        assert len(data["subjects"]) == 0
+        assert resp.status_code == 400

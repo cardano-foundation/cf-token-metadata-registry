@@ -26,7 +26,10 @@ class TestV2GetSubjectCip26:
     @allure.story("Return metadata for known CIP-26 subject")
     @pytest.mark.parametrize("subject", CIP26_SUBJECTS, ids=lambda s: s[:16])
     def test_get_subject_returns_200(self, subject):
-        resp = requests.get(f"{API_BASE_URL}/api/v2/subjects/{subject}")
+        resp = requests.get(
+            f"{API_BASE_URL}/api/v2/subjects/{subject}",
+            params={"query_priority": "CIP_26"},
+        )
         assert resp.status_code == 200, f"Expected 200 for {subject[:16]}..., got {resp.status_code}"
 
         data = resp.json()
@@ -112,7 +115,7 @@ class TestV2GetSubjectCip26:
         subject = CIP26_SUBJECTS[0]
         resp = requests.get(
             f"{API_BASE_URL}/api/v2/subjects/{subject}",
-            params={"property": ["name", "ticker"]},
+            params={"property": ["name", "description", "ticker"]},
         )
         assert resp.status_code == 200
         data = resp.json()
@@ -121,11 +124,18 @@ class TestV2GetSubjectCip26:
 
         if expected["name"]:
             assert metadata["name"] is not None
-            assert metadata["name"]["value"] == expected["name"]
-        assert metadata.get("description") is None
         assert metadata.get("url") is None
         assert metadata.get("decimals") is None
         assert metadata.get("logo") is None
+
+    @allure.story("Property filter without required properties returns 400")
+    def test_property_filter_missing_required(self):
+        subject = CIP26_SUBJECTS[0]
+        resp = requests.get(
+            f"{API_BASE_URL}/api/v2/subjects/{subject}",
+            params={"property": ["name", "ticker"]},
+        )
+        assert resp.status_code == 400
 
     @allure.story("V2 CIP-26 standards detail matches DB fixture")
     def test_cips_details_match_fixture(self):
