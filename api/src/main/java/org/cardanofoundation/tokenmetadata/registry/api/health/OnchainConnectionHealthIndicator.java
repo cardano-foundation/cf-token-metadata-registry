@@ -5,14 +5,20 @@ import com.bloxbean.cardano.yaci.store.core.service.HealthService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.actuate.health.Health;
 import org.springframework.boot.actuate.health.HealthIndicator;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.stereotype.Component;
 
 /**
  * Health indicator for the Cardano node connection — checks that the connection
  * is alive and blocks are being received. Does NOT check sync progress.
  * Used by both the startup and liveness probe groups.
+ *
+ * <p>Only registered when Yaci Store's {@link HealthService} bean is present. In read-only mode
+ * ({@code store.read-only-mode=true}), Yaci Store does not start its sync infrastructure and
+ * does not register {@code HealthService}, so this indicator is skipped entirely.</p>
  */
 @Component
+@ConditionalOnBean(HealthService.class)
 @RequiredArgsConstructor
 public class OnchainConnectionHealthIndicator implements HealthIndicator {
 

@@ -5,8 +5,10 @@ import com.bloxbean.cardano.yaci.store.common.domain.Cursor;
 import com.bloxbean.cardano.yaci.store.common.service.CursorService;
 import com.bloxbean.cardano.yaci.store.common.util.Tuple;
 import com.bloxbean.cardano.yaci.store.core.service.ChainTipService;
+import com.bloxbean.cardano.yaci.store.core.service.HealthService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
@@ -16,8 +18,14 @@ import java.util.concurrent.atomic.AtomicReference;
 /**
  * Tracks on-chain sync progress by comparing the local cursor position against the network tip.
  * Ported and simplified from yaci-store's admin-ui SyncStatusService.
+ *
+ * <p>Only registered when Yaci Store's {@link HealthService} bean is present. In read-only mode
+ * ({@code store.read-only-mode=true}), Yaci Store does not start its sync infrastructure and
+ * does not register the beans this service depends on ({@code CursorService}, {@code ChainTipService}),
+ * so this service is skipped entirely.</p>
  */
 @Service
+@ConditionalOnBean(HealthService.class)
 @RequiredArgsConstructor
 @Slf4j
 public class OnchainSyncStatusService {
