@@ -45,7 +45,7 @@ public class HealthApiController implements HealthApi {
         Health offchainHealth = offchainSyncHealthIndicator.health();
         Health onchainHealth = onchainSyncHealthIndicator != null
                 ? onchainSyncHealthIndicator.health()
-                : Health.unknown().withDetail("syncStatus", "On-chain sync disabled").build();
+                : Health.up().withDetail("syncStatus", "On-chain sync disabled (read-only mode)").build();
 
         boolean synced = Status.UP.equals(offchainHealth.getStatus())
                 && Status.UP.equals(onchainHealth.getStatus());
