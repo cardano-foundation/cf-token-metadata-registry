@@ -99,16 +99,20 @@ class Cip113RegistryNodeParserTest {
         }
 
         @Test
-        void returnsEmptyWhenTransferLogicScriptMissing() throws Exception {
+        void parsesWithNullTransferLogicScript() throws Exception {
             ConstrPlutusData registryNode = ConstrPlutusData.of(0,
                     BytesPlutusData.of(HexUtil.decodeHexString("deadbeef")),
                     BytesPlutusData.of(HexUtil.decodeHexString("cafebabe")),
-                    BytesPlutusData.of(new byte[0]),  // not wrapped in Constr — extractCredentialBytes returns null
+                    BytesPlutusData.of(new byte[0]),  // not wrapped in Constr — extractCredentialBytesOrNull returns null
                     ConstrPlutusData.of(0, BytesPlutusData.of(HexUtil.decodeHexString("11223344")))
             );
             String inlineDatum = HexUtil.encodeHexString(CborSerializationUtil.serialize(registryNode.serialize()));
 
-            assertThat(parser.parse(inlineDatum)).isEmpty();
+            Optional<Cip113RegistryNodeParser.ParsedRegistryNode> result = parser.parse(inlineDatum);
+
+            assertThat(result).isPresent();
+            assertThat(result.get().transferLogicScript()).isNull();
+            assertThat(result.get().thirdPartyTransferLogicScript()).isEqualTo("11223344");
         }
 
         @Test

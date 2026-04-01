@@ -33,7 +33,7 @@ public class Cip113RegistryNodeParser {
      */
     public record ParsedRegistryNode(String key,
                                      String next,
-                                     String transferLogicScript,
+                                     @Nullable String transferLogicScript,
                                      @Nullable String thirdPartyTransferLogicScript,
                                      @Nullable String globalStatePolicyId) {
     }
@@ -54,14 +54,14 @@ public class Cip113RegistryNodeParser {
 
             String key = extractBytes(fields.get(0));
             String next = extractBytes(fields.get(1));
-            String transferLogicScript = extractCredentialBytes(fields.get(2));
+            String transferLogicScript = extractCredentialBytesOrNull(fields.get(2));
             String thirdPartyTransferLogicScript = extractCredentialBytesOrNull(fields.get(3));
             String globalStatePolicyId = fields.size() > 4 ? extractBytesOrNull(fields.get(4)) : null;
 
-            if (key == null || next == null || transferLogicScript == null) {
-                log.warn("Skipping invalid CIP-113 registry node: key={}, next={}, transferLogicScript={} — "
-                                + "all three fields are required by the on-chain linked list structure",
-                        key, next, transferLogicScript);
+            if (key == null || next == null) {
+                log.warn("Skipping invalid CIP-113 registry node: key={}, next={} — "
+                                + "both fields are required by the on-chain linked list structure",
+                        key, next);
                 return Optional.empty();
             }
 

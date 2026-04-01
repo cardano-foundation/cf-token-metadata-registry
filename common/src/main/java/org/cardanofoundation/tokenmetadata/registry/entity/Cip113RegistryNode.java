@@ -29,7 +29,8 @@ public class Cip113RegistryNode {
     @Column(name = "tx_hash")
     private String txHash;
 
-    @Column(name = "transfer_logic_script", nullable = false)
+    @Nullable
+    @Column(name = "transfer_logic_script")
     private String transferLogicScript;
 
     @Nullable

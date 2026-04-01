@@ -35,7 +35,7 @@ CREATE TABLE cip113_registry_node (
     policy_id TEXT NOT NULL,
     slot BIGINT NOT NULL,
     tx_hash TEXT NOT NULL,
-    transfer_logic_script TEXT NOT NULL,
+    transfer_logic_script TEXT,
     third_party_transfer_logic_script TEXT,
     global_state_policy_id TEXT,
     next_key TEXT,
@@ -50,11 +50,11 @@ The composite primary key `(policy_id, slot, tx_hash)` allows tracking historica
 
 | Field | Required | Nullable | Rationale |
 |-------|----------|----------|-----------|
-| `transfer_logic_script` | yes | no | The core of CIP-113 — every programmable token must have a transfer validation script. Entries without it are invalid and skipped during indexing. |
+| `transfer_logic_script` | no | yes | The transfer validation script hash. May be absent in registry nodes that do not yet specify transfer logic. |
 | `third_party_transfer_logic_script` | no | yes | Not all substandards require issuer/admin operations. |
 | `global_state_policy_id` | no | yes | Only substandards with shared state (e.g. freeze-and-seize denylists) use this. |
 
-The indexer is defensive: anyone can put invalid data on-chain, so the parser validates the datum and skips entries with a missing `transfer_logic_script` (logging a warning). The `NOT NULL` database constraint is a safety net against persisting invalid entries.
+The indexer is defensive: anyone can put invalid data on-chain, so the parser validates the datum and skips entries with missing `key` or `next` fields (logging a warning). All three script/policy fields (`transfer_logic_script`, `third_party_transfer_logic_script`, `global_state_policy_id`) are nullable.
 
 ### 2. On-chain indexing
 

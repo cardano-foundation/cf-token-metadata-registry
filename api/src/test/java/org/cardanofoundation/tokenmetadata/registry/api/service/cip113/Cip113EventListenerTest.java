@@ -96,6 +96,28 @@ class Cip113EventListenerTest {
             assertThat(saved.getThirdPartyTransferLogicScript()).isNull();
             assertThat(saved.getGlobalStatePolicyId()).isNull();
         }
+
+        @Test
+        void savesEntityWithNullTransferLogicScript() throws Exception {
+            // transfer_logic_script is not wrapped in Constr — parser returns null, but entry is still saved
+            ConstrPlutusData registryNode = ConstrPlutusData.of(0,
+                    BytesPlutusData.of(HexUtil.decodeHexString(REGISTERED_POLICY_ID)),
+                    BytesPlutusData.of(HexUtil.decodeHexString("ffffffffffff")),
+                    BytesPlutusData.of(new byte[0]),  // not a Constr-wrapped credential → null
+                    ConstrPlutusData.of(0, BytesPlutusData.of(HexUtil.decodeHexString(THIRD_PARTY_LOGIC)))
+            );
+            String datum = HexUtil.encodeHexString(CborSerializationUtil.serialize(registryNode.serialize()));
+
+            listener.processTransaction(buildEvent(100L, REGISTRY_NFT_POLICY_ID, REGISTERED_POLICY_ID, datum, TX_HASH));
+
+            @SuppressWarnings("unchecked")
+            ArgumentCaptor<List<Cip113RegistryNode>> captor = ArgumentCaptor.forClass(List.class);
+            verify(repository).saveAll(captor.capture());
+
+            Cip113RegistryNode saved = captor.getValue().getFirst();
+            assertThat(saved.getTransferLogicScript()).isNull();
+            assertThat(saved.getThirdPartyTransferLogicScript()).isEqualTo(THIRD_PARTY_LOGIC);
+        }
     }
 
     @Nested
@@ -164,21 +186,6 @@ class Cip113EventListenerTest {
             verifyNoInteractions(repository);
         }
 
-        @Test
-        void skipsDatumWithMissingTransferLogicScript() throws Exception {
-            // transfer_logic_script is not wrapped in Constr — parser returns null, entry is skipped
-            ConstrPlutusData registryNode = ConstrPlutusData.of(0,
-                    BytesPlutusData.of(HexUtil.decodeHexString(REGISTERED_POLICY_ID)),
-                    BytesPlutusData.of(HexUtil.decodeHexString("ffffffffffff")),
-                    BytesPlutusData.of(new byte[0]),  // invalid: not a Constr-wrapped credential
-                    ConstrPlutusData.of(0, BytesPlutusData.of(HexUtil.decodeHexString(THIRD_PARTY_LOGIC)))
-            );
-            String datum = HexUtil.encodeHexString(CborSerializationUtil.serialize(registryNode.serialize()));
-
-            listener.processTransaction(buildEvent(100L, REGISTRY_NFT_POLICY_ID, REGISTERED_POLICY_ID, datum, TX_HASH));
-
-            verifyNoInteractions(repository);
-        }
     }
 
     @Nested

@@ -2,7 +2,7 @@ CREATE TABLE cip113_registry_node (
     policy_id TEXT NOT NULL,
     slot BIGINT NOT NULL,
     tx_hash TEXT NOT NULL,
-    transfer_logic_script TEXT NOT NULL,
+    transfer_logic_script TEXT,
     third_party_transfer_logic_script TEXT,
     global_state_policy_id TEXT,
     next_key TEXT NOT NULL,
