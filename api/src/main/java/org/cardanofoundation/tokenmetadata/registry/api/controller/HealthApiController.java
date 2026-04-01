@@ -24,6 +24,13 @@ import org.springframework.web.bind.annotation.RequestMapping;
 public class HealthApiController implements HealthApi {
 
     private final OffchainSyncHealthIndicator offchainSyncHealthIndicator;
+
+    /**
+     * Nullable because {@link OnchainReadinessHealthIndicator} is conditional on Yaci Store's
+     * {@code HealthService} bean, which is not registered in read-only mode
+     * ({@code store.read-only-mode=true}). When null, the legacy health endpoint reports
+     * on-chain sync as "disabled" instead of failing.
+     */
     @Nullable
     private final OnchainReadinessHealthIndicator onchainSyncHealthIndicator;
 

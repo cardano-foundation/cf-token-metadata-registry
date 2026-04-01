@@ -125,7 +125,13 @@ API_DOCKERFILE=api/Dockerfile.native docker compose up -d --build
 
 # Preprod
 docker compose --env-file .env.preprod up -d
+
+# Read-only mode (adds a second API instance with no sync, no node connection)
+docker compose --profile ro up -d
 ```
+
+> [!TIP]
+> The `ro` profile starts an additional `api-ro` container on port `18081` that serves queries from the existing database without connecting to a Cardano node or syncing metadata. Useful for testing query behavior without waiting for a full sync.
 
 To start fresh (wipe database and resync from scratch):
 
