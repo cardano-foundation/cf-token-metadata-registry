@@ -69,3 +69,4 @@ services:
       TOKEN_METADATA_SYNC_JOB: "false"
       STORE_SYNCAUTOSTART: "false"
       STORE_READONLYMODE: "true"
+      SPRING_PROFILES_ACTIVE: "readonly"
