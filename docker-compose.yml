@@ -45,6 +45,8 @@ services:
     restart: on-failure
   api:
     <<: *api-service-common
+    profiles:
+      - rw
     image: cardanofoundation/cf-token-metadata-registry-api:${API_IMAGE_TAG}
     ports:
       - "${API_LOCAL_BIND_PORT}:${API_EXPOSED_PORT}"
