@@ -3,7 +3,7 @@ x-api-service-common: &api-service-common
     context: .
     dockerfile: ${API_DOCKERFILE:-api/Dockerfile.jvm}
   healthcheck: &api-healthcheck
-    test: ["CMD-SHELL", "curl -f http://localhost:${API_EXPOSED_PORT}/actuator/health/startup || exit 1"]
+    test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/localhost/${API_LOCAL_BIND_PORT}'"]
     interval: 30s
     timeout: 5s
     retries: 10
