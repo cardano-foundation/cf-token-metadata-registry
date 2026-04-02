@@ -11,7 +11,6 @@ api:
     httpGet:
       path: /actuator/health/startup
       port: http
-    # initialDelaySeconds: 10
     periodSeconds: 10
     timeoutSeconds: 5
     failureThreshold: 12
@@ -19,7 +18,6 @@ api:
     httpGet:
       path: /actuator/health/liveness
       port: http
-    # initialDelaySeconds: 30
     periodSeconds: 10
     timeoutSeconds: 5
     failureThreshold: 3
@@ -27,7 +25,6 @@ api:
     httpGet:
       path: /actuator/health/readiness
       port: http
-    initialDelaySeconds: 10
     periodSeconds: 10
     timeoutSeconds: 5
     failureThreshold: 3

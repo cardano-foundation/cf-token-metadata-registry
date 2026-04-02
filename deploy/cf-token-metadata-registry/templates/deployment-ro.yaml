@@ -23,8 +23,8 @@ spec:
           image: "{{ .Values.api.image.repository }}:{{ .Values.api.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.api.image.pullPolicy }}
           env:
-#            - name: SPRING_PROFILES_ACTIVE
-#              value: {{ .springProfiles }}
+            - name: SPRING_PROFILES_ACTIVE
+              value: "readonly"
             - name: SERVER_TOMCAT_MAX_SWALLOW_SIZE
               value: 10MB
             - name: SERVER_TOMCAT_MAX_HTTP_FORM_POST_SIZE
