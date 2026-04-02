@@ -130,7 +130,7 @@ docker build -t cardanofoundation/cf-token-metadata-registry-api:latest -f api/D
 By default, `docker compose` uses the JVM Dockerfile. To use the native image instead, set `API_DOCKERFILE`:
 
 ```console
-# Mainnet (JVM, default)
+# Mainnet (JVM, default) — full sync mode
 docker compose up -d
 
 # Mainnet (native image)
@@ -142,12 +142,14 @@ docker compose --env-file .env.preprod up -d
 # Preview (CIP-113 programmable tokens)
 docker compose --env-file .env.preview up -d
 
-# Read-only mode (adds a second API instance with no sync, no node connection)
-docker compose --profile ro up -d
+# Read-only mode (no sync, no node connection)
+COMPOSE_PROFILES=ro docker compose up -d
 ```
 
-> [!TIP]
-> The `ro` profile starts an additional `api-ro` container on port `18081` that serves queries from the existing database without connecting to a Cardano node or syncing metadata. Useful for testing query behavior without waiting for a full sync.
+> [!NOTE]
+> The `.env` file sets `COMPOSE_PROFILES=rw` by default, which starts the full read-write API. Two profiles are available:
+> - **`rw`** (default) — full API with CIP-26 GitHub sync and CIP-68 on-chain indexing
+> - **`ro`** — read-only API on port `8081` (configurable via `API_RO_LOCAL_BIND_PORT`) that serves queries from the existing database without connecting to a Cardano node or syncing metadata
 
 To start fresh (wipe database and resync from scratch):
 
