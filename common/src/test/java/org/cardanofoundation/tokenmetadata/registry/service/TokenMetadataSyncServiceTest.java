@@ -17,7 +17,9 @@ import java.io.File;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -77,20 +79,20 @@ class TokenMetadataSyncServiceTest {
             when(gitService.getHeadCommitHash()).thenReturn(Optional.of(newHash));
 
             File mockFile = mock(File.class);
+            when(mockFile.getName()).thenReturn("test.json");
             Path mockFilePath = mock(Path.class);
             when(mockFilePath.toFile()).thenReturn(mockFile);
             when(gitService.getChangedFiles(oldHash, newHash)).thenReturn(List.of(mockFilePath));
 
             Mapping mockMapping = new Mapping("test", null, null, null, null, null, null, null);
             when(tokenMappingService.parseMappings(mockFile)).thenReturn(Optional.of(mockMapping));
-            when(gitService.getMappingDetails(mockFile))
-                    .thenReturn(Optional.of(new MappingUpdateDetails("author", LocalDateTime.now())));
+            when(gitService.getAllMappingDetails(any()))
+                    .thenReturn(Map.of("test.json", new MappingUpdateDetails("author", LocalDateTime.now())));
             when(tokenMetadataService.insertMapping(any(), any(), any())).thenReturn(true);
 
             tokenMetadataSyncService.synchronizeDatabase();
 
             verify(tokenMetadataService).insertMapping(any(), any(), any());
-            verify(gitService, never()).getMappingDetails(argThat(f -> !f.equals(mockFile)));
             verify(syncStateRepository).save(any(OffChainSyncState.class));
             assertEquals(SyncStatusEnum.SYNC_DONE, tokenMetadataSyncService.getSyncStatus().getStatus());
         }
@@ -144,14 +146,15 @@ class TokenMetadataSyncServiceTest {
             when(gitService.getHeadCommitHash()).thenReturn(Optional.of(newHash));
 
             File mockFile = mock(File.class);
+            when(mockFile.getName()).thenReturn("test.json");
             Path mockFilePath = mock(Path.class);
             when(mockFilePath.toFile()).thenReturn(mockFile);
             when(gitService.getChangedFiles(oldHash, newHash)).thenReturn(List.of(mockFilePath));
 
             Mapping mockMapping = new Mapping("test", null, null, null, null, null, null, null);
             when(tokenMappingService.parseMappings(mockFile)).thenReturn(Optional.of(mockMapping));
-            when(gitService.getMappingDetails(mockFile))
-                    .thenReturn(Optional.of(new MappingUpdateDetails("author", LocalDateTime.now())));
+            when(gitService.getAllMappingDetails(any()))
+                    .thenReturn(Map.of("test.json", new MappingUpdateDetails("author", LocalDateTime.now())));
             when(tokenMetadataService.insertMapping(any(), any(), any()))
                     .thenThrow(new RuntimeException("DB error"));
 
