@@ -4,10 +4,13 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.cardanofoundation.tokenmetadata.registry.api.config.AppConfig;
 import org.cardanofoundation.tokenmetadata.registry.api.indexer.V1ApiMetadataIndexer;
+import org.cardanofoundation.tokenmetadata.registry.api.model.BatchPrefetchData;
 import org.cardanofoundation.tokenmetadata.registry.api.model.Pair;
 import org.cardanofoundation.tokenmetadata.registry.api.model.QueryPriority;
 import org.cardanofoundation.tokenmetadata.registry.api.model.cip113.ProgrammableTokenCip113;
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.BatchRequest;
+import org.cardanofoundation.tokenmetadata.registry.api.model.rest.TokenMetadata;
+import org.cardanofoundation.tokenmetadata.registry.entity.MetadataReferenceNft;
 import org.cardanofoundation.tokenmetadata.registry.api.model.v2.Extension;
 import org.cardanofoundation.tokenmetadata.registry.api.model.v2.Metadata;
 import org.cardanofoundation.tokenmetadata.registry.api.model.v2.Response;
@@ -106,17 +109,13 @@ public class V2ApiController implements V2Api {
         }
         List<QueryPriority> queryPriority = priorities != null ? priorities : priorityConfiguration.getDefaultPriority();
 
-        // Pre-fetch CIP-113 data for all subjects to avoid N+1
-        List<String> policyIds = body.getSubjects().stream()
-                .map(s -> AssetType.fromUnit(s).policyId())
-                .distinct()
-                .toList();
-        Map<String, ProgrammableTokenCip113> cip113Map = cip113RegistryService.findByPolicyIds(policyIds);
+        // Pre-fetch all data to avoid N+1 queries (3 bulk queries upfront)
+        BatchPrefetchData prefetch = prefetchBatch(body.getSubjects(), queryProperties);
         boolean includeCipsDetails = Boolean.TRUE.equals(showCipsDetails);
 
         List<Subject> subjects = body.getSubjects()
                 .stream()
-                .map(subject -> buildSubject(subject, queryPriority, queryProperties, cip113Map, includeCipsDetails))
+                .map(subject -> buildSubject(subject, queryPriority, queryProperties, prefetch, includeCipsDetails))
                 .filter(s -> !s.metadata().isEmpty() && s.metadata().isValid())
                 .toList();
         List<String> stringPriorities = queryPriority.stream().map(QueryPriority::name).toList();
@@ -143,6 +142,28 @@ public class V2ApiController implements V2Api {
         };
     }
 
+    private BatchPrefetchData prefetchBatch(List<String> subjects, List<String> queryProperties) {
+        List<String> policyIds = subjects.stream()
+                .map(s -> AssetType.fromUnit(s).policyId())
+                .distinct()
+                .toList();
+        Map<String, ProgrammableTokenCip113> cip113Map = cip113RegistryService.findByPolicyIds(policyIds);
+        Map<String, TokenMetadata> cip26Map = v1ApiMetadataIndexer.findSubjectsSelectProperties(subjects, queryProperties);
+        Map<String, MetadataReferenceNft> cip68Map = cip68FungibleTokenService.findLatestByPolicyIds(policyIds);
+        return new BatchPrefetchData(cip113Map, cip26Map, cip68Map);
+    }
+
+    private Optional<Pair<Metadata, Standards>> findMetadataBatch(String subject, List<String> properties,
+                                                                   QueryPriority priority, BatchPrefetchData prefetch) {
+        return switch (priority) {
+            case CIP_26 -> Optional.ofNullable(prefetch.cip26Map().get(subject))
+                    .map(metadata -> new Pair<>(Metadata.from(metadata), new Standards(metadata, null)));
+            case CIP_68 -> cip68FungibleTokenService.getReferenceNftSubject(subject)
+                    .flatMap(assetType -> cip68FungibleTokenService.findSubject(assetType.policyId(), assetType.assetName(), properties, prefetch.cip68Map()))
+                    .map(fungibleTokenMetadata -> new Pair<>(Metadata.from(fungibleTokenMetadata), new Standards(null, fungibleTokenMetadata)));
+        };
+    }
+
     private static BinaryOperator<Pair<Metadata, Standards>> aggregateResults() {
         return (thisMetadata, that) -> {
             Metadata metadata = thisMetadata.first().merge(that.first());
@@ -153,6 +174,14 @@ public class V2ApiController implements V2Api {
 
     private BiFunction<Pair<Metadata, Standards>, QueryPriority, Pair<Metadata, Standards>> combineStandards(String subject, List<String> properties) {
         return (accumulatedResults, priority) -> findMetadata(subject, properties, priority)
+                .map(metadataObjectPair -> new Pair<>(accumulatedResults.first().merge(metadataObjectPair.first()),
+                        accumulatedResults.second().merge(metadataObjectPair.second())))
+                .orElse(accumulatedResults);
+    }
+
+    private BiFunction<Pair<Metadata, Standards>, QueryPriority, Pair<Metadata, Standards>> combineStandardsBatch(
+            String subject, List<String> properties, BatchPrefetchData prefetch) {
+        return (accumulatedResults, priority) -> findMetadataBatch(subject, properties, priority, prefetch)
                 .map(metadataObjectPair -> new Pair<>(accumulatedResults.first().merge(metadataObjectPair.first()),
                         accumulatedResults.second().merge(metadataObjectPair.second())))
                 .orElse(accumulatedResults);
@@ -169,12 +198,12 @@ public class V2ApiController implements V2Api {
     }
 
     private Subject buildSubject(String subject, List<QueryPriority> queryPriority, List<String> queryProperties,
-                                 Map<String, ProgrammableTokenCip113> cip113Map, boolean includeCipsDetails) {
+                                 BatchPrefetchData prefetch, boolean includeCipsDetails) {
         Pair<Metadata, Standards> pair = queryPriority.stream()
-                .reduce(IDENTITY, combineStandards(subject, queryProperties), aggregateResults());
+                .reduce(IDENTITY, combineStandardsBatch(subject, queryProperties, prefetch), aggregateResults());
 
         Map<String, Extension> extensions = new LinkedHashMap<>();
-        ProgrammableTokenCip113 cip113 = cip113Map.get(AssetType.fromUnit(subject).policyId());
+        ProgrammableTokenCip113 cip113 = prefetch.cip113Map().get(AssetType.fromUnit(subject).policyId());
         if (cip113 != null) {
             extensions.put(ProgrammableTokenCip113.EXTENSION_KEY, cip113);
             metricsService.recordCip113Hit();

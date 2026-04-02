@@ -35,6 +35,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.anyCollection;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -169,6 +170,41 @@ class MetadataApiV2ControllerTest {
                         null,
                         null
                 )));
+
+        // Batch CIP-26 pre-fetch: return both known subjects in a single map
+        when(v1ApiMetadataIndexer.findSubjectsSelectProperties(anyList(), anyList()))
+                .thenReturn(Map.of(
+                        knownAssetType.toUnit(), TokenMetadata.builder()
+                                .name(nameProperty)
+                                .description(descriptionProperty)
+                                .subject(knownAssetType.toUnit())
+                                .url(urlProperty)
+                                .build(),
+                        fldtAssetType.toUnit(), TokenMetadata.builder()
+                                .ticker(ticker)
+                                .name(name)
+                                .subject(fldtAssetType.toUnit())
+                                .url(url)
+                                .build()
+                ));
+
+        // Batch CIP-68 pre-fetch: return reference NFTs for both known tokens
+        when(metadataReferenceNftRepository.findLatestByPolicyIds(anyCollection()))
+                .thenReturn(List.of(
+                        MetadataReferenceNft.builder()
+                                .policyId(knownAssetType.policyId())
+                                .assetName(knownAssetType.assetName())
+                                .name("NUTCOIN")
+                                .url("https://cip68-url.com/nutcoin")
+                                .build(),
+                        MetadataReferenceNft.builder()
+                                .policyId(fldtAssetType.policyId())
+                                .assetName("000643b0464c4454")
+                                .name("FLDT")
+                                .description("The official token of FluidTokens, a leading DeFi ecosystem fueled by innovation and community backing.")
+                                .ticker("FLDT")
+                                .build()
+                ));
 
     }
 
