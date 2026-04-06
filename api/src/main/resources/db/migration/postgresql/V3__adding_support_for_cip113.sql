@@ -1,4 +1,5 @@
 CREATE TABLE cip113_registry_node (
+    -- policy_id stores the 'key' field from the CIP-113 registry node datum (first field in the linked list node)
     policy_id TEXT NOT NULL,
     slot BIGINT NOT NULL,
     tx_hash TEXT NOT NULL,
@@ -9,8 +10,6 @@ CREATE TABLE cip113_registry_node (
     datum TEXT NOT NULL,
     PRIMARY KEY (policy_id, slot, tx_hash)
 );
-
-CREATE INDEX idx_cip113_registry_node_policy_slot ON cip113_registry_node (policy_id, slot DESC);
 
 -- Cip113RegistryNodeRepository.deleteBySlotGreaterThan(Long)
 -- Query: WHERE slot > ?
