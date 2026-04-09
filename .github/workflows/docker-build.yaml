@@ -62,8 +62,10 @@ jobs:
           REPO="cardanofoundation/cf-token-metadata-registry-${INPUT_APP}"
 
           EXTRA_TAGS="${EXTRA_TAGS_FROM_OUTPUT}"
-          EXTRA_TAGS="${EXTRA_TAGS//$'\n'/,}"
-          IFS=',' read -r -a parsed_extra_tags <<< "${EXTRA_TAGS}"
+          EXTRA_TAGS="${EXTRA_TAGS//$'\n'/ }"
+          EXTRA_TAGS="${EXTRA_TAGS//,/ }"
+          EXTRA_TAGS="${EXTRA_TAGS//$'\t'/ }"
+          read -r -a parsed_extra_tags <<< "${EXTRA_TAGS}"
 
           declare -a resolved_tags
           for extra_tag in "${parsed_extra_tags[@]}"; do
