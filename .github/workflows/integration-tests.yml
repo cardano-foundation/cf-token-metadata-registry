@@ -1,0 +1,57 @@
+name: Integration Tests
+
+on:
+  workflow_call:
+    inputs:
+      target:
+        type: string
+        required: true
+        description: 'Test target: jar, docker-jvm, or docker-native'
+      image-tag:
+        type: string
+        required: false
+        default: ''
+        description: 'Docker image tag (required for docker targets)'
+
+jobs:
+  integration-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v5
+        with:
+          java-version: '25'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Build and install project
+        run: mvn --batch-mode clean install -DskipTests
+
+      - name: Download Docker image
+        if: startsWith(inputs.target, 'docker-')
+        uses: actions/download-artifact@v8
+        with:
+          name: docker-image-api-${{ inputs.target == 'docker-jvm' && 'jvm' || 'native' }}
+          path: /tmp
+
+      - name: Load Docker image
+        if: startsWith(inputs.target, 'docker-')
+        run: docker load -i /tmp/docker-image.tar
+
+      - name: Setup test infrastructure
+        uses: ./.github/actions/setup-test-infra
+
+      - name: Start API
+        uses: ./.github/actions/start-api
+        with:
+          mode: ${{ startsWith(inputs.target, 'docker-') && 'docker' || 'jar' }}
+          image-tag: ${{ inputs.image-tag }}
+
+      - name: Run integration tests
+        run: mvn --batch-mode verify -pl integration-test -DskipITs=false
+        env:
+          API_BASE_URL: http://localhost:8081
+          YACI_STORE_URL: http://localhost:8080/api/v1/

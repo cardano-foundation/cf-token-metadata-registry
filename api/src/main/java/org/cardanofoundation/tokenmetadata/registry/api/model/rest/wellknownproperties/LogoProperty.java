@@ -11,7 +11,8 @@ import org.cardanofoundation.tokenmetadata.registry.api.model.rest.TokenMetadata
 @EqualsAndHashCode(callSuper = true)
 @NoArgsConstructor
 public class LogoProperty extends TokenMetadataProperty<byte[]> {
-  @Schema(name = "value", required = true)
+  @Schema(name = "value", requiredMode = Schema.RequiredMode.REQUIRED)
+  @Override
   public byte[] getValue() {
     return super.getValue();
   }

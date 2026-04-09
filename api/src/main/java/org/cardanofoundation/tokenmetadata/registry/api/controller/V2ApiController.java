@@ -9,9 +9,13 @@ import org.cardanofoundation.tokenmetadata.registry.api.model.QueryPriority;
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.BatchRequest;
 import org.cardanofoundation.tokenmetadata.registry.api.model.v2.*;
 import org.cardanofoundation.tokenmetadata.registry.api.service.Cip68FungibleTokenService;
+import org.cardanofoundation.tokenmetadata.registry.api.service.RegistryMetricsService;
+import org.cardanofoundation.tokenmetadata.registry.api.util.LogSanitizer;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.Optional;
@@ -29,11 +33,15 @@ public class V2ApiController implements V2Api {
 
     private static final List<String> ALL_PROPERTIES = List.of();
 
+    private static final List<String> REQUIRED_PROPERTIES = List.of("name", "description");
+
     private final AppConfig.CipPriorityConfiguration priorityConfiguration;
 
     private final Cip68FungibleTokenService cip68FungibleTokenService;
 
     private final V1ApiMetadataIndexer v1ApiMetadataIndexer;
+
+    private final RegistryMetricsService metricsService;
 
     @Override
     public ResponseEntity<Response> getSubject(final String subject,
@@ -41,23 +49,33 @@ public class V2ApiController implements V2Api {
                                                final List<QueryPriority> priorities,
                                                final Boolean showCipsDetails) {
 
-        log.info("subject: {}, properties: {}, priorities: {}, showCipsDetails: {}", subject,
+        log.info("subject: {}, properties: {}, priorities: {}, showCipsDetails: {}",
+                LogSanitizer.sanitizeHex(subject),
                 properties != null ? String.join(",", properties) : "",
                 priorities != null ? priorities.stream().map(QueryPriority::name).collect(Collectors.joining(",")) : "",
                 showCipsDetails);
 
-        var queryProperties = properties != null ? properties : ALL_PROPERTIES;
-        var queryPriority = priorities != null ? priorities : priorityConfiguration.getDefaultPriority();
+        metricsService.recordV2Query(1);
 
-        var tokenMetadata = queryPriority.stream()
+        List<String> queryProperties = properties != null ? properties : ALL_PROPERTIES;
+        if (!queryProperties.isEmpty() && !queryProperties.containsAll(REQUIRED_PROPERTIES)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "When filtering properties, 'name' and 'description' are required and must be included");
+        }
+        List<QueryPriority> queryPriority = priorities != null ? priorities : priorityConfiguration.getDefaultPriority();
+
+        Pair<Metadata, Standards> tokenMetadata = queryPriority.stream()
                 .reduce(IDENTITY, combineStandards(subject, queryProperties), aggregateResults());
 
-        if (tokenMetadata.first().isEmpty()) {
+        if (tokenMetadata.first().isEmpty() || !tokenMetadata.first().isValid()) {
+            metricsService.recordNotFound();
             return ResponseEntity.notFound().build();
         } else {
-            var standards = tokenMetadata.second();
-            var stringPriorities = queryPriority.stream().map(QueryPriority::name).toList();
-            var response = new Response(new Subject(subject, tokenMetadata.first(), showCipsDetails ? standards : null), stringPriorities);
+            recordCipHits(tokenMetadata.second());
+            Standards standards = tokenMetadata.second();
+            List<String> stringPriorities = queryPriority.stream().map(QueryPriority::name).toList();
+            boolean includeCipsDetails = showCipsDetails != null && showCipsDetails;
+            Response response = new Response(new Subject(subject, tokenMetadata.first(), includeCipsDetails ? standards : null), stringPriorities);
 
             return ResponseEntity.ok(response);
         }
@@ -67,21 +85,43 @@ public class V2ApiController implements V2Api {
     public ResponseEntity<BatchResponse> getSubjects(BatchRequest body,
                                                      List<QueryPriority> priorities,
                                                      Boolean showCipsDetails) {
-        var queryProperties = body.getProperties() != null ? body.getProperties() : ALL_PROPERTIES;
-        var queryPriority = priorities != null ? priorities : priorityConfiguration.getDefaultPriority();
+        metricsService.recordV2Query(body.getSubjects().size());
 
-        var subjects = body.getSubjects()
+        List<String> queryProperties = body.getProperties() != null ? body.getProperties() : ALL_PROPERTIES;
+        if (!queryProperties.isEmpty() && !queryProperties.containsAll(REQUIRED_PROPERTIES)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "When filtering properties, 'name' and 'description' are required and must be included");
+        }
+        List<QueryPriority> queryPriority = priorities != null ? priorities : priorityConfiguration.getDefaultPriority();
+
+        List<Subject> subjects = body.getSubjects()
                 .stream()
                 .map(subject -> {
-                    var pair = queryPriority.stream().reduce(IDENTITY, combineStandards(subject, queryProperties), aggregateResults());
-                    return new Subject(subject, pair.first(), showCipsDetails ? pair.second() : null);
+                    Pair<Metadata, Standards> pair = queryPriority.stream().reduce(IDENTITY, combineStandards(subject, queryProperties), aggregateResults());
+                    boolean includeCipsDetails = showCipsDetails != null && showCipsDetails;
+                    Subject subjectResult = new Subject(subject, pair.first(), includeCipsDetails ? pair.second() : null);
+                    if (pair.first().isEmpty()) {
+                        metricsService.recordNotFound();
+                    } else {
+                        recordCipHits(pair.second());
+                    }
+                    return subjectResult;
                 })
                 .filter(metadata -> !metadata.metadata().isEmpty() && metadata.metadata().isValid())
                 .toList();
-        var stringPriorities = queryPriority.stream().map(QueryPriority::name).toList();
+        List<String> stringPriorities = queryPriority.stream().map(QueryPriority::name).toList();
         return ResponseEntity.ok(new BatchResponse(subjects, stringPriorities));
     }
 
+
+    private void recordCipHits(Standards standards) {
+        if (standards.cip26() != null) {
+            metricsService.recordCip26Hit();
+        }
+        if (standards.cip68() != null) {
+            metricsService.recordCip68Hit();
+        }
+    }
 
     private Optional<Pair<Metadata, Standards>> findMetadata(String subject, List<String> properties, QueryPriority priority) {
         return switch (priority) {
@@ -95,8 +135,8 @@ public class V2ApiController implements V2Api {
 
     private static BinaryOperator<Pair<Metadata, Standards>> aggregateResults() {
         return (thisMetadata, that) -> {
-            var metadata = thisMetadata.first().merge(that.first());
-            var standards = thisMetadata.second().merge(that.second());
+            Metadata metadata = thisMetadata.first().merge(that.first());
+            Standards standards = thisMetadata.second().merge(that.second());
             return new Pair<>(metadata, standards);
         };
     }

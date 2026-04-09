@@ -11,13 +11,17 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.util.ResourceUtils;
 
+import org.cardanofoundation.tokenmetadata.registry.model.Mapping;
+
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.util.Optional;
 
 @SpringBootTest(classes = {TokenMappingService.class, TokenMetadataService.class, TokenMetadataValidator.class, JsonConfiguration.class})
 class TokenMetadataServiceTest {
@@ -27,24 +31,24 @@ class TokenMetadataServiceTest {
     @Autowired
     private TokenMetadataService tokenMetadataService;
 
-    @MockBean
+    @MockitoBean
     private TokenMetadataRepository tokenMetadataRepository;
-    @MockBean
+    @MockitoBean
     private TokenLogoRepository tokenLogoRepository;
 
     @Test
-    public void insertMappingTest() throws IOException {
+    void insertMappingTest() throws IOException {
 
-        var mappingFile = ResourceUtils.getFile("classpath:mappings/ff7cad970d3a755a1ff0335ccb3f3c1cabf31aacf3f23dd13db61b0630313030.json");
-        var mappingsOpt = tokenMappingService.parseMappings(mappingFile);
+        File mappingFile = ResourceUtils.getFile("classpath:mappings/ff7cad970d3a755a1ff0335ccb3f3c1cabf31aacf3f23dd13db61b0630313030.json");
+        Optional<Mapping> mappingsOpt = tokenMappingService.parseMappings(mappingFile);
 
         Assertions.assertTrue(mappingsOpt.isPresent());
 
         mappingsOpt.ifPresent(mappings -> {
-            var now = LocalDateTime.now();
-            var testUser = "test-user";
+            LocalDateTime now = LocalDateTime.now();
+            String testUser = "test-user";
 
-            var tokenMetadata = new TokenMetadata();
+            TokenMetadata tokenMetadata = new TokenMetadata();
             tokenMetadata.setSubject("ff7cad970d3a755a1ff0335ccb3f3c1cabf31aacf3f23dd13db61b0630313030");
             tokenMetadata.setPolicy("820182018282051a02f893828200581cdc1ac66efbf0f27457cd646d80fbeee08eafcacce42fb631ca1a0254");
             tokenMetadata.setName("Spirit Of The Bone Forest");
@@ -66,19 +70,22 @@ class TokenMetadataServiceTest {
     }
 
     @Test
-    public void insertLogoTest() throws IOException {
+    void insertLogoTest() throws IOException {
 
-        var mappingFile = ResourceUtils.getFile("classpath:mappings/ff7cad970d3a755a1ff0335ccb3f3c1cabf31aacf3f23dd13db61b0630313030.json");
-        var logoFile = ResourceUtils.getFile("classpath:mappings/ff7cad970d3a755a1ff0335ccb3f3c1cabf31aacf3f23dd13db61b0630313030-logo.txt");
-        var mappingsOpt = tokenMappingService.parseMappings(mappingFile);
+        File mappingFile = ResourceUtils.getFile("classpath:mappings/ff7cad970d3a755a1ff0335ccb3f3c1cabf31aacf3f23dd13db61b0630313030.json");
+        File logoFile = ResourceUtils.getFile("classpath:mappings/ff7cad970d3a755a1ff0335ccb3f3c1cabf31aacf3f23dd13db61b0630313030-logo.txt");
+        Optional<Mapping> mappingsOpt = tokenMappingService.parseMappings(mappingFile);
 
         Assertions.assertTrue(mappingsOpt.isPresent());
 
-        var logo = new BufferedReader(new FileReader(logoFile)).readLine();
+        String logo;
+        try (BufferedReader reader = new BufferedReader(new FileReader(logoFile))) {
+            logo = reader.readLine();
+        }
 
         mappingsOpt.ifPresent(mappings -> {
 
-            var tokenLogo = new TokenLogo();
+            TokenLogo tokenLogo = new TokenLogo();
             tokenLogo.setSubject("ff7cad970d3a755a1ff0335ccb3f3c1cabf31aacf3f23dd13db61b0630313030");
             tokenLogo.setLogo(logo);
 
@@ -95,13 +102,37 @@ class TokenMetadataServiceTest {
     }
 
     @Test
-    public void insertMappingTest_ShouldRejectTokenWithNameExceedingMaxLength() {
-        var now = LocalDateTime.now();
-        var testUser = "test-user";
+    void insertMappingTest_ShouldReturnFalseOnSaveException() throws IOException {
+        File mappingFile = ResourceUtils.getFile("classpath:mappings/ff7cad970d3a755a1ff0335ccb3f3c1cabf31aacf3f23dd13db61b0630313030.json");
+        Optional<Mapping> mappingsOpt = tokenMappingService.parseMappings(mappingFile);
+        Assertions.assertTrue(mappingsOpt.isPresent());
+
+        Mockito.when(tokenMetadataRepository.save(Mockito.any())).thenThrow(new RuntimeException("DB error"));
+
+        boolean result = tokenMetadataService.insertMapping(mappingsOpt.get(), LocalDateTime.now(), "test-user");
+        Assertions.assertFalse(result, "insertMapping should return false when save throws");
+    }
+
+    @Test
+    void insertLogoTest_ShouldReturnFalseOnSaveException() throws IOException {
+        File mappingFile = ResourceUtils.getFile("classpath:mappings/ff7cad970d3a755a1ff0335ccb3f3c1cabf31aacf3f23dd13db61b0630313030.json");
+        Optional<Mapping> mappingsOpt = tokenMappingService.parseMappings(mappingFile);
+        Assertions.assertTrue(mappingsOpt.isPresent());
+
+        Mockito.when(tokenLogoRepository.save(Mockito.any())).thenThrow(new RuntimeException("DB error"));
+
+        boolean result = tokenMetadataService.insertLogo(mappingsOpt.get());
+        Assertions.assertFalse(result, "insertLogo should return false when save throws");
+    }
+
+    @Test
+    void insertMappingTest_ShouldRejectTokenWithNameExceedingMaxLength() {
+        LocalDateTime now = LocalDateTime.now();
+        String testUser = "test-user";
 
         // Create a mapping with a name that exceeds 50 characters (CIP-26 limit)
-        var longName = "a".repeat(51);
-        var mapping = new org.cardanofoundation.tokenmetadata.registry.model.Mapping(
+        String longName = "a".repeat(51);
+        Mapping mapping = new org.cardanofoundation.tokenmetadata.registry.model.Mapping(
                 "1234567890abcdef1234567890abcdef1234567890abcdef12345678", // Valid 56 hex char subject
                 new org.cardanofoundation.tokenmetadata.registry.model.Item(null, "https://example.com", null), // url
                 new org.cardanofoundation.tokenmetadata.registry.model.Item(null, longName, null), // name
@@ -121,13 +152,13 @@ class TokenMetadataServiceTest {
     }
 
     @Test
-    public void insertMappingTest_ShouldRejectTokenWithTickerExceedingMaxLength() {
-        var now = LocalDateTime.now();
-        var testUser = "test-user";
+    void insertMappingTest_ShouldRejectTokenWithTickerExceedingMaxLength() {
+        LocalDateTime now = LocalDateTime.now();
+        String testUser = "test-user";
 
         // Create a mapping with a ticker that exceeds 9 characters (CIP-26 limit)
-        var longTicker = "a".repeat(10);
-        var mapping = new org.cardanofoundation.tokenmetadata.registry.model.Mapping(
+        String longTicker = "a".repeat(10);
+        Mapping mapping = new org.cardanofoundation.tokenmetadata.registry.model.Mapping(
                 "1234567890abcdef1234567890abcdef1234567890abcdef12345678", // Valid 56 hex char subject
                 new org.cardanofoundation.tokenmetadata.registry.model.Item(null, "https://example.com", null), // url
                 new org.cardanofoundation.tokenmetadata.registry.model.Item(null, "TestToken", null), // name
@@ -147,13 +178,13 @@ class TokenMetadataServiceTest {
     }
 
     @Test
-    public void insertMappingTest_ShouldRejectTokenWithDescriptionExceedingMaxLength() {
-        var now = LocalDateTime.now();
-        var testUser = "test-user";
+    void insertMappingTest_ShouldRejectTokenWithDescriptionExceedingMaxLength() {
+        LocalDateTime now = LocalDateTime.now();
+        String testUser = "test-user";
 
         // Create a mapping with a description that exceeds 500 characters (CIP-26 limit)
-        var longDescription = "a".repeat(501);
-        var mapping = new org.cardanofoundation.tokenmetadata.registry.model.Mapping(
+        String longDescription = "a".repeat(501);
+        Mapping mapping = new org.cardanofoundation.tokenmetadata.registry.model.Mapping(
                 "1234567890abcdef1234567890abcdef1234567890abcdef12345678", // Valid 56 hex char subject
                 new org.cardanofoundation.tokenmetadata.registry.model.Item(null, "https://example.com", null), // url
                 new org.cardanofoundation.tokenmetadata.registry.model.Item(null, "TestToken", null), // name
@@ -173,12 +204,12 @@ class TokenMetadataServiceTest {
     }
 
     @Test
-    public void insertLogoTest_ShouldRejectLogoWithInvalidSubject() {
+    void insertLogoTest_ShouldRejectLogoWithInvalidSubject() {
         // Create a mapping with a subject that exceeds CIP-26 specification (max 120 hex characters)
         // This tests that subject validation is also performed when inserting logos
         // Validation is performed by cf-metadata-core library
-        var longSubject = "a".repeat(122); // 122 hex chars (exceeds CIP-26 max of 120)
-        var mapping = new org.cardanofoundation.tokenmetadata.registry.model.Mapping(
+        String longSubject = "a".repeat(122); // 122 hex chars (exceeds CIP-26 max of 120)
+        Mapping mapping = new org.cardanofoundation.tokenmetadata.registry.model.Mapping(
                 longSubject, // subject exceeds CIP-26 limit
                 new org.cardanofoundation.tokenmetadata.registry.model.Item(null, "https://example.com", null), // url
                 new org.cardanofoundation.tokenmetadata.registry.model.Item(null, "TestToken", null), // name
@@ -198,11 +229,11 @@ class TokenMetadataServiceTest {
     }
 
     @Test
-    public void insertLogoTest_ShouldRejectLogoExceedingMaxLength() {
+    void insertLogoTest_ShouldRejectLogoExceedingMaxLength() {
         // Create a mapping with a logo that exceeds the CIP-26 specification limit (87,400 characters)
         // This limit is defined in cf-metadata-core library, not hardcoded in our service
-        var longLogo = "a".repeat(87401);
-        var mapping = new org.cardanofoundation.tokenmetadata.registry.model.Mapping(
+        String longLogo = "a".repeat(87401);
+        Mapping mapping = new org.cardanofoundation.tokenmetadata.registry.model.Mapping(
                 "1234567890abcdef1234567890abcdef1234567890abcdef12345678", // Valid 56 hex char subject
                 new org.cardanofoundation.tokenmetadata.registry.model.Item(null, "https://example.com", null), // url
                 new org.cardanofoundation.tokenmetadata.registry.model.Item(null, "TestToken", null), // name

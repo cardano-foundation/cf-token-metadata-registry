@@ -15,7 +15,8 @@ import jakarta.validation.constraints.Size;
 public class TickerProperty extends TokenMetadataProperty<String> {
   @Valid
   @Size(min = 2, max = 9)
-  @Schema(name = "value", example = "QUID", required = true)
+  @Schema(name = "value", example = "QUID", requiredMode = Schema.RequiredMode.REQUIRED)
+  @Override
   public String getValue() {
     return super.getValue();
   }

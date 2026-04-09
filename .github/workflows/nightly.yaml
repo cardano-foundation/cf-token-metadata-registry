@@ -1,0 +1,36 @@
+name: Nightly
+
+on:
+  schedule:
+    - cron: '0 3 * * *' # 03:00 UTC daily
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  java-build:
+    uses: ./.github/workflows/build.yaml
+
+  # JVM Docker build
+  docker-build-jvm:
+    needs: java-build
+    uses: ./.github/workflows/docker-build.yaml
+    with:
+      app: api
+      variant: jvm
+
+  # GraalVM native Docker build + integration tests
+  docker-build-native:
+    needs: java-build
+    uses: ./.github/workflows/docker-build.yaml
+    with:
+      app: api
+      variant: native
+
+  integration-test-docker-native:
+    needs: docker-build-native
+    uses: ./.github/workflows/integration-tests.yml
+    with:
+      target: docker-native
+      image-tag: ${{ needs.docker-build-native.outputs.image-tag }}

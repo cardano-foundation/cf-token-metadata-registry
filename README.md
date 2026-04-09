@@ -47,11 +47,21 @@ docker compose --env-file .env.preprod up
 |--------|------|-------------|
 | GET | `/api/v2/subjects/{subject}` | Token metadata with CIP priority selection |
 | POST | `/api/v2/subjects/query` | Batch query with priority and detail options |
-| GET | `/health` | Sync status (`SYNC_NOT_STARTED`, `SYNC_IN_PROGRESS`, `SYNC_COMPLETED`) |
-| GET | `/actuator/health` | Spring Boot liveness check |
-| GET | `/actuator/prometheus` | Prometheus metrics |
 
 For the full API reference (including V1 endpoints and query parameters), see the [API Reference](https://cardano-foundation.github.io/cf-token-metadata-registry/).
+
+## Operational Endpoints
+
+| Method | Path | Description | Kubernetes Probe |
+|--------|------|-------------|------------------|
+| GET | `/actuator/health` | Aggregated health status with details for all indicators | — |
+| GET | `/actuator/health/startup` | Checks database connectivity and Cardano node connection | Startup |
+| GET | `/actuator/health/liveness` | Checks offchain sync status and Cardano node connection | Liveness |
+| GET | `/actuator/health/readiness` | Checks offchain sync, on-chain sync progress (100%), and database | Readiness |
+| GET | `/actuator/info` | Application info | — |
+| GET | `/actuator/prometheus` | Prometheus metrics (Micrometer) | — |
+| GET | `/actuator/metrics` | Micrometer metrics listing and details | — |
+| GET | `/health` | **Deprecated** — legacy sync status endpoint, use `/actuator/health/readiness` instead | — |
 
 ## Configuration
 
@@ -63,22 +73,129 @@ All settings are controlled via environment variables. See [`.env`](./.env) (mai
 | `CIP_QUERY_PRIORITY` | CIP priority order for V2 queries | `CIP_68,CIP_26` |
 | `STORE_CARDANO_HOST` | Cardano node host for CIP-68 sync | `backbone.mainnet.cardanofoundation.org` |
 | `STORE_CARDANO_PROTOCOL_MAGIC` | Network protocol magic | `764824073` (mainnet) |
+| `API_DOCKERFILE` | Dockerfile variant for `docker compose build` | `api/Dockerfile.jvm` |
 
-## How to build
+## Docker Images
+
+Two Docker image variants are available:
+
+| Variant | Base image | Startup | Memory | Image size | Use case |
+|---------|-----------|---------|--------|------------|----------|
+| **JVM** | Eclipse Temurin 25 LTS | ~15s | ~2 GB | ~637 MB | Production, development |
+| **Native** | GraalVM 25 LTS (AOT-compiled) | ~3s | ~150 MB | ~200 MB | Experimental |
+
+### Building the JVM image
+
+The default `docker compose build` builds a JVM image:
+
+```console
+docker compose build
+```
+
+Or build it directly:
+
+```console
+docker build -t cardanofoundation/cf-token-metadata-registry-api:latest -f api/Dockerfile.jvm .
+```
+
+### Building the Native image (GraalVM)
+
+The native image compiles the application ahead-of-time into a standalone binary. No JVM is needed at runtime.
+
+```console
+docker build -t cardanofoundation/cf-token-metadata-registry-api:latest -f api/Dockerfile.native .
+```
+
+> [!NOTE]
+> The native image build takes 10-15 minutes and requires 8+ GB of RAM during compilation.
+
+> [!NOTE]
+> The native image is **built** with [Oracle GraalVM](https://www.oracle.com/java/graalvm/) under the [GraalVM Free Terms and Conditions (GFTC)](https://www.oracle.com/downloads/licenses/graal-free-license.html). Oracle GraalVM is free for development and production use, but redistribution of the GraalVM SDK itself is restricted. This does not affect the final Docker image or binary — the multi-stage build ensures only the compiled native binary (not the GraalVM toolchain) is included in the runtime image. Users who build from source need to accept the GFTC to pull the Oracle GraalVM build image.
+
+### Running locally with Docker Compose
+
+By default, `docker compose` uses the JVM Dockerfile. To use the native image instead, set `API_DOCKERFILE`:
+
+```console
+# Mainnet (JVM, default) — full sync mode
+docker compose up -d
+
+# Mainnet (native image)
+API_DOCKERFILE=api/Dockerfile.native docker compose up -d --build
+
+# Preprod
+docker compose --env-file .env.preprod up -d
+
+# Read-only mode (no sync, no node connection)
+COMPOSE_PROFILES=ro docker compose up -d
+```
+
+> [!NOTE]
+> The `.env` file sets `COMPOSE_PROFILES=rw` by default, which starts the full read-write API. Two profiles are available:
+> - **`rw`** (default) — full API with CIP-26 GitHub sync and CIP-68 on-chain indexing
+> - **`ro`** — read-only API on port `8081` (configurable via `API_RO_LOCAL_BIND_PORT`) that serves queries from the existing database without connecting to a Cardano node or syncing metadata
+
+To start fresh (wipe database and resync from scratch):
+
+```console
+docker compose down -v
+docker compose up -d
+```
+
+### Verifying the deployment
+
+Once started, the API syncs both offchain (GitHub) and on-chain (Cardano node) metadata. Check the health endpoints:
+
+```console
+# Startup probe — is the app initialized?
+curl http://localhost:8080/actuator/health/startup
+
+# Readiness probe — is the app ready to serve traffic?
+curl http://localhost:8080/actuator/health/readiness
+
+# Liveness probe — is the app still healthy?
+curl http://localhost:8080/actuator/health/liveness
+
+# Prometheus metrics (sync progress, token counts)
+curl http://localhost:8080/actuator/prometheus | grep cftr_
+```
+
+Key metrics to watch during sync:
+- `cftr_sync_status` — offchain sync: `0`=not started, `1`=in progress, `2`=done
+- `cftr_tokens_cip26_count` — number of CIP-26 tokens loaded from GitHub
+- `cftr_tokens_cip68_count` — number of CIP-68 tokens indexed from chain
+- `yaci_store_current_block` — current block being processed
+
+> [!TIP]
+> A full mainnet sync from genesis takes approximately 15 hours. The readiness probe will report `OUT_OF_SERVICE` until the on-chain sync reaches 98%.
+
+## How to build from source
 
 For building from source you need:
 - [Apache Maven](https://maven.apache.org/)
-- [Java SDK 21+](https://adoptium.net/installation/)
+- [Java SDK 25 LTS](https://adoptium.net/installation/) (e.g. Amazon Corretto or Eclipse Temurin)
 - [Git](https://git-scm.com/)
 
 ```console
 git clone git@github.com:cardano-foundation/cf-token-metadata-registry.git
 cd cf-token-metadata-registry
-mvn package
+mvn clean package -DskipTests
 ```
 
-> [!NOTE]
-> If you change the code, rebuild the local image with `docker compose build` before running `docker compose up`.
+### Building a native binary locally
+
+To build a native binary without Docker, you need [GraalVM 25 LTS](https://www.graalvm.org/downloads/):
+
+```console
+# Using SDKMAN
+sdk install java 25.0.2-graal
+sdk use java 25.0.2-graal
+
+# Build the native binary
+mvn clean package -pl api,common -am -DskipTests -Pnative
+
+# The binary is at api/target/api
+```
 
 ## Features
 

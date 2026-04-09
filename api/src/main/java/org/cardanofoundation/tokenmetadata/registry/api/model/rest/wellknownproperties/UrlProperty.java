@@ -17,7 +17,8 @@ public class UrlProperty extends TokenMetadataProperty<String> {
   @Valid
   @Pattern(regexp = "^https://")
   @Size(max = 250)
-  @Schema(name = "value", example = "https://www.iohk.io", required = true)
+  @Schema(name = "value", example = "https://www.iohk.io", requiredMode = Schema.RequiredMode.REQUIRED)
+  @Override
   public String getValue() {
     return super.getValue();
   }

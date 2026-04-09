@@ -17,7 +17,7 @@ public class BatchRequest {
 
   @JsonProperty("subjects")
   @Valid
-  @Schema(name = "subjects", required = true)
+  @Schema(name = "subjects", requiredMode = Schema.RequiredMode.REQUIRED)
   private List<String> subjects = new ArrayList<>();
 
   @JsonProperty("properties")

@@ -1,0 +1,108 @@
+name: Docker Build
+
+on:
+  workflow_call:
+    inputs:
+      app:
+        type: string
+        required: false
+        default: 'api'
+        description: 'Application to build: api or job'
+      variant:
+        type: string
+        required: true
+        description: 'Build variant: jvm or native'
+      push:
+        type: boolean
+        default: false
+        description: 'Push image to Docker Hub'
+      version:
+        type: string
+        required: false
+        default: ''
+        description: 'Version override (defaults to version.txt)'
+    outputs:
+      image-tag:
+        description: 'Primary Docker image tag that was built'
+        value: ${{ jobs.build.outputs.image-tag }}
+    secrets:
+      DOCKERHUB_USERNAME:
+        required: false
+      DOCKERHUB_TOKEN:
+        required: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      image-tag: ${{ steps.meta.outputs.image-tag }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set image metadata
+        id: meta
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+          INPUT_APP: ${{ inputs.app }}
+          INPUT_VARIANT: ${{ inputs.variant }}
+          INPUT_PUSH: ${{ inputs.push }}
+        run: |
+          VERSION="${INPUT_VERSION}"
+          if [ -z "$VERSION" ]; then
+            VERSION=$(jq '.["."]' -r .release-please-manifest.json)
+          fi
+          REPO="cardanofoundation/cf-token-metadata-registry-${INPUT_APP}"
+          PRIMARY_TAG="${REPO}:${VERSION}-${INPUT_VARIANT}"
+          echo "image-tag=${PRIMARY_TAG}" >> "$GITHUB_OUTPUT"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "repo=${REPO}" >> "$GITHUB_OUTPUT"
+
+          # Build tag list
+          TAGS="${PRIMARY_TAG}"
+          if [ "${INPUT_PUSH}" == "true" ]; then
+            if [ "${INPUT_VARIANT}" == "jvm" ]; then
+              TAGS="${TAGS},${REPO}:${VERSION},${REPO}:latest"
+            else
+              TAGS="${TAGS},${REPO}:latest-${INPUT_VARIANT}"
+            fi
+          fi
+          echo "tags=${TAGS}" >> "$GITHUB_OUTPUT"
+
+      - name: Download JAR artifact
+        if: inputs.variant == 'jvm'
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ inputs.app }}-jar
+          path: ${{ inputs.app }}/target
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+
+      - name: Docker Hub Login
+        if: inputs.push
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build Docker image
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: ${{ inputs.variant == 'native' && '.' || inputs.app }}
+          file: ${{ inputs.variant == 'native' && format('{0}/Dockerfile.native', inputs.app) || format('{0}/Dockerfile', inputs.app) }}
+          push: ${{ inputs.push }}
+          load: ${{ !inputs.push }}
+          tags: ${{ steps.meta.outputs.tags }}
+
+      - name: Save Docker image as artifact
+        if: ${{ !inputs.push }}
+        run: docker save ${{ steps.meta.outputs.image-tag }} -o /tmp/docker-image.tar
+
+      - name: Upload Docker image artifact
+        if: ${{ !inputs.push }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: docker-image-${{ inputs.app }}-${{ inputs.variant }}
+          path: /tmp/docker-image.tar
+          retention-days: 1

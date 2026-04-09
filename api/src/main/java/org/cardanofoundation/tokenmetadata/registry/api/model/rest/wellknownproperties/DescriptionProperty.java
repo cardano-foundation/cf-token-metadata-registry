@@ -15,7 +15,8 @@ import jakarta.validation.constraints.Size;
 public class DescriptionProperty extends TokenMetadataProperty<String> {
   @Valid
   @Size(max = 500)
-  @Schema(name = "value", required = true)
+  @Schema(name = "value", requiredMode = Schema.RequiredMode.REQUIRED)
+  @Override
   public String getValue() {
     return super.getValue();
   }

@@ -1,0 +1,21 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  java-build:
+    uses: ./.github/workflows/build.yaml
+
+  integration-test-jar:
+    needs: java-build
+    uses: ./.github/workflows/integration-tests.yml
+    with:
+      target: jar

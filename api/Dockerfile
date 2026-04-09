@@ -1,7 +1,7 @@
-FROM eclipse-temurin:21-jdk
+FROM eclipse-temurin:25-jre
 
-RUN apt update && apt install -y git && apt clean
-
-ADD ./target/*.jar /app/app.jar
 WORKDIR /app
+COPY ./target/*.jar app.jar
+
+EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "app.jar"]

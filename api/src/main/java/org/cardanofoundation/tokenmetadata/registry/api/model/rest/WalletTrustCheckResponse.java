@@ -16,6 +16,6 @@ import java.util.List;
 public class WalletTrustCheckResponse {
   @JsonProperty("incidents")
   @Valid
-  @Schema(name = "incidents", required = true)
+  @Schema(name = "incidents", requiredMode = Schema.RequiredMode.REQUIRED)
   private List<WalletFraudIncident> incidents = new ArrayList<>();
 }

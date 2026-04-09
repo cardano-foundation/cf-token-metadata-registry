@@ -1,6 +1,5 @@
 package org.cardanofoundation.tokenmetadata.registry.api.model.v2;
 
-import org.cardanofoundation.tokenmetadata.registry.api.model.QueryPriority;
 import org.cardanofoundation.tokenmetadata.registry.api.model.cip68.FungibleTokenMetadata;
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.TokenMetadata;
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.wellknownproperties.NameProperty;
@@ -14,19 +13,19 @@ import static org.cardanofoundation.tokenmetadata.registry.api.model.QueryPriori
 class MetadataTest {
 
     @Test
-    public void testFromTokenMetadata() {
+    void testFromTokenMetadata() {
 
-        var nameProperty = new NameProperty();
+        NameProperty nameProperty = new NameProperty();
         nameProperty.setValue("name");
 
-        var tickerProperty = new TickerProperty();
+        TickerProperty tickerProperty = new TickerProperty();
         tickerProperty.setValue("ticker");
 
-        var actual = Metadata.from(TokenMetadata.builder()
+        Metadata actual = Metadata.from(TokenMetadata.builder()
                 .name(nameProperty)
                 .ticker(tickerProperty)
                 .build());
-        var expected = Metadata.builder()
+        Metadata expected = Metadata.builder()
                 .name(new StringProperty("name", CIP_26.name()))
                 .ticker(new StringProperty("ticker", CIP_26.name()))
                 .build();
@@ -35,17 +34,17 @@ class MetadataTest {
     }
 
     @Test
-    public void testFromFungibleTokenMetadata() {
+    void testFromFungibleTokenMetadata() {
 
-        var nameProperty = new NameProperty();
+        NameProperty nameProperty = new NameProperty();
         nameProperty.setValue("name");
 
-        var tickerProperty = new TickerProperty();
+        TickerProperty tickerProperty = new TickerProperty();
         tickerProperty.setValue("ticker");
 
-        var actual = Metadata.from(new FungibleTokenMetadata(9L, "description", "logo" , "name", "ticker", null, 1L));
+        Metadata actual = Metadata.from(new FungibleTokenMetadata(9L, "description", "logo" , "name", "ticker", null, 1L));
 
-        var expected = Metadata.builder()
+        Metadata expected = Metadata.builder()
                 .name(new StringProperty("name", CIP_68.name()))
                 .ticker(new StringProperty("ticker", CIP_68.name()))
                 .description(new StringProperty("description", CIP_68.name()))

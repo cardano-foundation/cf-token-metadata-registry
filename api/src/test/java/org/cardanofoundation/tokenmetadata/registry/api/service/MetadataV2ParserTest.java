@@ -16,11 +16,11 @@ class MetadataV2ParserTest {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     @Test
-    public void parseFLDTDatumTest() throws JsonProcessingException {
+    void parseFLDTDatumTest() throws JsonProcessingException {
 
-        var priorities = Stream.of(QueryPriority.values()).map(QueryPriority::name).toList();
+        List<String> priorities = Stream.of(QueryPriority.values()).map(QueryPriority::name).toList();
 
-        var metadata = new Metadata(new StringProperty("name", QueryPriority.CIP_68.name()),
+        Metadata metadata = new Metadata(new StringProperty("name", QueryPriority.CIP_68.name()),
                 new StringProperty("description", QueryPriority.CIP_68.name()),
                 new StringProperty("ticker", QueryPriority.CIP_68.name()),
                 new LongProperty(6L, QueryPriority.CIP_26.name()),
@@ -28,12 +28,12 @@ class MetadataV2ParserTest {
                 new StringProperty("http://url.com", QueryPriority.CIP_26.name()),
                 new LongProperty(1L, QueryPriority.CIP_26.name()));
 
-        var subject = new Subject("subject", metadata, new Standards(null, null));
-        var response = new Response(subject, priorities);
+        Subject subject = new Subject("subject", metadata, new Standards(null, null));
+        Response response = new Response(subject, priorities);
         log.info("response: {}", OBJECT_MAPPER.writeValueAsString(response));
 
-        var subjects = List.of(subject);
-        var batchResponse = new BatchResponse(subjects, priorities);
+        List<Subject> subjects = List.of(subject);
+        BatchResponse batchResponse = new BatchResponse(subjects, priorities);
         log.info("batchResponse: {}", OBJECT_MAPPER.writeValueAsString(batchResponse));
 
 

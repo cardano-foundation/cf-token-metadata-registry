@@ -16,6 +16,6 @@ import java.util.List;
 public class BatchResponse {
   @JsonProperty("subjects")
   @Valid
-  @Schema(name = "subjects", required = true)
+  @Schema(name = "subjects", requiredMode = Schema.RequiredMode.REQUIRED)
   private List<TokenMetadata> subjects = new ArrayList<>();
 }

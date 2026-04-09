@@ -1,11 +1,12 @@
 package org.cardanofoundation.tokenmetadata.registry.api.controller;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.cardanofoundation.tokenmetadata.registry.api.indexer.V1ApiMetadataIndexer;
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.BatchRequest;
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.BatchResponse;
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.TokenMetadata;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.cardanofoundation.tokenmetadata.registry.api.service.RegistryMetricsService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -20,9 +21,11 @@ import java.util.Map;
 @CrossOrigin
 @RequestMapping("${openapi.metadataServer.base-path:}")
 @Slf4j
+@RequiredArgsConstructor
 public class MetadataApiController implements MetadataApi {
-    @Autowired
-    private V1ApiMetadataIndexer v1ApiMetadataIndexer;
+
+    private final V1ApiMetadataIndexer v1ApiMetadataIndexer;
+    private final RegistryMetricsService metricsService;
 
     @Override
     public ResponseEntity<BatchResponse> getSubjects(final BatchRequest body) {
@@ -31,6 +34,7 @@ public class MetadataApiController implements MetadataApi {
                 final BatchResponse response = new BatchResponse();
                 return new ResponseEntity<>(response, HttpStatus.OK);
             } else {
+                metricsService.recordV1Query(body.getSubjects().size());
                 final Map<String, TokenMetadata> subjects = v1ApiMetadataIndexer.findSubjectsSelectProperties(
                         body.getSubjects(),
                         body.getProperties() == null ? List.of() : body.getProperties());
@@ -43,7 +47,7 @@ public class MetadataApiController implements MetadataApi {
                 }
             }
 
-        } catch (final IllegalArgumentException e) {
+        } catch (final IllegalArgumentException _) {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
     }
@@ -51,11 +55,15 @@ public class MetadataApiController implements MetadataApi {
     @Override
     public ResponseEntity<TokenMetadata> getAllPropertiesForSubject(final String subject) {
         try {
+            metricsService.recordV1Query(1);
             return v1ApiMetadataIndexer
                     .findSubject(subject)
                     .map(tokenMetadata -> new ResponseEntity<>(tokenMetadata, HttpStatus.OK))
-                    .orElseGet(() -> new ResponseEntity<>(HttpStatus.NO_CONTENT));
-        } catch (final IllegalArgumentException e) {
+                    .orElseGet(() -> {
+                        metricsService.recordNotFound();
+                        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+                    });
+        } catch (final IllegalArgumentException _) {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
     }
@@ -63,11 +71,15 @@ public class MetadataApiController implements MetadataApi {
     @Override
     public ResponseEntity<TokenMetadata> getPropertyForSubject(final String subject, final String property) {
         try {
+            metricsService.recordV1Query(1);
             return v1ApiMetadataIndexer
                     .findSubjectSelectProperties(subject, List.of(property))
                     .map(tokenMetadata -> new ResponseEntity<>(tokenMetadata, HttpStatus.OK))
-                    .orElseGet(() -> new ResponseEntity<>(HttpStatus.NO_CONTENT));
-        } catch (final IllegalArgumentException e) {
+                    .orElseGet(() -> {
+                        metricsService.recordNotFound();
+                        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+                    });
+        } catch (final IllegalArgumentException _) {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
     }

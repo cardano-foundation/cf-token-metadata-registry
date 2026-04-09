@@ -12,13 +12,15 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.util.ResourceUtils;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 
 @Slf4j
-public class TokenMappingServiceTest {
+class TokenMappingServiceTest {
 
     private final TokenMappingService tokenMappingService = new TokenMappingService(new ObjectMapper());
 
@@ -28,22 +30,25 @@ public class TokenMappingServiceTest {
             "ff7cad970d3a755a1ff0335ccb3f3c1cabf31aacf3f23dd13db61b0630313030.json",
     })
     @ParameterizedTest
-    public void deserializeOk(String mappingFileName) throws FileNotFoundException {
-        var mappingFile = ResourceUtils.getFile(String.format("classpath:mappings/%s", mappingFileName));
-        var mappingsOpt = tokenMappingService.parseMappings(mappingFile);
+    void deserializeOk(String mappingFileName) throws FileNotFoundException {
+        File mappingFile = ResourceUtils.getFile(String.format("classpath:mappings/%s", mappingFileName));
+        Optional<Mapping> mappingsOpt = tokenMappingService.parseMappings(mappingFile);
         Assertions.assertTrue(mappingsOpt.isPresent(), "Mappings are supposed to be present");
     }
 
 
     @Test
-    public void mappingsAreCorrectlyDeserialized() throws IOException {
-        var mappingFile = ResourceUtils.getFile("classpath:mappings/4ffaa4ef3217df37c4995bb96066af4cb68dfcc66b9f2a10e0c333b95779726d73746f6e65.json");
-        var logoFile = ResourceUtils.getFile("classpath:mappings/4ffaa4ef3217df37c4995bb96066af4cb68dfcc66b9f2a10e0c333b95779726d73746f6e65-logo.txt");
-        var mappingsOpt = tokenMappingService.parseMappings(mappingFile);
+    void mappingsAreCorrectlyDeserialized() throws IOException {
+        File mappingFile = ResourceUtils.getFile("classpath:mappings/4ffaa4ef3217df37c4995bb96066af4cb68dfcc66b9f2a10e0c333b95779726d73746f6e65.json");
+        File logoFile = ResourceUtils.getFile("classpath:mappings/4ffaa4ef3217df37c4995bb96066af4cb68dfcc66b9f2a10e0c333b95779726d73746f6e65-logo.txt");
+        Optional<Mapping> mappingsOpt = tokenMappingService.parseMappings(mappingFile);
 
-        var logo = new BufferedReader(new FileReader(logoFile)).readLine();
+        String logo;
+        try (BufferedReader reader = new BufferedReader(new FileReader(logoFile))) {
+            logo = reader.readLine();
+        }
 
-        final var expected = new Mapping("4ffaa4ef3217df37c4995bb96066af4cb68dfcc66b9f2a10e0c333b95779726d73746f6e65",
+        final Mapping expected = new Mapping("4ffaa4ef3217df37c4995bb96066af4cb68dfcc66b9f2a10e0c333b95779726d73746f6e65",
                 // url
                 new Item(0, "https://tavernsquad.io", List.of(new Signature("6da949217f93874f2d6bda6e2af83ecdde0b5425fa778c75c5feb2800fd201132f4825f0f199e5786e00a3268afe44f9ef2213d14a4872f685e37aef68637106", "dff641503af0d00b672967f88b9a6f448588d48838473c8a4c73930b55d0fb73"))),
                 // name
@@ -66,14 +71,17 @@ public class TokenMappingServiceTest {
     }
 
     @Test
-    public void mappingsAreCorrectlyDeserialized_2() throws IOException {
-        var mappingFile = ResourceUtils.getFile("classpath:mappings/ff7cad970d3a755a1ff0335ccb3f3c1cabf31aacf3f23dd13db61b0630313030.json");
-        var logoFile = ResourceUtils.getFile("classpath:mappings/ff7cad970d3a755a1ff0335ccb3f3c1cabf31aacf3f23dd13db61b0630313030-logo.txt");
-        var mappingsOpt = tokenMappingService.parseMappings(mappingFile);
+    void mappingsAreCorrectlyDeserialized_2() throws IOException {
+        File mappingFile = ResourceUtils.getFile("classpath:mappings/ff7cad970d3a755a1ff0335ccb3f3c1cabf31aacf3f23dd13db61b0630313030.json");
+        File logoFile = ResourceUtils.getFile("classpath:mappings/ff7cad970d3a755a1ff0335ccb3f3c1cabf31aacf3f23dd13db61b0630313030-logo.txt");
+        Optional<Mapping> mappingsOpt = tokenMappingService.parseMappings(mappingFile);
 
-        var logo = new BufferedReader(new FileReader(logoFile)).readLine();
+        String logo;
+        try (BufferedReader reader = new BufferedReader(new FileReader(logoFile))) {
+            logo = reader.readLine();
+        }
 
-        final var expected = new Mapping("ff7cad970d3a755a1ff0335ccb3f3c1cabf31aacf3f23dd13db61b0630313030",
+        final Mapping expected = new Mapping("ff7cad970d3a755a1ff0335ccb3f3c1cabf31aacf3f23dd13db61b0630313030",
                 // url
                 new Item(0, "https://adage.app/nft-giveaway", List.of(new Signature("4e38c8a7b47445e1471a7701395d5c7ae410c4c4f310d61c1d697b7672162b1dcb5e224c01ed74c6708501be6711c9f6f8ad3d0ae50cd4d2be81656fe364f706", "16ee09e977811d32dd7aab7decd223307e0037abd85a1374ae838648c72da7b9"))),
                 // name

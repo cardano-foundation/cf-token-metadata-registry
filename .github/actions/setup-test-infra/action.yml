@@ -1,0 +1,83 @@
+name: Setup Test Infrastructure
+description: Start Postgres, yaci-devkit, and set up test token registry for integration tests
+
+runs:
+  using: composite
+  steps:
+    - name: Start PostgreSQL
+      shell: bash
+      run: |
+        docker run -d --name postgres --network host \
+          -e POSTGRES_DB=cf_token_metadata_registry \
+          -e POSTGRES_USER=cardano \
+          -e POSTGRES_PASSWORD=test_password \
+          postgres:17
+        echo "Waiting for PostgreSQL..."
+        for i in $(seq 1 30); do
+          if docker exec postgres pg_isready -U cardano -d cf_token_metadata_registry > /dev/null 2>&1; then
+            echo "PostgreSQL is ready!"
+            break
+          fi
+          echo "Attempt $i/30..."
+          sleep 2
+        done
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v6
+      with:
+        node-version: '22'
+
+    - name: Install yaci-devkit
+      shell: bash
+      run: npm install --ignore-scripts -g @bloxbean/yaci-devkit
+
+    - name: Start Yaci DevKit
+      shell: bash
+      run: nohup yaci-devkit up --enable-yaci-store &
+
+    - name: Wait for devnet to be ready
+      shell: bash
+      run: |
+        echo "Waiting for Store API port to be open..."
+        for i in $(seq 1 30); do
+          if nc -z localhost 8080 2>/dev/null; then
+            echo "Store API port is open!"
+            break
+          fi
+          echo "Attempt $i/30 - Store API not ready yet, waiting..."
+          sleep 2
+        done
+
+        echo "Waiting for Yaci Store to have protocol params indexed..."
+        for i in $(seq 1 90); do
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/api/v1/epochs/latest/parameters 2>/dev/null || echo "000")
+          if [ "$HTTP_STATUS" = "200" ]; then
+            echo "Protocol params available!"
+            break
+          fi
+          if [ "$i" = "90" ]; then
+            echo "WARNING: Protocol params not available after 90 attempts (3 min)"
+          fi
+          echo "Attempt $i/90 - protocol params not ready (HTTP $HTTP_STATUS), waiting..."
+          sleep 2
+        done
+
+    - name: Setup test token registry (CIP-26)
+      shell: bash
+      run: |
+        mkdir -p /tmp/test-token-registry/mappings
+        cp integration-test/src/test/resources/test-mappings/*.json /tmp/test-token-registry/mappings/
+        cd /tmp/test-token-registry
+        git init
+        git config user.email "test@test.com"
+        git config user.name "test"
+        git add .
+        git commit -m "test tokens"
+
+    - name: Locate devnet genesis files
+      shell: bash
+      run: |
+        DEVNET_DIR="$HOME/.yaci-cli/local-clusters/default"
+        echo "Looking for genesis files in $DEVNET_DIR..."
+        ls -la "$DEVNET_DIR/node/genesis/" || true
+        echo "DEVNET_DIR=$DEVNET_DIR" >> $GITHUB_ENV

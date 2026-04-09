@@ -17,14 +17,14 @@ public record AssetType(String policyId, String assetName) {
 
     private static final String LOVELACE = "lovelace";
 
-    private static final AssetType Ada = new AssetType("", LOVELACE);
+    private static final AssetType ADA_ASSET = new AssetType("", LOVELACE);
 
     public String toUnit() {
         return policyId + assetName;
     }
 
     public boolean isAda() {
-        return this.equals(Ada);
+        return this.equals(ADA_ASSET);
     }
 
     @JsonKey
@@ -36,28 +36,24 @@ public record AssetType(String policyId, String assetName) {
     }
 
     public static AssetType fromUnit(String unit) {
-        try {
-
-            if (unit.equalsIgnoreCase(LOVELACE) || unit.trim().isEmpty()) {
-                return Ada;
-            }
-
-            String sanitizedUnit = unit.replaceAll("\\.", "");
-            if (sanitizedUnit.length() > 56) {
-                return new AssetType(sanitizedUnit.substring(0, 56), sanitizedUnit.substring(56));
-            } else {
-                return new AssetType(sanitizedUnit.substring(0, 56), "");
-            }
-
-        } catch (Exception e) {
-            log.warn("Invalid unit '{}'", unit);
-            throw new RuntimeException(e);
+        if (unit.equalsIgnoreCase(LOVELACE) || unit.trim().isEmpty()) {
+            return ADA_ASSET;
         }
 
+        String sanitizedUnit = unit.replace(".", "");
+        if (sanitizedUnit.length() > 56) {
+            return new AssetType(sanitizedUnit.substring(0, 56), sanitizedUnit.substring(56));
+        } else if (sanitizedUnit.length() == 56) {
+            return new AssetType(sanitizedUnit, "");
+        } else {
+            log.warn("Invalid unit '{}': must be at least 56 hex characters (28-byte policy id)",
+                    LogSanitizer.sanitizeHex(unit));
+            return new AssetType(sanitizedUnit, "");
+        }
     }
 
     public static AssetType ada() {
-        return Ada;
+        return ADA_ASSET;
     }
 
 }
