@@ -56,6 +56,7 @@ jobs:
         id: meta
         env:
           INPUT_APP: ${{ inputs.app }}
+          INPUT_VARIANT: ${{ inputs.variant }}
           INPUT_PUSH: ${{ inputs.push }}
           EXTRA_TAGS_FROM_OUTPUT: ${{ steps.cf-gha-baseline.outputs.EARTHLY_DOCKER_IMAGES_EXTRA_TAGS }}
         run: |
@@ -82,6 +83,18 @@ jobs:
               resolved_tags+=("${REPO}:${extra_tag}")
             fi
           done
+
+          if [ "${INPUT_VARIANT}" == "native" ]; then
+            for i in "${!resolved_tags[@]}"; do
+              image_ref="${resolved_tags[$i]}"
+              image_repo="${image_ref%:*}"
+              image_tag="${image_ref##*:}"
+
+              if [[ "${image_tag}" != *-native ]]; then
+                resolved_tags[$i]="${image_repo}:${image_tag}-native"
+              fi
+            done
+          fi
 
           if [ ${#resolved_tags[@]} -eq 0 ]; then
             echo "No tags provided by cf-gha-baseline output EARTHLY_DOCKER_IMAGES_EXTRA_TAGS" >&2
