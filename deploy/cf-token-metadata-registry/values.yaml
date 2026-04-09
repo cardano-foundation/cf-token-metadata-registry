@@ -20,7 +20,7 @@ api:
       port: http
     periodSeconds: 10
     timeoutSeconds: 5
-    failureThreshold: 3
+    failureThreshold: 30
   readinessProbe:
     httpGet:
       path: /actuator/health/readiness
