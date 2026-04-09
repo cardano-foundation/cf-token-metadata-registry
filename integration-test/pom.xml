@@ -7,7 +7,7 @@
     <parent>
         <artifactId>server-base</artifactId>
         <groupId>org.cardanofoundation.metadatatools</groupId>
-        <version>${revision}</version>
+        <version>1.4.4</version>
     </parent>
 
     <artifactId>integration-test</artifactId>
@@ -24,13 +24,13 @@
         <dependency>
             <groupId>org.cardanofoundation.metadatatools</groupId>
             <artifactId>api</artifactId>
-            <version>${revision}</version>
+            <version>1.4.4</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.cardanofoundation.metadatatools</groupId>
             <artifactId>common</artifactId>
-            <version>${revision}</version>
+            <version>1.4.4</version>
             <scope>test</scope>
         </dependency>
 

@@ -6,7 +6,7 @@
 
     <groupId>org.cardanofoundation.metadatatools</groupId>
     <artifactId>server-base</artifactId>
-    <version>${revision}</version>
+    <version>1.4.4</version>
     <packaging>pom</packaging>
 
     <scm>
@@ -56,7 +56,6 @@
     </organization>
 
     <properties>
-        <revision>1.5.0</revision>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <version.cf-tokens-cip26>2.0.0</version.cf-tokens-cip26>
         <java.version>25</java.version>
