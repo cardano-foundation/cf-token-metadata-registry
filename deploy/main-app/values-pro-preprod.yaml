@@ -11,13 +11,17 @@ cf-token-metadata-registry:
     roReplicaCount: 2
     api:
       image:
-        tag: "1.5.0"
+        tag: "1.4.3"
       tokenMetadataUpdateJob:
         enabled: false
+      startupProbe: null
+      livenessProbe: null
+      readinessProbe: null
     job:
       enabled: true
       image:
-        tag: "1.5.0"
+        tag: "1.4.3"
+
     postgres:
       numberOfInstances: 1
     ingress:
