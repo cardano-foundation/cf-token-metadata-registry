@@ -14,6 +14,9 @@ cf-token-metadata-registry:
         tag: "1.4.3"
       tokenMetadataUpdateJob:
         enabled: false
+      startupProbe: null
+      livenessProbe: null
+      readinessProbe: null
     job:
       enabled: true
       image:

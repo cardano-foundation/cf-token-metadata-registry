@@ -7,7 +7,27 @@ api:
     pullPolicy: Always
   tokenMetadataUpdateJob:
     enabled: true
-
+  startupProbe:
+    httpGet:
+      path: /actuator/health/startup
+      port: http
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 12
+  livenessProbe:
+    httpGet:
+      path: /actuator/health/liveness
+      port: http
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 30
+  readinessProbe:
+    httpGet:
+      path: /actuator/health/readiness
+      port: http
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
 
 job:
   enabled: false
