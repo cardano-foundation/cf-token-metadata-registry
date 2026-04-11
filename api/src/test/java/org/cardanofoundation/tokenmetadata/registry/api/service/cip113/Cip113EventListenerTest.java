@@ -33,10 +33,11 @@ import static org.mockito.Mockito.*;
 @DisplayName("Cip113EventListener")
 class Cip113EventListenerTest {
 
+    // All hash-shaped constants are exactly 56 hex chars = 28 bytes (Blake2b-224).
     private static final String REGISTRY_NFT_POLICY_ID = "aabbccdd11223344aabbccdd11223344aabbccdd11223344aabbccdd";
     private static final String REGISTERED_POLICY_ID = "deadbeefcafebabedeadbeefcafebabedeadbeefcafebabedeadbeef";
-    private static final String TRANSFER_LOGIC = "1111111111111111111111111111111111111111111111111111111111";
-    private static final String THIRD_PARTY_LOGIC = "2222222222222222222222222222222222222222222222222222222222";
+    private static final String TRANSFER_LOGIC = "11111111111111111111111111111111111111111111111111111111";
+    private static final String THIRD_PARTY_LOGIC = "22222222222222222222222222222222222222222222222222222222";
     private static final String TX_HASH = "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890";
 
     @Mock
@@ -99,12 +100,14 @@ class Cip113EventListenerTest {
 
         @Test
         void savesEntityWithNullTransferLogicScript() throws Exception {
-            // transfer_logic_script is not wrapped in Constr — parser returns null, but entry is still saved
+            // transfer_logic_script encoded as empty plain bytes — parser's "absent credential"
+            // tolerance returns null, but the entry is still saved.
             ConstrPlutusData registryNode = ConstrPlutusData.of(0,
                     BytesPlutusData.of(HexUtil.decodeHexString(REGISTERED_POLICY_ID)),
                     BytesPlutusData.of(HexUtil.decodeHexString("ffffffffffff")),
                     BytesPlutusData.of(new byte[0]),  // not a Constr-wrapped credential → null
-                    ConstrPlutusData.of(0, BytesPlutusData.of(HexUtil.decodeHexString(THIRD_PARTY_LOGIC)))
+                    ConstrPlutusData.of(0, BytesPlutusData.of(HexUtil.decodeHexString(THIRD_PARTY_LOGIC))),
+                    BytesPlutusData.of(new byte[0])   // global_state_cs absent
             );
             String datum = HexUtil.encodeHexString(CborSerializationUtil.serialize(registryNode.serialize()));
 
@@ -241,7 +244,8 @@ class Cip113EventListenerTest {
                 BytesPlutusData.of(HexUtil.decodeHexString(key)),
                 BytesPlutusData.of(HexUtil.decodeHexString(next)),
                 ConstrPlutusData.of(0, BytesPlutusData.of(HexUtil.decodeHexString(transferLogic))),
-                BytesPlutusData.of(new byte[0])  // thirdParty as raw empty bytes (not Constr-wrapped) → null
+                BytesPlutusData.of(new byte[0]),  // thirdParty as raw empty bytes (not Constr-wrapped) → null
+                BytesPlutusData.of(new byte[0])   // global_state_cs absent
         );
         return HexUtil.encodeHexString(CborSerializationUtil.serialize(registryNode.serialize()));
     }
