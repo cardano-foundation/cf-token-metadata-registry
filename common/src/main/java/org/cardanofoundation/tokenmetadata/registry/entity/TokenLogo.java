@@ -12,7 +12,9 @@ import java.util.Objects;
 @Setter
 public class TokenLogo {
 
+    /** Matches {@code TokenMetadata.subject} length (CIP-26 spec: 56-120 hex chars). */
     @Id
+    @Column(length = 120)
     private String subject;
 
     private String logo;
