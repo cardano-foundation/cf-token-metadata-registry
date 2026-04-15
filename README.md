@@ -7,16 +7,17 @@
 
 # Cardano offchain metadata registry
 
-A reference implementation of a Cardano [CIP-26](https://github.com/cardano-foundation/CIPs/tree/master/CIP-0026) compliant offchain metadata registry with [CIP-68](https://github.com/cardano-foundation/CIPs/tree/master/CIP-0068) support.
+A reference implementation of a Cardano [CIP-26](https://github.com/cardano-foundation/CIPs/tree/master/CIP-0026) compliant offchain metadata registry with [CIP-68](https://github.com/cardano-foundation/CIPs/tree/master/CIP-0068) and [CIP-113](https://github.com/cardano-foundation/CIPs/tree/master/CIP-0113) support.
 
 ## Overview
 
-The registry is a Spring Boot application backed by PostgreSQL. It serves token metadata from two sources:
+The registry is a Spring Boot application backed by PostgreSQL. It serves token metadata from three sources:
 
 - **CIP-26 (offchain)**: metadata is synced from a [GitHub repository](https://github.com/cardano-foundation/cardano-token-registry) on a scheduled basis (every 60 minutes by default).
 - **CIP-68 (on-chain)**: metadata is read directly from the Cardano blockchain via [Yaci Store](https://github.com/bloxbean/yaci-store), which connects to a Cardano node and indexes CIP-68 reference NFT datums.
+- **CIP-113 (programmable tokens)**: registry node NFTs for programmable tokens are indexed from the chain and surfaced as extensions on the V2 API. Supported on preview, preprod, and mainnet — enabled per-network by setting `CIP113_REGISTRY_NFT_POLICY_IDS`.
 
-The V2 API queries both standards by priority (`CIP_68,CIP_26` by default). CIP-68 on-chain data takes precedence when available.
+The V2 API queries CIP-26 and CIP-68 by priority (`CIP_68,CIP_26` by default). CIP-68 on-chain data takes precedence when available. CIP-113 extensions are appended when the token's policy ID is in the configured programmable token registry.
 
 > [!NOTE]
 > By default, Yaci Store connects to a public Cardano node (`STORE_CARDANO_HOST` in `.env`). You can point it to your own node if preferred.
@@ -31,7 +32,7 @@ See the [API Reference](https://cardano-foundation.github.io/cf-token-metadata-r
 
 ### Mainnet
 
-Syncs CIP-26 offchain metadata from GitHub and CIP-68 on-chain metadata from a public Cardano mainnet node.
+Syncs CIP-26 offchain metadata from GitHub and CIP-68 on-chain metadata from a public Cardano mainnet node. CIP-113 indexing is available but no registry NFT policy IDs are configured by default in [`.env`](./.env) — set `CIP113_REGISTRY_NFT_POLICY_IDS` to enable.
 
 ```console
 docker compose up
@@ -39,15 +40,15 @@ docker compose up
 
 ### Preprod
 
-Syncs CIP-26 metadata from the [testnet registry](https://github.com/input-output-hk/metadata-registry-testnet) and CIP-68 on-chain metadata from a public preprod node.
+Syncs CIP-26 metadata from the [testnet registry](https://github.com/input-output-hk/metadata-registry-testnet), CIP-68 on-chain metadata, and CIP-113 programmable token registry nodes from a public preprod node.
 
 ```console
 docker compose --env-file .env.preprod up
 ```
 
-### Preview (CIP-113)
+### Preview
 
-Syncs CIP-68 on-chain metadata and [CIP-113](https://github.com/cardano-foundation/CIPs/tree/master/CIP-0113) programmable token registry nodes from the preview testnet. CIP-26 offchain sync is disabled since no offchain registry exists for preview.
+Syncs CIP-68 on-chain metadata and CIP-113 programmable token registry nodes from the preview testnet. CIP-26 offchain sync is disabled since no offchain registry exists for preview.
 
 ```console
 docker compose --env-file .env.preview up
@@ -217,6 +218,7 @@ mvn clean package -pl api,common -am -DskipTests -Pnative
 
 - [x] CIP-26 compliant REST API
 - [x] CIP-68 fungible token support (V2 API with priority-based querying)
+- [x] CIP-113 programmable token registry support (preview, preprod, mainnet — enabled via `CIP113_REGISTRY_NFT_POLICY_IDS`)
 - [x] Prometheus metrics (`/actuator/prometheus`)
 - [x] Kubernetes / Helm deployment support (`deploy/`)
 

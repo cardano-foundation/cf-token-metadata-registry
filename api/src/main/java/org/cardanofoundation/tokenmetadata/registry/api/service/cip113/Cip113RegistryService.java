@@ -71,6 +71,7 @@ public class Cip113RegistryService {
         String transferLogic = entity.getTransferLogicScript();
         String thirdParty = entity.getThirdPartyTransferLogicScript();
         String globalState = entity.getGlobalStatePolicyId();
+
         return new ProgrammableTokenCip113(
                 (transferLogic == null || transferLogic.isEmpty()) ? null : transferLogic,
                 (thirdParty == null || thirdParty.isEmpty()) ? null : thirdParty,
