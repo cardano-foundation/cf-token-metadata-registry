@@ -1,0 +1,18 @@
+-- Widen metadata.policy from VARCHAR(120) to TEXT.
+--
+-- The CIP-26 'policy' field is a base16 CBOR-encoded phase-1 monetary script
+-- (native script — NOT the 28-byte policyId hash), and the CIP-26 spec places
+-- no upper bound on its length. The previous VARCHAR(120) cap broke sync for
+-- any registry entry with a non-trivial native script:
+--
+--   * MCOS (policy 6f46e1304b16d884c85c62fb0eef35028facdc41aaa0fd319a152ed6) —
+--     time-lock + 3-of-4 multisig, 216 hex chars
+--   * Incy — 586 hex chars, 5× the old VARCHAR(120) cap
+--
+-- PostgreSQL rejected these INSERTs with
+-- "value too long for type character varying(120)". TokenMetadataService
+-- caught the exception, logged ERROR "Failed to save token metadata for
+-- subject '...'", and moved on — so the entries were dropped with a log
+-- line per skip but no fatal failure to the sync job. See TokenMetadata#policy
+-- javadoc.
+ALTER TABLE "metadata" ALTER COLUMN "policy" TYPE TEXT;
