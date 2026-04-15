@@ -44,11 +44,29 @@ CREATE TABLE cip113_registry_node (
 );
 ```
 
-Column names mirror the on-chain datum field names (`key`, `next`, `transfer_logic_script`, `third_party_transfer_logic_script`, `global_state_cs` → stored as `global_state_policy_id`) so that the schema, the parsed record (`ParsedRegistryNode`), and the CIP-113 spec all agree. In particular, the `key` column is deliberately not named `policy_id`: only real registered policies populate it with a 56-hex policy ID — the head sentinel stores an empty string and the tail sentinel stores a 58–64-hex marker (conventionally 32 bytes of `0xFF` in the aiken-linked-list library), neither of which is a policy ID.
+Column names mirror the on-chain datum field names (`key`, `next`, `transfer_logic_script`, `third_party_transfer_logic_script`, `global_state_cs` → stored as `global_state_policy_id`) so that the schema, the parsed record (`ParsedRegistryNode`), and the CIP-113 spec all agree.
 
-Column lengths are bounded to their protocol maxima: 28-byte policy IDs / credential hashes are `VARCHAR(56)` (56 hex chars), 32-byte transaction hashes are `VARCHAR(64)`. The `key` and `next` columns are `VARCHAR(64)` rather than `VARCHAR(56)` to accommodate the head/tail sentinels described above. The `next` column is `NOT NULL` because every registry node — including the head and tail sentinels — must point to a next entry.
+#### The `key` column — dual role
 
-The composite primary key `(key, slot, tx_hash)` allows tracking historical updates. Queries use `ORDER BY slot DESC LIMIT 1` to get the latest entry for a given key (i.e. policy ID of a registered programmable token).
+The CIP-113 registry is implemented as a sorted linked list (via the aiken-linked-list library). That data structure shape leaks into the schema, because **the `key` column does not always hold a policy ID**:
+
+| Row type | `key` value | Length | Is it a policy ID? |
+|---|---|---|---|
+| Head sentinel | `""` (empty string) | 0 hex | **No** — linked-list boundary marker |
+| Real registration | 28-byte policy ID of the registered programmable token | **56 hex** | **Yes** |
+| Tail sentinel | conventionally 32 bytes of `0xFF` | 58–64 hex | **No** — linked-list boundary marker |
+
+For every registry there are exactly two sentinel rows and one "real" row per registered programmable token. The sentinels exist only so that inserts and deletes in the linked list can always reference a node "before the first real entry" or "after the last real entry" — they are machinery of the on-chain data structure, not registrations.
+
+Naming this column `policy_id` (as an earlier draft did) is therefore actively misleading: a query like `SELECT DISTINCT policy_id FROM cip113_registry_node` would return sentinel values that are not policy IDs. Naming it `key` — matching the on-chain Aiken datum field and the parsed record field — is honest about that dual role. Callers that want "the registry entry for token X" filter `WHERE key = ?` with a 56-hex policy ID and will never accidentally match a sentinel. Callers that want "count of registered programmable tokens" must explicitly exclude sentinels (see `RegistryMetricsService.refreshTokenCounts()` which uses `WHERE key <> ''`).
+
+The public service API (`Cip113RegistryService.findByPolicyId` / `findByPolicyIds`) deliberately keeps policy-ID language because from the API caller's perspective the input genuinely is a policy ID — the storage-layer `key` naming stops at the repository boundary.
+
+#### Other column notes
+
+Column lengths are bounded to their protocol maxima: 28-byte policy IDs / credential hashes are `VARCHAR(56)` (56 hex chars), 32-byte transaction hashes are `VARCHAR(64)`. The `key` and `next` columns are `VARCHAR(64)` rather than `VARCHAR(56)` to accommodate the head/tail sentinels described above — do not shrink them to 56 even though real policy IDs fit. The `next` column is `NOT NULL` because every registry node — including the head and tail sentinels — must point to a next entry.
+
+The composite primary key `(key, slot, tx_hash)` allows tracking historical updates. Queries use `ORDER BY slot DESC LIMIT 1` to get the latest entry for a given key.
 
 **Field nullability:**
 

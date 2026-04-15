@@ -16,6 +16,17 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+/**
+ * Service for looking up CIP-113 programmable-token registry data by policy ID.
+ *
+ * <p><b>Naming note:</b> this service is deliberately named in policy-ID terms even though the
+ * underlying column is {@code key} (see {@link Cip113RegistryNode#getKey()} — the registry's
+ * {@code key} is a policy ID for real rows, a linked-list marker for sentinel rows). The
+ * service contract with V2 API callers is <i>"give me the programmable-token extension for
+ * this token's policy ID"</i>, so its public methods speak policy IDs and translate to a
+ * {@code WHERE key = ?} lookup internally. Sentinels are never matched because no real token
+ * has an empty or 32-byte-of-{@code 0xFF} policy ID.
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -26,6 +37,9 @@ public class Cip113RegistryService {
 
     /**
      * Look up the latest CIP-113 registry node for a given policy ID.
+     * <p>Internally this queries {@code WHERE key = policyId ORDER BY slot DESC LIMIT 1} —
+     * real registered tokens have {@code key} equal to their 56-hex policy ID, so the lookup
+     * succeeds for them and misses (correctly) for unregistered tokens and for sentinel rows.
      */
     public Optional<ProgrammableTokenCip113> findByPolicyId(String policyId) {
         if (!cip113Configuration.isEnabled()) {

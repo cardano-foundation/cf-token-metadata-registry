@@ -12,13 +12,24 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Repository for the CIP-113 programmable-token registry node table.
+ *
+ * <p><b>On the word "key":</b> the {@code key} column of {@link Cip113RegistryNode} is the
+ * registry node's sort key in the on-chain sorted linked list. For real registration rows it
+ * equals the 56-hex policy ID of the registered programmable token; for the two sentinel rows
+ * per registry (head and tail) it is a non-policy-ID linked-list marker. See
+ * {@link Cip113RegistryNode#getKey()} for the full explanation. Methods on this repository
+ * name their parameter {@code key} to stay honest about that dual role, but in practice
+ * callers always pass a real 56-hex policy ID — there is never a reason to look up a sentinel.
+ */
 @Repository
 @Profile("!test")
 public interface Cip113RegistryNodeRepository extends JpaRepository<Cip113RegistryNode, Cip113RegistryNodeId> {
 
     /**
-     * Returns the most recent registry node state (highest slot) for a given key
-     * (i.e. the policy ID of the programmable token being looked up).
+     * Returns the most recent registry node state (highest slot) for a given key.
+     * Callers typically pass the 56-hex policy ID of the token they're looking up.
      */
     Optional<Cip113RegistryNode> findFirstByKeyOrderBySlotDesc(String key);
 
