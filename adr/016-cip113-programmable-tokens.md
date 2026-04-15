@@ -32,19 +32,23 @@ A new `cip113_registry_node` table stores indexed registry entries:
 
 ```sql
 CREATE TABLE cip113_registry_node (
-    policy_id TEXT NOT NULL,
+    key VARCHAR(64) NOT NULL,
     slot BIGINT NOT NULL,
-    tx_hash TEXT NOT NULL,
-    transfer_logic_script TEXT,
-    third_party_transfer_logic_script TEXT,
-    global_state_policy_id TEXT,
-    next_key TEXT,
+    tx_hash VARCHAR(64) NOT NULL,
+    transfer_logic_script VARCHAR(56),
+    third_party_transfer_logic_script VARCHAR(56),
+    global_state_policy_id VARCHAR(56),
+    next VARCHAR(64) NOT NULL,
     datum TEXT NOT NULL,
-    PRIMARY KEY (policy_id, slot, tx_hash)
+    PRIMARY KEY (key, slot, tx_hash)
 );
 ```
 
-The composite primary key `(policy_id, slot, tx_hash)` allows tracking historical updates. Queries use `ORDER BY slot DESC LIMIT 1` to get the latest entry for a given policy ID.
+Column names mirror the on-chain datum field names (`key`, `next`, `transfer_logic_script`, `third_party_transfer_logic_script`, `global_state_cs` → stored as `global_state_policy_id`) so that the schema, the parsed record (`ParsedRegistryNode`), and the CIP-113 spec all agree. In particular, the `key` column is deliberately not named `policy_id`: only real registered policies populate it with a 56-hex policy ID — the head sentinel stores an empty string and the tail sentinel stores a 58–64-hex marker (conventionally 32 bytes of `0xFF` in the aiken-linked-list library), neither of which is a policy ID.
+
+Column lengths are bounded to their protocol maxima: 28-byte policy IDs / credential hashes are `VARCHAR(56)` (56 hex chars), 32-byte transaction hashes are `VARCHAR(64)`. The `key` and `next` columns are `VARCHAR(64)` rather than `VARCHAR(56)` to accommodate the head/tail sentinels described above. The `next` column is `NOT NULL` because every registry node — including the head and tail sentinels — must point to a next entry.
+
+The composite primary key `(key, slot, tx_hash)` allows tracking historical updates. Queries use `ORDER BY slot DESC LIMIT 1` to get the latest entry for a given key (i.e. policy ID of a registered programmable token).
 
 **Field nullability:**
 

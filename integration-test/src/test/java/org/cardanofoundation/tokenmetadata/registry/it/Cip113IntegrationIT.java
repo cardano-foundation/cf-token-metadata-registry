@@ -31,7 +31,7 @@ public class Cip113IntegrationIT extends BaseIntegrationIT {
 
     // Test registry node fields
     private static final String REGISTERED_POLICY_ID = "aabbccdd11223344aabbccdd11223344aabbccdd11223344aabbccdd";
-    private static final String NEXT_KEY = "ffffffffffffffffffffffffffffffffffffffffffffffffffffff";
+    private static final String NEXT = "ffffffffffffffffffffffffffffffffffffffffffffffffffffff";
     private static final String TRANSFER_LOGIC_SCRIPT = "1111111111111111111111111111111111111111111111111111111111";
     private static final String THIRD_PARTY_SCRIPT = "2222222222222222222222222222222222222222222222222222222222";
     private static final String GLOBAL_STATE_POLICY_ID = "3333333333333333333333333333333333333333333333333333333333";
@@ -51,7 +51,7 @@ public class Cip113IntegrationIT extends BaseIntegrationIT {
 
         minter.mintRegistryNode(
                 REGISTERED_POLICY_ID,
-                NEXT_KEY,
+                NEXT,
                 TRANSFER_LOGIC_SCRIPT,
                 THIRD_PARTY_SCRIPT,
                 GLOBAL_STATE_POLICY_ID
@@ -147,7 +147,7 @@ public class Cip113IntegrationIT extends BaseIntegrationIT {
 
             cip113Minter.mintRegistryNode(
                     cip68Result.policyId(),
-                    NEXT_KEY,
+                    NEXT,
                     TRANSFER_LOGIC_SCRIPT,
                     THIRD_PARTY_SCRIPT,
                     ""

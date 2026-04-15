@@ -151,11 +151,30 @@ class RegistryMetricsServiceTest {
                     .thenReturn(42L);
             when(jdbcTemplate.queryForObject(eq("SELECT count(DISTINCT policy_id || asset_name) FROM metadata_reference_nft"), any(Class.class)))
                     .thenReturn(7L);
+            when(jdbcTemplate.queryForObject(eq("SELECT count(DISTINCT key) FROM cip113_registry_node WHERE key <> ''"), any(Class.class)))
+                    .thenReturn(5L);
 
             service.refreshTokenCounts();
 
             assertThat(meterRegistry.find("cftr.tokens.cip26.count").gauge().value()).isEqualTo(42.0);
             assertThat(meterRegistry.find("cftr.tokens.cip68.count").gauge().value()).isEqualTo(7.0);
+            assertThat(meterRegistry.find("cftr.tokens.cip113.count").gauge().value()).isEqualTo(5.0);
+        }
+
+        @Test
+        void cip113CountExcludesHeadSentinel() {
+            // The fix: gauge must use the "WHERE key <> ''" variant so the head-sentinel
+            // linked-list marker is not counted as a programmable token. If the SQL regresses
+            // to the unfiltered form, this stub will not match and the gauge reads 0.0.
+            // lenient(): refreshTokenCounts() calls the metadata and reference-NFT queries
+            // before the cip113 one; we don't care what they return here, only that the
+            // cip113 SQL is the filtered variant.
+            lenient().when(jdbcTemplate.queryForObject(eq("SELECT count(DISTINCT key) FROM cip113_registry_node WHERE key <> ''"), any(Class.class)))
+                    .thenReturn(10L);
+
+            service.refreshTokenCounts();
+
+            assertThat(meterRegistry.find("cftr.tokens.cip113.count").gauge().value()).isEqualTo(10.0);
         }
 
         @Test

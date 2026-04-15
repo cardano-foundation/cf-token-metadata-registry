@@ -100,8 +100,11 @@ public class RegistryMetricsService {
                     "SELECT count(DISTINCT policy_id || asset_name) FROM metadata_reference_nft", Long.class);
             cip68Count.set(refNftCount != null ? refNftCount : 0);
 
+            // Exclude the head sentinel (key = '') — it's a linked-list marker, not a
+            // registered programmable token. See Cip113RegistryNode javadoc for valid key
+            // values (empty = head sentinel / 56 chars = real policy / 58-64 chars = tail sentinel).
             Long cip113TokenCount = jdbcTemplate.queryForObject(
-                    "SELECT count(DISTINCT policy_id) FROM cip113_registry_node", Long.class);
+                    "SELECT count(DISTINCT key) FROM cip113_registry_node WHERE key <> ''", Long.class);
             cip113Count.set(cip113TokenCount != null ? cip113TokenCount : 0);
         } catch (Exception e) {
             log.warn("Failed to refresh token counts for metrics: {}", e.getMessage());

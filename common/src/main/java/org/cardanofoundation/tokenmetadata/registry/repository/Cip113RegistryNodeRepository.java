@@ -17,19 +17,20 @@ import java.util.Optional;
 public interface Cip113RegistryNodeRepository extends JpaRepository<Cip113RegistryNode, Cip113RegistryNodeId> {
 
     /**
-     * Returns the most recent registry node state (highest slot) for a given policy ID.
+     * Returns the most recent registry node state (highest slot) for a given key
+     * (i.e. the policy ID of the programmable token being looked up).
      */
-    Optional<Cip113RegistryNode> findFirstByPolicyIdOrderBySlotDesc(String policyId);
+    Optional<Cip113RegistryNode> findFirstByKeyOrderBySlotDesc(String key);
 
     /**
-     * Returns the latest registry node state per policy ID using ROW_NUMBER() window function.
-     * Only returns one row per policy ID (the one with the highest slot).
+     * Returns the latest registry node state per key using ROW_NUMBER() window function.
+     * Only returns one row per key (the one with the highest slot).
      * Portable across PostgreSQL, H2, and MySQL 8+.
      */
-    @Query(value = "SELECT * FROM (SELECT *, ROW_NUMBER() OVER (PARTITION BY policy_id ORDER BY slot DESC) AS rn " +
-            "FROM cip113_registry_node WHERE policy_id IN (:policyIds)) ranked WHERE rn = 1",
+    @Query(value = "SELECT * FROM (SELECT *, ROW_NUMBER() OVER (PARTITION BY key ORDER BY slot DESC) AS rn " +
+            "FROM cip113_registry_node WHERE key IN (:keys)) ranked WHERE rn = 1",
             nativeQuery = true)
-    List<Cip113RegistryNode> findLatestByPolicyIds(@Param("policyIds") Collection<String> policyIds);
+    List<Cip113RegistryNode> findLatestByKeys(@Param("keys") Collection<String> keys);
 
     int deleteBySlotGreaterThan(Long slot);
 

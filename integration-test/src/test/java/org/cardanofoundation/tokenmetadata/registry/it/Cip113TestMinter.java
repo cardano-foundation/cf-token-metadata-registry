@@ -70,15 +70,15 @@ public class Cip113TestMinter {
     /**
      * Mints a CIP-113 registry node NFT on the devnet.
      *
-     * @param registeredPolicyId          the policy ID of the "registered" programmable token
-     * @param nextKey                     the next pointer in the sorted linked list
+     * @param registeredPolicyId          the policy ID of the "registered" programmable token (the datum's {@code key})
+     * @param next                        the {@code next} pointer in the sorted linked list
      * @param transferLogicScript         script hash for transfer validation
      * @param thirdPartyTransferLogicScript script hash for third-party transfers
      * @param globalStatePolicyId         optional global state policy ID
      * @return the mint result with registry NFT policy ID and registered policy ID
      */
     public MintResult mintRegistryNode(String registeredPolicyId,
-                                        String nextKey,
+                                        String next,
                                         String transferLogicScript,
                                         String thirdPartyTransferLogicScript,
                                         String globalStatePolicyId) throws Exception {
@@ -99,7 +99,7 @@ public class Cip113TestMinter {
 
         // Build the registry node datum
         PlutusData datum = buildRegistryNodeDatum(
-                registeredPolicyId, nextKey,
+                registeredPolicyId, next,
                 transferLogicScript, thirdPartyTransferLogicScript,
                 globalStatePolicyId);
 

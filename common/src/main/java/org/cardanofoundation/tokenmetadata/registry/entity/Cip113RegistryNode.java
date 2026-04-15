@@ -23,14 +23,16 @@ public class Cip113RegistryNode {
      * <ul>
      *   <li>empty string — head sentinel of the sorted linked list,</li>
      *   <li>56 hex chars — a real 28-byte policy_id,</li>
-     *   <li>58–64 hex chars — tail sentinel (conventionally 32 bytes of {@code 0xFF} in the
-     *       aiken-linked-list library).</li>
+     *   <li>up to 64 hex chars — tail sentinel. The aiken-linked-list implementation in use on
+     *       preprod materializes a 30-byte (60-hex) sentinel of {@code 0xFF}; the upper bound of
+     *       32 bytes (64 hex) is kept for safety since the exact length is a library-level
+     *       convention, not a CIP-113 protocol guarantee.</li>
      * </ul>
      * {@code VARCHAR(64)} is the tightest bound that fits all three — DO NOT shrink to 56.
      */
     @Id
-    @Column(name = "policy_id", length = 64, nullable = false)
-    private String policyId;
+    @Column(name = "key", length = 64, nullable = false)
+    private String key;
 
     @Id
     private Long slot;
@@ -57,12 +59,12 @@ public class Cip113RegistryNode {
 
     /**
      * The {@code next} field of the CIP-113 registry node datum — the pointer in the sorted
-     * linked list. Same length range as {@link #policyId}: either a real 56-hex policy_id or
-     * the tail sentinel (58–64 hex chars, conventionally 32 bytes of {@code 0xFF}).
+     * linked list. Same length range as {@link #key}: either a real 56-hex policy_id or
+     * a pointer to the tail sentinel (60 hex chars on preprod; up to 64 hex allowed for safety).
      * {@code VARCHAR(64)} is the tightest bound — DO NOT shrink to 56.
      */
-    @Column(name = "next_key", length = 64, nullable = false)
-    private String nextKey;
+    @Column(name = "next", length = 64, nullable = false)
+    private String next;
 
     @Column(columnDefinition = "TEXT")
     private String datum;

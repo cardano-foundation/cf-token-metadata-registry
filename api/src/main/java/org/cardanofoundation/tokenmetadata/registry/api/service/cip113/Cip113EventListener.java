@@ -3,6 +3,7 @@ package org.cardanofoundation.tokenmetadata.registry.api.service.cip113;
 import com.bloxbean.cardano.yaci.store.common.domain.AddressUtxo;
 import com.bloxbean.cardano.yaci.store.events.RollbackEvent;
 import com.bloxbean.cardano.yaci.store.utxo.domain.AddressUtxoEvent;
+import com.bloxbean.cardano.yaci.store.utxo.domain.TxInputOutput;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.cardanofoundation.tokenmetadata.registry.api.config.Cip113Configuration;
@@ -14,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -33,6 +35,7 @@ public class Cip113EventListener {
         log.info("CIP-113 rollback to slot {}: deleted {} registry node records", rollbackSlot, count);
     }
 
+    @Transactional
     @EventListener
     public void processTransaction(AddressUtxoEvent addressUtxoEvent) {
         if (!cip113Configuration.isEnabled()) {
@@ -42,29 +45,32 @@ public class Cip113EventListener {
         Long slot = addressUtxoEvent.getMetadata().getSlot();
 
         List<Cip113RegistryNode> entities = new ArrayList<>();
-        addressUtxoEvent.getTxInputOutputs()
-                .stream()
-                .flatMap(txInputOutput -> txInputOutput.getOutputs().stream())
-                .filter(utxo -> utxo.getInlineDatum() != null && cip113RegistryService.containsRegistryNode(utxo))
-                .forEach(utxo -> parseEntity(utxo, slot).ifPresent(entities::add));
+
+        for (TxInputOutput txInputOutput : addressUtxoEvent.getTxInputOutputs()) {
+            for (AddressUtxo utxo : txInputOutput.getOutputs()) {
+                if (utxo.getInlineDatum() != null && cip113RegistryService.containsRegistryNode(utxo)) {
+                    parseEntity(utxo, slot).ifPresent(entities::add);
+                }
+            }
+        }
 
         if (!entities.isEmpty()) {
             cip113RegistryNodeRepository.saveAll(entities);
-            entities.forEach(entity -> log.info("Indexed CIP-113 registry node: policyId={}, slot={}, txHash={}",
-                    entity.getPolicyId(), entity.getSlot(), entity.getTxHash()));
+            entities.forEach(entity -> log.info("Indexed CIP-113 registry node: key={}, slot={}, txHash={}",
+                    entity.getKey(), entity.getSlot(), entity.getTxHash()));
         }
     }
 
-    private java.util.Optional<Cip113RegistryNode> parseEntity(AddressUtxo utxo, Long slot) {
+    private Optional<Cip113RegistryNode> parseEntity(AddressUtxo utxo, Long slot) {
         return registryNodeParser.parse(utxo.getInlineDatum())
-                .map(parsed -> Cip113RegistryNode.builder()
-                        .policyId(parsed.key())
+                .map(parsedRegistryNode -> Cip113RegistryNode.builder()
+                        .key(parsedRegistryNode.key())
                         .slot(slot)
                         .txHash(utxo.getTxHash())
-                        .transferLogicScript(parsed.transferLogicScript())
-                        .thirdPartyTransferLogicScript(parsed.thirdPartyTransferLogicScript())
-                        .globalStatePolicyId(parsed.globalStatePolicyId())
-                        .nextKey(parsed.next())
+                        .transferLogicScript(parsedRegistryNode.transferLogicScript())
+                        .thirdPartyTransferLogicScript(parsedRegistryNode.thirdPartyTransferLogicScript())
+                        .globalStatePolicyId(parsedRegistryNode.globalStatePolicyId())
+                        .next(parsedRegistryNode.next())
                         .datum(utxo.getInlineDatum())
                         .build());
     }

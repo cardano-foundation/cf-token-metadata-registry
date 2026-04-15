@@ -71,10 +71,11 @@ public class Cip113RegistryNodeParser {
     /**
      * Maximum accepted byte length for the {@code key} and {@code next} fields.
      * <p>
-     * Real policy ids are 28 bytes (head sentinel is 0 bytes). Some aiken-linked-list
-     * implementations materialize a tail sentinel whose key is conventionally 32 bytes
-     * (all {@code 0xFF}). 32 bytes is therefore the tightest defensible upper bound —
-     * matches the DB column length ({@code VARCHAR(64)} = 64 hex chars = 32 bytes).
+     * Real policy ids are 28 bytes (head sentinel is 0 bytes). The aiken-linked-list
+     * implementation in use on preprod materializes a tail sentinel of 30 bytes of
+     * {@code 0xFF}; other library versions may go up to 32 bytes. 32 bytes is therefore
+     * the tightest defensible upper bound — matches the DB column length
+     * ({@code VARCHAR(64)} = 64 hex chars = 32 bytes).
      */
     private static final int MAX_KEY_BYTE_LEN = 32;
 

@@ -1,7 +1,8 @@
 -- CIP-113 programmable token registry nodes.
 --
--- The datum is an Aiken `RegistryNode` sorted linked list entry. See CIP-143
--- (the parent spec) and cardano-foundation/cip113-programmable-tokens.
+-- The datum is an Aiken `RegistryNode` sorted linked list entry. Column names
+-- mirror the on-chain datum field names (see CIP-143 — the parent spec — and
+-- cardano-foundation/cip113-programmable-tokens).
 -- Kept in sync with yaci-store/extensions/assets-ext (same table name).
 CREATE TABLE cip113_registry_node (
     -- 'key' field of the registry node datum. Three possible values:
@@ -10,7 +11,7 @@ CREATE TABLE cip113_registry_node (
     --   * 58–64 hex chars  — tail sentinel (conventionally 32 bytes of 0xFF
     --                        in the aiken-linked-list library)
     -- VARCHAR(64) is the tightest bound that fits all three. DO NOT shrink to 56.
-    policy_id VARCHAR(64) NOT NULL,
+    key VARCHAR(64) NOT NULL,
     slot BIGINT NOT NULL,
     -- Cardano transaction hash: exactly 32 bytes = 64 hex chars. Protocol-bounded.
     tx_hash VARCHAR(64) NOT NULL,
@@ -21,12 +22,12 @@ CREATE TABLE cip113_registry_node (
     third_party_transfer_logic_script VARCHAR(56),
     -- Currency symbol of the global-state NFT (28-byte policy_id). Protocol-bounded.
     global_state_policy_id VARCHAR(56),
-    -- 'next' field — sorted linked list pointer. Same length range as 'policy_id' above
+    -- 'next' field — sorted linked list pointer. Same length range as 'key' above
     -- (head is never a 'next'; real policy or tail sentinel 58–64 hex chars).
-    next_key VARCHAR(64) NOT NULL,
+    next VARCHAR(64) NOT NULL,
     -- Full CBOR hex of the inline datum. Variable length.
     datum TEXT NOT NULL,
-    PRIMARY KEY (policy_id, slot, tx_hash)
+    PRIMARY KEY (key, slot, tx_hash)
 );
 
 -- Cip113RegistryNodeRepository.deleteBySlotGreaterThan(Long)

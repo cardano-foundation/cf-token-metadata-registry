@@ -32,7 +32,7 @@ public class Cip113RegistryService {
             return Optional.empty();
         }
 
-        return cip113RegistryNodeRepository.findFirstByPolicyIdOrderBySlotDesc(policyId)
+        return cip113RegistryNodeRepository.findFirstByKeyOrderBySlotDesc(policyId)
                 .map(Cip113RegistryService::toDto);
     }
 
@@ -45,10 +45,10 @@ public class Cip113RegistryService {
             return Map.of();
         }
 
-        return cip113RegistryNodeRepository.findLatestByPolicyIds(policyIds)
+        return cip113RegistryNodeRepository.findLatestByKeys(policyIds)
                 .stream()
                 .collect(Collectors.toMap(
-                        Cip113RegistryNode::getPolicyId,
+                        Cip113RegistryNode::getKey,
                         Cip113RegistryService::toDto
                 ));
     }
