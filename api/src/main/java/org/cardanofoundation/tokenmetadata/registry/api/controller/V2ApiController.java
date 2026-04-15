@@ -5,7 +5,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.cardanofoundation.tokenmetadata.registry.api.config.AppConfig;
 import org.cardanofoundation.tokenmetadata.registry.api.indexer.V1ApiMetadataIndexer;
 import org.cardanofoundation.tokenmetadata.registry.api.model.BatchPrefetchData;
-import org.cardanofoundation.tokenmetadata.registry.api.model.Pair;
 import org.cardanofoundation.tokenmetadata.registry.api.model.QueryPriority;
 import org.cardanofoundation.tokenmetadata.registry.api.model.cip113.ProgrammableTokenCip113;
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.BatchRequest;
@@ -43,7 +42,7 @@ import java.util.stream.Collectors;
 @Slf4j
 public class V2ApiController implements V2Api {
 
-    public static final Pair<Metadata, Standards> IDENTITY = new Pair<>(Metadata.empty(), Standards.empty());
+    private static final ResolvedMetadata IDENTITY = ResolvedMetadata.empty();
 
     private static final List<String> ALL_PROPERTIES = List.of();
 
@@ -76,24 +75,25 @@ public class V2ApiController implements V2Api {
         }
         List<QueryPriority> queryPriority = priorities != null ? priorities : priorityConfiguration.getDefaultPriority();
 
-        Pair<Metadata, Standards> tokenMetadata = queryPriority.stream()
+        ResolvedMetadata tokenMetadata = queryPriority.stream()
                 .reduce(IDENTITY, combineStandards(subject, queryProperties), aggregateResults());
 
-        if (tokenMetadata.first().isEmpty() || !tokenMetadata.first().isValid()) {
+        if (tokenMetadata.metadata().isEmpty() || !tokenMetadata.metadata().isValid()) {
             metricsService.recordNotFound();
-            return ResponseEntity.notFound().build();
-        } else {
-            recordCipHits(tokenMetadata.second());
-            Standards standards = tokenMetadata.second();
-            Map<String, Extension> extensions = buildExtensions(subject);
-            TokenType type = extensions.isEmpty() ? TokenType.NATIVE : TokenType.PROGRAMMABLE;
-            boolean includeCipsDetails = Boolean.TRUE.equals(showCipsDetails);
-            List<String> stringPriorities = queryPriority.stream().map(QueryPriority::name).toList();
-            Response response = new Response(new Subject(subject, type, tokenMetadata.first(),
-                    includeCipsDetails ? standards : null, extensions), stringPriorities);
 
-            return ResponseEntity.ok(response);
+            return ResponseEntity.notFound().build();
         }
+
+        recordCipHits(tokenMetadata.standards());
+        Standards standards = tokenMetadata.standards();
+        Map<String, Extension> extensions = buildExtensions(subject);
+        TokenType type = extensions.isEmpty() ? TokenType.NATIVE : TokenType.PROGRAMMABLE;
+        boolean includeCipsDetails = Boolean.TRUE.equals(showCipsDetails);
+        List<String> stringPriorities = queryPriority.stream().map(QueryPriority::name).toList();
+        Response response = new Response(new Subject(subject, type, tokenMetadata.metadata(),
+                includeCipsDetails ? standards : null, extensions), stringPriorities);
+
+        return ResponseEntity.ok(response);
     }
 
     @Override
@@ -119,6 +119,7 @@ public class V2ApiController implements V2Api {
                 .filter(s -> !s.metadata().isEmpty() && s.metadata().isValid())
                 .toList();
         List<String> stringPriorities = queryPriority.stream().map(QueryPriority::name).toList();
+
         return ResponseEntity.ok(new BatchResponse(subjects, stringPriorities));
     }
 
@@ -132,13 +133,13 @@ public class V2ApiController implements V2Api {
         }
     }
 
-    private Optional<Pair<Metadata, Standards>> findMetadata(String subject, List<String> properties, QueryPriority priority) {
+    private Optional<ResolvedMetadata> findMetadata(String subject, List<String> properties, QueryPriority priority) {
         return switch (priority) {
             case CIP_26 -> v1ApiMetadataIndexer.findSubjectSelectProperties(subject, properties)
-                    .map(metadata -> new Pair<>(Metadata.from(metadata), new Standards(metadata, null)));
+                    .map(metadata -> new ResolvedMetadata(Metadata.from(metadata), new Standards(metadata, null)));
             case CIP_68 -> cip68FungibleTokenService.getReferenceNftSubject(subject)
                     .flatMap(assetType -> cip68FungibleTokenService.findSubject(assetType.policyId(), assetType.assetName(), properties))
-                    .map(fungibleTokenMetadata -> new Pair<>(Metadata.from(fungibleTokenMetadata), new Standards(null, fungibleTokenMetadata)));
+                    .map(fungibleTokenMetadata -> new ResolvedMetadata(Metadata.from(fungibleTokenMetadata), new Standards(null, fungibleTokenMetadata)));
         };
     }
 
@@ -147,43 +148,41 @@ public class V2ApiController implements V2Api {
                 .map(s -> AssetType.fromUnit(s).policyId())
                 .distinct()
                 .toList();
-        Map<String, ProgrammableTokenCip113> cip113Map = cip113RegistryService.findByPolicyIds(policyIds);
         Map<String, TokenMetadata> cip26Map = v1ApiMetadataIndexer.findSubjectsSelectProperties(subjects, queryProperties);
         Map<String, MetadataReferenceNft> cip68Map = cip68FungibleTokenService.findLatestByPolicyIds(policyIds);
-        return new BatchPrefetchData(cip113Map, cip26Map, cip68Map);
+        Map<String, ProgrammableTokenCip113> cip113Map = cip113RegistryService.findByPolicyIds(policyIds);
+
+        return new BatchPrefetchData(cip26Map, cip68Map, cip113Map);
     }
 
-    private Optional<Pair<Metadata, Standards>> findMetadataBatch(String subject, List<String> properties,
-                                                                   QueryPriority priority, BatchPrefetchData prefetch) {
+    private Optional<ResolvedMetadata> findMetadataBatch(String subject,
+                                                         List<String> properties,
+                                                         QueryPriority priority,
+                                                         BatchPrefetchData prefetch) {
         return switch (priority) {
             case CIP_26 -> Optional.ofNullable(prefetch.cip26Map().get(subject))
-                    .map(metadata -> new Pair<>(Metadata.from(metadata), new Standards(metadata, null)));
+                    .map(metadata -> new ResolvedMetadata(Metadata.from(metadata), new Standards(metadata, null)));
+
             case CIP_68 -> cip68FungibleTokenService.getReferenceNftSubject(subject)
                     .flatMap(assetType -> cip68FungibleTokenService.findSubject(assetType.policyId(), assetType.assetName(), properties, prefetch.cip68Map()))
-                    .map(fungibleTokenMetadata -> new Pair<>(Metadata.from(fungibleTokenMetadata), new Standards(null, fungibleTokenMetadata)));
+                    .map(fungibleTokenMetadata -> new ResolvedMetadata(Metadata.from(fungibleTokenMetadata), new Standards(null, fungibleTokenMetadata)));
         };
     }
 
-    private static BinaryOperator<Pair<Metadata, Standards>> aggregateResults() {
-        return (thisMetadata, that) -> {
-            Metadata metadata = thisMetadata.first().merge(that.first());
-            Standards standards = thisMetadata.second().merge(that.second());
-            return new Pair<>(metadata, standards);
-        };
+    private static BinaryOperator<ResolvedMetadata> aggregateResults() {
+        return ResolvedMetadata::merge;
     }
 
-    private BiFunction<Pair<Metadata, Standards>, QueryPriority, Pair<Metadata, Standards>> combineStandards(String subject, List<String> properties) {
+    private BiFunction<ResolvedMetadata, QueryPriority, ResolvedMetadata> combineStandards(String subject, List<String> properties) {
         return (accumulatedResults, priority) -> findMetadata(subject, properties, priority)
-                .map(metadataObjectPair -> new Pair<>(accumulatedResults.first().merge(metadataObjectPair.first()),
-                        accumulatedResults.second().merge(metadataObjectPair.second())))
+                .map(accumulatedResults::merge)
                 .orElse(accumulatedResults);
     }
 
-    private BiFunction<Pair<Metadata, Standards>, QueryPriority, Pair<Metadata, Standards>> combineStandardsBatch(
+    private BiFunction<ResolvedMetadata, QueryPriority, ResolvedMetadata> combineStandardsBatch(
             String subject, List<String> properties, BatchPrefetchData prefetch) {
         return (accumulatedResults, priority) -> findMetadataBatch(subject, properties, priority, prefetch)
-                .map(metadataObjectPair -> new Pair<>(accumulatedResults.first().merge(metadataObjectPair.first()),
-                        accumulatedResults.second().merge(metadataObjectPair.second())))
+                .map(accumulatedResults::merge)
                 .orElse(accumulatedResults);
     }
 
@@ -194,12 +193,16 @@ public class V2ApiController implements V2Api {
                     extensions.put(ProgrammableTokenCip113.EXTENSION_KEY, cip113);
                     metricsService.recordCip113Hit();
                 });
+
         return extensions;
     }
 
-    private Subject buildSubject(String subject, List<QueryPriority> queryPriority, List<String> queryProperties,
-                                 BatchPrefetchData prefetch, boolean includeCipsDetails) {
-        Pair<Metadata, Standards> pair = queryPriority.stream()
+    private Subject buildSubject(String subject,
+                                 List<QueryPriority> queryPriority,
+                                 List<String> queryProperties,
+                                 BatchPrefetchData prefetch,
+                                 boolean includeCipsDetails) {
+        ResolvedMetadata resolved = queryPriority.stream()
                 .reduce(IDENTITY, combineStandardsBatch(subject, queryProperties, prefetch), aggregateResults());
 
         Map<String, Extension> extensions = new LinkedHashMap<>();
@@ -209,16 +212,29 @@ public class V2ApiController implements V2Api {
             metricsService.recordCip113Hit();
         }
 
-        if (pair.first().isEmpty()) {
+        if (resolved.metadata().isEmpty()) {
             metricsService.recordNotFound();
         } else {
-            recordCipHits(pair.second());
+            recordCipHits(resolved.standards());
         }
 
         TokenType type = extensions.isEmpty() ? TokenType.NATIVE : TokenType.PROGRAMMABLE;
-        return new Subject(subject, type, pair.first(),
-                includeCipsDetails ? pair.second() : null,
+
+        return new Subject(subject, type, resolved.metadata(),
+                includeCipsDetails ? resolved.standards() : null,
                 extensions.isEmpty() ? null : extensions);
+    }
+
+    private record ResolvedMetadata(Metadata metadata, Standards standards) {
+
+        static ResolvedMetadata empty() {
+            return new ResolvedMetadata(Metadata.empty(), Standards.empty());
+        }
+
+        ResolvedMetadata merge(ResolvedMetadata that) {
+            return new ResolvedMetadata(metadata.merge(that.metadata()), standards.merge(that.standards()));
+        }
+
     }
 
 }

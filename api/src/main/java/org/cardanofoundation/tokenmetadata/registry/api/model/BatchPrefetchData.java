@@ -7,7 +7,7 @@ import org.cardanofoundation.tokenmetadata.registry.entity.MetadataReferenceNft;
 import java.util.Map;
 
 public record BatchPrefetchData(
-        Map<String, ProgrammableTokenCip113> cip113Map,
         Map<String, TokenMetadata> cip26Map,
-        Map<String, MetadataReferenceNft> cip68Map) {
+        Map<String, MetadataReferenceNft> cip68Map,
+        Map<String, ProgrammableTokenCip113> cip113Map) {
 }

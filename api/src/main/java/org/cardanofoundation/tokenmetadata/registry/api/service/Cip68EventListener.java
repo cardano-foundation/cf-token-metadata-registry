@@ -6,7 +6,6 @@ import com.bloxbean.cardano.yaci.store.events.RollbackEvent;
 import com.bloxbean.cardano.yaci.store.utxo.domain.AddressUtxoEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.cardanofoundation.tokenmetadata.registry.api.model.Pair;
 import org.cardanofoundation.tokenmetadata.registry.api.model.cip68.FungibleTokenMetadata;
 import org.cardanofoundation.tokenmetadata.registry.api.util.AssetType;
 import org.cardanofoundation.tokenmetadata.registry.entity.MetadataReferenceNft;
@@ -23,6 +22,10 @@ import java.util.stream.Stream;
 @RequiredArgsConstructor
 @Slf4j
 public class Cip68EventListener {
+
+    private record ReferenceNftUtxo(Amt amt, AddressUtxo utxo) {
+
+    }
 
     private record ReferenceNftUtxoData(AssetType referenceNft,
                                         FungibleTokenMetadata fungibleTokenMetadata,
@@ -83,16 +86,16 @@ public class Cip68EventListener {
         return cip68FungibleTokenService.isValidFTMetadata(referenceNftUtxoData.fungibleTokenMetadata());
     }
 
-    private Stream<ReferenceNftUtxoData> parseDatum(Pair<Amt, AddressUtxo> referenceNftUtxo) {
-        return cip68DatumParser.parse(referenceNftUtxo.second().getInlineDatum())
+    private Stream<ReferenceNftUtxoData> parseDatum(ReferenceNftUtxo referenceNftUtxo) {
+        return cip68DatumParser.parse(referenceNftUtxo.utxo().getInlineDatum())
                 .stream()
-                .map(fungibleTokenMetadata -> new ReferenceNftUtxoData(AssetType.fromUnit(referenceNftUtxo.first().getUnit()),
+                .map(fungibleTokenMetadata -> new ReferenceNftUtxoData(AssetType.fromUnit(referenceNftUtxo.amt().getUnit()),
                         fungibleTokenMetadata,
-                        referenceNftUtxo.second().getInlineDatum()));
+                        referenceNftUtxo.utxo().getInlineDatum()));
     }
 
-    private Stream<Pair<Amt, AddressUtxo>> findReferenceNft(AddressUtxo utxo) {
-        return cip68FungibleTokenService.extractReferenceNft(utxo).map(amt -> new Pair<>(amt, utxo)).stream();
+    private Stream<ReferenceNftUtxo> findReferenceNft(AddressUtxo utxo) {
+        return cip68FungibleTokenService.extractReferenceNft(utxo).map(amt -> new ReferenceNftUtxo(amt, utxo)).stream();
     }
 
 }
