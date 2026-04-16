@@ -18,6 +18,7 @@ import org.cardanofoundation.tokenmetadata.registry.entity.OffChainSyncState;
 import org.cardanofoundation.tokenmetadata.registry.entity.TokenLogo;
 import org.eclipse.jgit.diff.DiffAlgorithm;
 import org.eclipse.jgit.diff.DiffConfig;
+import org.eclipse.jgit.lib.CommitConfig;
 import org.eclipse.jgit.lib.CoreConfig;
 import org.springframework.aot.hint.ReflectionHints;
 import org.springframework.aot.hint.RuntimeHints;
@@ -120,7 +121,12 @@ public class NativeImageConfig {
                     // (DiffCommand, LogCommand with path filters, and anything that
                     // invokes DiffFormatter.setRepository / setReader).
                     DiffAlgorithm.SupportedAlgorithm.class,
-                    DiffConfig.RenameDetectionType.class
+                    DiffConfig.RenameDetectionType.class,
+                    // commit.* config — read by CommitConfig.<init> when Config.get(COMMIT_KEY)
+                    // materialises the section. Triggered on incremental sync via PullCommand
+                    // → RebaseCommand → CommitConfig read (commit.cleanup setting). The initial
+                    // full-sync clone doesn't hit this; only subsequent pulls.
+                    CommitConfig.CleanupMode.class
             }) {
                 reflection.registerType(enumClass,
                         INVOKE_PUBLIC_METHODS,
