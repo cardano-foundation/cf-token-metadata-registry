@@ -16,6 +16,8 @@ import org.cardanofoundation.tokenmetadata.registry.entity.MetadataReferenceNft;
 import org.cardanofoundation.tokenmetadata.registry.entity.MetadataReferenceNftId;
 import org.cardanofoundation.tokenmetadata.registry.entity.OffChainSyncState;
 import org.cardanofoundation.tokenmetadata.registry.entity.TokenLogo;
+import org.eclipse.jgit.diff.DiffAlgorithm;
+import org.eclipse.jgit.diff.DiffConfig;
 import org.eclipse.jgit.lib.CoreConfig;
 import org.springframework.aot.hint.ReflectionHints;
 import org.springframework.aot.hint.RuntimeHints;
@@ -83,25 +85,28 @@ public class NativeImageConfig {
             hints.resources().registerPattern("db/store/mysql/.*");
             hints.resources().registerPattern("db/store/h2/.*");
 
-            // JGit CoreConfig nested enums.
+            // JGit enum-typed git config reflection.
             //
             // org.eclipse.jgit.lib.Config#getEnum reads enum-typed git config values
-            // (core.autocrlf, core.eol, core.trustlooserefstat, …) by reflectively
-            // calling enumClass.getMethod("values"). GraalVM's static reachability
-            // analysis cannot see those calls, so without explicit hints the synthetic
-            // values() method is stripped from the native image and JGit fails on
-            // CloneCommand with:
+            // (core.autocrlf, core.eol, core.trustlooserefstat, diff.algorithm,
+            // diff.renames, …) by reflectively calling enumClass.getMethod("values").
+            // GraalVM's static reachability analysis cannot see those calls, so without
+            // explicit hints the synthetic values() method is stripped from the native
+            // image and JGit fails at runtime with:
             //
             //   java.lang.IllegalArgumentException: Enumerated values of type
-            //     org.eclipse.jgit.lib.CoreConfig$<EnumName> not available
+            //     org.eclipse.jgit.<pkg>$<EnumName> not available
             //   Caused by: java.lang.NoSuchMethodException:
-            //     org.eclipse.jgit.lib.CoreConfig$<EnumName>.values()
+            //     org.eclipse.jgit.<pkg>$<EnumName>.values()
             //
-            // Observed in production on JGit 7.1.0 with TrustLooseRefStat — the rest
-            // are registered preemptively because the same code path
-            // (Config.allValuesOf) covers every CoreConfig enum and a future JGit
-            // bump can add new ones quietly.
+            // This is a *class of bug* — every enum-typed git config setting on the
+            // JGit call path needs its enum registered for reflection. The enums below
+            // cover the CIP-26 offchain sync path (clone → log/diff walk over the
+            // cardano-token-registry repo). A future JGit bump can add new enum-typed
+            // config options that would surface here as the same error on a different
+            // enum class; extend the list as needed.
             for (Class<?> enumClass : new Class<?>[]{
+                    // core.* config — read during repo init + working tree setup.
                     CoreConfig.AutoCRLF.class,
                     CoreConfig.CheckStat.class,
                     CoreConfig.EOL.class,
@@ -110,7 +115,12 @@ public class NativeImageConfig {
                     CoreConfig.LogRefUpdates.class,
                     CoreConfig.SymLinks.class,
                     CoreConfig.TrustPackedRefsStat.class,
-                    CoreConfig.TrustLooseRefStat.class
+                    CoreConfig.TrustLooseRefStat.class,
+                    // diff.* config — read by DiffFormatter when walking commit history
+                    // (DiffCommand, LogCommand with path filters, and anything that
+                    // invokes DiffFormatter.setRepository / setReader).
+                    DiffAlgorithm.SupportedAlgorithm.class,
+                    DiffConfig.RenameDetectionType.class
             }) {
                 reflection.registerType(enumClass,
                         INVOKE_PUBLIC_METHODS,
