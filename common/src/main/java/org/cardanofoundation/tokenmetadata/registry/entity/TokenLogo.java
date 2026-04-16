@@ -1,20 +1,24 @@
 package org.cardanofoundation.tokenmetadata.registry.entity;
 
 import jakarta.persistence.*;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
-
-import java.util.Objects;
 
 @Entity
 @Table(name = "logo")
 @Getter
 @Setter
+// Business-key equals/hashCode on the subject (shared PK with TokenMetadata, app-assigned).
+// Lombok's generated equals uses `instanceof` via canEqual — proxy-safe, unlike the prior
+// hand-rolled `getClass() == ...` form.
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class TokenLogo {
 
     /** Matches {@code TokenMetadata.subject} length (CIP-26 spec: 56-120 hex chars). */
     @Id
     @Column(length = 120)
+    @EqualsAndHashCode.Include
     private String subject;
 
     /**
@@ -33,17 +37,4 @@ public class TokenLogo {
      * the value as a URL only if decoding fails.
      */
     private String logo;
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        TokenLogo tokenLogo = (TokenLogo) o;
-        return Objects.equals(subject, tokenLogo.subject);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(subject);
-    }
 }

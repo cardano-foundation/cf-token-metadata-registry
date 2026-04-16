@@ -1,6 +1,7 @@
 package org.cardanofoundation.tokenmetadata.registry.entity;
 
 import jakarta.persistence.*;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import org.cardanofoundation.tokenmetadata.registry.model.Mapping;
@@ -8,17 +9,21 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
-import java.util.Objects;
 
 @Entity
 @Table(name = "metadata")
 @Getter
 @Setter
+// Business-key equals/hashCode on the subject (app-assigned, immutable, non-null at
+// construction — the CIP-26 mapping file's subject field). Lombok's generated equals uses
+// `instanceof` via canEqual, which is proxy-safe unlike a hand-rolled `getClass() == ...`.
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class TokenMetadata {
 
     /** Subject = policyId (28 bytes) + optional assetName (0-32 bytes), hex. CIP-26 spec 56-120. */
     @Id
     @Column(length = 120)
+    @EqualsAndHashCode.Include
     private String subject;
 
     /**
@@ -78,18 +83,4 @@ public class TokenMetadata {
 
     @JdbcTypeCode(SqlTypes.JSON)
     private Mapping properties;
-
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        TokenMetadata that = (TokenMetadata) o;
-        return Objects.equals(subject, that.subject);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(subject);
-    }
 }
