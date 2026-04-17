@@ -66,6 +66,27 @@ jobs:
           EXTRA_TAGS="${EXTRA_TAGS//$'\n'/ }"
           EXTRA_TAGS="${EXTRA_TAGS//,/ }"
           EXTRA_TAGS="${EXTRA_TAGS//$'\t'/ }"
+
+          # Fallback for contexts where cf-gha-baseline cannot derive a
+          # BRANCH_NAME and therefore emits an empty
+          # EARTHLY_DOCKER_IMAGES_EXTRA_TAGS. This has been observed 100% of
+          # the time on `schedule`-triggered runs (the Nightly workflow),
+          # which caused every nightly docker-build job to fail at this
+          # step. Synthesise a tag from the GitHub-provided context so the
+          # build still produces a usable image.
+          if [[ -z "${EXTRA_TAGS// /}" ]]; then
+            short_sha="${GITHUB_SHA:0:7}"
+            if [[ "${GITHUB_EVENT_NAME}" == "schedule" ]]; then
+              fallback="nightly-$(date -u +%Y%m%d)-${short_sha}"
+            else
+              sanitized_ref="${GITHUB_REF_NAME:-unknown}"
+              sanitized_ref="${sanitized_ref//\//-}"
+              fallback="${sanitized_ref}-${short_sha}"
+            fi
+            echo "cf-gha-baseline returned no tags (event=${GITHUB_EVENT_NAME}); using fallback tag '${fallback}'" >&2
+            EXTRA_TAGS="${fallback}"
+          fi
+
           read -r -a parsed_extra_tags <<< "${EXTRA_TAGS}"
 
           declare -a resolved_tags
@@ -97,7 +118,10 @@ jobs:
           fi
 
           if [ ${#resolved_tags[@]} -eq 0 ]; then
-            echo "No tags provided by cf-gha-baseline output EARTHLY_DOCKER_IMAGES_EXTRA_TAGS" >&2
+            # Defence-in-depth: the fallback above should guarantee at
+            # least one resolved tag. If we still reach this point
+            # something is deeply wrong (GITHUB_SHA also unset, etc.).
+            echo "No tags could be resolved, including fallback from GitHub context" >&2
             exit 1
           fi
 
