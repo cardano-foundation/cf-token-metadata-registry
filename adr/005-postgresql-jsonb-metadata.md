@@ -2,11 +2,11 @@
 
 ## Status
 
-Accepted
+Accepted — the decision still holds (PostgreSQL + JSONB for extensible CIP-26 properties). Per [ADR-017](017-thin-wrapper-over-assets-ext.md) the schema is now owned by yaci-store's `assets-ext` extension: the table this ADR originally described as `metadata` lives as `ft_offchain_metadata` upstream with the same JSONB `properties` column. Column names and types are controlled there.
 
 ## Date
 
-2026-03-24
+2026-03-24 (original); schema ownership moved 2026-04-23
 
 ## Context
 

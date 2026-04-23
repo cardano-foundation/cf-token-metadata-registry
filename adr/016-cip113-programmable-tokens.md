@@ -2,11 +2,11 @@
 
 ## Status
 
-Accepted
+Accepted — the CIP-113 support model (registry node parsing, linked-list handling with sentinels, transfer-logic-script surfacing in the V2 `extensions` map) is unchanged. Per [ADR-017](017-thin-wrapper-over-assets-ext.md) the implementation (`Cip113RegistryNodeParser`, `Cip113EventListener`, `Cip113RegistryService`, the `cip113_registry_node` table, and the `ProgrammableTokenCip113` record) moved upstream into yaci-store's `assets-ext` extension and is reached via `Cip113StorageReader`. The monitored-policy-ID configuration now lives under `store.assets.ext.cip113.registry-nft-policy-ids`.
 
 ## Date
 
-2026-03-26
+2026-03-26 (original); implementation moved 2026-04-23
 
 ## Context
 

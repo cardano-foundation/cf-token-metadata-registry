@@ -2,11 +2,11 @@
 
 ## Status
 
-Accepted
+**Superseded by [ADR-017](017-thin-wrapper-over-assets-ext.md)** — the incremental sync design (commit-hash tracking, process-only-changed-files) remains correct. The implementation (`TokenMetadataSyncService`, `off_chain_sync_state` table) was moved upstream into yaci-store's `assets-ext` extension and is now reached via `com.bloxbean.cardano.yaci.store.extensions.assetstore.cip26.service.TokenMetadataSyncService`. The `job` module calls into that service.
 
 ## Date
 
-2026-03-24
+2026-03-24 (original); superseded 2026-04-23
 
 ## Context
 

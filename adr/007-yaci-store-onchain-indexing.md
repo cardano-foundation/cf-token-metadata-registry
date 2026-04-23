@@ -2,11 +2,11 @@
 
 ## Status
 
-Accepted
+**Superseded by [ADR-017](017-thin-wrapper-over-assets-ext.md)** — yaci-store is still the on-chain indexer, but the integration model changed: `CustomUtxoStorage` was deleted, `Cip68FungibleTokenService` and `Cip68EventListener` were replaced by assets-ext's equivalents (`Cip68Processor` + `Cip68StorageReader`), and `OnchainSyncStatusService` was replaced by assets-ext's health indicators. The service is now a consumer of `yaci-store-assets-ext-spring-boot-starter`, not a direct integrator of raw yaci-store components.
 
 ## Date
 
-2026-03-24
+2026-03-24 (original); superseded 2026-04-23
 
 ## Context
 

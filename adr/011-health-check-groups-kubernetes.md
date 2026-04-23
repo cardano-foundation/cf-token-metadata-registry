@@ -2,11 +2,11 @@
 
 ## Status
 
-Accepted
+Accepted — the probe-group design (startup / liveness / readiness split, Kubernetes semantics) is unchanged. Per [ADR-017](017-thin-wrapper-over-assets-ext.md) the indicator bean IDs are now `assetStoreOffchainSync`, `assetStoreOnchainConnection`, `assetStoreOnchainReadiness` (the `assetStore` prefix avoids collisions across yaci-store extensions). Probe groups in `application.properties` reference those names directly. Each indicator is `@ConditionalOnBean(...)` upstream, so missing indicators (e.g. in read-only mode or when CIP-26 sync is externally managed) are silently skipped rather than failing startup.
 
 ## Date
 
-2026-03-24
+2026-03-24 (original); indicator names updated 2026-04-23
 
 ## Context
 

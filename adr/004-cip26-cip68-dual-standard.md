@@ -2,11 +2,11 @@
 
 ## Status
 
-Accepted
+Accepted — the conceptual design (support both standards, configurable priority, unified API) remains correct. Per [ADR-017](017-thin-wrapper-over-assets-ext.md) the implementation moved to yaci-store's `assets-ext` extension: CIP-26 sync, CIP-68 reference-NFT indexing, and the priority merge are all owned by assets-ext's `TokenQueryService` + storage readers.
 
 ## Date
 
-2026-03-24
+2026-03-24 (original); implementation moved 2026-04-23
 
 ## Context
 

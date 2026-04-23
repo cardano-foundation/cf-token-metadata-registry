@@ -2,11 +2,11 @@
 
 ## Status
 
-Accepted
+**Superseded by [ADR-017](017-thin-wrapper-over-assets-ext.md)** — the rationale (use JGit instead of shelling out to `git`) is unchanged, but the code was removed from this repo. JGit is now a transitive dependency of yaci-store's `assets-ext` extension, which owns the `GitService` and the cardano-token-registry clone/pull/diff logic.
 
 ## Date
 
-2026-03-24
+2026-03-24 (original); superseded 2026-04-23
 
 ## Context
 

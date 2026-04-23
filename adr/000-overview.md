@@ -18,57 +18,63 @@ This document serves as an index and navigation guide to all Architecture Decisi
 
 The system is a multi-module Spring Boot 3 application composed of:
 
-- **api** - REST API server implementing CIP-26/CIP-68/CIP-113 metadata queries
-- **job** - Background processor for syncing token metadata from GitHub
-- **common** - Shared domain models, entities, services, and repositories
+- **api** - Thin REST API wrapper over yaci-store's `assets-ext` extension; controllers delegate to `TokenQueryService` and the `Cip26StorageReader` / `Cip68StorageReader` / `Cip113StorageReader` beans
+- **job** - Standalone `CommandLineRunner` that triggers assets-ext's CIP-26 sync once and exits; intended to be driven by a Kubernetes CronJob
 - **cli** - Command-line tools for metadata operations
+- **integration-test** - End-to-end tests against a running API
 
-Data flows into the system from two sources:
-1. **Off-chain**: GitHub repository (`cardano-token-registry`) synced via JGit
-2. **On-chain**: Cardano blockchain indexed via Yaci Store for CIP-68 reference NFTs and CIP-113 registry nodes
+Data flows into the system from two sources, both owned by assets-ext:
+1. **Off-chain**: GitHub repository (`cardano-token-registry`) synced via JGit inside assets-ext
+2. **On-chain**: Cardano blockchain indexed via Yaci Store; assets-ext's `Cip68Processor` and `Cip113Processor` consume `AddressUtxoEvent`s and populate their own tables
 
-The API exposes both a legacy V1 (CIP-26 only) and an enhanced V2 (CIP-26 + CIP-68 with configurable priority, plus CIP-113 extensions) interface.
+The API exposes both a legacy V1 (CIP-26 only) and an enhanced V2 (CIP-26 + CIP-68 with configurable priority, plus CIP-113 extensions) interface. See [ADR-017](017-thin-wrapper-over-assets-ext.md) for the current architectural baseline.
 
 ## ADR Index
+
+### Foundational
+
+| ADR | Title | Status |
+|-----|-------|--------|
+| [ADR-017](017-thin-wrapper-over-assets-ext.md) | Refactor to Thin Wrapper over yaci-store assets-ext | **Accepted (current baseline)** |
 
 ### Project Structure & Technology
 
 | ADR | Title | Status |
 |-----|-------|--------|
-| [ADR-001](001-multi-module-maven-structure.md) | Multi-Module Maven Project Structure | Accepted |
+| [ADR-001](001-multi-module-maven-structure.md) | Multi-Module Maven Project Structure | Accepted (updated by ADR-017: `common` module removed) |
 | [ADR-002](002-spring-boot-virtual-threads-jdk25.md) | Spring Boot 3 with Virtual Threads on JDK 25 | Accepted |
-| [ADR-003](003-graalvm-native-image-support.md) | GraalVM Native Image Support | Accepted |
+| [ADR-003](003-graalvm-native-image-support.md) | GraalVM Native Image Support | **Deprecated** (see ADR-017) |
 
 ### Data & Standards
 
 | ADR | Title | Status |
 |-----|-------|--------|
-| [ADR-004](004-cip26-cip68-dual-standard.md) | CIP-26 and CIP-68 Dual Standard Support | Accepted |
-| [ADR-005](005-postgresql-jsonb-metadata.md) | PostgreSQL with JSONB for Extensible Metadata | Accepted |
-| [ADR-006](006-flyway-database-migrations.md) | Flyway for Database Schema Management | Accepted |
-| [ADR-015](015-v2-api-extensions-model.md) | V2 API Extensions Model | Accepted |
-| [ADR-016](016-cip113-programmable-tokens.md) | CIP-113 Programmable Token Support | Accepted |
+| [ADR-004](004-cip26-cip68-dual-standard.md) | CIP-26 and CIP-68 Dual Standard Support | Accepted (implementation moved to assets-ext per ADR-017) |
+| [ADR-005](005-postgresql-jsonb-metadata.md) | PostgreSQL with JSONB for Extensible Metadata | Accepted (schema owned by assets-ext per ADR-017) |
+| [ADR-006](006-flyway-database-migrations.md) | Flyway for Database Schema Management | Accepted (migrations owned by assets-ext per ADR-017) |
+| [ADR-015](015-v2-api-extensions-model.md) | V2 API Extensions Model | Accepted (DTOs provided by assets-ext per ADR-017) |
+| [ADR-016](016-cip113-programmable-tokens.md) | CIP-113 Programmable Token Support | Accepted (implementation moved to assets-ext per ADR-017) |
 
 ### Data Ingestion
 
 | ADR | Title | Status |
 |-----|-------|--------|
-| [ADR-007](007-yaci-store-onchain-indexing.md) | Yaci Store for On-Chain Data Indexing | Accepted |
-| [ADR-008](008-jgit-git-operations.md) | JGit for Git Operations | Accepted |
-| [ADR-009](009-incremental-github-sync.md) | Incremental GitHub Sync with Commit Tracking | Accepted |
+| [ADR-007](007-yaci-store-onchain-indexing.md) | Yaci Store for On-Chain Data Indexing | **Superseded by ADR-017** |
+| [ADR-008](008-jgit-git-operations.md) | JGit for Git Operations | **Superseded by ADR-017** (JGit moved into assets-ext) |
+| [ADR-009](009-incremental-github-sync.md) | Incremental GitHub Sync with Commit Tracking | **Superseded by ADR-017** (logic moved to assets-ext) |
 
 ### API Design
 
 | ADR | Title | Status |
 |-----|-------|--------|
-| [ADR-010](010-v2-api-query-priority.md) | V2 API with Query Priority Model | Accepted |
+| [ADR-010](010-v2-api-query-priority.md) | V2 API with Query Priority Model | Accepted (implementation in assets-ext's `TokenQueryService` per ADR-017) |
 
 ### Operations & Observability
 
 | ADR | Title | Status |
 |-----|-------|--------|
-| [ADR-011](011-health-check-groups-kubernetes.md) | Health Check Groups for Kubernetes Probes | Accepted |
-| [ADR-012](012-prometheus-business-metrics.md) | Prometheus Metrics with Custom Business Counters | Accepted |
+| [ADR-011](011-health-check-groups-kubernetes.md) | Health Check Groups for Kubernetes Probes | Accepted (indicator bean IDs updated per ADR-017) |
+| [ADR-012](012-prometheus-business-metrics.md) | Prometheus Metrics with Custom Business Counters | Accepted (scope reduced per ADR-017) |
 | [ADR-013](013-structured-logging-ecs.md) | Structured Logging with ECS Format | Accepted |
 
 ### CI/CD & Release

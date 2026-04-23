@@ -2,11 +2,11 @@
 
 ## Status
 
-Accepted
+**Deprecated** — [ADR-017](017-thin-wrapper-over-assets-ext.md) deleted `NativeImageConfig` because the entities and REST DTOs it registered reflection hints for no longer live in this repo. A fresh hints configuration scoped to the controllers, `V1TokenMetadataMapper`, and assets-ext's types is needed before native builds can be restored. Tracked as a follow-up.
 
 ## Date
 
-2026-03-24
+2026-03-24 (original); deprecated 2026-04-23
 
 ## Context
 
