@@ -1,21 +1,17 @@
 package org.cardanofoundation.tokenmetadata.registry.api.controller;
 
+import com.bloxbean.cardano.yaci.store.extensions.assetstore.cip26.storage.Cip26StorageReader;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.cardanofoundation.tokenmetadata.registry.api.indexer.V1ApiMetadataIndexer;
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.BatchRequest;
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.BatchResponse;
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.TokenMetadata;
-import org.cardanofoundation.tokenmetadata.registry.api.service.RegistryMetricsService;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.RequestMapping;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 @Controller
 @CrossOrigin
@@ -24,63 +20,36 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class MetadataApiController implements MetadataApi {
 
-    private final V1ApiMetadataIndexer v1ApiMetadataIndexer;
-    private final RegistryMetricsService metricsService;
+    private final Cip26StorageReader cip26StorageReader;
 
     @Override
     public ResponseEntity<BatchResponse> getSubjects(final BatchRequest body) {
-        try {
-            if (body.getSubjects().isEmpty()) {
-                final BatchResponse response = new BatchResponse();
-                return new ResponseEntity<>(response, HttpStatus.OK);
-            } else {
-                metricsService.recordV1Query(body.getSubjects().size());
-                final Map<String, TokenMetadata> subjects = v1ApiMetadataIndexer.findSubjectsSelectProperties(
-                        body.getSubjects(),
-                        body.getProperties() == null ? List.of() : body.getProperties());
-                if (subjects.isEmpty()) {
-                    return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-                } else {
-                    final BatchResponse response = new BatchResponse();
-                    response.setSubjects(new ArrayList<>(subjects.values()));
-                    return new ResponseEntity<>(response, HttpStatus.OK);
-                }
-            }
-
-        } catch (final IllegalArgumentException _) {
-            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        if (body.getSubjects().isEmpty()) {
+            return ResponseEntity.ok(new BatchResponse());
         }
+        List<String> propertyFilter = body.getProperties();
+        List<TokenMetadata> subjects = cip26StorageReader.findBySubjects(body.getSubjects()).stream()
+                .map(entity -> V1TokenMetadataMapper.toDto(entity, propertyFilter))
+                .toList();
+        if (subjects.isEmpty()) {
+            return ResponseEntity.noContent().build();
+        }
+        BatchResponse response = new BatchResponse();
+        response.setSubjects(subjects);
+        return ResponseEntity.ok(response);
     }
 
     @Override
     public ResponseEntity<TokenMetadata> getAllPropertiesForSubject(final String subject) {
-        try {
-            metricsService.recordV1Query(1);
-            return v1ApiMetadataIndexer
-                    .findSubject(subject)
-                    .map(tokenMetadata -> new ResponseEntity<>(tokenMetadata, HttpStatus.OK))
-                    .orElseGet(() -> {
-                        metricsService.recordNotFound();
-                        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-                    });
-        } catch (final IllegalArgumentException _) {
-            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-        }
+        return cip26StorageReader.findBySubject(subject)
+                .map(entity -> ResponseEntity.ok(V1TokenMetadataMapper.toDto(entity, null)))
+                .orElseGet(() -> ResponseEntity.noContent().build());
     }
 
     @Override
     public ResponseEntity<TokenMetadata> getPropertyForSubject(final String subject, final String property) {
-        try {
-            metricsService.recordV1Query(1);
-            return v1ApiMetadataIndexer
-                    .findSubjectSelectProperties(subject, List.of(property))
-                    .map(tokenMetadata -> new ResponseEntity<>(tokenMetadata, HttpStatus.OK))
-                    .orElseGet(() -> {
-                        metricsService.recordNotFound();
-                        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-                    });
-        } catch (final IllegalArgumentException _) {
-            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-        }
+        return cip26StorageReader.findBySubject(subject)
+                .map(entity -> ResponseEntity.ok(V1TokenMetadataMapper.toDto(entity, List.of(property))))
+                .orElseGet(() -> ResponseEntity.noContent().build());
     }
 }

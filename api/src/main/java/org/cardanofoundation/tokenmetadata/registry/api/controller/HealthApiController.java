@@ -1,9 +1,9 @@
 package org.cardanofoundation.tokenmetadata.registry.api.controller;
 
+import com.bloxbean.cardano.yaci.store.extensions.assetstore.health.OffchainSyncHealthIndicator;
+import com.bloxbean.cardano.yaci.store.extensions.assetstore.health.OnchainReadinessHealthIndicator;
 import jakarta.annotation.Nullable;
 import lombok.extern.slf4j.Slf4j;
-import org.cardanofoundation.tokenmetadata.registry.api.health.OffchainSyncHealthIndicator;
-import org.cardanofoundation.tokenmetadata.registry.api.health.OnchainReadinessHealthIndicator;
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.HealthResponse;
 import org.springframework.boot.actuate.health.Health;
 import org.springframework.boot.actuate.health.Status;
@@ -25,18 +25,20 @@ public class HealthApiController implements HealthApi {
 
     public static final String SYNC_STATUS = "syncStatus";
 
+    /**
+     * Both indicators are {@code @ConditionalOnBean} in assets-ext and may be absent:
+     * {@code assetStoreOffchainSync} is missing when {@code store.assets.ext.cip26.enabled=false}
+     * (K8s-managed external CIP-26 sync), and {@code assetStoreOnchainReadiness} is missing in
+     * read-only mode. When absent, this endpoint reports the corresponding path as disabled
+     * instead of failing startup.
+     */
+    @Nullable
     private final OffchainSyncHealthIndicator offchainSyncHealthIndicator;
 
-    /**
-     * Nullable because {@link OnchainReadinessHealthIndicator} is conditional on Yaci Store's
-     * {@code HealthService} bean, which is not registered in read-only mode
-     * ({@code store.read-only-mode=true}). When null, the legacy health endpoint reports
-     * on-chain sync as "disabled" instead of failing.
-     */
     @Nullable
     private final OnchainReadinessHealthIndicator onchainSyncHealthIndicator;
 
-    public HealthApiController(OffchainSyncHealthIndicator offchainSyncHealthIndicator,
+    public HealthApiController(@Nullable OffchainSyncHealthIndicator offchainSyncHealthIndicator,
                                @Nullable OnchainReadinessHealthIndicator onchainSyncHealthIndicator) {
         this.offchainSyncHealthIndicator = offchainSyncHealthIndicator;
         this.onchainSyncHealthIndicator = onchainSyncHealthIndicator;
@@ -44,7 +46,9 @@ public class HealthApiController implements HealthApi {
 
     @Override
     public ResponseEntity<HealthResponse> getHealthStatus() {
-        Health offchainHealth = offchainSyncHealthIndicator.health();
+        Health offchainHealth = offchainSyncHealthIndicator != null
+                ? offchainSyncHealthIndicator.health()
+                : Health.up().withDetail(SYNC_STATUS, "Offchain sync externally managed").build();
         Health onchainHealth = onchainSyncHealthIndicator != null
                 ? onchainSyncHealthIndicator.health()
                 : Health.up().withDetail(SYNC_STATUS, "On-chain sync disabled (read-only mode)").build();

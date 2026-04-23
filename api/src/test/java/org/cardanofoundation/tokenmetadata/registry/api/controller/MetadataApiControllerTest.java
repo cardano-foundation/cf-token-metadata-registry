@@ -1,10 +1,11 @@
 package org.cardanofoundation.tokenmetadata.registry.api.controller;
 
-import org.cardanofoundation.tokenmetadata.registry.api.indexer.V1ApiMetadataIndexer;
+import com.bloxbean.cardano.yaci.store.extensions.assetstore.cip26.model.Item;
+import com.bloxbean.cardano.yaci.store.extensions.assetstore.cip26.model.Mapping;
+import com.bloxbean.cardano.yaci.store.extensions.assetstore.cip26.storage.Cip26StorageReader;
+import com.bloxbean.cardano.yaci.store.extensions.assetstore.cip26.storage.impl.model.TokenMetadata;
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.BatchRequest;
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.BatchResponse;
-import org.cardanofoundation.tokenmetadata.registry.api.model.rest.TokenMetadata;
-import org.cardanofoundation.tokenmetadata.registry.api.service.RegistryMetricsService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -16,23 +17,17 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("MetadataApiController")
 class MetadataApiControllerTest {
 
     @Mock
-    private V1ApiMetadataIndexer v1ApiMetadataIndexer;
-
-    @Mock
-    private RegistryMetricsService metricsService;
+    private Cip26StorageReader cip26StorageReader;
 
     @InjectMocks
     private MetadataApiController controller;
@@ -51,37 +46,25 @@ class MetadataApiControllerTest {
 
         @Test
         void foundSubjects_returnsOk() {
-            TokenMetadata metadata = TokenMetadata.builder().subject("abc123").build();
-            when(v1ApiMetadataIndexer.findSubjectsSelectProperties(List.of("abc123"), List.of()))
-                    .thenReturn(Map.of("abc123", metadata));
+            TokenMetadata entity = newEntity("abc123", "MyToken");
+            when(cip26StorageReader.findBySubjects(List.of("abc123"))).thenReturn(List.of(entity));
 
             BatchRequest request = new BatchRequest(List.of("abc123"), null);
             ResponseEntity<BatchResponse> response = controller.getSubjects(request);
 
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
             assertThat(response.getBody().getSubjects()).hasSize(1);
+            assertThat(response.getBody().getSubjects().get(0).getSubject()).isEqualTo("abc123");
         }
 
         @Test
         void noSubjectsFound_returnsNoContent() {
-            when(v1ApiMetadataIndexer.findSubjectsSelectProperties(any(), any()))
-                    .thenReturn(Map.of());
+            when(cip26StorageReader.findBySubjects(List.of("unknown"))).thenReturn(List.of());
 
             BatchRequest request = new BatchRequest(List.of("unknown"), List.of());
             ResponseEntity<BatchResponse> response = controller.getSubjects(request);
 
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
-        }
-
-        @Test
-        void illegalArgument_returnsBadRequest() {
-            when(v1ApiMetadataIndexer.findSubjectsSelectProperties(any(), any()))
-                    .thenThrow(new IllegalArgumentException("bad"));
-
-            BatchRequest request = new BatchRequest(List.of("bad"), List.of());
-            ResponseEntity<BatchResponse> response = controller.getSubjects(request);
-
-            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         }
     }
 
@@ -91,32 +74,24 @@ class MetadataApiControllerTest {
 
         @Test
         void found_returnsOk() {
-            TokenMetadata metadata = TokenMetadata.builder().subject("abc123").build();
-            when(v1ApiMetadataIndexer.findSubject("abc123")).thenReturn(Optional.of(metadata));
+            TokenMetadata entity = newEntity("abc123", "MyToken");
+            when(cip26StorageReader.findBySubject("abc123")).thenReturn(Optional.of(entity));
 
-            ResponseEntity<TokenMetadata> response = controller.getAllPropertiesForSubject("abc123");
+            ResponseEntity<org.cardanofoundation.tokenmetadata.registry.api.model.rest.TokenMetadata> response =
+                    controller.getAllPropertiesForSubject("abc123");
 
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-            assertThat(response.getBody()).isEqualTo(metadata);
+            assertThat(response.getBody()).isNotNull();
+            assertThat(response.getBody().getSubject()).isEqualTo("abc123");
+            assertThat(response.getBody().getName().getValue()).isEqualTo("MyToken");
         }
 
         @Test
         void notFound_returnsNoContent() {
-            when(v1ApiMetadataIndexer.findSubject("unknown")).thenReturn(Optional.empty());
-
-            ResponseEntity<TokenMetadata> response = controller.getAllPropertiesForSubject("unknown");
-
+            when(cip26StorageReader.findBySubject("unknown")).thenReturn(Optional.empty());
+            ResponseEntity<org.cardanofoundation.tokenmetadata.registry.api.model.rest.TokenMetadata> response =
+                    controller.getAllPropertiesForSubject("unknown");
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
-            verify(metricsService).recordNotFound();
-        }
-
-        @Test
-        void illegalArgument_returnsBadRequest() {
-            when(v1ApiMetadataIndexer.findSubject(any())).thenThrow(new IllegalArgumentException("bad"));
-
-            ResponseEntity<TokenMetadata> response = controller.getAllPropertiesForSubject("bad");
-
-            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         }
     }
 
@@ -126,35 +101,33 @@ class MetadataApiControllerTest {
 
         @Test
         void found_returnsOk() {
-            TokenMetadata metadata = TokenMetadata.builder().subject("abc123").build();
-            when(v1ApiMetadataIndexer.findSubjectSelectProperties("abc123", List.of("ticker")))
-                    .thenReturn(Optional.of(metadata));
+            TokenMetadata entity = newEntity("abc123", "MyToken");
+            when(cip26StorageReader.findBySubject("abc123")).thenReturn(Optional.of(entity));
 
-            ResponseEntity<TokenMetadata> response = controller.getPropertyForSubject("abc123", "ticker");
+            ResponseEntity<org.cardanofoundation.tokenmetadata.registry.api.model.rest.TokenMetadata> response =
+                    controller.getPropertyForSubject("abc123", "name");
 
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+            assertThat(response.getBody().getName()).isNotNull();
+            assertThat(response.getBody().getDescription()).isNull();
         }
 
         @Test
         void notFound_returnsNoContent() {
-            when(v1ApiMetadataIndexer.findSubjectSelectProperties("unknown", List.of("ticker")))
-                    .thenReturn(Optional.empty());
-
-            ResponseEntity<TokenMetadata> response = controller.getPropertyForSubject("unknown", "ticker");
-
+            when(cip26StorageReader.findBySubject("unknown")).thenReturn(Optional.empty());
+            ResponseEntity<org.cardanofoundation.tokenmetadata.registry.api.model.rest.TokenMetadata> response =
+                    controller.getPropertyForSubject("unknown", "name");
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
-            verify(metricsService).recordNotFound();
         }
+    }
 
-        @Test
-        void illegalArgument_returnsBadRequest() {
-            when(v1ApiMetadataIndexer.findSubjectSelectProperties(any(), any()))
-                    .thenThrow(new IllegalArgumentException("bad"));
-
-            ResponseEntity<TokenMetadata> response = controller.getPropertyForSubject("bad", "ticker");
-
-            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-        }
+    private static TokenMetadata newEntity(String subject, String name) {
+        TokenMetadata t = new TokenMetadata();
+        t.setSubject(subject);
+        Item nameItem = new Item(0, name, List.of());
+        Item descItem = new Item(0, "A token", List.of());
+        t.setProperties(new Mapping(subject, null, nameItem, null, null, null, null, descItem));
+        return t;
     }
 
 }

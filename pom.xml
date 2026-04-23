@@ -72,7 +72,9 @@
         <version.bouncycastle>1.80</version.bouncycastle>
         <version.commons-cli>1.9.0</version.commons-cli>
         <version.cardano-client-lib>0.7.1</version.cardano-client-lib>
-        <version.yaci>2.0.0</version.yaci>
+        <!-- Pinned to the latest yaci-store git-sha SNAPSHOT resolvable from local Maven.
+             Bump when a newer pre4 snapshot is published. -->
+        <version.yaci>2.1.0-pre4-d358232-SNAPSHOT</version.yaci>
         <version.jgit>7.1.0.202411261347-r</version.jgit>
         <version.mockito>5.18.0</version.mockito>
         <version.byte-buddy>1.17.4</version.byte-buddy>
@@ -83,6 +85,16 @@
         <repository>
             <id>central</id>
             <url>https://repo1.maven.org/maven2/</url>
+        </repository>
+        <repository>
+            <id>sonatype-snapshots</id>
+            <url>https://s01.oss.sonatype.org/content/repositories/snapshots/</url>
+            <releases>
+                <enabled>false</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
         </repository>
     </repositories>
 
@@ -349,7 +361,6 @@
     <modules>
         <module>api</module>
         <module>job</module>
-        <module>common</module>
         <module>cli</module>
         <module>integration-test</module>
     </modules>
