@@ -138,3 +138,53 @@ class TestV1BatchQuery:
         assert resp.status_code == 200
         data = resp.json()
         assert len(data["subjects"]) == len(CIP26_SUBJECTS)
+
+    @allure.story("Batch response preserves V1 annotated-property shape")
+    def test_batch_response_contains_annotated_shape(self):
+        """Each property in a batch response must be the CIP-26 annotated object:
+        {value, signatures, sequenceNumber}. Regression guard for V1 mapper paths."""
+        batch = CIP26_SUBJECTS[:20]
+        resp = requests.post(
+            f"{API_BASE_URL}/metadata/query",
+            json={"subjects": batch},
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["subjects"], "Expected at least one subject in batch response"
+
+        annotated_props = ["name", "description", "ticker", "url", "decimals", "logo"]
+        checked_any_property = False
+        for entry in data["subjects"]:
+            for prop in annotated_props:
+                prop_data = entry.get(prop)
+                if prop_data is None:
+                    continue
+                checked_any_property = True
+                assert "value" in prop_data, f"{entry['subject'][:16]}.{prop} missing 'value'"
+                assert "signatures" in prop_data, f"{entry['subject'][:16]}.{prop} missing 'signatures'"
+                assert "sequenceNumber" in prop_data, f"{entry['subject'][:16]}.{prop} missing 'sequenceNumber'"
+                assert isinstance(prop_data["signatures"], list), (
+                    f"{entry['subject'][:16]}.{prop}.signatures must be a list"
+                )
+                assert isinstance(prop_data["sequenceNumber"], (int, float)), (
+                    f"{entry['subject'][:16]}.{prop}.sequenceNumber must be numeric"
+                )
+        assert checked_any_property, "Did not find any annotated property to validate"
+
+    @allure.story("Batch with property filter preserves annotated shape on filtered fields")
+    def test_batch_filter_preserves_annotated_shape(self):
+        batch = CIP26_SUBJECTS[:20]
+        resp = requests.post(
+            f"{API_BASE_URL}/metadata/query",
+            json={"subjects": batch, "properties": ["name", "description"]},
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        for entry in data["subjects"]:
+            for prop in ("name", "description"):
+                prop_data = entry.get(prop)
+                if prop_data is None:
+                    continue
+                assert "value" in prop_data
+                assert "signatures" in prop_data
+                assert "sequenceNumber" in prop_data

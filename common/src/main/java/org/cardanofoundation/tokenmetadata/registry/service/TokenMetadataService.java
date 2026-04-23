@@ -21,9 +21,7 @@ import static org.cardanofoundation.tokenmetadata.registry.util.MappingsUtil.toT
 public class TokenMetadataService {
 
     private final TokenMetadataRepository tokenMetadataRepository;
-
     private final TokenLogoRepository tokenLogoRepository;
-
     private final TokenMetadataValidator tokenMetadataValidator;
 
     /**

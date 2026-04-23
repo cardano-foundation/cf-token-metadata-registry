@@ -4,13 +4,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Architecture Overview
 
-Multi-standard Cardano token metadata registry built with Spring Boot 3 and Java 25. Merges offchain (CIP-26) and on-chain (CIP-68) token metadata into a unified API with configurable query priority.
+Multi-standard Cardano token metadata registry built with Spring Boot 3 and Java 25. Merges offchain (CIP-26), on-chain (CIP-68), and programmable token (CIP-113) metadata into a unified API with configurable query priority.
 
 ### Modules
 
-- **api**: REST API server — serves V1 (CIP-26 only) and V2 (CIP-26 + CIP-68) endpoints. Embeds Yaci Store for real-time blockchain indexing of CIP-68 reference NFTs
+- **api**: REST API server — serves V1 (CIP-26 only) and V2 (CIP-26 + CIP-68 + CIP-113) endpoints. Embeds Yaci Store for real-time blockchain indexing of CIP-68 reference NFTs and CIP-113 registry nodes
 - **job**: Background job that syncs CIP-26 offchain metadata from the GitHub cardano-token-registry
-- **common**: Shared JPA entities (`Metadata`, `MetadataReferenceNft`), repositories, and domain models
+- **common**: Shared JPA entities (`Metadata`, `MetadataReferenceNft`, `Cip113RegistryNode`), repositories, and domain models
 - **cli**: Command-line tool for CIP-26 metadata operations (`init`, `entry`, `validate`)
 - **integration-test**: End-to-end integration tests run against a live API instance with `RestTemplate`
 
@@ -18,6 +18,7 @@ Multi-standard Cardano token metadata registry built with Spring Boot 3 and Java
 
 - **CIP-26** (offchain): JSON metadata files synced from GitHub, stored in `metadata` table
 - **CIP-68** (on-chain): Reference NFT datum parsed from blockchain UTxOs (prefix `000643b0`), stored in `metadata_reference_nft` table. Fungible tokens (prefix `0014df10`) are mapped to their reference NFT counterpart
+- **CIP-113** (programmable tokens): Registry node NFTs with transfer logic scripts, stored in `cip113_registry_node` table. Enabled when `CIP113_REGISTRY_NFT_POLICY_IDS` is non-empty
 
 ### V2 Query Priority
 
@@ -25,12 +26,13 @@ The V2 API merges metadata from CIP-26 and CIP-68 using a priority mechanism:
 - Default priority: `CIP_68,CIP_26` (on-chain preferred, configurable via `cip.query.priority`)
 - Per-request override via `query_priority` parameter
 - First source with valid data (name + description) wins; gaps filled by lower-priority sources
+- CIP-113 extensions are appended when the token's policy ID is in the programmable token registry
 
 ### On-Chain Indexing (Yaci Store)
 
 Yaci Store 2.0.0 is embedded in the API module for real-time Cardano blockchain sync:
-- `CustomUtxoStorage` filters UTxOs — only persists CIP-68 reference NFTs
-- Event listener (`Cip68EventListener`) parses datums on new blocks
+- `CustomUtxoStorage` filters UTxOs — only persists CIP-68 reference NFTs and CIP-113 registry nodes
+- Event listeners (`Cip68EventListener`, `Cip113EventListener`) parse datums on new blocks
 - Admin UI available at `/admin-ui/` for sync control
 
 ## Key Commands
@@ -81,6 +83,7 @@ Main configuration is in `api/src/main/resources/application.properties`. Key en
 | `TOKEN_METADATA_SYNC_JOB` | Enable CIP-26 GitHub sync | `false` |
 | `GITHUB_ORGANIZATION` | Source GitHub org | `cardano-foundation` |
 | `GITHUB_PROJECT_NAME` | Source repo name | `cardano-token-registry` |
+| `CIP113_REGISTRY_NFT_POLICY_IDS` | Comma-separated monitored policy IDs (CIP-113 enabled when non-empty) | (empty) |
 | `STORE_CARDANO_HOST` | Cardano node hostname | `backbone.mainnet.cardanofoundation.org` |
 | `STORE_CARDANO_PORT` | Cardano node port | `3001` |
 
@@ -94,7 +97,7 @@ Main configuration is in `api/src/main/resources/application.properties`. Key en
 | GET | `/metadata/{subject}/properties/{property}` | Single property for a subject |
 | POST | `/metadata/query` | Batch query multiple subjects |
 
-### V2 API (CIP-26 + CIP-68)
+### V2 API (CIP-26 + CIP-68 + CIP-113)
 
 | Method | Path | Description |
 |--------|------|-------------|
