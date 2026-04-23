@@ -2,11 +2,11 @@
 
 ## Status
 
-Accepted
+Accepted — the principle (expose Prometheus metrics including domain-specific counters alongside standard Micrometer metrics) still holds. Per [ADR-017](017-thin-wrapper-over-assets-ext.md) the scope is narrowed: `RegistryMetricsService` now emits only `cftr.api.cip.hits{cip=26|68|113}`. Token-count gauges and the sync-status gauge were removed because they duplicated yaci-store's `yaci.store.*` metrics (sync mode, current block/slot/epoch) and the API-query-by-version counters were redundant with Spring Boot's `http_server_requests_seconds_count{uri=...,status=...}`.
 
 ## Date
 
-2026-03-24
+2026-03-24 (original); scope reduced 2026-04-23
 
 ## Context
 

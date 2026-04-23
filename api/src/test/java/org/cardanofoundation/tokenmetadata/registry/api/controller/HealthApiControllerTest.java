@@ -1,7 +1,7 @@
 package org.cardanofoundation.tokenmetadata.registry.api.controller;
 
-import org.cardanofoundation.tokenmetadata.registry.api.health.OffchainSyncHealthIndicator;
-import org.cardanofoundation.tokenmetadata.registry.api.health.OnchainReadinessHealthIndicator;
+import com.bloxbean.cardano.yaci.store.extensions.assetstore.health.OffchainSyncHealthIndicator;
+import com.bloxbean.cardano.yaci.store.extensions.assetstore.health.OnchainReadinessHealthIndicator;
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.HealthResponse;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

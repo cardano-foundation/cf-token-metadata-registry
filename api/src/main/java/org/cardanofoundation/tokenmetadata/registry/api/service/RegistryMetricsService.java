@@ -1,151 +1,77 @@
 package org.cardanofoundation.tokenmetadata.registry.api.service;
 
+import com.bloxbean.cardano.yaci.store.extensions.assetstore.api.dto.Metadata;
+import com.bloxbean.cardano.yaci.store.extensions.assetstore.api.dto.Property;
+import com.bloxbean.cardano.yaci.store.extensions.assetstore.api.dto.Subject;
+import com.bloxbean.cardano.yaci.store.extensions.assetstore.cip113.model.ProgrammableTokenCip113;
 import io.micrometer.core.instrument.Counter;
-import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
-import jakarta.annotation.PostConstruct;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.cardanofoundation.tokenmetadata.registry.model.enums.SyncStatusEnum;
-import org.cardanofoundation.tokenmetadata.registry.service.TokenMetadataSyncService;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.HashSet;
+import java.util.Set;
 
+/**
+ * Emits per-CIP hit counters for V2 subject queries. Nothing else — token counts,
+ * API-query-by-version, sync status etc. are covered by Spring Boot's
+ * {@code http_server_requests} and yaci-store's {@code yaci.store.*} gauges.
+ */
 @Service
-@Slf4j
-@RequiredArgsConstructor
 public class RegistryMetricsService {
 
-    private static final String NAMESPACE = "cftr";
-    private static final String CIP_HITS_METRIC = NAMESPACE + ".api.cip.hits";
+    private static final String CIP_HITS_METRIC = "cftr.api.cip.hits";
+    private static final String SOURCE_CIP_26 = "CIP_26";
+    private static final String SOURCE_CIP_68 = "CIP_68";
 
-    private final MeterRegistry meterRegistry;
-    private final JdbcTemplate jdbcTemplate;
-    private final TokenMetadataSyncService tokenMetadataSyncService;
+    private final Counter cip26Hits;
+    private final Counter cip68Hits;
+    private final Counter cip113Hits;
 
-    private final AtomicLong cip26Count = new AtomicLong(0);
-    private final AtomicLong cip68Count = new AtomicLong(0);
-    private final AtomicLong cip113Count = new AtomicLong(0);
-
-    private Counter v1QueryCounter;
-    private Counter v2QueryCounter;
-    private Counter v2Cip26HitCounter;
-    private Counter v2Cip68HitCounter;
-    private Counter v2Cip113HitCounter;
-    private Counter subjectsQueriedCounter;
-    private Counter notFoundCounter;
-
-    @PostConstruct
-    void registerMetrics() {
-        Gauge.builder(NAMESPACE + ".tokens.cip26.count", cip26Count, AtomicLong::doubleValue)
-                .description("Total number of CIP-26 tokens in the registry")
-                .register(meterRegistry);
-
-        Gauge.builder(NAMESPACE + ".tokens.cip68.count", cip68Count, AtomicLong::doubleValue)
-                .description("Total number of CIP-68 reference NFTs in the registry")
-                .register(meterRegistry);
-
-        Gauge.builder(NAMESPACE + ".tokens.cip113.count", cip113Count, AtomicLong::doubleValue)
-                .description("Total number of CIP-113 programmable tokens in the registry")
-                .register(meterRegistry);
-
-        Gauge.builder(NAMESPACE + ".sync.status", this, RegistryMetricsService::getSyncStatusValue)
-                .description("Sync status: 0=not_started, 1=in_progress, 2=done, 3=error, 4=external_job")
-                .register(meterRegistry);
-
-        v1QueryCounter = Counter.builder(NAMESPACE + ".api.queries")
-                .tag("version", "v1")
-                .description("Number of V1 API queries")
-                .register(meterRegistry);
-
-        v2QueryCounter = Counter.builder(NAMESPACE + ".api.queries")
-                .tag("version", "v2")
-                .description("Number of V2 API queries")
-                .register(meterRegistry);
-
-        v2Cip26HitCounter = Counter.builder(CIP_HITS_METRIC)
+    public RegistryMetricsService(MeterRegistry meterRegistry) {
+        this.cip26Hits = Counter.builder(CIP_HITS_METRIC)
                 .tag("cip", "26")
-                .description("Number of V2 queries resolved via CIP-26")
+                .description("V2 queries resolved via CIP-26 offchain metadata")
                 .register(meterRegistry);
-
-        v2Cip68HitCounter = Counter.builder(CIP_HITS_METRIC)
+        this.cip68Hits = Counter.builder(CIP_HITS_METRIC)
                 .tag("cip", "68")
-                .description("Number of V2 queries resolved via CIP-68")
+                .description("V2 queries resolved via CIP-68 on-chain metadata")
                 .register(meterRegistry);
-
-        v2Cip113HitCounter = Counter.builder(CIP_HITS_METRIC)
+        this.cip113Hits = Counter.builder(CIP_HITS_METRIC)
                 .tag("cip", "113")
-                .description("Number of V2 queries enriched with CIP-113 data")
-                .register(meterRegistry);
-
-        subjectsQueriedCounter = Counter.builder(NAMESPACE + ".api.subjects.queried")
-                .description("Total number of subjects looked up")
-                .register(meterRegistry);
-
-        notFoundCounter = Counter.builder(NAMESPACE + ".api.subjects.not_found")
-                .description("Number of subject lookups that returned no result")
+                .description("V2 queries enriched with a CIP-113 extension")
                 .register(meterRegistry);
     }
 
-    @Scheduled(fixedRate = 30_000, initialDelay = 5_000)
-    void refreshTokenCounts() {
-        try {
-            Long metadataCount = jdbcTemplate.queryForObject("SELECT count(*) FROM metadata", Long.class);
-            cip26Count.set(metadataCount != null ? metadataCount : 0);
-
-            Long refNftCount = jdbcTemplate.queryForObject(
-                    "SELECT count(DISTINCT policy_id || asset_name) FROM metadata_reference_nft", Long.class);
-            cip68Count.set(refNftCount != null ? refNftCount : 0);
-
-            // Exclude the head sentinel (key = '') — it's a linked-list marker, not a
-            // registered programmable token. See Cip113RegistryNode javadoc for valid key
-            // values (empty = head sentinel / 56 chars = real policy / 58-64 chars = tail sentinel).
-            Long cip113TokenCount = jdbcTemplate.queryForObject(
-                    "SELECT count(DISTINCT key) FROM cip113_registry_node WHERE key <> ''", Long.class);
-            cip113Count.set(cip113TokenCount != null ? cip113TokenCount : 0);
-        } catch (Exception e) {
-            log.warn("Failed to refresh token counts for metrics: {}", e.getMessage());
+    public void recordSubject(Subject subject) {
+        Set<String> sources = collectSources(subject.metadata());
+        if (sources.contains(SOURCE_CIP_26)) {
+            cip26Hits.increment();
+        }
+        if (sources.contains(SOURCE_CIP_68)) {
+            cip68Hits.increment();
+        }
+        if (subject.extensions() != null
+                && subject.extensions().containsKey(ProgrammableTokenCip113.EXTENSION_KEY)) {
+            cip113Hits.increment();
         }
     }
 
-    public void recordV1Query(int subjectCount) {
-        v1QueryCounter.increment();
-        subjectsQueriedCounter.increment(subjectCount);
+    private static Set<String> collectSources(Metadata metadata) {
+        Set<String> sources = new HashSet<>(4);
+        addSource(sources, metadata.name());
+        addSource(sources, metadata.description());
+        addSource(sources, metadata.ticker());
+        addSource(sources, metadata.decimals());
+        addSource(sources, metadata.logo());
+        addSource(sources, metadata.url());
+        addSource(sources, metadata.version());
+        return sources;
     }
 
-    public void recordV2Query(int subjectCount) {
-        v2QueryCounter.increment();
-        subjectsQueriedCounter.increment(subjectCount);
-    }
-
-    public void recordCip26Hit() {
-        v2Cip26HitCounter.increment();
-    }
-
-    public void recordCip68Hit() {
-        v2Cip68HitCounter.increment();
-    }
-
-    public void recordCip113Hit() {
-        v2Cip113HitCounter.increment();
-    }
-
-    public void recordNotFound() {
-        notFoundCounter.increment();
-    }
-
-    private double getSyncStatusValue() {
-        SyncStatusEnum status = tokenMetadataSyncService.getSyncStatus().getStatus();
-        return switch (status) {
-            case SYNC_NOT_STARTED -> 0;
-            case SYNC_IN_PROGRESS -> 1;
-            case SYNC_DONE -> 2;
-            case SYNC_ERROR -> 3;
-            case SYNC_IN_EXTRA_JOB -> 4;
-        };
+    private static void addSource(Set<String> sources, Property<?> property) {
+        if (property != null && property.source() != null) {
+            sources.add(property.source());
+        }
     }
 
 }

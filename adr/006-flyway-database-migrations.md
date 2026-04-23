@@ -2,11 +2,11 @@
 
 ## Status
 
-Accepted
+Accepted — Flyway is still the migration tool. Per [ADR-017](017-thin-wrapper-over-assets-ext.md) this service no longer ships its own migrations: all CIP-26 / CIP-68 / CIP-113 migrations come bundled in yaci-store's `assets-ext` jar, and Flyway picks them up from the classpath. The `api/src/main/resources/db/migration/` directory was removed.
 
 ## Date
 
-2026-03-24
+2026-03-24 (original); migration ownership moved 2026-04-23
 
 ## Context
 

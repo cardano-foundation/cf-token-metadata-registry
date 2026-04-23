@@ -2,11 +2,11 @@
 
 ## Status
 
-Accepted
+Accepted — the wire format (the `extensions` map keyed by CIP identifier, separate from the merged `metadata` block) is unchanged. Per [ADR-017](017-thin-wrapper-over-assets-ext.md) the DTOs (`Subject`, `Metadata`, `Standards`, `Extension`, `ProgrammableTokenCip113`) now come from yaci-store's `assets-ext` package — the V2 controller serves them directly rather than remapping through local records.
 
 ## Date
 
-2026-03-26
+2026-03-26 (original); DTOs moved 2026-04-23
 
 ## Context
 

@@ -91,6 +91,10 @@
             <artifactId>jakarta.validation-api</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.jspecify</groupId>
+            <artifactId>jspecify</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
         </dependency>
@@ -105,29 +109,7 @@
         </dependency>
         <dependency>
             <groupId>org.cardanofoundation.metadatatools</groupId>
-            <artifactId>common</artifactId>
-            <version>${project.parent.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.cardanofoundation.metadatatools</groupId>
             <artifactId>cf-tokens-cip26</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>com.bloxbean.cardano</groupId>
-            <artifactId>cardano-client-lib</artifactId>
-            <version>${version.cardano-client-lib}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.bloxbean.cardano</groupId>
-            <artifactId>cardano-client-backend-blockfrost</artifactId>
-            <version>${version.cardano-client-lib}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.bloxbean.cardano</groupId>
-            <artifactId>cardano-client-annotation-processor</artifactId>
-            <version>${version.cardano-client-lib}</version>
-            <scope>compile</scope>
         </dependency>
 
         <dependency>
@@ -135,9 +117,10 @@
             <artifactId>yaci-store-spring-boot-starter</artifactId>
             <version>${version.yaci}</version>
         </dependency>
+        <!-- CIP-26 / CIP-68 / CIP-113 metadata store + TokenQueryService -->
         <dependency>
             <groupId>com.bloxbean.cardano</groupId>
-            <artifactId>yaci-store-utxo-spring-boot-starter</artifactId>
+            <artifactId>yaci-store-assets-ext-spring-boot-starter</artifactId>
             <version>${version.yaci}</version>
         </dependency>
         <!-- auto recovery support via admin module -->
@@ -185,20 +168,6 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <annotationProcessorPaths>
-                        <path>
-                            <groupId>org.projectlombok</groupId>
-                            <artifactId>lombok</artifactId>
-                            <version>${version.lombok}</version>
-                        </path>
-                        <path>
-                            <groupId>com.bloxbean.cardano</groupId>
-                            <artifactId>cardano-client-annotation-processor</artifactId>
-                            <version>${version.cardano-client-lib}</version>
-                        </path>
-                    </annotationProcessorPaths>
-                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

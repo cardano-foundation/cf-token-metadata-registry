@@ -2,11 +2,11 @@
 
 ## Status
 
-Accepted
+Accepted — updated by [ADR-017](017-thin-wrapper-over-assets-ext.md): the `common` module was removed (its entities, repositories, and services are provided by yaci-store's `assets-ext` extension). The active modules are now `api`, `job`, `cli`, and `integration-test`.
 
 ## Date
 
-2026-03-24
+2026-03-24 (original); updated 2026-04-23
 
 ## Context
 

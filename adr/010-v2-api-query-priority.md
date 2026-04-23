@@ -2,11 +2,11 @@
 
 ## Status
 
-Accepted
+Accepted — the wire contract (`/api/v2/subjects/*`, `query_priority`, `show_cips_details`, priority-based merge of CIP-26 + CIP-68, first-valid-source-wins) is unchanged. Per [ADR-017](017-thin-wrapper-over-assets-ext.md) the merge is now executed by assets-ext's `TokenQueryService`; `V2ApiController` is a thin delegation over it.
 
 ## Date
 
-2026-03-24
+2026-03-24 (original); implementation moved 2026-04-23
 
 ## Context
 
