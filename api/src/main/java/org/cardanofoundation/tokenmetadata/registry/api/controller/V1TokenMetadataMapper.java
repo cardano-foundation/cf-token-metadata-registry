@@ -4,7 +4,7 @@ import com.bloxbean.cardano.yaci.store.extensions.assetstore.cip26.model.Item;
 import com.bloxbean.cardano.yaci.store.extensions.assetstore.cip26.model.Mapping;
 import com.bloxbean.cardano.yaci.store.extensions.assetstore.cip26.model.Signature;
 import com.bloxbean.cardano.yaci.store.extensions.assetstore.cip26.storage.impl.model.TokenMetadata;
-import jakarta.annotation.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.AnnotatedSignature;
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.TokenMetadataProperty;
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.wellknownproperties.DecimalsProperty;

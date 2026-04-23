@@ -2,7 +2,7 @@ package org.cardanofoundation.tokenmetadata.registry.api.controller;
 
 import com.bloxbean.cardano.yaci.store.extensions.assetstore.health.OffchainSyncHealthIndicator;
 import com.bloxbean.cardano.yaci.store.extensions.assetstore.health.OnchainReadinessHealthIndicator;
-import jakarta.annotation.Nullable;
+import org.jspecify.annotations.Nullable;
 import lombok.extern.slf4j.Slf4j;
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.HealthResponse;
 import org.springframework.boot.actuate.health.Health;

@@ -79,6 +79,7 @@
         <version.mockito>5.18.0</version.mockito>
         <version.byte-buddy>1.17.4</version.byte-buddy>
         <version.graalvm-native-plugin>0.10.5</version.graalvm-native-plugin>
+        <version.jspecify>1.0.0</version.jspecify>
     </properties>
 
     <repositories>
@@ -175,6 +176,11 @@
                 <artifactId>byte-buddy-agent</artifactId>
                 <version>${version.byte-buddy}</version>
                 <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.jspecify</groupId>
+                <artifactId>jspecify</artifactId>
+                <version>${version.jspecify}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

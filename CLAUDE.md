@@ -130,5 +130,5 @@ Main configuration is in `api/src/main/resources/application.properties`. Key en
 ## Coding Conventions
 
 - **Do not use `var`** — always use explicit types for local variables
-- **Annotate nullable returns with `@Nullable`** — use `jakarta.annotation.Nullable` on any method that can return null
+- **Annotate nullable returns with `@Nullable`** — use `org.jspecify.annotations.Nullable` on any method that can return null
 - **Prefer Java records over tuples/pairs** — use named records for readability instead of generic `Pair<A,B>` or tuple types
