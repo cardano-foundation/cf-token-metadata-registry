@@ -110,6 +110,7 @@ final class V1TokenMetadataMapper {
                 .toList();
     }
 
+    @Nullable
     private static BigDecimal parseDecimals(String raw) {
         try {
             return new BigDecimal(raw);
