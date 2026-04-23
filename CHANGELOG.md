@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.5.1](https://github.com/cardano-foundation/cf-token-metadata-registry/compare/1.5.0...1.5.1) (2026-04-23)
+
+
+### Bug Fixes
+
+* **ci:** provide fallback tag when cf-gha-baseline returns empty ([#80](https://github.com/cardano-foundation/cf-token-metadata-registry/issues/80)) ([ec80c70](https://github.com/cardano-foundation/cf-token-metadata-registry/commit/ec80c7099b56682401b4df4a3e46925af415d181))
+* **native:** register JGit CoreConfig enums for GraalVM reflection ([#79](https://github.com/cardano-foundation/cf-token-metadata-registry/issues/79)) ([d4640d2](https://github.com/cardano-foundation/cf-token-metadata-registry/commit/d4640d21cae380ada33d0b2c94b51da0ca90a1f3))
+
+
+### Documentation
+
+* **readme:** fix broken badges, promote native image to production-supported ([#81](https://github.com/cardano-foundation/cf-token-metadata-registry/issues/81)) ([aa30cb9](https://github.com/cardano-foundation/cf-token-metadata-registry/commit/aa30cb9b243e363ecbdef162d67edb1e391d2592))
+
 ## [1.5.0](https://github.com/cardano-foundation/cf-token-metadata-registry/compare/v1.4.4...v1.5.0) (2026-04-09)
 
 

@@ -1,7 +1,12 @@
-[![License: MPL 2.0](https://img.shields.io/badge/License-MPL_2.0-brightgreen.svg)](https://github.com/cardano-foundation/cf-token-metadata-registry/blob/main/LICENSE)
-![GitHub top language](https://img.shields.io/github/languages/top/cardano-foundation/cf-token-metadata-registry)
-[![Build](https://github.com/cardano-foundation/cf-token-metadata-registry/actions/workflows/main.yaml/badge.svg)](https://github.com/cardano-foundation/cf-token-metadata-registry/actions/workflows/main.yaml)
+[![License](https://img.shields.io/github/license/cardano-foundation/cf-token-metadata-registry?label=license)](https://github.com/cardano-foundation/cf-token-metadata-registry/blob/main/LICENSE)
+[![CI](https://github.com/cardano-foundation/cf-token-metadata-registry/actions/workflows/ci.yaml/badge.svg?branch=main)](https://github.com/cardano-foundation/cf-token-metadata-registry/actions/workflows/ci.yaml)
+[![Nightly](https://github.com/cardano-foundation/cf-token-metadata-registry/actions/workflows/nightly.yaml/badge.svg)](https://github.com/cardano-foundation/cf-token-metadata-registry/actions/workflows/nightly.yaml)
+[![CodeQL](https://github.com/cardano-foundation/cf-token-metadata-registry/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/cardano-foundation/cf-token-metadata-registry/actions/workflows/codeql.yml)
+[![SonarCloud Quality Gate](https://sonarcloud.io/api/project_badges/measure?project=cardano-foundation_cf-token-metadata-registry&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=cardano-foundation_cf-token-metadata-registry)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=cardano-foundation_cf-token-metadata-registry&metric=coverage)](https://sonarcloud.io/summary/new_code?id=cardano-foundation_cf-token-metadata-registry)
+[![GitHub top language](https://img.shields.io/github/languages/top/cardano-foundation/cf-token-metadata-registry)](https://github.com/cardano-foundation/cf-token-metadata-registry)
 [![Issues](https://img.shields.io/github/issues/cardano-foundation/cf-token-metadata-registry)](https://github.com/cardano-foundation/cf-token-metadata-registry/issues)
+[![Discord](https://img.shields.io/discord/1022471509173882950?label=chat&logo=discord)](https://discord.gg/cardano)
 
 ---
 
@@ -91,12 +96,17 @@ All settings are controlled via environment variables. See [`.env`](./.env) (mai
 
 ## Docker Images
 
-Two Docker image variants are available:
+Two Docker image variants are available. **Both are fully supported for production from v1.5.1 onwards.**
 
 | Variant | Base image | Startup | Memory | Image size | Use case |
 |---------|-----------|---------|--------|------------|----------|
-| **JVM** | Eclipse Temurin 25 LTS | ~15s | ~2 GB | ~637 MB | Production, development |
-| **Native** | GraalVM 25 LTS (AOT-compiled) | ~3s | ~150 MB | ~200 MB | Experimental |
+| **JVM** | Eclipse Temurin 25 LTS | ~11 s | ~2.4 GiB | ~400 MB | Production, development |
+| **Native** | GraalVM 25 LTS (AOT-compiled) | ~1.8 s | ~740 MiB | ~584 MB | Production (low-memory / fast-start) |
+
+Observed figures above are from long-running mainnet deploys on the `CIP-113-token` branch — startup measured from container start to Spring Boot's `Started … in` log; memory measured as Docker RSS ~1 h into mainnet sync; image size measured on a fresh `docker inspect`. Your numbers will differ slightly depending on JVM tuning, GraalVM profile-guided optimisation, and base image. Native image sync throughput sits within ~5 % of the JVM build on the same hardware.
+
+> [!NOTE]
+> Native images were experimental in `1.5.0`; they became a first-class, supported production target in `1.5.1`. The main bug that had previously blocked offchain CIP-26 sync on native (JGit enum reflection — see [PR #79](https://github.com/cardano-foundation/cf-token-metadata-registry/pull/79)) was fixed for `1.5.1`.
 
 ### Building the JVM image
 
@@ -221,6 +231,7 @@ mvn clean package -pl api,common -am -DskipTests -Pnative
 - [x] CIP-113 programmable token registry support (preview, preprod, mainnet — enabled via `CIP113_REGISTRY_NFT_POLICY_IDS`)
 - [x] Prometheus metrics (`/actuator/prometheus`)
 - [x] Kubernetes / Helm deployment support (`deploy/`)
+- [x] GraalVM native-image builds — production-supported from `1.5.1`
 
 ## End-to-End Tests
 
