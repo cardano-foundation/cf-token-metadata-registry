@@ -163,5 +163,54 @@ class TokenMetadataSyncServiceTest {
             verify(syncStateRepository, never()).save(any());
             assertEquals(SyncStatusEnum.SYNC_DONE, tokenMetadataSyncService.getSyncStatus().getStatus());
         }
+
+        @Test
+        void skipsFile_whenFilenameDoesNotMatchInnerSubject() {
+            // Regression: the cardano-token-registry / metadata-registry-testnet
+            // repos contain files whose JSON `subject` field does not equal the
+            // filename. Indexing them all upserts the same DB row in arbitrary
+            // File.listFiles() order, so the same on-chain token gets a different
+            // name/description/url depending on which mismatched file came last.
+            //
+            // Real example: subject baa836fef0... has three files in the testnet
+            // registry — baa.../caa.../daa... — each with different content.
+            //
+            // We accept only the canonical (filename == inner subject) entry so
+            // each subject deterministically maps to exactly one file (filenames
+            // are unique within a directory).
+            when(syncStateRepository.findTopByOrderByIdDesc()).thenReturn(Optional.of(new OffChainSyncState(oldHash)));
+            Path mockRepoPath = mock(Path.class);
+            when(gitService.cloneCardanoTokenRegistryGitRepository()).thenReturn(Optional.of(mockRepoPath));
+            when(gitService.getHeadCommitHash()).thenReturn(Optional.of(newHash));
+
+            // legit.json claims to be the canonical entry for "legit" — accepted.
+            File legitFile = mock(File.class);
+            when(legitFile.getName()).thenReturn("legit.json");
+            Path legitPath = mock(Path.class);
+            when(legitPath.toFile()).thenReturn(legitFile);
+
+            // garbage.json *also* claims subject "legit" but its filename is "garbage" — mismatched, must be skipped.
+            File garbageFile = mock(File.class);
+            when(garbageFile.getName()).thenReturn("garbage.json");
+            Path garbagePath = mock(Path.class);
+            when(garbagePath.toFile()).thenReturn(garbageFile);
+
+            when(gitService.getChangedFiles(oldHash, newHash)).thenReturn(List.of(legitPath, garbagePath));
+            when(gitService.getAllMappingDetails(any())).thenReturn(Map.of(
+                    "legit.json", new MappingUpdateDetails("author", LocalDateTime.now()),
+                    "garbage.json", new MappingUpdateDetails("author", LocalDateTime.now())));
+            when(tokenMappingService.parseMappings(legitFile))
+                    .thenReturn(Optional.of(new Mapping("legit", null, null, null, null, null, null, null)));
+            when(tokenMappingService.parseMappings(garbageFile))
+                    .thenReturn(Optional.of(new Mapping("legit", null, null, null, null, null, null, null)));
+            when(tokenMetadataService.insertMapping(any(), any(), any())).thenReturn(true);
+
+            tokenMetadataSyncService.synchronizeDatabase();
+
+            // Only one insert: from legit.json. garbage.json is filtered before reaching insertMapping.
+            verify(tokenMetadataService, times(1)).insertMapping(any(), any(), any());
+            verify(syncStateRepository).save(any(OffChainSyncState.class));
+            assertEquals(SyncStatusEnum.SYNC_DONE, tokenMetadataSyncService.getSyncStatus().getStatus());
+        }
     }
 }

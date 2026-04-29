@@ -118,12 +118,39 @@ public class TokenMetadataSyncService {
         int processed = 0;
         int inserted = 0;
         int skipped = 0;
+        int skippedFilenameMismatch = 0;
 
         for (File mappingFile : filesToProcess) {
             processed++;
             Optional<Mapping> mapping = tokenMappingService.parseMappings(mappingFile);
             if (mapping.isEmpty()) {
                 skipped++;
+                continue;
+            }
+
+            // Filename-vs-inner-subject filter: in the upstream cardano-token-registry
+            // and the testnet metadata-registry-testnet, the canonical file for a
+            // token is named after its subject. A non-trivial fraction of files
+            // (~90% on the testnet registry) have a filename that does not match
+            // the inner `subject` field — typos, spam, or duplicates that share an
+            // inner subject with a legitimate entry. Indexing them all means the
+            // same DB row is upserted in File.listFiles() iteration order, which
+            // is filesystem-dependent. The "winner" for such a token then varies
+            // run-to-run and across deployments.
+            //
+            // Concrete example caught in QA: subject baa836fef0... had three files
+            // (baa.../caa.../daa...). yaci-store and CF picked different ones,
+            // returning different name/desc/url for the SAME on-chain token.
+            //
+            // Skipping mismatches gives a deterministic outcome: at most one file
+            // per subject (filenames are unique), and the one we keep is the one
+            // whose filename equals the registered subject — i.e. the canonical
+            // entry per the registry's naming convention.
+            String filenameSubject = stripJsonExtension(mappingFile.getName());
+            if (!filenameSubject.equals(mapping.get().subject())) {
+                log.warn("Skipping '{}': filename does not match inner subject '{}'",
+                        mappingFile.getName(), mapping.get().subject());
+                skippedFilenameMismatch++;
                 continue;
             }
 
@@ -149,14 +176,20 @@ public class TokenMetadataSyncService {
             }
 
             if (processed % 500 == 0) {
-                log.info("Processing mappings: {}/{} done ({} inserted, {} skipped)",
-                        processed, total, inserted, skipped);
+                log.info("Processing mappings: {}/{} done ({} inserted, {} skipped, {} filename-mismatch)",
+                        processed, total, inserted, skipped, skippedFilenameMismatch);
             }
         }
 
-        log.info("Mapping processing complete: {}/{} processed, {} inserted, {} skipped, failures={}",
-                processed, total, inserted, skipped, failures.get());
+        log.info("Mapping processing complete: {}/{} processed, {} inserted, {} skipped, {} filename-mismatch, failures={}",
+                processed, total, inserted, skipped, skippedFilenameMismatch, failures.get());
         return failures.get();
+    }
+
+    private static String stripJsonExtension(String fileName) {
+        return fileName.endsWith(".json")
+                ? fileName.substring(0, fileName.length() - ".json".length())
+                : fileName;
     }
 
     private List<File> resolveFilesToProcess(String lastHash, Optional<String> newHashOpt, Path repoPath) {
