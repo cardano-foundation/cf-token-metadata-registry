@@ -164,6 +164,7 @@ jobs:
           push: ${{ inputs.push }}
           load: ${{ !inputs.push }}
           tags: ${{ steps.meta.outputs.tags }}
+          build-args: ${{ inputs.variant == 'native' && 'NATIVE_IMAGE_OPTS=-march=x86-64-v2' || '' }}
 
       - name: Save Docker image as artifact
         if: ${{ !inputs.push }}

@@ -13,6 +13,8 @@ RUN mvn dependency:go-offline -pl api,common -am -B
 
 COPY common/ common/
 COPY api/ api/
+ARG NATIVE_IMAGE_OPTS=""
+ENV NATIVE_IMAGE_OPTS=$NATIVE_IMAGE_OPTS
 RUN mvn clean package -pl api,common -am -DskipTests -Pnative -B
 
 FROM debian:trixie-slim
