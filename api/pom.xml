@@ -225,6 +225,7 @@
                                 <buildArg>-O3</buildArg>
                                 <buildArg>--gc=G1</buildArg>
                                 <buildArg>--initialize-at-run-time=sun.net.dns.ResolverConfigurationImpl</buildArg>
+                                <buildArg>-march=compatibility</buildArg>
                             </buildArgs>
                         </configuration>
                         <executions>
