@@ -8,6 +8,7 @@ import java.util.Locale;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.actuate.health.Health;
 import org.springframework.boot.actuate.health.HealthIndicator;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.stereotype.Component;
 
 /**
@@ -15,8 +16,13 @@ import org.springframework.stereotype.Component;
  * to the chain tip (100%). Uses Yaci Store's upstream {@link SyncStatusService} for sync
  * status instead of a local back-port. Used by Kubernetes readiness probe to gate traffic
  * routing. A pod that is still catching up will not receive requests.
+ *
+ * <p>Only registered when Yaci Store's {@link HealthService} bean is present. In read-only mode
+ * ({@code store.read-only-mode=true}), Yaci Store does not start its sync infrastructure and
+ * does not register {@code HealthService}, so this indicator is skipped entirely.</p>
  */
 @Component
+@ConditionalOnBean(HealthService.class)
 @RequiredArgsConstructor
 public class OnchainReadinessHealthIndicator implements HealthIndicator {
 
@@ -30,7 +36,7 @@ public class OnchainReadinessHealthIndicator implements HealthIndicator {
         HealthStatus status;
         try {
             status = healthService.getHealthStatus();
-        } catch (NullPointerException e) {
+        } catch (NullPointerException _) {
             return Health.unknown()
                     .withDetail(DETAIL_SYNC_STATUS, "Block fetcher not initialized")
                     .build();

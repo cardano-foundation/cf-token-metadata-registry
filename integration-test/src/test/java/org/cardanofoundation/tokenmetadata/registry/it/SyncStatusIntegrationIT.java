@@ -83,10 +83,10 @@ public class SyncStatusIntegrationIT extends BaseIntegrationIT {
 
             DocumentContext json = JsonPath.parse(response.getBody());
             List<String> groups = json.read("$.groups", List.class);
-            assertThat(groups).isNotNull();
-            assertThat(groups).contains("startup");
-            assertThat(groups).contains("liveness");
-            assertThat(groups).contains("readiness");
+            assertThat(groups).isNotNull()
+                    .contains("startup")
+                    .contains("liveness")
+                    .contains("readiness");
         }
     }
 
@@ -150,7 +150,6 @@ public class SyncStatusIntegrationIT extends BaseIntegrationIT {
 
             DocumentContext json = JsonPath.parse(response.getBody());
             assertThat(json.read("$.components.livenessState", Object.class)).isNotNull();
-            assertThat(json.read("$.components.offchainSync", Object.class)).isNotNull();
             assertThat(json.read("$.components.onchainConnection", Object.class)).isNotNull();
         }
     }

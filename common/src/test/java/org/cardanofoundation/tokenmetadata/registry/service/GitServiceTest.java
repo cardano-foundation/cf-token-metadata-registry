@@ -19,7 +19,9 @@ import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -188,7 +190,7 @@ class GitServiceTest {
             List<Path> changed = gitService.getChangedFiles(fromHash, toHash);
 
             assertThat(changed).hasSize(1);
-            assertThat(changed.get(0).getFileName().toString()).isEqualTo("token1.json");
+            assertThat(changed.get(0).getFileName()).hasToString("token1.json");
         }
 
         @Test
@@ -204,7 +206,7 @@ class GitServiceTest {
             List<Path> changed = gitService.getChangedFiles(fromHash, toHash);
 
             assertThat(changed).hasSize(1);
-            assertThat(changed.get(0).getFileName().toString()).isEqualTo("token1.json");
+            assertThat(changed.get(0).getFileName()).hasToString("token1.json");
         }
 
         @Test
@@ -220,7 +222,7 @@ class GitServiceTest {
             List<Path> changed = gitService.getChangedFiles(fromHash, toHash);
 
             assertThat(changed).hasSize(1);
-            assertThat(changed.get(0).getFileName().toString()).isEqualTo("token1.json");
+            assertThat(changed.get(0).getFileName()).hasToString("token1.json");
         }
 
         @Test
@@ -242,7 +244,7 @@ class GitServiceTest {
             List<Path> changed = gitService.getChangedFiles(fromHash, toHash);
 
             assertThat(changed).hasSize(1);
-            assertThat(changed.get(0).getFileName().toString()).isEqualTo("token1.json");
+            assertThat(changed.get(0).getFileName()).hasToString("token1.json");
         }
 
         @Test
@@ -354,12 +356,94 @@ class GitServiceTest {
     }
 
     @Nested
+    class GetAllMappingDetails {
+
+        @Test
+        void resolvesFilesFromRootCommit() throws Exception {
+            Path repoDir = tempDir.resolve("test-repo");
+            Files.createDirectories(repoDir.resolve("mappings"));
+            testRepo = Git.init().setDirectory(repoDir.toFile()).call();
+
+            Files.writeString(repoDir.resolve("mappings/token1.json"), "{}");
+            Files.writeString(repoDir.resolve("mappings/token2.json"), "{}");
+            testRepo.add().addFilepattern("mappings/").call();
+            testRepo.commit().setMessage("initial with mappings")
+                    .setAuthor(new PersonIdent("Author", "author@test.com"))
+                    .call();
+            gitService.git = testRepo;
+
+            Map<String, MappingUpdateDetails> result = gitService.getAllMappingDetails(
+                    Set.of("token1.json", "token2.json"));
+
+            assertThat(result).hasSize(2);
+            assertThat(result).containsKeys("token1.json", "token2.json");
+            assertThat(result.get("token1.json").updatedBy()).isEqualTo("author@test.com");
+            assertThat(result.get("token2.json").updatedBy()).isEqualTo("author@test.com");
+        }
+
+        @Test
+        void resolvesFilesAcrossMultipleCommits() throws Exception {
+            testRepo = initRepoWithMappings();
+            gitService.git = testRepo;
+
+            addMappingFile(testRepo, "token1.json", "{}", "first@test.com");
+            addMappingFile(testRepo, "token2.json", "{}", "second@test.com");
+
+            Map<String, MappingUpdateDetails> result = gitService.getAllMappingDetails(
+                    Set.of("token1.json", "token2.json"));
+
+            assertThat(result).hasSize(2);
+            assertThat(result.get("token1.json").updatedBy()).isEqualTo("first@test.com");
+            assertThat(result.get("token2.json").updatedBy()).isEqualTo("second@test.com");
+        }
+
+        @Test
+        void returnsLatestCommitForUpdatedFile() throws Exception {
+            testRepo = initRepoWithMappings();
+            gitService.git = testRepo;
+
+            addMappingFile(testRepo, "token1.json", "{\"v\":1}", "old@test.com");
+            addMappingFile(testRepo, "token1.json", "{\"v\":2}", "new@test.com");
+
+            Map<String, MappingUpdateDetails> result = gitService.getAllMappingDetails(
+                    Set.of("token1.json"));
+
+            assertThat(result).hasSize(1);
+            assertThat(result.get("token1.json").updatedBy()).isEqualTo("new@test.com");
+        }
+
+        @Test
+        void returnsEmptyMapWhenGitIsNull() {
+            Map<String, MappingUpdateDetails> result = gitService.getAllMappingDetails(
+                    Set.of("token1.json"));
+
+            assertThat(result).isEmpty();
+        }
+
+        @Test
+        void ignoresUnrequestedFiles() throws Exception {
+            testRepo = initRepoWithMappings();
+            gitService.git = testRepo;
+
+            addMappingFile(testRepo, "token1.json", "{}", "dev@test.com");
+            addMappingFile(testRepo, "token2.json", "{}", "dev@test.com");
+
+            Map<String, MappingUpdateDetails> result = gitService.getAllMappingDetails(
+                    Set.of("token1.json"));
+
+            assertThat(result).hasSize(1);
+            assertThat(result).containsKey("token1.json");
+            assertThat(result).doesNotContainKey("token2.json");
+        }
+    }
+
+    @Nested
     class CloneCardanoTokenRegistryGitRepository {
 
         @Test
         void pullsWhenRepoAlreadyExists() throws Exception {
             Path remoteDir = tempDir.resolve("remote-repo");
-            try (Git remoteGit = Git.init().setBare(true).setDirectory(remoteDir.toFile()).call()) {
+            try (@SuppressWarnings("java:S7466") Git _ = Git.init().setBare(true).setDirectory(remoteDir.toFile()).call()) {
                 Path seedDir = tempDir.resolve("seed");
                 try (Git seedGit = Git.init().setDirectory(seedDir.toFile()).call()) {
                     Files.createDirectories(seedDir.resolve("mappings"));
@@ -372,7 +456,7 @@ class GitServiceTest {
                 }
 
                 Path repoDir = tempDir.resolve("test-repo");
-                try (Git clonedGit = Git.cloneRepository()
+                try (@SuppressWarnings("java:S7466") Git _ = Git.cloneRepository()
                         .setURI(remoteDir.toUri().toString())
                         .setDirectory(repoDir.toFile())
                         .call()) {
@@ -384,7 +468,7 @@ class GitServiceTest {
 
             assertThat(result).isPresent();
             assertThat(result.get().toFile()).exists();
-            assertThat(result.get().getFileName().toString()).isEqualTo("mappings");
+            assertThat(result.get().getFileName()).hasToString("mappings");
         }
 
         @Test

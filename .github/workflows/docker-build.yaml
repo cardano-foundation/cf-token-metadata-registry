@@ -40,34 +40,104 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
+      - name: ⛮ cf-gha-baseline
+        uses: cardano-foundation/cf-gha-workflows/./actions/cf-gha-baseline@main
+        id: cf-gha-baseline
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PRIVATE_DOCKER_REGISTRY_URL: ${{ env.PRIVATE_DOCKER_REGISTRY_URL }}
+          PRIVATE_DOCKER_REGISTRY_USER: ${{ env.PRIVATE_DOCKER_REGISTRY_USER }}
+          PRIVATE_DOCKER_REGISTRY_PASS: ${{ env.PRIVATE_DOCKER_REGISTRY_PASS }}
+          HUB_DOCKER_COM_USER: ${{ secrets.HUB_DOCKER_COM_USER }}
+          HUB_DOCKER_COM_PASS: ${{ secrets.HUB_DOCKER_COM_PASS }}
+          DOCKER_REGISTRIES: "${{ secrets.DOCKER_REGISTRIES }}"
+
       - name: Set image metadata
         id: meta
         env:
-          INPUT_VERSION: ${{ inputs.version }}
           INPUT_APP: ${{ inputs.app }}
           INPUT_VARIANT: ${{ inputs.variant }}
           INPUT_PUSH: ${{ inputs.push }}
+          EXTRA_TAGS_FROM_OUTPUT: ${{ steps.cf-gha-baseline.outputs.EARTHLY_DOCKER_IMAGES_EXTRA_TAGS }}
         run: |
-          VERSION="${INPUT_VERSION}"
-          if [ -z "$VERSION" ]; then
-            VERSION=$(cat version.txt)
-          fi
           REPO="cardanofoundation/cf-token-metadata-registry-${INPUT_APP}"
-          PRIMARY_TAG="${REPO}:${VERSION}-${INPUT_VARIANT}"
+
+          EXTRA_TAGS="${EXTRA_TAGS_FROM_OUTPUT}"
+          EXTRA_TAGS="${EXTRA_TAGS//$'\n'/ }"
+          EXTRA_TAGS="${EXTRA_TAGS//,/ }"
+          EXTRA_TAGS="${EXTRA_TAGS//$'\t'/ }"
+
+          # Fallback for contexts where cf-gha-baseline cannot derive a
+          # BRANCH_NAME and therefore emits an empty
+          # EARTHLY_DOCKER_IMAGES_EXTRA_TAGS. This has been observed 100% of
+          # the time on `schedule`-triggered runs (the Nightly workflow),
+          # which caused every nightly docker-build job to fail at this
+          # step. Synthesise a tag from the GitHub-provided context so the
+          # build still produces a usable image.
+          if [[ -z "${EXTRA_TAGS// /}" ]]; then
+            short_sha="${GITHUB_SHA:0:7}"
+            if [[ "${GITHUB_EVENT_NAME}" == "schedule" ]]; then
+              fallback="nightly-$(date -u +%Y%m%d)-${short_sha}"
+            else
+              sanitized_ref="${GITHUB_REF_NAME:-unknown}"
+              sanitized_ref="${sanitized_ref//\//-}"
+              fallback="${sanitized_ref}-${short_sha}"
+            fi
+            echo "cf-gha-baseline returned no tags (event=${GITHUB_EVENT_NAME}); using fallback tag '${fallback}'" >&2
+            EXTRA_TAGS="${fallback}"
+          fi
+
+          read -r -a parsed_extra_tags <<< "${EXTRA_TAGS}"
+
+          declare -a resolved_tags
+          for extra_tag in "${parsed_extra_tags[@]}"; do
+            extra_tag="${extra_tag#"${extra_tag%%[![:space:]]*}"}"
+            extra_tag="${extra_tag%"${extra_tag##*[![:space:]]}"}"
+
+            if [ -z "${extra_tag}" ]; then
+              continue
+            fi
+
+            if [[ "${extra_tag}" == */*:* ]]; then
+              resolved_tags+=("${extra_tag}")
+            else
+              resolved_tags+=("${REPO}:${extra_tag}")
+            fi
+          done
+
+          if [ "${INPUT_VARIANT}" == "native" ]; then
+            for i in "${!resolved_tags[@]}"; do
+              image_ref="${resolved_tags[$i]}"
+              image_repo="${image_ref%:*}"
+              image_tag="${image_ref##*:}"
+
+              if [[ "${image_tag}" != *-native ]]; then
+                resolved_tags[$i]="${image_repo}:${image_tag}-native"
+              fi
+            done
+          fi
+
+          if [ ${#resolved_tags[@]} -eq 0 ]; then
+            # Defence-in-depth: the fallback above should guarantee at
+            # least one resolved tag. If we still reach this point
+            # something is deeply wrong (GITHUB_SHA also unset, etc.).
+            echo "No tags could be resolved, including fallback from GitHub context" >&2
+            exit 1
+          fi
+
+          PRIMARY_TAG="${resolved_tags[0]}"
           echo "image-tag=${PRIMARY_TAG}" >> "$GITHUB_OUTPUT"
-          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
           echo "repo=${REPO}" >> "$GITHUB_OUTPUT"
 
-          # Build tag list
-          TAGS="${PRIMARY_TAG}"
+          echo "tags<<EOF" >> "$GITHUB_OUTPUT"
           if [ "${INPUT_PUSH}" == "true" ]; then
-            if [ "${INPUT_VARIANT}" == "jvm" ]; then
-              TAGS="${TAGS},${REPO}:${VERSION},${REPO}:latest"
-            else
-              TAGS="${TAGS},${REPO}:latest-${INPUT_VARIANT}"
-            fi
+            for tag in "${resolved_tags[@]}"; do
+              echo "${tag}" >> "$GITHUB_OUTPUT"
+            done
+          else
+            echo "${PRIMARY_TAG}" >> "$GITHUB_OUTPUT"
           fi
-          echo "tags=${TAGS}" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
 
       - name: Download JAR artifact
         if: inputs.variant == 'jvm'
@@ -77,17 +147,17 @@ jobs:
           path: ${{ inputs.app }}/target
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
 
       - name: Docker Hub Login
         if: inputs.push
-        uses: docker/login-action@v3
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Build Docker image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
           context: ${{ inputs.variant == 'native' && '.' || inputs.app }}
           file: ${{ inputs.variant == 'native' && format('{0}/Dockerfile.native', inputs.app) || format('{0}/Dockerfile', inputs.app) }}

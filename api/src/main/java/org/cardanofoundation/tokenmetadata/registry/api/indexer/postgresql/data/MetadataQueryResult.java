@@ -104,7 +104,7 @@ public class MetadataQueryResult {
     queryResult.setSubject(getColumnValue(resultSet, "subject", null, String.class));
     queryResult.setProperties(
         getColumnValue(resultSet, "properties", null, PGobject.class).getValue());
-    queryResult.setUpdated(getColumnValue(resultSet, "updated", null, Date.class));
+    queryResult.setUpdated(getColumnValue(resultSet, PROP_UPDATED, null, Date.class));
     queryResult.setUpdatedBy(getColumnValue(resultSet, "updated_by", null, String.class));
     return queryResult;
   }
@@ -152,7 +152,7 @@ public class MetadataQueryResult {
       final Class<T> type) {
     try {
       return resultSet.getObject(columnName, type);
-    } catch (final SQLException e) {
+    } catch (final SQLException _) {
       return defaultValue;
     }
   }

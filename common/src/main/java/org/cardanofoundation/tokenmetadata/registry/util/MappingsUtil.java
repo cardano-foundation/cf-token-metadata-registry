@@ -28,7 +28,7 @@ public final class MappingsUtil {
         tokenMetadata.setDecimals(getValue(mapping.decimals(), s -> {
             try {
                 return Long.valueOf(s);
-            } catch (NumberFormatException e) {
+            } catch (NumberFormatException _) {
                 log.warn("Invalid decimals value '{}' for subject '{}'", s, mapping.subject());
                 return null;
             }

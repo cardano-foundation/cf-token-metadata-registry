@@ -1,12 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
         <artifactId>server-base</artifactId>
         <groupId>org.cardanofoundation.metadatatools</groupId>
-        <version>${revision}</version>
+        <version>1.5.1</version>
     </parent>
 
     <artifactId>api</artifactId>
@@ -107,7 +106,7 @@
         <dependency>
             <groupId>org.cardanofoundation.metadatatools</groupId>
             <artifactId>common</artifactId>
-            <version>${revision}</version>
+            <version>${project.parent.version}</version>
         </dependency>
         <dependency>
             <groupId>org.cardanofoundation.metadatatools</groupId>
@@ -147,12 +146,14 @@
             <artifactId>yaci-store-admin-spring-boot-starter</artifactId>
             <version>${version.yaci}</version>
         </dependency>
-        <!-- Admin UI -->
+        <!-- Admin UI excluded until upstream fix: https://github.com/bloxbean/yaci-store/issues/884 -->
+        <!--
         <dependency>
             <groupId>com.bloxbean.cardano</groupId>
             <artifactId>yaci-store-admin-ui</artifactId>
             <version>${version.yaci}</version>
         </dependency>
+        -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-docker-compose</artifactId>

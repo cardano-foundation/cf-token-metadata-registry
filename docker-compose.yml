@@ -1,3 +1,31 @@
+x-api-service-common: &api-service-common
+  build:
+    context: .
+    dockerfile: ${API_DOCKERFILE:-api/Dockerfile.jvm}
+  healthcheck: &api-healthcheck
+    test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/localhost/${API_LOCAL_BIND_PORT}'"]
+    interval: 30s
+    timeout: 5s
+    retries: 10
+    start_period: 5m
+  depends_on:
+    db:
+      condition: service_healthy
+  restart: always
+
+x-api-common-environment: &api-common-environment
+  DB_URL: "${DB_URL}"
+  DB_USERNAME: "${DB_USERNAME}"
+  DB_PASSWORD: "${DB_PASSWORD}"
+  STORE_CARDANO_PROTOCOL_MAGIC: "${STORE_CARDANO_PROTOCOL_MAGIC}"
+  STORE_CARDANO_HOST: "${STORE_CARDANO_HOST}"
+  STORE_CARDANO_PORT: "${STORE_CARDANO_PORT}"
+  STORE_CARDANO_SYNC_START_SLOT: "${STORE_CARDANO_SYNC_START_SLOT}"
+  STORE_CARDANO_SYNC_START_BLOCKHASH: "${STORE_CARDANO_SYNC_START_BLOCKHASH}"
+  STORE_BLOCKS_EPOCH_CALCULATION_INTERVAL: "${STORE_BLOCKS_EPOCH_CALCULATION_INTERVAL}"
+  CIP_QUERY_PRIORITY: "${CIP_QUERY_PRIORITY}"
+  JAVA_OPTS: "${JAVA_OPTS:--Xmx2g}"
+
 services:
   db:
     image: postgres:17
@@ -16,39 +44,31 @@ services:
       retries: 10
     restart: on-failure
   api:
+    <<: *api-service-common
+    profiles:
+      - rw
     image: cardanofoundation/cf-token-metadata-registry-api:${API_IMAGE_TAG}
-    build:
-      context: .
-      dockerfile: ${API_DOCKERFILE:-api/Dockerfile.jvm}
     ports:
       - "${API_LOCAL_BIND_PORT}:${API_EXPOSED_PORT}"
     environment:
-      DB_URL: "${DB_URL}"
-      DB_USERNAME: "${DB_USERNAME}"
-      DB_PASSWORD: "${DB_PASSWORD}"
+      <<: *api-common-environment
       TOKEN_METADATA_SYNC_JOB: "${TOKEN_METADATA_SYNC_JOB}"
       GITHUB_ORGANIZATION: "${GITHUB_ORGANIZATION:-cardano-foundation}"
       GITHUB_PROJECT_NAME: "${GITHUB_PROJECT_NAME:-cardano-token-registry}"
       GITHUB_MAPPINGS_FOLDER: "${GITHUB_MAPPINGS_FOLDER:-mappings}"
       GITHUB_TMP_FOLDER: "${GITHUB_TMP_FOLDER:-/tmp}"
       GITHUB_FORCE_CLONE: "${GITHUB_FORCE_CLONE:-false}"
-      STORE_CARDANO_PROTOCOL_MAGIC: "${STORE_CARDANO_PROTOCOL_MAGIC}"
-      STORE_CARDANO_HOST: "${STORE_CARDANO_HOST}"
-      STORE_CARDANO_PORT: "${STORE_CARDANO_PORT}"
-      STORE_CARDANO_SYNC_START_SLOT: "${STORE_CARDANO_SYNC_START_SLOT}"
-      STORE_CARDANO_SYNC_START_BLOCKHASH: "${STORE_CARDANO_SYNC_START_BLOCKHASH}"
       STORE_SYNCAUTOSTART: "${STORE_SYNCAUTOSTART}"
-      STORE_BLOCKS_EPOCH_CALCULATION_INTERVAL: "${STORE_BLOCKS_EPOCH_CALCULATION_INTERVAL}"
-      CIP_QUERY_PRIORITY: "${CIP_QUERY_PRIORITY}"
       API_LOCAL_BIND_PORT: "${API_LOCAL_BIND_PORT}"
-      JAVA_OPTS: "${JAVA_OPTS:--Xmx2g}"
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:${API_EXPOSED_PORT}/actuator/health/startup || exit 1"]
-      interval: 30s
-      timeout: 5s
-      retries: 10
-      start_period: 5m
-    depends_on:
-      db:
-        condition: service_healthy
-    restart: always
+  api-ro:
+    <<: *api-service-common
+    profiles:
+      - ro
+    ports:
+      - "${API_RO_LOCAL_BIND_PORT:-18081}:${API_EXPOSED_PORT}"
+    environment:
+      <<: *api-common-environment
+      TOKEN_METADATA_SYNC_JOB: "false"
+      STORE_SYNCAUTOSTART: "false"
+      STORE_READONLYMODE: "true"
+      SPRING_PROFILES_ACTIVE: "readonly"

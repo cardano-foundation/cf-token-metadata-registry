@@ -74,7 +74,8 @@ public class V2ApiController implements V2Api {
             recordCipHits(tokenMetadata.second());
             Standards standards = tokenMetadata.second();
             List<String> stringPriorities = queryPriority.stream().map(QueryPriority::name).toList();
-            Response response = new Response(new Subject(subject, tokenMetadata.first(), showCipsDetails ? standards : null), stringPriorities);
+            boolean includeCipsDetails = showCipsDetails != null && showCipsDetails;
+            Response response = new Response(new Subject(subject, tokenMetadata.first(), includeCipsDetails ? standards : null), stringPriorities);
 
             return ResponseEntity.ok(response);
         }
@@ -97,7 +98,8 @@ public class V2ApiController implements V2Api {
                 .stream()
                 .map(subject -> {
                     Pair<Metadata, Standards> pair = queryPriority.stream().reduce(IDENTITY, combineStandards(subject, queryProperties), aggregateResults());
-                    Subject subjectResult = new Subject(subject, pair.first(), showCipsDetails ? pair.second() : null);
+                    boolean includeCipsDetails = showCipsDetails != null && showCipsDetails;
+                    Subject subjectResult = new Subject(subject, pair.first(), includeCipsDetails ? pair.second() : null);
                     if (pair.first().isEmpty()) {
                         metricsService.recordNotFound();
                     } else {

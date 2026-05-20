@@ -47,7 +47,7 @@ public class MetadataApiController implements MetadataApi {
                 }
             }
 
-        } catch (final IllegalArgumentException e) {
+        } catch (final IllegalArgumentException _) {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
     }
@@ -63,7 +63,7 @@ public class MetadataApiController implements MetadataApi {
                         metricsService.recordNotFound();
                         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
                     });
-        } catch (final IllegalArgumentException e) {
+        } catch (final IllegalArgumentException _) {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
     }
@@ -79,7 +79,7 @@ public class MetadataApiController implements MetadataApi {
                         metricsService.recordNotFound();
                         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
                     });
-        } catch (final IllegalArgumentException e) {
+        } catch (final IllegalArgumentException _) {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
     }
