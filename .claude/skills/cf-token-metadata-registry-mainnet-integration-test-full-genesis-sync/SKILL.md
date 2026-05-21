@@ -108,7 +108,7 @@ While polling, print the current status periodically so the user sees progress.
 
 Once offchain is UP, the `metadata` and `logo` tables are populated. Run `scripts/run-cip26-tests.sh` which:
 
-1. `cd regression-tests && uv venv && uv pip install -r requirements.txt` (local — once per session).
+1. `cd regression-tests && uv sync` (local — resolves dependencies from `pyproject.toml` + `uv.lock`).
 2. Runs `cd mainnet && API_BASE_URL=http://localhost:$LOCAL_API_PORT uv run pytest -m cip26 -v --alluredir=../allure-results`.
 
 **Do not regenerate fixtures.** The committed `regression-tests/mainnet/fixtures/cip26_tokens.json` is the frozen regression baseline (1000 tokens). Regenerating from the live DB on every run would turn this into a self-confirming smoke test rather than a regression test. Fixtures are refreshed only as a deliberate, separate operation.

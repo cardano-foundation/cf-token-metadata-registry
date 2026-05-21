@@ -23,12 +23,8 @@ fi
 
 cd "$REGRESSION_DIR"
 
-if [[ ! -d ".venv" ]]; then
-  echo "[cip26] creating uv venv..."
-  uv venv
-fi
-echo "[cip26] installing requirements..."
-uv pip install -r requirements.txt
+echo "[cip26] syncing dependencies (uv sync, resolves against uv.lock)..."
+uv sync
 
 echo "[cip26] running pytest -m cip26 against http://localhost:${LOCAL_API_PORT} (using committed fixtures)..."
 cd mainnet
