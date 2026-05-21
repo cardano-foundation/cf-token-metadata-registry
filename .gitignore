@@ -16,9 +16,6 @@
 **/.installed.cfg
 **/*.egg
 
-venv/
-.venv/
-
 **/__pycache__/
 **/.pytest_cache/
 
@@ -53,7 +50,6 @@ node_modules/
 
 # testing
 .coverage
-regression-tests/.venv/
 regression-tests/allure-results/
 
 # Claude Code skills live in .claude/ — overrides the global ~/.gitignore_global
