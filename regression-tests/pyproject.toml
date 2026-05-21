@@ -1,0 +1,14 @@
+[project]
+name = "regression-tests"
+version = "0.1.0"
+description = "End-to-end regression tests for the Token Metadata Registry API"
+requires-python = ">=3.10"
+dependencies = [
+    "pytest>=8.0",
+    "allure-pytest>=2.13",
+    "requests>=2.31",
+    "psycopg2-binary>=2.9",
+]
+
+[tool.uv]
+package = false

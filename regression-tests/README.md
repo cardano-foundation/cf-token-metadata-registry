@@ -26,21 +26,22 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 
 ## Setup
 
-### 1. Create virtual environment and install dependencies
+### 1. Install dependencies
+
+Dependencies are declared in `pyproject.toml` and pinned in `uv.lock`. To create the virtual environment and install everything from the lockfile:
 
 ```bash
 cd regression-tests
-uv venv
-uv pip install -r requirements.txt
+uv sync
 ```
 
-`uv venv` creates a `.venv/` directory and `uv pip install` resolves dependencies into it. No activation is needed when you run commands via `uv run` (see below); if you prefer the classic flow, `source .venv/bin/activate` still works.
+`uv sync` creates `.venv/`, resolves against `uv.lock` for reproducibility, and installs:
+- `pytest` — test runner
+- `allure-pytest` — rich web UI for viewing test results
+- `requests` — HTTP client for API calls
+- `psycopg2-binary` — PostgreSQL driver for fixture generation
 
-The `requirements.txt` installs:
-- `pytest` - test runner
-- `allure-pytest` - rich web UI for viewing test results
-- `requests` - HTTP client for API calls
-- `psycopg2-binary` - PostgreSQL driver for fixture generation
+To add a new dependency later: `uv add <package>` (updates `pyproject.toml` and `uv.lock`).
 
 ### 2. Generate fixture snapshots from the database
 
@@ -155,9 +156,8 @@ Complete example from scratch:
 # 1. Navigate to regression-tests directory
 cd regression-tests
 
-# 2. Create environment and install dependencies
-uv venv
-uv pip install -r requirements.txt
+# 2. Install dependencies (creates .venv from uv.lock)
+uv sync
 
 # 3. Generate fixtures (ensure DB is running and synced)
 uv run python mainnet/fixtures/generate_fixtures.py
@@ -200,7 +200,8 @@ uv run pytest -v --alluredir=../allure-results
 
 ```
 regression-tests/
-├── requirements.txt                          # Python dependencies
+├── pyproject.toml                            # Project metadata + dependencies
+├── uv.lock                                   # Locked dependency versions (commit this)
 ├── README.md                                 # This file
 └── mainnet/
     ├── conftest.py                           # Shared pytest fixtures and helpers
