@@ -56,6 +56,15 @@ node_modules/
 regression-tests/.venv/
 regression-tests/allure-results/
 
+# Claude Code skills live in .claude/ — overrides the global ~/.gitignore_global
+# rule that excludes .claude/*. Only the per-developer settings and skill runtime
+# artifacts stay local.
+!.claude/
+!.claude/**
+.claude/settings.local.json
+.claude/skills/*/config.env
+.claude/skills/*/tunnels.pid
+
 #terraform
 **/*.tfstate
 **/*.tfstate.backup
