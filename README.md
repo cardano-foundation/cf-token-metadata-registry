@@ -61,8 +61,8 @@ For the full API reference (including V1 endpoints and query parameters), see th
 |--------|------|-------------|------------------|
 | GET | `/actuator/health` | Aggregated health status with details for all indicators | — |
 | GET | `/actuator/health/startup` | Checks database connectivity and Cardano node connection | Startup |
-| GET | `/actuator/health/liveness` | Checks offchain sync status and Cardano node connection | Liveness |
-| GET | `/actuator/health/readiness` | Checks offchain sync, on-chain sync progress (100%), and database | Readiness |
+| GET | `/actuator/health/liveness` | Checks the Cardano node connection (block reception) | Liveness |
+| GET | `/actuator/health/readiness` | Checks offchain sync, on-chain sync (caught up to chain tip), and database | Readiness |
 | GET | `/actuator/info` | Application info | — |
 | GET | `/actuator/prometheus` | Prometheus metrics (Micrometer) | — |
 | GET | `/actuator/metrics` | Micrometer metrics listing and details | — |
