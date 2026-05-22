@@ -5,7 +5,7 @@
 #
 # NOTE: offchainSync is exposed in the *readiness* group and the aggregated
 # /actuator/health endpoint, not in /actuator/health/liveness — the liveness
-# group only carries livenessState + onchainConnection. We use the aggregated
+# group only carries livenessState + nodeHealth. We use the aggregated
 # endpoint to keep this future-proof against group reconfiguration.
 
 set -euo pipefail
