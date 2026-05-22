@@ -100,7 +100,7 @@ Run `scripts/open-tunnels.sh`. It opens an SSH connection in the background with
 
 ### Step 5 — Wait for CIP-26 sync (offchain)
 
-Run `scripts/wait-offchain-ready.sh`. It polls `http://localhost:$LOCAL_API_PORT/actuator/health/liveness` every ~30s and waits until `components.offchainSync.status == "UP"`. Use the `ScheduleWakeup` tool with **1200–1800s** between polls if you're driving this directly — offchain sync from genesis typically takes 10–30 minutes; polling more often wastes cache TTL for no benefit.
+Run `scripts/wait-offchain-ready.sh`. It polls the **aggregated** `http://localhost:$LOCAL_API_PORT/actuator/health` (NOT `/health/liveness`) and waits until `components.offchainSync.status == "UP"`. Note: `offchainSync` is exposed in the readiness group + aggregated endpoint, **not** in the liveness group (liveness only carries `livenessState` + `onchainConnection`). Use the `ScheduleWakeup` tool with **1200–1800s** between polls if you're driving this directly — offchain sync typically takes 2–15 minutes; polling more often wastes cache TTL for no benefit.
 
 While polling, print the current status periodically so the user sees progress.
 
@@ -117,15 +117,21 @@ If any CIP-26 test fails → report it to the user immediately (don't wait for C
 
 ### Step 7 — Wait for tip (onchain sync complete)
 
-Run `scripts/wait-onchain-tip.sh`. It polls `http://localhost:$LOCAL_API_PORT/actuator/health/readiness` until `components.onchainReadiness.status == "UP"` (which means `syncPercentage` ≈ 100 and `syncStatus == "Synced"`).
+**Preferred:** run `scripts/monitor-sync-progress.sh 1200 --until-tip` (or background it under a `Monitor` with a filter on `window progress >=`). It reads the chain cursor straight from Postgres and compares against the live mainnet tip from Koios — **window-relative** progress that is correct throughout the run. It exits 0 once window progress ≥ 99.95%. For a one-shot spot check use `scripts/check-sync-progress.sh`.
 
-From slot 65836843 to tip is hours; from genesis it's days. Use `ScheduleWakeup` with the maximum allowed delay (3600s) for this wait, and warn the user that the loop will run for a long time.
+**Do NOT rely on the API's `syncPercentage` for progress.** yaci-store computes it as `cursor_block / network_tip_block` from **Byron genesis**, so when `STORE_CARDANO_SYNC_START_SLOT` is mid-chain (it is — ~slot 65.8M, late Alonzo) the value **starts around ~55% and is meaningless mid-window**. Only `check/monitor-sync-progress.sh` (window-relative) tells you how close you actually are.
+
+`wait-onchain-tip.sh` (polls `/actuator/health/readiness` for `onchainReadiness.status == "UP"`) still works as a *final* confirmation, but two caveats: (a) each poll triggers a `TipFinder` node connection on the API side — don't poll it tightly; (b) `onchainReadiness` can latch on `"Scheduled to stop"` (see Known issues) and never flip UP even though the cursor is at tip. So treat the DB-cursor metric as the source of truth and use the probe only to confirm `syncStatus == "Synced"` at the end.
+
+From slot 65836843 to tip is ~12 h on a typical box; from true genesis it's days. Use `ScheduleWakeup` with the maximum allowed delay (3600s) for this wait, and warn the user that the loop will run for a long time.
 
 ### Step 8 — Run CIP-68 regression tests
 
 When the indexer reaches tip, the `metadata_reference_nft` table is populated. Run `scripts/run-cip68-tests.sh`, which runs `uv run pytest -m cip68 -v --alluredir=../allure-results` against the committed `regression-tests/mainnet/fixtures/cip68_tokens.json` snapshot.
 
 **Same fixture rule as CIP-26: do not regenerate.** The committed snapshot is the regression baseline.
+
+**CIP-68 failures are often legitimate on-chain drift, not API bugs.** Unlike CIP-26 (GitHub-sourced, stable), CIP-68 metadata is a **mutable on-chain datum** — the token owner can change name/description/ticker/url at any time. When a CIP-68 assertion fails, first compare the fixture value against what the live API returns for that subject (`GET /api/v2/subjects/{subject}`). If the API value matches current chain state, the API is correct and the **fixture is stale** — fix it with a **targeted single-token correction** of just the drifted fields (still not a wholesale regenerate). Only treat it as a real regression if the API value disagrees with the chain. (Example seen in practice: a token rebranded on-chain to "abandoned" — name/description/ticker all changed, url removed.)
 
 ### Step 9 — Report
 
@@ -145,6 +151,18 @@ Summarize for the user:
 - **A CIP-26 test fails before tip is reached.** Report it. Continue waiting for tip in parallel — it's perfectly fine to surface CIP-26 problems before CIP-68 testing starts.
 - **Stuck health check (no UP after a long time).** Pull `docker compose logs --tail=200 api` and `docker compose logs --tail=200 db` remotely and surface the first ERROR line to the user.
 
+### Known issue: sync wedges on a dead relay IP ("Scheduled to stop")
+
+Observed and filed upstream as **bloxbean/yaci#161** (yaci-core) + **bloxbean/yaci-store#959** (yaci-store auto-recovery deadlock).
+
+**Symptom:** the cursor stops advancing (`check-sync-progress.sh` shows no movement); API logs spam `io.netty.channel.ConnectTimeoutException: connection timed out after 30000 ms: <host>/<ip>:3001` every ~38s; `/actuator/health` shows `onchainConnection: OUT_OF_SERVICE` / `receivingBlocks: false` and `onchainReadiness.syncStatus: "Scheduled to stop"`.
+
+**Cause:** the Cardano node hostname fronts a load-balanced pool of A-records; yaci-core's `TCPNodeClient` resolves to a **single** IP with no failover, and if it pins a now-unreachable member it loops forever. yaci-store's in-process auto-recovery can't escape it (its guard bails on `scheduleToStop=true`).
+
+**Recovery:** `ssh <host> 'cd <remote-dir> && docker compose --env-file <env> restart api'`. A fresh JVM re-resolves DNS and usually picks a healthy IP, then catches up the gap in seconds. The Postgres cursor persists across the restart, so no re-sync. Confirm recovery with `check-sync-progress.sh` (expect 100%) and `/actuator/health/readiness` (`onchainReadiness: UP`, `syncStatus: "Synced"`).
+
+**Note on health semantics:** `livenessState` (the component) is Spring's built-in and stays UP regardless of sync — only the liveness *group* goes 503 (because `onchainConnection` is in it). In production under Kubernetes, wiring a liveness probe to `/actuator/health/liveness` makes the kubelet restart the pod on this 503 and auto-recovers — the mitigation the in-process auto-recovery can't provide.
+
 ## Files this skill owns
 
 ```
@@ -160,10 +178,12 @@ Summarize for the user:
     ├── start-remote.sh            # docker compose up
     ├── open-tunnels.sh            # SSH port-forward
     ├── close-tunnels.sh           # kill background SSH tunnel
-    ├── wait-offchain-ready.sh     # poll /actuator/health/liveness
-    ├── wait-onchain-tip.sh        # poll /actuator/health/readiness
-    ├── run-cip26-tests.sh         # generate fixtures + pytest -m cip26
-    └── run-cip68-tests.sh         # generate fixtures + pytest -m cip68
+    ├── wait-offchain-ready.sh     # poll aggregated /actuator/health for offchainSync UP
+    ├── wait-onchain-tip.sh        # poll /actuator/health/readiness (final confirm only; see Step 7 caveats)
+    ├── check-sync-progress.sh     # one-shot window-relative progress (DB cursor vs Koios tip; no /health hit)
+    ├── monitor-sync-progress.sh   # looped progress + ETA; --until-tip exits at ~100% (preferred tip detector)
+    ├── run-cip26-tests.sh         # pytest -m cip26 against committed fixtures (NO regenerate)
+    └── run-cip68-tests.sh         # pytest -m cip68 against committed fixtures (NO regenerate)
 ```
 
 All scripts are idempotent and safe to re-run. They print clear progress lines and exit non-zero on failure.
