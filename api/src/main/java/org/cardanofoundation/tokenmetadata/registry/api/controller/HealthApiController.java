@@ -1,9 +1,9 @@
 package org.cardanofoundation.tokenmetadata.registry.api.controller;
 
+import com.bloxbean.cardano.yaci.store.core.health.NodeSyncIndicator;
 import jakarta.annotation.Nullable;
 import lombok.extern.slf4j.Slf4j;
 import org.cardanofoundation.tokenmetadata.registry.api.health.OffchainSyncHealthIndicator;
-import org.cardanofoundation.tokenmetadata.registry.api.health.OnchainReadinessHealthIndicator;
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.HealthResponse;
 import org.springframework.boot.actuate.health.Health;
 import org.springframework.boot.actuate.health.Status;
@@ -28,16 +28,16 @@ public class HealthApiController implements HealthApi {
     private final OffchainSyncHealthIndicator offchainSyncHealthIndicator;
 
     /**
-     * Nullable because {@link OnchainReadinessHealthIndicator} is conditional on Yaci Store's
+     * Nullable because {@link NodeSyncIndicator} is conditional on Yaci Store's
      * {@code HealthService} bean, which is not registered in read-only mode
      * ({@code store.read-only-mode=true}). When null, the legacy health endpoint reports
      * on-chain sync as "disabled" instead of failing.
      */
     @Nullable
-    private final OnchainReadinessHealthIndicator onchainSyncHealthIndicator;
+    private final NodeSyncIndicator onchainSyncHealthIndicator;
 
     public HealthApiController(OffchainSyncHealthIndicator offchainSyncHealthIndicator,
-                               @Nullable OnchainReadinessHealthIndicator onchainSyncHealthIndicator) {
+                               @Nullable NodeSyncIndicator onchainSyncHealthIndicator) {
         this.offchainSyncHealthIndicator = offchainSyncHealthIndicator;
         this.onchainSyncHealthIndicator = onchainSyncHealthIndicator;
     }
