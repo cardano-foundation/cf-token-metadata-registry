@@ -4,7 +4,7 @@
 
     <groupId>org.cardanofoundation.metadatatools</groupId>
     <artifactId>server-base</artifactId>
-    <version>1.5.1</version>
+    <version>1.5.2-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <scm>
