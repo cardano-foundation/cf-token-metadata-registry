@@ -219,14 +219,16 @@ mvn clean package -pl api,common -am -DskipTests -Pnative
 
 Python-based regression tests validate all V1 and V2 business endpoints against database snapshots.
 
+Managed with [uv](https://docs.astral.sh/uv/) (`brew install uv`). Dependencies live in `regression-tests/pyproject.toml` and are pinned in `regression-tests/uv.lock`.
+
 ```console
-cd tests
-python3 -m venv venv && source venv/bin/activate && pip install -r requirements.txt
-python end2end/mainnet/fixtures/generate_fixtures.py
-cd end2end/mainnet && python -m pytest -v
+cd regression-tests
+uv sync
+uv run python mainnet/fixtures/generate_fixtures.py
+cd mainnet && uv run pytest -v
 ```
 
-See [`tests/README.md`](./tests/README.md) for full details on fixture generation, test markers, Allure reports, and configuration options.
+See [`regression-tests/README.md`](./regression-tests/README.md) for full details on fixture generation, test markers, Allure reports, and configuration options.
 
 ## Contributing
 

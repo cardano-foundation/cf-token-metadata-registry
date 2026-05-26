@@ -2736,9 +2736,9 @@
     "ft_asset_name": "0014df1042657461446f63746f72",
     "slot": 185141024,
     "name": "abandoned",
-    "description": "$BDOC: BetaDoctor - The memecoin to cure your meme fever. Doctor's orders !",
-    "ticker": "BDOC",
-    "url": "https://cardano.betadoctor.nl/",
+    "description": "abandoned",
+    "ticker": "abd",
+    "url": null,
     "decimals": 8,
     "has_logo": true,
     "version": 1

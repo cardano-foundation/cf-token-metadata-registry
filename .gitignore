@@ -16,8 +16,6 @@
 **/.installed.cfg
 **/*.egg
 
-venv/
-
 **/__pycache__/
 **/.pytest_cache/
 
@@ -52,8 +50,16 @@ node_modules/
 
 # testing
 .coverage
-tests/venv/
-tests/allure-results/
+regression-tests/allure-results/
+
+# Claude Code skills live in .claude/ — overrides the global ~/.gitignore_global
+# rule that excludes .claude/*. Only the per-developer settings and skill runtime
+# artifacts stay local.
+!.claude/
+!.claude/**
+.claude/settings.local.json
+.claude/skills/*/config.env
+.claude/skills/*/tunnels.pid
 
 #terraform
 **/*.tfstate
