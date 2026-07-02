@@ -40,7 +40,7 @@ CREATE TABLE cip113_registry_node (
     global_state_policy_id VARCHAR(56),
     next VARCHAR(64) NOT NULL,
     datum TEXT NOT NULL,
-    PRIMARY KEY (key, slot, tx_hash)
+    PRIMARY KEY (key, slot)
 );
 ```
 
@@ -66,7 +66,13 @@ The public service API (`Cip113RegistryService.findByPolicyId` / `findByPolicyId
 
 Column lengths are bounded to their protocol maxima: 28-byte policy IDs / credential hashes are `VARCHAR(56)` (56 hex chars), 32-byte transaction hashes are `VARCHAR(64)`. The `key` and `next` columns are `VARCHAR(64)` rather than `VARCHAR(56)` to accommodate the head/tail sentinels described above — do not shrink them to 56 even though real policy IDs fit. The `next` column is `NOT NULL` because every registry node — including the head and tail sentinels — must point to a next entry.
 
-The composite primary key `(key, slot, tx_hash)` allows tracking historical updates. Queries use `ORDER BY slot DESC LIMIT 1` to get the latest entry for a given key.
+The composite primary key is `(key, slot)` — deliberately **not** `(key, slot, tx_hash)`. This is a current-state registry, not a per-transaction audit trail: queries use `ORDER BY slot DESC LIMIT 1` to get the latest entry for a given key, and per-slot rows are enough to keep rollback (`WHERE slot > ?`) and point-in-time-by-slot correct.
+
+Keeping `tx_hash` out of the key means two updates to the same registry node **within the same slot** — possible via intra-block transaction chaining (a second tx in the same block spending the first's registry-node output) — collapse to a single row through `saveAll`'s merge, resolving last-writer-wins in block/tx processing order. Had `tx_hash` stayed in the key, that case would produce two rows tied at the same `(key, slot)`; the batch read path `findLatestByKeys` (`ROW_NUMBER() OVER (PARTITION BY key ORDER BY slot DESC)`) would then pick one **non-deterministically** (no in-block ordering column to tie-break on), and `Cip113RegistryService.findByPolicyIds` collecting into a `Collectors.toMap` keyed by `key` could surface stale state. `(key, slot)` guarantees exactly one row per `(key, slot)`, so each key resolves to a single deterministic latest row and the batch lookup can never collide.
+
+This mirrors `metadata_reference_nft`, whose key is `(policy_id, asset_name, slot)` for the same reason. `tx_hash` is retained as a provenance-only column.
+
+> Note on divergence from yaci-store's `assets-ext`: yaci-store resolves the identical concern by *preserving* full history — it adds a non-key `tx_index` ordering column and keeps `tx_hash` in the key (`(key, slot, tx_hash)`), because yaci-store's design guideline is to never do in-place updates. cf-token-metadata-registry has no such guideline and only ever serves current resolved state, so it takes the simpler overwrite-same-slot route here.
 
 **Field nullability:**
 
