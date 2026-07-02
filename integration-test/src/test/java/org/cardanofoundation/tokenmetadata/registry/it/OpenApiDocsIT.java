@@ -95,13 +95,52 @@ class OpenApiDocsIT extends BaseIntegrationIT {
     }
 
     @Nested
+    @DisplayName("CIP-113 - Programmable token extensions")
+    class Cip113 {
+
+        @Test
+        void subjectSchemaIncludesTypeField() {
+            assertThat(apiDocs.read("$.components.schemas.Subject.properties.type", Object.class))
+                    .as("Subject schema should have a 'type' field for token classification")
+                    .isNotNull();
+        }
+
+        @Test
+        void subjectSchemaIncludesExtensionsField() {
+            assertThat(apiDocs.read("$.components.schemas.Subject.properties.extensions", Object.class))
+                    .as("Subject schema should have an 'extensions' field for CIP extensions")
+                    .isNotNull();
+        }
+
+        @Test
+        void extensionsFieldIsAMapOfObjects() {
+            assertThat(apiDocs.read("$.components.schemas.Subject.properties.extensions.type", String.class))
+                    .isEqualTo("object");
+            assertThat(apiDocs.read("$.components.schemas.Subject.properties.extensions.additionalProperties", Object.class))
+                    .as("extensions should be a map with additionalProperties schema")
+                    .isNotNull();
+        }
+
+        @Test
+        void programmableTokenCip113SchemaDocumented() {
+            assertThat(apiDocs.read("$.components.schemas.ProgrammableTokenCip113", Object.class))
+                    .as("ProgrammableTokenCip113 schema should exist")
+                    .isNotNull();
+            assertThat(apiDocs.read("$.components.schemas.ProgrammableTokenCip113.description", String.class))
+                    .containsIgnoringCase("CIP-113");
+
+            assertThat(apiDocs.read("$.components.schemas.ProgrammableTokenCip113.properties.transfer_logic_script", Object.class)).isNotNull();
+            assertThat(apiDocs.read("$.components.schemas.ProgrammableTokenCip113.properties.third_party_transfer_logic_script", Object.class)).isNotNull();
+            assertThat(apiDocs.read("$.components.schemas.ProgrammableTokenCip113.properties.global_state_policy_id", Object.class)).isNotNull();
+        }
+    }
+
+    @Nested
     @DisplayName("Response schemas")
     class Schemas {
 
         @Test
         void shouldIncludeKeySchemas() {
-            Object schemas = apiDocs.read("$.components.schemas", Object.class);
-            assertThat(schemas).isNotNull();
             assertThat(apiDocs.read("$.components.schemas.TokenMetadata", Object.class)).isNotNull();
             assertThat(apiDocs.read("$.components.schemas.BatchRequest", Object.class)).isNotNull();
         }

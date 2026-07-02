@@ -148,8 +148,8 @@ def fetch_cip68_tokens(conn, max_tokens=1000):
         sampled = random.sample(without_ticker, sample_size)
         tokens.extend(row_to_token(row) for row in sampled)
 
-    # Sort by subject for stable ordering
-    tokens.sort(key=lambda t: t["subject"])
+    # Sort by slot descending (newer first), tiebreak by subject for stability
+    tokens.sort(key=lambda t: (-t["slot"], t["subject"]))
 
     return tokens
 

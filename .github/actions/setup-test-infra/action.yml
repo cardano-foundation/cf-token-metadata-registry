@@ -29,7 +29,7 @@ runs:
 
     - name: Install yaci-devkit
       shell: bash
-      run: npm install --ignore-scripts -g @bloxbean/yaci-devkit
+      run: npm install --ignore-scripts -g @bloxbean/yaci-devkit@0.11.0-beta1
 
     - name: Start Yaci DevKit
       shell: bash

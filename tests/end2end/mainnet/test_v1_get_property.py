@@ -97,3 +97,30 @@ class TestV1GetProperty:
         for other in ["ticker", "description", "url", "decimals", "logo"]:
             val = data.get(other)
             assert val is None, f"Property '{other}' should not be present when requesting only 'name'"
+
+    @allure.story("Filtered property preserves V1 annotated shape")
+    @pytest.mark.parametrize("prop", PROPERTIES)
+    def test_filtered_property_has_annotated_shape(self, prop):
+        """Single-property endpoint must return {value, signatures, sequenceNumber}
+        for the requested property. Regression guard for V1 mapper's property-filter path."""
+        for subject in CIP26_SAMPLE[:10]:
+            expected = CIP26_BY_SUBJECT[subject]
+            # Skip subjects that don't have this property set in the fixture.
+            if prop == "logo":
+                if not expected.get("has_logo"):
+                    continue
+            elif expected.get(prop) is None:
+                continue
+
+            resp = requests.get(f"{API_BASE_URL}/metadata/{subject}/properties/{prop}")
+            assert resp.status_code == 200, f"{subject[:16]}/{prop}: expected 200 got {resp.status_code}"
+            data = resp.json()
+            prop_data = data.get(prop)
+            assert prop_data is not None, f"{subject[:16]}/{prop}: property missing from response"
+            assert "value" in prop_data, f"{subject[:16]}/{prop}: missing 'value'"
+            assert "signatures" in prop_data, f"{subject[:16]}/{prop}: missing 'signatures'"
+            assert "sequenceNumber" in prop_data, f"{subject[:16]}/{prop}: missing 'sequenceNumber'"
+            assert isinstance(prop_data["signatures"], list)
+            assert isinstance(prop_data["sequenceNumber"], (int, float))
+            return
+        pytest.skip(f"No CIP-26 sample subject had a non-null '{prop}' to validate")

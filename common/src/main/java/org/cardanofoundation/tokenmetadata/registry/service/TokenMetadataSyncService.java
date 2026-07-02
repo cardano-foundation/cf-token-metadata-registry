@@ -23,11 +23,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class TokenMetadataSyncService {
 
     private final GitService gitService;
-
     private final TokenMetadataService tokenMetadataService;
-
     private final TokenMappingService tokenMappingService;
-
     private final SyncStateRepository syncStateRepository;
 
     @Value("${token.metadata.job.enabled}")

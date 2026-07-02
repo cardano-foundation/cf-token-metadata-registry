@@ -10,7 +10,7 @@ Accepted
 
 ## Context
 
-The CF Token Metadata Registry is a CIP-26 compliant offchain metadata registry for Cardano tokens, extended with CIP-68 on-chain metadata support. As the project has evolved through multiple releases, several significant architectural decisions have been made that shape its design, deployment, and operation.
+The CF Token Metadata Registry is a CIP-26 compliant offchain metadata registry for Cardano tokens, extended with CIP-68 on-chain metadata and CIP-113 programmable token support. As the project has evolved through multiple releases, several significant architectural decisions have been made that shape its design, deployment, and operation.
 
 This document serves as an index and navigation guide to all Architecture Decision Records (ADRs) in this project, providing a high-level map of the key decisions and their relationships.
 
@@ -18,16 +18,16 @@ This document serves as an index and navigation guide to all Architecture Decisi
 
 The system is a multi-module Spring Boot 3 application composed of:
 
-- **api** - REST API server implementing CIP-26/CIP-68 metadata queries
+- **api** - REST API server implementing CIP-26/CIP-68/CIP-113 metadata queries
 - **job** - Background processor for syncing token metadata from GitHub
 - **common** - Shared domain models, entities, services, and repositories
 - **cli** - Command-line tools for metadata operations
 
 Data flows into the system from two sources:
 1. **Off-chain**: GitHub repository (`cardano-token-registry`) synced via JGit
-2. **On-chain**: Cardano blockchain indexed via Yaci Store for CIP-68 reference NFTs
+2. **On-chain**: Cardano blockchain indexed via Yaci Store for CIP-68 reference NFTs and CIP-113 registry nodes
 
-The API exposes both a legacy V1 (CIP-26 only) and an enhanced V2 (CIP-26 + CIP-68 with configurable priority) interface.
+The API exposes both a legacy V1 (CIP-26 only) and an enhanced V2 (CIP-26 + CIP-68 with configurable priority, plus CIP-113 extensions) interface.
 
 ## ADR Index
 
@@ -46,6 +46,8 @@ The API exposes both a legacy V1 (CIP-26 only) and an enhanced V2 (CIP-26 + CIP-
 | [ADR-004](004-cip26-cip68-dual-standard.md) | CIP-26 and CIP-68 Dual Standard Support | Accepted |
 | [ADR-005](005-postgresql-jsonb-metadata.md) | PostgreSQL with JSONB for Extensible Metadata | Accepted |
 | [ADR-006](006-flyway-database-migrations.md) | Flyway for Database Schema Management | Accepted |
+| [ADR-015](015-v2-api-extensions-model.md) | V2 API Extensions Model | Accepted |
+| [ADR-016](016-cip113-programmable-tokens.md) | CIP-113 Programmable Token Support | Accepted |
 
 ### Data Ingestion
 

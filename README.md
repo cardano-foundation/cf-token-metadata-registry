@@ -1,22 +1,28 @@
-[![License: MPL 2.0](https://img.shields.io/badge/License-MPL_2.0-brightgreen.svg)](https://github.com/cardano-foundation/cf-token-metadata-registry/blob/main/LICENSE)
-![GitHub top language](https://img.shields.io/github/languages/top/cardano-foundation/cf-token-metadata-registry)
-[![Build](https://github.com/cardano-foundation/cf-token-metadata-registry/actions/workflows/main.yaml/badge.svg)](https://github.com/cardano-foundation/cf-token-metadata-registry/actions/workflows/main.yaml)
+[![License](https://img.shields.io/github/license/cardano-foundation/cf-token-metadata-registry?label=license)](https://github.com/cardano-foundation/cf-token-metadata-registry/blob/main/LICENSE)
+[![CI](https://github.com/cardano-foundation/cf-token-metadata-registry/actions/workflows/ci.yaml/badge.svg?branch=main)](https://github.com/cardano-foundation/cf-token-metadata-registry/actions/workflows/ci.yaml)
+[![Nightly](https://github.com/cardano-foundation/cf-token-metadata-registry/actions/workflows/nightly.yaml/badge.svg)](https://github.com/cardano-foundation/cf-token-metadata-registry/actions/workflows/nightly.yaml)
+[![CodeQL](https://github.com/cardano-foundation/cf-token-metadata-registry/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/cardano-foundation/cf-token-metadata-registry/actions/workflows/codeql.yml)
+[![SonarCloud Quality Gate](https://sonarcloud.io/api/project_badges/measure?project=cardano-foundation_cf-token-metadata-registry&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=cardano-foundation_cf-token-metadata-registry)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=cardano-foundation_cf-token-metadata-registry&metric=coverage)](https://sonarcloud.io/summary/new_code?id=cardano-foundation_cf-token-metadata-registry)
+[![GitHub top language](https://img.shields.io/github/languages/top/cardano-foundation/cf-token-metadata-registry)](https://github.com/cardano-foundation/cf-token-metadata-registry)
 [![Issues](https://img.shields.io/github/issues/cardano-foundation/cf-token-metadata-registry)](https://github.com/cardano-foundation/cf-token-metadata-registry/issues)
+[![Discord](https://img.shields.io/discord/1022471509173882950?label=chat&logo=discord)](https://discord.gg/cardano)
 
 ---
 
 # Cardano offchain metadata registry
 
-A reference implementation of a Cardano [CIP-26](https://github.com/cardano-foundation/CIPs/tree/master/CIP-0026) compliant offchain metadata registry with [CIP-68](https://github.com/cardano-foundation/CIPs/tree/master/CIP-0068) support.
+A reference implementation of a Cardano [CIP-26](https://github.com/cardano-foundation/CIPs/tree/master/CIP-0026) compliant offchain metadata registry with [CIP-68](https://github.com/cardano-foundation/CIPs/tree/master/CIP-0068) and [CIP-113](https://github.com/cardano-foundation/CIPs/tree/master/CIP-0113) support.
 
 ## Overview
 
-The registry is a Spring Boot application backed by PostgreSQL. It serves token metadata from two sources:
+The registry is a Spring Boot application backed by PostgreSQL. It serves token metadata from three sources:
 
 - **CIP-26 (offchain)**: metadata is synced from a [GitHub repository](https://github.com/cardano-foundation/cardano-token-registry) on a scheduled basis (every 60 minutes by default).
 - **CIP-68 (on-chain)**: metadata is read directly from the Cardano blockchain via [Yaci Store](https://github.com/bloxbean/yaci-store), which connects to a Cardano node and indexes CIP-68 reference NFT datums.
+- **CIP-113 (programmable tokens)**: registry node NFTs for programmable tokens are indexed from the chain and surfaced as extensions on the V2 API. Supported on preview, preprod, and mainnet — enabled per-network by setting `CIP113_REGISTRY_NFT_POLICY_IDS`.
 
-The V2 API queries both standards by priority (`CIP_68,CIP_26` by default). CIP-68 on-chain data takes precedence when available.
+The V2 API queries CIP-26 and CIP-68 by priority (`CIP_68,CIP_26` by default). CIP-68 on-chain data takes precedence when available. CIP-113 extensions are appended when the token's policy ID is in the configured programmable token registry.
 
 > [!NOTE]
 > By default, Yaci Store connects to a public Cardano node (`STORE_CARDANO_HOST` in `.env`). You can point it to your own node if preferred.
@@ -31,14 +37,26 @@ See the [API Reference](https://cardano-foundation.github.io/cf-token-metadata-r
 
 ### Mainnet
 
+Syncs CIP-26 offchain metadata from GitHub and CIP-68 on-chain metadata from a public Cardano mainnet node. CIP-113 indexing is available but no registry NFT policy IDs are configured by default in [`.env`](./.env) — set `CIP113_REGISTRY_NFT_POLICY_IDS` to enable.
+
 ```console
 docker compose up
 ```
 
 ### Preprod
 
+Syncs CIP-26 metadata from the [testnet registry](https://github.com/input-output-hk/metadata-registry-testnet), CIP-68 on-chain metadata, and CIP-113 programmable token registry nodes from a public preprod node.
+
 ```console
 docker compose --env-file .env.preprod up
+```
+
+### Preview
+
+Syncs CIP-68 on-chain metadata and CIP-113 programmable token registry nodes from the preview testnet. CIP-26 offchain sync is disabled since no offchain registry exists for preview.
+
+```console
+docker compose --env-file .env.preview up
 ```
 
 ## API Endpoints
@@ -65,7 +83,7 @@ For the full API reference (including V1 endpoints and query parameters), see th
 
 ## Configuration
 
-All settings are controlled via environment variables. See [`.env`](./.env) (mainnet) and [`.env.preprod`](./.env.preprod) (preprod) for the full list.
+All settings are controlled via environment variables. See [`.env`](./.env) (mainnet), [`.env.preprod`](./.env.preprod) (preprod), and [`.env.preview`](./.env.preview) (preview) for the full list.
 
 | Variable | Description | Default |
 |----------|-------------|---------|
@@ -73,16 +91,22 @@ All settings are controlled via environment variables. See [`.env`](./.env) (mai
 | `CIP_QUERY_PRIORITY` | CIP priority order for V2 queries | `CIP_68,CIP_26` |
 | `STORE_CARDANO_HOST` | Cardano node host for CIP-68 sync | `backbone.mainnet.cardanofoundation.org` |
 | `STORE_CARDANO_PROTOCOL_MAGIC` | Network protocol magic | `764824073` (mainnet) |
+| `CIP113_REGISTRY_NFT_POLICY_IDS` | Comma-separated CIP-113 registry NFT policy IDs (enables CIP-113 when non-empty) | _(empty)_ |
 | `API_DOCKERFILE` | Dockerfile variant for `docker compose build` | `api/Dockerfile.jvm` |
 
 ## Docker Images
 
-Two Docker image variants are available:
+Two Docker image variants are available. **Both are fully supported for production from v1.5.1 onwards.**
 
 | Variant | Base image | Startup | Memory | Image size | Use case |
 |---------|-----------|---------|--------|------------|----------|
-| **JVM** | Eclipse Temurin 25 LTS | ~15s | ~2 GB | ~637 MB | Production, development |
-| **Native** | GraalVM 25 LTS (AOT-compiled) | ~3s | ~150 MB | ~200 MB | Experimental |
+| **JVM** | Eclipse Temurin 25 LTS | ~11 s | ~2.4 GiB | ~400 MB | Production, development |
+| **Native** | GraalVM 25 LTS (AOT-compiled) | ~1.8 s | ~740 MiB | ~584 MB | Production (low-memory / fast-start) |
+
+Observed figures above are from long-running mainnet deploys on the `CIP-113-token` branch — startup measured from container start to Spring Boot's `Started … in` log; memory measured as Docker RSS ~1 h into mainnet sync; image size measured on a fresh `docker inspect`. Your numbers will differ slightly depending on JVM tuning, GraalVM profile-guided optimisation, and base image. Native image sync throughput sits within ~5 % of the JVM build on the same hardware.
+
+> [!NOTE]
+> Native images were experimental in `1.5.0`; they became a first-class, supported production target in `1.5.1`. The main bug that had previously blocked offchain CIP-26 sync on native (JGit enum reflection — see [PR #79](https://github.com/cardano-foundation/cf-token-metadata-registry/pull/79)) was fixed for `1.5.1`.
 
 ### Building the JVM image
 
@@ -125,6 +149,9 @@ API_DOCKERFILE=api/Dockerfile.native docker compose up -d --build
 
 # Preprod
 docker compose --env-file .env.preprod up -d
+
+# Preview (CIP-113 programmable tokens)
+docker compose --env-file .env.preview up -d
 
 # Read-only mode (no sync, no node connection)
 COMPOSE_PROFILES=ro docker compose up -d
@@ -201,8 +228,10 @@ mvn clean package -pl api,common -am -DskipTests -Pnative
 
 - [x] CIP-26 compliant REST API
 - [x] CIP-68 fungible token support (V2 API with priority-based querying)
+- [x] CIP-113 programmable token registry support (preview, preprod, mainnet — enabled via `CIP113_REGISTRY_NFT_POLICY_IDS`)
 - [x] Prometheus metrics (`/actuator/prometheus`)
 - [x] Kubernetes / Helm deployment support (`deploy/`)
+- [x] GraalVM native-image builds — production-supported from `1.5.1`
 
 ## End-to-End Tests
 
