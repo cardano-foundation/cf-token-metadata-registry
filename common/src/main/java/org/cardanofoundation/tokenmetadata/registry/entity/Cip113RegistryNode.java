@@ -16,7 +16,7 @@ import jakarta.annotation.Nullable;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-// Business-key equals/hashCode: all three PK components are app-assigned and non-null at
+// Business-key equals/hashCode: both PK components (key, slot) are app-assigned and non-null at
 // construction, so they're stable across the transient → managed → detached lifecycle.
 // Lombok's generated equals uses `instanceof` (proxy-safe for lazy-loaded associations).
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
@@ -80,10 +80,20 @@ public class Cip113RegistryNode {
     @EqualsAndHashCode.Include
     private Long slot;
 
-    /** Cardano transaction hash: exactly 32 bytes = 64 hex chars. Protocol-bounded. */
-    @Id
+    /**
+     * Cardano transaction hash of the output that produced this registry-node state:
+     * exactly 32 bytes = 64 hex chars. Protocol-bounded.
+     *
+     * <p><b>Not part of the primary key.</b> The PK is {@code (key, slot)} so that two updates to
+     * the same registry node within the same slot (intra-block transaction chaining) collapse to a
+     * single row via {@code saveAll}'s merge — last-writer-wins in block/tx processing order. This
+     * "current-state, overwrite same-slot" model matches {@code metadata_reference_nft}
+     * ({@code (policy_id, asset_name, slot)}) and guarantees {@code findLatestByKeys} resolves each
+     * key to exactly one row, so the batch lookup in {@code Cip113RegistryService.findByPolicyIds}
+     * can never hit a {@code Collectors.toMap} duplicate-key crash. {@code tx_hash} is retained as a
+     * provenance column only.
+     */
     @Column(name = "tx_hash", length = 64, nullable = false)
-    @EqualsAndHashCode.Include
     private String txHash;
 
     /** Aiken {@code Credential} inner hash (28-byte vkey or script hash, 56 hex chars). */

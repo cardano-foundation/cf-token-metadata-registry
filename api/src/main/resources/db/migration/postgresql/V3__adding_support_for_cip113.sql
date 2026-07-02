@@ -22,6 +22,7 @@ CREATE TABLE cip113_registry_node (
     key VARCHAR(64) NOT NULL,
     slot BIGINT NOT NULL,
     -- Cardano transaction hash: exactly 32 bytes = 64 hex chars. Protocol-bounded.
+    -- Provenance only — NOT part of the primary key (see PRIMARY KEY note below).
     tx_hash VARCHAR(64) NOT NULL,
     -- Aiken Credential inner hash (either VerificationKey or Script): 28 bytes = 56 hex.
     -- The constructor variant (VKey vs Script) is currently NOT preserved — if that
@@ -35,7 +36,13 @@ CREATE TABLE cip113_registry_node (
     next VARCHAR(64) NOT NULL,
     -- Full CBOR hex of the inline datum. Variable length.
     datum TEXT NOT NULL,
-    PRIMARY KEY (key, slot, tx_hash)
+    -- Current-state model: PK is (key, slot), NOT (key, slot, tx_hash). Two updates to the same
+    -- registry node in the same slot (intra-block tx chaining) collapse to a single row via the
+    -- application's saveAll merge (last-writer-wins in block/tx order). This mirrors
+    -- metadata_reference_nft's (policy_id, asset_name, slot) key and guarantees findLatestByKeys
+    -- resolves each key to exactly one row, so the batch lookup never hits a duplicate-key crash.
+    -- We deliberately do NOT retain full intra-slot history — this is a current-state registry.
+    PRIMARY KEY (key, slot)
 );
 
 -- Cip113RegistryNodeRepository.deleteBySlotGreaterThan(Long)
