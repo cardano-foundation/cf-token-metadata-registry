@@ -76,10 +76,10 @@ public class TokenMetadataSyncService {
                 return;
             }
 
-            SyncWorkload workload = resolveWorkload(lastHash, newHashOpt, repoPathOpt.get());
-            List<File> filesToProcess = workload.filesToProcess();
+            PendingChanges pendingChanges = resolvePendingChanges(lastHash, newHashOpt, repoPathOpt.get());
+            List<File> filesToProcess = pendingChanges.filesToProcess();
             log.info("Resolved {} file(s) to process, {} subject(s) to delete",
-                    filesToProcess.size(), workload.subjectsToDelete().size());
+                    filesToProcess.size(), pendingChanges.subjectsToDelete().size());
 
             // Batch-resolve git metadata for all files in a single history walk
             Set<String> fileNames = filesToProcess.stream()
@@ -92,7 +92,7 @@ public class TokenMetadataSyncService {
 
             long processStart = System.currentTimeMillis();
             boolean hasFailures = processMappingFiles(filesToProcess, mappingDetailsMap);
-            hasFailures |= processDeletions(workload.subjectsToDelete());
+            hasFailures |= processDeletions(pendingChanges.subjectsToDelete());
 
             if (hasFailures) {
                 log.warn("Some mappings failed to process. Commit hash will not be advanced so failed mappings are retried on next sync.");
@@ -196,15 +196,7 @@ public class TokenMetadataSyncService {
                 : fileName;
     }
 
-    /**
-     * Mapping files to upsert and subjects to delete for one sync run.
-     * Incremental sync derives both from the git diff between the last processed commit and HEAD.
-     * Full sync upserts every file in the mappings folder and deletes DB subjects whose file is gone.
-     */
-    private record SyncWorkload(List<File> filesToProcess, List<String> subjectsToDelete) {
-    }
-
-    private SyncWorkload resolveWorkload(String lastHash, Optional<String> newHashOpt, Path repoPath) {
+    private PendingChanges resolvePendingChanges(String lastHash, Optional<String> newHashOpt, Path repoPath) {
         if (lastHash != null && newHashOpt.isPresent()) {
             log.info("Incremental sync from {} to {}", lastHash, newHashOpt.get());
             ChangedMappings changedMappings = gitService.getChangedMappings(lastHash, newHashOpt.get());
@@ -215,14 +207,14 @@ public class TokenMetadataSyncService {
                     .toList();
             log.info("Incremental sync: processing {} changed file(s), {} deleted file(s)",
                     files.size(), subjectsToDelete.size());
-            return new SyncWorkload(files, subjectsToDelete);
+            return new PendingChanges(files, subjectsToDelete);
         }
 
         log.info("Full sync: processing all files");
         File mappings = repoPath.toFile();
         List<File> files = Optional.ofNullable(mappings.listFiles())
                 .map(Arrays::asList).orElse(List.of());
-        return new SyncWorkload(files, resolveStaleSubjects(files));
+        return new PendingChanges(files, resolveStaleSubjects(files));
     }
 
     /**
@@ -266,6 +258,33 @@ public class TokenMetadataSyncService {
         log.info("Deletion processing complete: {}/{} deleted, failures={}",
                 deleted, subjectsToDelete.size(), failures);
         return failures;
+    }
+
+    /**
+     * The database changes one sync run still has to apply: mapping files to upsert and
+     * subjects to delete. How each side is resolved depends on the sync mode:
+     *
+     * <p><b>Incremental sync</b> (a last processed commit hash is stored and HEAD is known):
+     * both sides come from the git tree diff between the two commits. Added/modified mapping
+     * files become {@code filesToProcess}; deleted mapping files become {@code subjectsToDelete}
+     * (filename minus the {@code .json} extension — for canonical registry entries the filename
+     * equals the subject; for the mismatched spam files that were never indexed the resulting
+     * delete is a harmless no-op).
+     *
+     * <p><b>Full sync</b> (first run, or commit-hash tracking unavailable): there is no diff to
+     * consult, so {@code filesToProcess} is every file in the mappings folder and
+     * {@code subjectsToDelete} is derived by reconciliation — DB subjects with no corresponding
+     * mapping file were removed upstream while tracking was lost and must go. An empty mappings
+     * folder is treated as a broken clone rather than "everything was deleted", and yields no
+     * deletions.
+     *
+     * <p>Failed deletions, like failed upserts, prevent the commit hash from advancing so the
+     * work is retried on the next run.
+     *
+     * @param filesToProcess   mapping files to parse and upsert into the metadata/logo tables
+     * @param subjectsToDelete subjects whose metadata (and logo) rows must be removed locally
+     */
+    private record PendingChanges(List<File> filesToProcess, List<String> subjectsToDelete) {
     }
 
 }
