@@ -126,6 +126,29 @@ class TokenMetadataServiceTest {
     }
 
     @Test
+    void deleteMappingTest_ShouldDeleteLogoBeforeMetadata() {
+        String subject = "ff7cad970d3a755a1ff0335ccb3f3c1cabf31aacf3f23dd13db61b0630313030";
+
+        boolean result = tokenMetadataService.deleteMapping(subject);
+
+        Assertions.assertTrue(result, "deleteMapping should return true when deletes succeed");
+        // The logo table has a foreign key on metadata.subject, so the logo row must go first.
+        org.mockito.InOrder inOrder = Mockito.inOrder(tokenLogoRepository, tokenMetadataRepository);
+        inOrder.verify(tokenLogoRepository).deleteById(subject);
+        inOrder.verify(tokenMetadataRepository).deleteById(subject);
+    }
+
+    @Test
+    void deleteMappingTest_ShouldReturnFalseOnDeleteException() {
+        String subject = "ff7cad970d3a755a1ff0335ccb3f3c1cabf31aacf3f23dd13db61b0630313030";
+        Mockito.doThrow(new RuntimeException("DB error")).when(tokenMetadataRepository).deleteById(subject);
+
+        boolean result = tokenMetadataService.deleteMapping(subject);
+
+        Assertions.assertFalse(result, "deleteMapping should return false when delete throws");
+    }
+
+    @Test
     void insertMappingTest_ShouldRejectTokenWithNameExceedingMaxLength() {
         LocalDateTime now = LocalDateTime.now();
         String testUser = "test-user";

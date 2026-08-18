@@ -3,6 +3,7 @@ package org.cardanofoundation.tokenmetadata.registry.service;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
+import org.cardanofoundation.tokenmetadata.registry.model.ChangedMappings;
 import org.cardanofoundation.tokenmetadata.registry.model.MappingUpdateDetails;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.lib.BranchConfig;
@@ -294,10 +295,10 @@ private boolean isGitRepo() {
         return Optional.empty();
     }
 
-    public List<Path> getChangedFiles(String fromHash, String toHash) {
+    public ChangedMappings getChangedMappings(String fromHash, String toHash) {
         if (git == null) {
             log.warn(GIT_NOT_INITIALIZED);
-            return List.of();
+            return ChangedMappings.empty();
         }
         try {
             Repository repository = git.getRepository();
@@ -307,7 +308,7 @@ private boolean isGitRepo() {
 
             if (oldId == null || newId == null) {
                 log.warn("Could not resolve commit hashes: {} -> {}", fromHash, toHash);
-                return List.of();
+                return ChangedMappings.empty();
             }
 
             AbstractTreeIterator oldTree = prepareTreeParser(repository, oldId);
@@ -320,17 +321,26 @@ private boolean isGitRepo() {
                     .call();
 
             Path repoRoot = getGitFolder().toPath();
-            return diffs.stream()
+            List<Path> upsertedFiles = diffs.stream()
                     .filter(d -> d.getChangeType() == DiffEntry.ChangeType.ADD
                             || d.getChangeType() == DiffEntry.ChangeType.MODIFY)
                     .map(DiffEntry::getNewPath)
                     .filter(path -> path.endsWith(".json"))
                     .map(repoRoot::resolve)
                     .toList();
+
+            List<String> deletedFileNames = diffs.stream()
+                    .filter(d -> d.getChangeType() == DiffEntry.ChangeType.DELETE)
+                    .map(DiffEntry::getOldPath)
+                    .filter(path -> path.endsWith(".json"))
+                    .map(path -> path.substring(path.lastIndexOf('/') + 1))
+                    .toList();
+
+            return new ChangedMappings(upsertedFiles, deletedFileNames);
         } catch (Exception e) {
             log.warn("Failed to get changed files between {} and {}", fromHash, toHash, e);
         }
-        return List.of();
+        return ChangedMappings.empty();
     }
 
     private AbstractTreeIterator prepareTreeParser(Repository repository, ObjectId objectId) throws IOException {

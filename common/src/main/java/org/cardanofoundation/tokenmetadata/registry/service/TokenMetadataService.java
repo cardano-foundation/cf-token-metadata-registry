@@ -12,6 +12,7 @@ import org.cardanofoundation.tokenmetadata.registry.util.TokenMetadataValidator;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 import static org.cardanofoundation.tokenmetadata.registry.util.MappingsUtil.toTokenLogo;
 
@@ -55,6 +56,31 @@ public class TokenMetadataService {
      *
      * @return true if successfully inserted, false if validation failed or error occurred
      */
+    /**
+     * Deletes the metadata (and its logo, which has a foreign key on metadata) for a subject
+     * whose mapping file was removed from the upstream registry. Deleting a subject that is
+     * not present locally is a no-op.
+     *
+     * @return true if the deletion succeeded (including the no-op case), false if an error occurred
+     */
+    public boolean deleteMapping(String subject) {
+        try {
+            tokenLogoRepository.deleteById(subject);
+            tokenMetadataRepository.deleteById(subject);
+            return true;
+        } catch (Exception e) {
+            log.error("Failed to delete token metadata for subject '{}': {}", subject, e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * @return subjects of all CIP-26 metadata rows currently stored locally
+     */
+    public List<String> findAllSubjects() {
+        return tokenMetadataRepository.findAllSubjects();
+    }
+
     public boolean insertLogo(Mapping mapping) {
         TokenLogo tokenLogo = toTokenLogo(mapping);
 
