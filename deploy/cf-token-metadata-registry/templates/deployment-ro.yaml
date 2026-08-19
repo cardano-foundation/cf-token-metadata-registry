@@ -4,6 +4,7 @@ metadata:
   name: {{ include "cf-token-metadata-registry.fullname" . }}-ro
   labels:
     {{- include "cf-token-metadata-registry.labels" . | nindent 4 }}
+    app.kubernetes.io/component: read-only
 spec:
   replicas: {{ .Values.roReplicaCount }}
   selector:
@@ -13,6 +14,7 @@ spec:
     metadata:
       labels:
         {{- include "cf-token-metadata-registry.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: read-only
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:

@@ -1,4 +1,5 @@
-replicaCount: 1
+rwReplicaCount: 1
+roReplicaCount: 2
 
 api:
   image:

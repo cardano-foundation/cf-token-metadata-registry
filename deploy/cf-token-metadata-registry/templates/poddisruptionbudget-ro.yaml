@@ -1,0 +1,13 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "cf-token-metadata-registry.fullname" . }}-ro
+  labels:
+    {{- include "cf-token-metadata-registry.labels" . | nindent 4 }}
+    app.kubernetes.io/component: read-only
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      {{- include "cf-token-metadata-registry.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: read-only
