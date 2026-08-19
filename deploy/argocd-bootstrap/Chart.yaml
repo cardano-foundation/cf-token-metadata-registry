@@ -3,6 +3,6 @@ name: argocd-bootstrap
 version: 0.0.2
 dependencies:
   - name: argo-cd
-    version: 8.2.7
+    version: 10.4.0
     repository: https://argoproj.github.io/argo-helm
     condition: argo-cd.enabled
