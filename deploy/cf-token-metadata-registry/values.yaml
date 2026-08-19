@@ -1,6 +1,15 @@
 rwReplicaCount: 1
 roReplicaCount: 2
 
+# Keep read-only replicas on separate nodes.
+roAffinity:
+  podAntiAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchLabels:
+            app.kubernetes.io/component: read-only
+        topologyKey: kubernetes.io/hostname
+
 api:
   image:
     repository: cardanofoundation/cf-token-metadata-registry-api
