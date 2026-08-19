@@ -21,7 +21,7 @@ cf-token-metadata-registry:
         tag: "1.6.0"
 
     postgres:
-      numberOfInstances: 1
+      numberOfInstances: 2
     ingress:
       additionalDomains:
         - preprod.tokens.cardano.org
