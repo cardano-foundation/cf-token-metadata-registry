@@ -7,6 +7,10 @@ metadata:
     app.kubernetes.io/component: read-only
 spec:
   replicas: {{ .Values.roReplicaCount }}
+  {{- with .Values.roStrategy }}
+  strategy:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
   selector:
     matchLabels:
       {{- include "cf-token-metadata-registry.selectorLabels" . | nindent 6 }}

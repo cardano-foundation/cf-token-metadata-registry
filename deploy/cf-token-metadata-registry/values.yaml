@@ -1,6 +1,8 @@
 rwReplicaCount: 1
 roReplicaCount: 2
 
+roStrategy: {}
+
 # Keep read-only replicas on separate nodes.
 roAffinity:
   podAntiAffinity:

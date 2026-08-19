@@ -9,6 +9,11 @@ cf-token-metadata-registry:
   values:
     rwReplicaCount: 1 # rw 0 or 1
     roReplicaCount: 2
+    roStrategy:
+      type: RollingUpdate
+      rollingUpdate:
+        maxSurge: 0
+        maxUnavailable: 1
     dbSchema: registry
     api:
       image:
