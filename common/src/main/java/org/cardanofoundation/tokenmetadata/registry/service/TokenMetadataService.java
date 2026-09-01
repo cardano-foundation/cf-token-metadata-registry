@@ -9,14 +9,14 @@ import org.cardanofoundation.tokenmetadata.registry.repository.TokenLogoReposito
 import org.cardanofoundation.tokenmetadata.registry.repository.TokenMetadataRepository;
 import org.cardanofoundation.tokenmetadata.registry.util.MappingsUtil;
 import org.cardanofoundation.tokenmetadata.registry.util.TokenMetadataValidator;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.cardanofoundation.tokenmetadata.registry.util.MappingsUtil.toTokenLogo;
 
-@Component
+@Service
 @Slf4j
 @AllArgsConstructor
 public class TokenMetadataService {
@@ -51,12 +51,6 @@ public class TokenMetadataService {
     }
 
     /**
-     * Inserts logo data into the database.
-     * Validates logo according to CIP-26 before insertion.
-     *
-     * @return true if successfully inserted, false if validation failed or error occurred
-     */
-    /**
      * Deletes the metadata (and its logo, which has a foreign key on metadata) for a subject
      * whose mapping file was removed from the upstream registry. Deleting a subject that is
      * not present locally is a no-op.
@@ -81,6 +75,12 @@ public class TokenMetadataService {
         return tokenMetadataRepository.findAllSubjects();
     }
 
+    /**
+     * Inserts logo data into the database.
+     * Validates logo according to CIP-26 before insertion.
+     *
+     * @return true if successfully inserted, false if validation failed or error occurred
+     */
     public boolean insertLogo(Mapping mapping) {
         TokenLogo tokenLogo = toTokenLogo(mapping);
 

@@ -8,7 +8,7 @@ import org.cardanofoundation.tokenmetadata.registry.repository.TokenMetadataRepo
 import org.cardanofoundation.tokenmetadata.registry.util.TokenMetadataValidator;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
+import org.mockito.InOrder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -22,6 +22,14 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.Optional;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @SpringBootTest(classes = {TokenMappingService.class, TokenMetadataService.class, TokenMetadataValidator.class, JsonConfiguration.class})
 class TokenMetadataServiceTest {
@@ -64,7 +72,7 @@ class TokenMetadataServiceTest {
             Assertions.assertTrue(result, "insertMapping should return true for valid token");
 
             // Verify repository save was called
-            Mockito.verify(tokenMetadataRepository, Mockito.times(1)).save(tokenMetadata);
+            verify(tokenMetadataRepository, times(1)).save(tokenMetadata);
 
         });
     }
@@ -94,7 +102,7 @@ class TokenMetadataServiceTest {
             Assertions.assertTrue(result, "insertLogo should return true for valid logo");
 
             // Verify repository save was called
-            Mockito.verify(tokenLogoRepository, Mockito.times(1)).save(tokenLogo);
+            verify(tokenLogoRepository, times(1)).save(tokenLogo);
 
         });
 
@@ -107,7 +115,7 @@ class TokenMetadataServiceTest {
         Optional<Mapping> mappingsOpt = tokenMappingService.parseMappings(mappingFile);
         Assertions.assertTrue(mappingsOpt.isPresent());
 
-        Mockito.when(tokenMetadataRepository.save(Mockito.any())).thenThrow(new RuntimeException("DB error"));
+        when(tokenMetadataRepository.save(any())).thenThrow(new RuntimeException("DB error"));
 
         boolean result = tokenMetadataService.insertMapping(mappingsOpt.get(), LocalDateTime.now(), "test-user");
         Assertions.assertFalse(result, "insertMapping should return false when save throws");
@@ -119,7 +127,7 @@ class TokenMetadataServiceTest {
         Optional<Mapping> mappingsOpt = tokenMappingService.parseMappings(mappingFile);
         Assertions.assertTrue(mappingsOpt.isPresent());
 
-        Mockito.when(tokenLogoRepository.save(Mockito.any())).thenThrow(new RuntimeException("DB error"));
+        when(tokenLogoRepository.save(any())).thenThrow(new RuntimeException("DB error"));
 
         boolean result = tokenMetadataService.insertLogo(mappingsOpt.get());
         Assertions.assertFalse(result, "insertLogo should return false when save throws");
@@ -133,7 +141,7 @@ class TokenMetadataServiceTest {
 
         Assertions.assertTrue(result, "deleteMapping should return true when deletes succeed");
         // The logo table has a foreign key on metadata.subject, so the logo row must go first.
-        org.mockito.InOrder inOrder = Mockito.inOrder(tokenLogoRepository, tokenMetadataRepository);
+        InOrder inOrder = inOrder(tokenLogoRepository, tokenMetadataRepository);
         inOrder.verify(tokenLogoRepository).deleteById(subject);
         inOrder.verify(tokenMetadataRepository).deleteById(subject);
     }
@@ -141,7 +149,7 @@ class TokenMetadataServiceTest {
     @Test
     void deleteMappingTest_ShouldReturnFalseOnDeleteException() {
         String subject = "ff7cad970d3a755a1ff0335ccb3f3c1cabf31aacf3f23dd13db61b0630313030";
-        Mockito.doThrow(new RuntimeException("DB error")).when(tokenMetadataRepository).deleteById(subject);
+        doThrow(new RuntimeException("DB error")).when(tokenMetadataRepository).deleteById(subject);
 
         boolean result = tokenMetadataService.deleteMapping(subject);
 
@@ -171,7 +179,7 @@ class TokenMetadataServiceTest {
         Assertions.assertFalse(result, "insertMapping should return false when name exceeds 50 characters (CIP-26 limit)");
 
         // Verify repository save was NOT called
-        Mockito.verify(tokenMetadataRepository, Mockito.never()).save(Mockito.any());
+        verify(tokenMetadataRepository, never()).save(any());
     }
 
     @Test
@@ -197,7 +205,7 @@ class TokenMetadataServiceTest {
         Assertions.assertFalse(result, "insertMapping should return false when ticker exceeds 9 characters (CIP-26 limit)");
 
         // Verify repository save was NOT called
-        Mockito.verify(tokenMetadataRepository, Mockito.never()).save(Mockito.any());
+        verify(tokenMetadataRepository, never()).save(any());
     }
 
     @Test
@@ -223,7 +231,7 @@ class TokenMetadataServiceTest {
         Assertions.assertFalse(result, "insertMapping should return false when description exceeds 500 characters (CIP-26 limit)");
 
         // Verify repository save was NOT called
-        Mockito.verify(tokenMetadataRepository, Mockito.never()).save(Mockito.any());
+        verify(tokenMetadataRepository, never()).save(any());
     }
 
     @Test
@@ -248,7 +256,7 @@ class TokenMetadataServiceTest {
         Assertions.assertFalse(result, "insertLogo should return false when subject exceeds CIP-26 specification limit");
 
         // Verify repository save was NOT called
-        Mockito.verify(tokenLogoRepository, Mockito.never()).save(Mockito.any());
+        verify(tokenLogoRepository, never()).save(any());
     }
 
     @Test
@@ -272,7 +280,7 @@ class TokenMetadataServiceTest {
         Assertions.assertFalse(result, "insertLogo should return false when logo exceeds CIP-26 specification limit (validated by cf-metadata-core)");
 
         // Verify repository save was NOT called
-        Mockito.verify(tokenLogoRepository, Mockito.never()).save(Mockito.any());
+        verify(tokenLogoRepository, never()).save(any());
     }
 
 
