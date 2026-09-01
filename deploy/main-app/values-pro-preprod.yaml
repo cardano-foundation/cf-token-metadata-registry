@@ -17,13 +17,13 @@ cf-token-metadata-registry:
     dbSchema: registry
     api:
       image:
-        tag: "1.6.0"
+        tag: "1.6.0-main-8e05677"
       tokenMetadataUpdateJob:
         enabled: false
     job:
       enabled: true
       image:
-        tag: "1.6.0"
+        tag: "1.6.0-main-8e05677"
 
     postgres:
       numberOfInstances: 2
