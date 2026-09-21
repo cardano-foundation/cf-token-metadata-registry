@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.7.0](https://github.com/cardano-foundation/cf-token-metadata-registry/compare/1.6.0...1.7.0) (2026-09-21)
+
+
+### Features
+
+* attempt to trigger release ([0b78b99](https://github.com/cardano-foundation/cf-token-metadata-registry/commit/0b78b99fc4f3f7f23557a84ca3f81359924fa39a))
+
+
+### Bug Fixes
+
+* **sync:** propagate CIP-26 token deletions from the upstream registry ([#98](https://github.com/cardano-foundation/cf-token-metadata-registry/issues/98)) ([8e05677](https://github.com/cardano-foundation/cf-token-metadata-registry/commit/8e05677bc1401451b438868ff82f37ef9377b2dc))
+
 ## [1.5.1](https://github.com/cardano-foundation/cf-token-metadata-registry/compare/1.5.0...1.5.1) (2026-04-23)
 
 
