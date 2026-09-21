@@ -12,13 +12,13 @@ cf-token-metadata-registry:
     dbSchema: registry
     api:
       image:
-        tag: "1.6.0"
+        tag: "1.7.0-main-57f4e5b"
       tokenMetadataUpdateJob:
         enabled: false
     job:
       enabled: true
       image:
-        tag: "1.6.0"
+        tag: "1.7.0-main-57f4e5b"
     ingress:
       additionalDomains:
         - tokens.cardano.org
