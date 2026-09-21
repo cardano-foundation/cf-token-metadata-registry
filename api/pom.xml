@@ -133,25 +133,25 @@
         <dependency>
             <groupId>com.bloxbean.cardano</groupId>
             <artifactId>yaci-store-spring-boot-starter</artifactId>
-            <version>${version.yaci}</version>
+            <version>${version.yaci-store}</version>
         </dependency>
         <dependency>
             <groupId>com.bloxbean.cardano</groupId>
             <artifactId>yaci-store-utxo-spring-boot-starter</artifactId>
-            <version>${version.yaci}</version>
+            <version>${version.yaci-store}</version>
         </dependency>
         <!-- auto recovery support via admin module -->
         <dependency>
             <groupId>com.bloxbean.cardano</groupId>
             <artifactId>yaci-store-admin-spring-boot-starter</artifactId>
-            <version>${version.yaci}</version>
+            <version>${version.yaci-store}</version>
         </dependency>
         <!-- Admin UI excluded until upstream fix: https://github.com/bloxbean/yaci-store/issues/884 -->
         <!--
         <dependency>
             <groupId>com.bloxbean.cardano</groupId>
             <artifactId>yaci-store-admin-ui</artifactId>
-            <version>${version.yaci}</version>
+            <version>${version.yaci-store}</version>
         </dependency>
         -->
         <dependency>
