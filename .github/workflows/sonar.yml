@@ -39,4 +39,5 @@ jobs:
           mvn --batch-mode clean verify
           -Dsonar.projectKey=cardano-foundation_cf-token-metadata-registry
           -Dsonar.organization=cardano-foundation
+          -Dsonar.projectName=cf-token-metadata-registry
           org.sonarsource.scanner.maven:sonar-maven-plugin:sonar
