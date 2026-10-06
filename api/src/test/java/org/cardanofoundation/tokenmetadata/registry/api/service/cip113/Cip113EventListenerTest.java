@@ -191,22 +191,6 @@ class Cip113EventListenerTest {
         }
 
         @Test
-        void skipsLegacyFiveFieldRegistryNode() throws Exception {
-            // Pre-release layout [key, next, transfer, third_party, global_state_cs], never released
-            ConstrPlutusData legacyNode = ConstrPlutusData.of(0,
-                    BytesPlutusData.of(HexUtil.decodeHexString(REGISTERED_POLICY_ID)),
-                    BytesPlutusData.of(HexUtil.decodeHexString("ffffffffffff")),
-                    vkeyCred(TRANSFER_LOGIC),
-                    vkeyCred(THIRD_PARTY_LOGIC),
-                    BytesPlutusData.of(new byte[0]));
-            String datum = HexUtil.encodeHexString(CborSerializationUtil.serialize(legacyNode.serialize()));
-
-            listener.processTransaction(buildEvent(100L, REGISTRY_NFT_POLICY_ID, REGISTERED_POLICY_ID, datum, TX_HASH));
-
-            verifyNoInteractions(repository);
-        }
-
-        @Test
         void skipsInvalidDatum() {
             listener.processTransaction(buildEvent(100L, REGISTRY_NFT_POLICY_ID, REGISTERED_POLICY_ID, "deadbeef", TX_HASH));
             verifyNoInteractions(repository);

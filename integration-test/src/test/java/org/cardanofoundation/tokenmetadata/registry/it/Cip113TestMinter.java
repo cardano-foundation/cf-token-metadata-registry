@@ -135,7 +135,7 @@ public class Cip113TestMinter {
     }
 
     /**
-     * Builds a 7-field CIP-113 RegistryNode datum (cip113-programmable-tokens deployment schemaVersion 3):
+     * Builds a 7-field CIP-113 RegistryNode datum (cip113-programmable-tokens {@code lib/registry_node.ak}):
      * ConstrPlutusData(0, [key, next, minting, transfer, thirdParty, unfracking, globalState]),
      * each logic script wrapped as Constr(0,[hash]).
      */

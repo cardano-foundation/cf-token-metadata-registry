@@ -17,7 +17,7 @@ import java.util.Optional;
  * <p>
  * The datum is the Aiken {@code RegistryNode} record of the CIP-113 reference implementation
  * (cardano-foundation/cip113-programmable-tokens, {@code lib/registry_node.ak}), as deployed on
- * mainnet and preprod (deployment {@code schemaVersion} 3), serialized as
+ * mainnet, preprod and preview, serialized as
  * {@code Constr 0 [key, next, minting_logic_script, transfer_logic_script, third_party_logic_script,
  * unfracking_logic_script, global_state_cs]}:
  * <ol start="0">
@@ -35,11 +35,6 @@ import java.util.Optional;
  *   <li>{@code global_state_cs} — {@code ByteArray}. Empty bytes mean "no global-state NFT";
  *       28 bytes are a real currency symbol.</li>
  * </ol>
- * The earlier 5-field layout ({@code [key, next, transfer, third_party, global_state_cs]}, without
- * the minting and unfracking credentials) was a pre-release, deployed only to test registries on preview
- * and preprod and never released. It is not
- * accepted: field positions differ between the two, so a 5-field datum is skipped with a WARN
- * rather than mapped.
  *
  * <h2>Absent credential encoding</h2>
  * Although the Aiken type signature declares the four credential fields as non-optional
@@ -69,13 +64,6 @@ public class Cip113RegistryNodeParser {
 
     /** Exact number of fields in a well-formed {@code RegistryNode} datum. */
     private static final int EXPECTED_FIELD_COUNT = 7;
-
-    /**
-     * Field count of the pre-release {@code RegistryNode} layout
-     * ({@code [key, next, transfer, third_party, global_state_cs]}), deployed only to test registries on
-     * preview and preprod and never released. Such nodes are skipped with a dedicated warning.
-     */
-    private static final int LEGACY_FIELD_COUNT = 5;
 
     /** Aiken compiles {@code RegistryNode{…}} to {@code Constr 0}; no other alternative is valid. */
     private static final long REGISTRY_NODE_CONSTR_ALTERNATIVE = 0L;
@@ -170,13 +158,6 @@ public class Cip113RegistryNodeParser {
 
             // Invariant #2: exactly 7 fields.
             List<PlutusData> fields = constr.getData().getPlutusDataList();
-            if (fields.size() == LEGACY_FIELD_COUNT) {
-                // Pre-release 5-field layout (preview/preprod test registries only): ignored, not mapped,
-                // because its field positions differ from the released layout.
-                log.warn("CIP-113 registry node: ignoring legacy pre-release {}-field layout (expected {} fields)",
-                        LEGACY_FIELD_COUNT, EXPECTED_FIELD_COUNT);
-                return Optional.empty();
-            }
             if (fields.size() != EXPECTED_FIELD_COUNT) {
                 log.warn("CIP-113 registry node: expected {} fields, got {}",
                         EXPECTED_FIELD_COUNT, fields.size());

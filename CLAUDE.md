@@ -18,7 +18,7 @@ Multi-standard Cardano token metadata registry built with Spring Boot 3 and Java
 
 - **CIP-26** (offchain): JSON metadata files synced from GitHub, stored in `metadata` table
 - **CIP-68** (on-chain): Reference NFT datum parsed from blockchain UTxOs (prefix `000643b0`), stored in `metadata_reference_nft` table. Fungible tokens (prefix `0014df10`) are mapped to their reference NFT counterpart
-- **CIP-113** (programmable tokens): Registry node NFTs with minting, transfer, third-party and unfracking logic scripts, stored in `cip113_registry_node` table. Enabled when `CIP113_REGISTRY_NFT_POLICY_IDS` is non-empty. Only the released 7-field `RegistryNode` datum is indexed; the never-released 5-field pre-release layout is skipped with a WARN
+- **CIP-113** (programmable tokens): Registry node NFTs with minting, transfer, third-party and unfracking logic scripts, stored in `cip113_registry_node` table. Enabled when `CIP113_REGISTRY_NFT_POLICY_IDS` is non-empty. The parser reads the 7-field `RegistryNode` datum and skips any other shape with a WARN
 
 ### V2 Query Priority
 

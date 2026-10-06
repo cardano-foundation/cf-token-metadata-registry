@@ -214,8 +214,8 @@ class Cip113RegistryNodeParserTest {
     // ----- Real deployed datums ---------------------------------------------------------
 
     /**
-     * Inline datums of registry-node UTxOs from the official CIP-113 deployments (cip113-programmable-tokens
-     * deployment {@code schemaVersion} 3), fetched from mainnet, preprod and preview.
+     * Inline datums of registry-node UTxOs from the official CIP-113 deployments (cip113-programmable-tokens),
+     * fetched from mainnet, preprod and preview.
      */
     @Nested
     @DisplayName("Datums from the official mainnet, preprod and preview deployments")
@@ -292,40 +292,6 @@ class Cip113RegistryNodeParserTest {
                     "24bb10207c62baeae9d83cfedcd515118c97fc7b3058f5c8006e49bf",
                     null,
                     "150ee5da3e245ea055dcc11e324d9fae8b7c136d08b32f7e57b84663"));
-        }
-    }
-
-    // ----- Legacy pre-release layout ---------------------------------------------------
-
-    @Nested
-    @DisplayName("Legacy pre-release 5-field layout")
-    class LegacyLayout {
-
-        /**
-         * A 5-field node ({@code [key, next, transfer, third_party, global_state_cs]}) from the pre-release
-         * registry b9b19dc6… on preprod. Its field positions differ from the released layout, so it is
-         * skipped rather than mapped.
-         */
-        private static final String PRE_RELEASE_NODE =
-                "d87985581cd66cec6e53a5d77b85391b08ddf1cd8d3f4a694510404b6993c6075a581cd75cd6ebe4493475202d5d59a4"
-                + "eae85337d75018fda8b91588f883ced87a81581c03af1a111806f0e1fd918448a3d8b9cac8f2345c377b34e2b12cf3a7"
-                + "d87a81581ce889d2ae4b39d6d903fddf4ad4cbd80a842c90dc573c59455ff6f46b40";
-
-        @Test
-        void ignoresPreReleaseNodeFromChain() {
-            assertThat(parser.parse(PRE_RELEASE_NODE)).isEmpty();
-        }
-
-        @Test
-        void ignoresFiveFieldNodeRatherThanMappingItsShiftedFields() throws Exception {
-            ConstrPlutusData legacy = ConstrPlutusData.of(0,
-                    BytesPlutusData.of(hex(POLICY_A_HEX)),
-                    BytesPlutusData.of(hex(POLICY_B_HEX)),
-                    vkeyCred(hex(CRED_TRANSFER_HEX)),
-                    vkeyCred(hex(CRED_THIRD_PARTY_HEX)),
-                    BytesPlutusData.of(EMPTY_BYTES));
-
-            assertThat(parser.parse(serialize(legacy))).isEmpty();
         }
     }
 
