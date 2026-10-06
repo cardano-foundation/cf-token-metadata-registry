@@ -57,8 +57,8 @@ public class Cip68FTDatumParser {
                     .flatMap(parts -> resolveMetadata(parts, referenceNft)
                             .map(properties -> buildMetadata(properties, parts.version())));
         } catch (StackOverflowError _) {
-            // TODO: temporary workaround. Remove once cardano-client-lib decodes CBOR without
-            //  recursion (bloxbean/cardano-client-lib#681).
+            // Temporary workaround: remove once cardano-client-lib decodes CBOR without recursion
+            // (bloxbean/cardano-client-lib#681).
             // The CBOR decoder recurses once per nesting level, and the ledger bounds a datum only by
             // transaction size, so a valid on-chain datum can be nested deeper than the stack allows.
             // StackOverflowError is an Error, not an Exception, so it needs its own catch: skip the
