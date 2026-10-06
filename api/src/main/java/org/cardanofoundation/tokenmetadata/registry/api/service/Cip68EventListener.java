@@ -70,9 +70,10 @@ public class Cip68EventListener {
     }
 
     private Stream<ReferenceNftUtxoData> parseDatum(Pair<Amt, AddressUtxo> referenceNftUtxo) {
-        return cip68DatumParser.parse(referenceNftUtxo.second().getInlineDatum())
+        AssetType referenceNft = AssetType.fromUnit(referenceNftUtxo.first().getUnit());
+        return cip68DatumParser.parse(referenceNftUtxo.second().getInlineDatum(), referenceNft)
                 .stream()
-                .map(fungibleTokenMetadata -> new ReferenceNftUtxoData(AssetType.fromUnit(referenceNftUtxo.first().getUnit()),
+                .map(fungibleTokenMetadata -> new ReferenceNftUtxoData(referenceNft,
                         fungibleTokenMetadata,
                         referenceNftUtxo.second().getInlineDatum()));
     }

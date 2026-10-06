@@ -6,6 +6,7 @@ import com.bloxbean.cardano.yaci.store.events.EventMetadata;
 import com.bloxbean.cardano.yaci.store.utxo.domain.AddressUtxoEvent;
 import com.bloxbean.cardano.yaci.store.utxo.domain.TxInputOutput;
 import org.cardanofoundation.tokenmetadata.registry.api.model.cip68.FungibleTokenMetadata;
+import org.cardanofoundation.tokenmetadata.registry.api.util.AssetType;
 import org.cardanofoundation.tokenmetadata.registry.entity.MetadataReferenceNft;
 import org.cardanofoundation.tokenmetadata.registry.repository.MetadataReferenceNftRepository;
 import org.junit.jupiter.api.DisplayName;
@@ -30,6 +31,7 @@ class Cip68EventListenerTest {
 
     private static final String POLICY_ID = "aabbccdd11223344aabbccdd11223344aabbccdd11223344aabbccdd";
     private static final String REF_NFT_ASSET_NAME = "000643b0464c4454";
+    private static final AssetType REF_NFT = new AssetType(POLICY_ID, REF_NFT_ASSET_NAME);
     private static final String TX_HASH = "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890";
 
     @Mock
@@ -66,7 +68,7 @@ class Cip68EventListenerTest {
                     .build();
 
             when(cip68FungibleTokenService.extractReferenceNft(utxo)).thenReturn(Optional.of(refNftAmt));
-            when(cip68DatumParser.parse(datum)).thenReturn(Optional.of(metadata));
+            when(cip68DatumParser.parse(datum, REF_NFT)).thenReturn(Optional.of(metadata));
             when(cip68FungibleTokenService.isValidFTMetadata(metadata)).thenReturn(true);
 
             listener.processTransaction(buildEvent(100L, utxo));
@@ -122,7 +124,7 @@ class Cip68EventListenerTest {
                     .build();
 
             when(cip68FungibleTokenService.extractReferenceNft(utxo)).thenReturn(Optional.of(refNftAmt));
-            when(cip68DatumParser.parse(datum)).thenReturn(Optional.empty());
+            when(cip68DatumParser.parse(datum, REF_NFT)).thenReturn(Optional.empty());
 
             listener.processTransaction(buildEvent(100L, utxo));
 
@@ -147,7 +149,7 @@ class Cip68EventListenerTest {
                     .build();
 
             when(cip68FungibleTokenService.extractReferenceNft(utxo)).thenReturn(Optional.of(refNftAmt));
-            when(cip68DatumParser.parse(datum)).thenReturn(Optional.of(metadata));
+            when(cip68DatumParser.parse(datum, REF_NFT)).thenReturn(Optional.of(metadata));
             when(cip68FungibleTokenService.isValidFTMetadata(metadata)).thenReturn(false);
 
             listener.processTransaction(buildEvent(100L, utxo));

@@ -270,6 +270,34 @@ class TokenMetadataValidatorTest {
         assertThat(result).isFalse();
     }
 
+    @Test
+    @DisplayName("Should accept decimals at the upper bound (255)")
+    void shouldAcceptDecimalsAtUpperBound() {
+        TokenMetadata metadata = createValidTokenMetadata();
+        metadata.setDecimals(255L);
+
+        assertThat(validator.validate(metadata)).isTrue();
+    }
+
+    @Test
+    @DisplayName("Should reject decimals above the upper bound (256)")
+    void shouldRejectDecimalsAboveUpperBound() {
+        TokenMetadata metadata = createValidTokenMetadata();
+        metadata.setDecimals(256L);
+
+        assertThat(validator.validate(metadata)).isFalse();
+    }
+
+    @Test
+    @DisplayName("Should reject decimals that wrap to a valid value when narrowed to int (2^32 + 5)")
+    void shouldRejectDecimalsThatWrapWhenNarrowedToInt() {
+        // intValue() turns 4294967301 into 5, which the library would accept
+        TokenMetadata metadata = createValidTokenMetadata();
+        metadata.setDecimals(4_294_967_301L);
+
+        assertThat(validator.validate(metadata)).isFalse();
+    }
+
     // Logo validation tests
 
     @Test

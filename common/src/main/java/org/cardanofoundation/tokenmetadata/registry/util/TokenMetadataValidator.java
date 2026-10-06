@@ -31,6 +31,15 @@ public class TokenMetadataValidator {
      * @return true if valid according to CIP-26, false otherwise
      */
     public boolean validate(TokenMetadata tokenMetadata) {
+        // cf-tokens-cip26 only checks decimals >= 0, and on an int: range-check the stored Long
+        // here, before convertToMetadata narrows it (4294967301 would otherwise pass as 5).
+        Long decimals = tokenMetadata.getDecimals();
+        if (decimals != null && !TokenDecimals.isInRange(decimals)) {
+            log.warn("CIP-26 validation failed for subject '{}': decimals {} not in {}",
+                    tokenMetadata.getSubject(), decimals, TokenDecimals.RANGE);
+            return false;
+        }
+
         try {
             // Convert registry TokenMetadata to cf-metadata-core Metadata
             Metadata cip26Metadata = convertToMetadata(tokenMetadata);
