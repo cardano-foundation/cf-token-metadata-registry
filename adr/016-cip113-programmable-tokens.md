@@ -22,7 +22,7 @@ CIP-113 introduces an on-chain **registry** of programmable tokens. Each registr
 - **unfracking_logic_script** — optional credential that must approve any unfracking action; absent (`empty_vkey`) means unfracking is forbidden
 - **global_state_cs** (stored as `global_state_policy_id`) — optional policy ID of a global state NFT (e.g., a denylist for freeze-and-seize)
 
-The datum is the `RegistryNode` record of the reference implementation (cardano-foundation/cip113-programmable-tokens, `lib/registry_node.ak`), deployed on mainnet, preprod and preview as deployment `schemaVersion` 3: `Constr 0 [key, next, minting_logic_script, transfer_logic_script, third_party_logic_script, unfracking_logic_script, global_state_cs]` (7 fields). An earlier pre-release used 5 fields (`[key, next, transfer, third_party, global_state_cs]`); it was only deployed to test registries on preview and preprod, was never released, and is not indexed (see "On-chain indexing").
+The datum is the `RegistryNode` record of the reference implementation (cardano-foundation/cip113-programmable-tokens, `lib/registry_node.ak`), deployed on mainnet, preprod and preview: `Constr 0 [key, next, minting_logic_script, transfer_logic_script, third_party_logic_script, unfracking_logic_script, global_state_cs]` (7 fields).
 
 The token metadata registry should surface this information so that wallets, dApps, and explorers can identify programmable tokens and display their transfer constraints alongside standard display metadata.
 
@@ -42,8 +42,8 @@ CREATE TABLE cip113_registry_node (
     transfer_logic_script VARCHAR(56),
     third_party_transfer_logic_script VARCHAR(56),
     global_state_policy_id VARCHAR(56),
-    minting_logic_script VARCHAR(56),     -- added in V5
-    unfracking_logic_script VARCHAR(56),  -- added in V5
+    minting_logic_script VARCHAR(56),
+    unfracking_logic_script VARCHAR(56),
     next VARCHAR(64) NOT NULL,
     datum TEXT NOT NULL,
     PRIMARY KEY (key, slot)
@@ -98,7 +98,7 @@ CIP-113 registry nodes are indexed using the existing Yaci Store infrastructure:
 
 - **`CustomUtxoStorage`** is extended to persist UTxOs that match configured CIP-113 registry NFT policy IDs (quantity = 1)
 - **`Cip113EventListener`** processes `AddressUtxoEvent`s, filtering for UTxOs with inline datums that match monitored policy IDs
-- **`Cip113RegistryNodeParser`** deserializes the CBOR datum (ConstrPlutusData with 7 fields) into a structured record. A node with the pre-release 5-field layout is skipped with a WARN rather than mapped, because its field positions differ (`transfer` sits at index 2 there and at index 3 in the released layout). No configured registry uses that layout (mainnet, preprod and preview all point at the official 7-field deployments), so the warning only appears if an operator configures a pre-release registry
+- **`Cip113RegistryNodeParser`** deserializes the CBOR datum (ConstrPlutusData with 7 fields) into a structured record. A datum with any other field count or shape is skipped with a WARN; fields are never mapped by guesswork, since a misplaced credential would be served as the wrong script
 
 ### 3. API response
 
@@ -180,7 +180,7 @@ The `ORDER BY slot DESC` query pattern then naturally picks up the correct pre-r
 ### Negative
 
 - **Operator configuration**: Operators must know the policy ID(s) of the CIP-113 registry NFT minting script(s) deployed on their target network. If new registries are deployed, the configuration must be updated.
-- **CBOR parsing brittleness**: The datum parser assumes a specific ConstrPlutusData layout (constructor 0, 7 fields). If the CIP-113 datum format evolves, the parser must be updated — as it already was once, from the 5-field pre-release to the released 7-field layout.
+- **CBOR parsing brittleness**: The datum parser assumes a specific ConstrPlutusData layout (constructor 0, 7 fields). If the CIP-113 datum format evolves, the parser must be updated.
 
 ## Alternatives Considered
 
