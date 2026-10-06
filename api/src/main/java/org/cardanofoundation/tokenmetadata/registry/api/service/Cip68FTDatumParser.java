@@ -56,7 +56,7 @@ public class Cip68FTDatumParser {
             return extractDatumParts(inlineDatum)
                     .flatMap(parts -> resolveMetadata(parts, referenceNft)
                             .map(properties -> buildMetadata(properties, parts.version())));
-        } catch (StackOverflowError e) {
+        } catch (StackOverflowError _) {
             // TODO: temporary workaround. Remove once cardano-client-lib decodes CBOR without
             //  recursion (bloxbean/cardano-client-lib#681).
             // The CBOR decoder recurses once per nesting level, and the ledger bounds a datum only by
