@@ -15,22 +15,34 @@ import java.util.Optional;
 /**
  * Parses CIP-113 registry node inline datums.
  * <p>
- * The datum is an Aiken {@code RegistryNode} record serialized as
- * {@code Constr 0 [key, next, transfer_logic_script, third_party_transfer_logic_script, global_state_cs]}:
- * <ol>
+ * The datum is the Aiken {@code RegistryNode} record of the CIP-113 reference implementation
+ * (cardano-foundation/cip113-programmable-tokens, {@code lib/registry_node.ak}), as deployed on
+ * mainnet and preprod (deployment {@code schemaVersion} 3), serialized as
+ * {@code Constr 0 [key, next, minting_logic_script, transfer_logic_script, third_party_logic_script,
+ * unfracking_logic_script, global_state_cs]}:
+ * <ol start="0">
  *   <li>{@code key} — {@code ByteArray}. Empty (head sentinel), a 28-byte policy id of a
  *       registered programmable token, or a tail sentinel of up to 32 bytes.</li>
  *   <li>{@code next} — {@code ByteArray}. Non-empty pointer to the next node's {@code key}
  *       in the sorted linked list.</li>
- *   <li>{@code transfer_logic_script} — optional {@code Credential}. See "Absent credential
+ *   <li>{@code minting_logic_script} — optional {@code Credential}. See "Absent credential
  *       encoding" below.</li>
- *   <li>{@code third_party_transfer_logic_script} — optional {@code Credential}. Same shape.</li>
+ *   <li>{@code transfer_logic_script} — optional {@code Credential}. Same shape.</li>
+ *   <li>{@code third_party_logic_script} — optional {@code Credential}. Same shape. Stored as
+ *       {@code third_party_transfer_logic_script}.</li>
+ *   <li>{@code unfracking_logic_script} — optional {@code Credential}. Same shape. Absent
+ *       ({@code empty_vkey} on-chain) means unfracking is forbidden for this policy.</li>
  *   <li>{@code global_state_cs} — {@code ByteArray}. Empty bytes mean "no global-state NFT";
  *       28 bytes are a real currency symbol.</li>
  * </ol>
+ * The earlier 5-field layout ({@code [key, next, transfer, third_party, global_state_cs]}, without
+ * the minting and unfracking credentials) was a pre-release, deployed only to test registries on preview
+ * and preprod and never released. It is not
+ * accepted: field positions differ between the two, so a 5-field datum is skipped with a WARN
+ * rather than mapped.
  *
  * <h2>Absent credential encoding</h2>
- * Although the Aiken type signature declares the two credential fields as non-optional
+ * Although the Aiken type signature declares the four credential fields as non-optional
  * {@code Credential}, real CIP-113 registry datums in the wild encode "no credential" using
  * one of these conventions:
  * <ul>
@@ -56,7 +68,14 @@ import java.util.Optional;
 public class Cip113RegistryNodeParser {
 
     /** Exact number of fields in a well-formed {@code RegistryNode} datum. */
-    private static final int EXPECTED_FIELD_COUNT = 5;
+    private static final int EXPECTED_FIELD_COUNT = 7;
+
+    /**
+     * Field count of the pre-release {@code RegistryNode} layout
+     * ({@code [key, next, transfer, third_party, global_state_cs]}), deployed only to test registries on
+     * preview and preprod and never released. Such nodes are skipped with a dedicated warning.
+     */
+    private static final int LEGACY_FIELD_COUNT = 5;
 
     /** Aiken compiles {@code RegistryNode{…}} to {@code Constr 0}; no other alternative is valid. */
     private static final long REGISTRY_NODE_CONSTR_ALTERNATIVE = 0L;
@@ -92,7 +111,7 @@ public class Cip113RegistryNodeParser {
 
     /**
      * Parsed registry node fields. Byte-string fields are lowercase hex. {@code key} and
-     * {@code next} are always non-null; the three optional script/policy fields are null
+     * {@code next} are always non-null; the five optional script/policy fields are null
      * when the corresponding on-chain field encodes "absent" (empty bytes — see class
      * javadoc for the exact encoding).
      * <p>
@@ -103,8 +122,10 @@ public class Cip113RegistryNodeParser {
      */
     public record ParsedRegistryNode(String key,
                                      String next,
+                                     @Nullable String mintingLogicScript,
                                      @Nullable String transferLogicScript,
                                      @Nullable String thirdPartyTransferLogicScript,
+                                     @Nullable String unfrackingLogicScript,
                                      @Nullable String globalStatePolicyId) {
 
         /**
@@ -147,8 +168,15 @@ public class Cip113RegistryNodeParser {
                 return Optional.empty();
             }
 
-            // Invariant #2: exactly 5 fields.
+            // Invariant #2: exactly 7 fields.
             List<PlutusData> fields = constr.getData().getPlutusDataList();
+            if (fields.size() == LEGACY_FIELD_COUNT) {
+                // Pre-release 5-field layout (preview/preprod test registries only): ignored, not mapped,
+                // because its field positions differ from the released layout.
+                log.warn("CIP-113 registry node: ignoring legacy pre-release {}-field layout (expected {} fields)",
+                        LEGACY_FIELD_COUNT, EXPECTED_FIELD_COUNT);
+                return Optional.empty();
+            }
             if (fields.size() != EXPECTED_FIELD_COUNT) {
                 log.warn("CIP-113 registry node: expected {} fields, got {}",
                         EXPECTED_FIELD_COUNT, fields.size());
@@ -171,21 +199,23 @@ public class Cip113RegistryNodeParser {
                 return Optional.empty();
             }
 
-            // Invariant #5: transfer_logic_script — optional Credential (null when empty bytes).
-            String transferLogicScript = extractOptionalCredentialHash(fields.get(2), "transfer_logic_script");
-
-            // Invariant #6: third_party_transfer_logic_script — optional Credential.
+            // Invariants #5–#8: the four logic scripts — optional Credentials (null when empty).
+            String mintingLogicScript = extractOptionalCredentialHash(fields.get(2), "minting_logic_script");
+            String transferLogicScript = extractOptionalCredentialHash(fields.get(3), "transfer_logic_script");
             String thirdPartyTransferLogicScript = extractOptionalCredentialHash(
-                    fields.get(3), "third_party_transfer_logic_script");
+                    fields.get(4), "third_party_logic_script");
+            String unfrackingLogicScript = extractOptionalCredentialHash(fields.get(5), "unfracking_logic_script");
 
-            // Invariant #7: global_state_cs — ByteString, 0 bytes (null) or exactly 28 bytes.
-            String globalStatePolicyId = extractOptionalGlobalStateCs(fields.get(4));
+            // Invariant #9: global_state_cs — ByteString, 0 bytes (null) or exactly 28 bytes.
+            String globalStatePolicyId = extractOptionalGlobalStateCs(fields.get(6));
 
             return Optional.of(new ParsedRegistryNode(
                     HexUtil.encodeHexString(keyBytes),
                     HexUtil.encodeHexString(nextBytes),
+                    mintingLogicScript,
                     transferLogicScript,
                     thirdPartyTransferLogicScript,
+                    unfrackingLogicScript,
                     globalStatePolicyId));
 
         } catch (InvalidDatumException e) {
@@ -214,7 +244,7 @@ public class Cip113RegistryNodeParser {
     }
 
     /**
-     * Extracts an optional credential hash from one of the two script fields.
+     * Extracts an optional credential hash from one of the four logic-script fields.
      * <p>
      * Accepts:
      * <ul>

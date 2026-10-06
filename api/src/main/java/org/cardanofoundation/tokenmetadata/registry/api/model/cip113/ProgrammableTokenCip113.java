@@ -11,6 +11,14 @@ import jakarta.annotation.Nullable;
         + "tokens in a 'smart contract jail' for regulatory compliance, freeze/seize, or custom rules.")
 public record ProgrammableTokenCip113(
 
+        @Schema(description = "Blake2b-224 hash of the minting logic credential (script or verification key) "
+                + "that authorises minting and burning of this token. Bound on-chain to the token's policy ID "
+                + "at registration. Null when the registry node does not specify one.",
+                example = "f462a4e22e5b138c17d893d4e0811790f51f1231b8be4198313e08d0",
+                nullable = true,
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        @JsonProperty("minting_logic_script") @Nullable String mintingLogicScript,
+
         @Schema(description = "Blake2b-224 hash of the Plutus script that validates every transfer of this token. "
                 + "This script runs on-chain via the withdraw-zero pattern whenever tokens move between addresses. "
                 + "Null when the registry node does not specify a transfer logic script.",
@@ -26,6 +34,13 @@ public record ProgrammableTokenCip113(
                 nullable = true,
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
         @JsonProperty("third_party_transfer_logic_script") @Nullable String thirdPartyTransferLogicScript,
+
+        @Schema(description = "Blake2b-224 hash of the credential (script or verification key) that must approve "
+                + "any unfracking action touching this token. Null means unfracking is forbidden for this token.",
+                example = "f91c65ec585a20176feeb2c4e5281e856d3b61e95d1980717da724fc",
+                nullable = true,
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        @JsonProperty("unfracking_logic_script") @Nullable String unfrackingLogicScript,
 
         @Schema(description = "Policy ID of an optional global state NFT used by the transfer logic. "
                 + "For example, a freeze-and-seize substandard uses this to reference a denylist "

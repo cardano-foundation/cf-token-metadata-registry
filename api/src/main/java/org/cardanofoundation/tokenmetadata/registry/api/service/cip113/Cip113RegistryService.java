@@ -1,6 +1,7 @@
 package org.cardanofoundation.tokenmetadata.registry.api.service.cip113;
 
 import com.bloxbean.cardano.yaci.store.common.domain.AddressUtxo;
+import jakarta.annotation.Nullable;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.cardanofoundation.tokenmetadata.registry.api.config.Cip113Configuration;
@@ -82,15 +83,18 @@ public class Cip113RegistryService {
     }
 
     private static ProgrammableTokenCip113 toDto(Cip113RegistryNode entity) {
-        String transferLogic = entity.getTransferLogicScript();
-        String thirdParty = entity.getThirdPartyTransferLogicScript();
-        String globalState = entity.getGlobalStatePolicyId();
-
         return new ProgrammableTokenCip113(
-                (transferLogic == null || transferLogic.isEmpty()) ? null : transferLogic,
-                (thirdParty == null || thirdParty.isEmpty()) ? null : thirdParty,
-                (globalState == null || globalState.isEmpty()) ? null : globalState
+                emptyToNull(entity.getMintingLogicScript()),
+                emptyToNull(entity.getTransferLogicScript()),
+                emptyToNull(entity.getThirdPartyTransferLogicScript()),
+                emptyToNull(entity.getUnfrackingLogicScript()),
+                emptyToNull(entity.getGlobalStatePolicyId())
         );
+    }
+
+    @Nullable
+    private static String emptyToNull(@Nullable String value) {
+        return (value == null || value.isEmpty()) ? null : value;
     }
 
 }

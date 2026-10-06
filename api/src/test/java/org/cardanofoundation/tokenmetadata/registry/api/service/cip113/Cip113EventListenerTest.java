@@ -38,6 +38,8 @@ class Cip113EventListenerTest {
     private static final String REGISTERED_POLICY_ID = "deadbeefcafebabedeadbeefcafebabedeadbeefcafebabedeadbeef";
     private static final String TRANSFER_LOGIC = "11111111111111111111111111111111111111111111111111111111";
     private static final String THIRD_PARTY_LOGIC = "22222222222222222222222222222222222222222222222222222222";
+    private static final String MINTING_LOGIC = "33333333333333333333333333333333333333333333333333333333";
+    private static final String UNFRACKING_LOGIC = "44444444444444444444444444444444444444444444444444444444";
     private static final String TX_HASH = "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890";
 
     @Mock
@@ -76,8 +78,10 @@ class Cip113EventListenerTest {
             assertThat(saved.getKey()).isEqualTo(REGISTERED_POLICY_ID);
             assertThat(saved.getSlot()).isEqualTo(100L);
             assertThat(saved.getTxHash()).isEqualTo(TX_HASH);
+            assertThat(saved.getMintingLogicScript()).isEqualTo(MINTING_LOGIC);
             assertThat(saved.getTransferLogicScript()).isEqualTo(TRANSFER_LOGIC);
             assertThat(saved.getThirdPartyTransferLogicScript()).isEqualTo(THIRD_PARTY_LOGIC);
+            assertThat(saved.getUnfrackingLogicScript()).isEqualTo(UNFRACKING_LOGIC);
             assertThat(saved.getDatum()).isEqualTo(datum);
         }
 
@@ -105,8 +109,10 @@ class Cip113EventListenerTest {
             ConstrPlutusData registryNode = ConstrPlutusData.of(0,
                     BytesPlutusData.of(HexUtil.decodeHexString(REGISTERED_POLICY_ID)),
                     BytesPlutusData.of(HexUtil.decodeHexString("ffffffffffff")),
+                    vkeyCred(MINTING_LOGIC),
                     BytesPlutusData.of(new byte[0]),  // not a Constr-wrapped credential → null
-                    ConstrPlutusData.of(0, BytesPlutusData.of(HexUtil.decodeHexString(THIRD_PARTY_LOGIC))),
+                    vkeyCred(THIRD_PARTY_LOGIC),
+                    vkeyCred(""),                     // unfracking forbidden (empty_vkey) → null
                     BytesPlutusData.of(new byte[0])   // global_state_cs absent
             );
             String datum = HexUtil.encodeHexString(CborSerializationUtil.serialize(registryNode.serialize()));
@@ -120,6 +126,7 @@ class Cip113EventListenerTest {
             Cip113RegistryNode saved = captor.getValue().getFirst();
             assertThat(saved.getTransferLogicScript()).isNull();
             assertThat(saved.getThirdPartyTransferLogicScript()).isEqualTo(THIRD_PARTY_LOGIC);
+            assertThat(saved.getUnfrackingLogicScript()).isNull();
         }
     }
 
@@ -184,6 +191,22 @@ class Cip113EventListenerTest {
         }
 
         @Test
+        void skipsLegacyFiveFieldRegistryNode() throws Exception {
+            // Pre-release layout [key, next, transfer, third_party, global_state_cs], never released
+            ConstrPlutusData legacyNode = ConstrPlutusData.of(0,
+                    BytesPlutusData.of(HexUtil.decodeHexString(REGISTERED_POLICY_ID)),
+                    BytesPlutusData.of(HexUtil.decodeHexString("ffffffffffff")),
+                    vkeyCred(TRANSFER_LOGIC),
+                    vkeyCred(THIRD_PARTY_LOGIC),
+                    BytesPlutusData.of(new byte[0]));
+            String datum = HexUtil.encodeHexString(CborSerializationUtil.serialize(legacyNode.serialize()));
+
+            listener.processTransaction(buildEvent(100L, REGISTRY_NFT_POLICY_ID, REGISTERED_POLICY_ID, datum, TX_HASH));
+
+            verifyNoInteractions(repository);
+        }
+
+        @Test
         void skipsInvalidDatum() {
             listener.processTransaction(buildEvent(100L, REGISTRY_NFT_POLICY_ID, REGISTERED_POLICY_ID, "deadbeef", TX_HASH));
             verifyNoInteractions(repository);
@@ -243,8 +266,10 @@ class Cip113EventListenerTest {
         ConstrPlutusData registryNode = ConstrPlutusData.of(0,
                 BytesPlutusData.of(HexUtil.decodeHexString(key)),
                 BytesPlutusData.of(HexUtil.decodeHexString(next)),
-                ConstrPlutusData.of(0, BytesPlutusData.of(HexUtil.decodeHexString(transferLogic))),
+                vkeyCred(MINTING_LOGIC),
+                vkeyCred(transferLogic),
                 BytesPlutusData.of(new byte[0]),  // thirdParty as raw empty bytes (not Constr-wrapped) → null
+                vkeyCred(UNFRACKING_LOGIC),
                 BytesPlutusData.of(new byte[0])   // global_state_cs absent
         );
         return HexUtil.encodeHexString(CborSerializationUtil.serialize(registryNode.serialize()));
@@ -256,11 +281,18 @@ class Cip113EventListenerTest {
         ConstrPlutusData registryNode = ConstrPlutusData.of(0,
                 BytesPlutusData.of(HexUtil.decodeHexString(key)),
                 BytesPlutusData.of(HexUtil.decodeHexString(next)),
-                ConstrPlutusData.of(0, BytesPlutusData.of(HexUtil.decodeHexString(transferLogic))),
-                ConstrPlutusData.of(0, BytesPlutusData.of(HexUtil.decodeHexString(thirdPartyLogic))),
+                vkeyCred(MINTING_LOGIC),
+                vkeyCred(transferLogic),
+                vkeyCred(thirdPartyLogic),
+                vkeyCred(UNFRACKING_LOGIC),
                 BytesPlutusData.of(globalState.isEmpty() ? new byte[0] : HexUtil.decodeHexString(globalState))
         );
         return HexUtil.encodeHexString(CborSerializationUtil.serialize(registryNode.serialize()));
+    }
+
+    /** Aiken {@code Credential.VerificationKey} (alternative 0) around the given hex hash; "" gives empty_vkey. */
+    private static ConstrPlutusData vkeyCred(String hashHex) {
+        return ConstrPlutusData.of(0, BytesPlutusData.of(HexUtil.decodeHexString(hashHex)));
     }
 
 }

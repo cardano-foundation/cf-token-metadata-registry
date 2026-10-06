@@ -51,8 +51,10 @@ class Cip113RegistryServiceTest {
         void returnsDto() {
             Cip113RegistryNode entity = Cip113RegistryNode.builder()
                     .key("deadbeef")
+                    .mintingLogicScript("minting")
                     .transferLogicScript("script1")
                     .thirdPartyTransferLogicScript("script2")
+                    .unfrackingLogicScript("unfracking")
                     .globalStatePolicyId("globalState")
                     .build();
 
@@ -61,18 +63,18 @@ class Cip113RegistryServiceTest {
 
             Optional<ProgrammableTokenCip113> result = service.findByPolicyId("deadbeef");
 
-            assertThat(result).isPresent();
-            assertThat(result.get().transferLogicScript()).isEqualTo("script1");
-            assertThat(result.get().thirdPartyTransferLogicScript()).isEqualTo("script2");
-            assertThat(result.get().globalStatePolicyId()).isEqualTo("globalState");
+            assertThat(result).hasValue(new ProgrammableTokenCip113(
+                    "minting", "script1", "script2", "unfracking", "globalState"));
         }
 
         @Test
         void normalizesNullableFieldsToNull() {
             Cip113RegistryNode entity = Cip113RegistryNode.builder()
                     .key("deadbeef")
+                    .mintingLogicScript("")
                     .transferLogicScript("script1")
                     .thirdPartyTransferLogicScript(null)
+                    .unfrackingLogicScript("")
                     .globalStatePolicyId("")
                     .build();
 
@@ -82,8 +84,10 @@ class Cip113RegistryServiceTest {
             Optional<ProgrammableTokenCip113> result = service.findByPolicyId("deadbeef");
 
             assertThat(result).isPresent();
+            assertThat(result.get().mintingLogicScript()).isNull();
             assertThat(result.get().transferLogicScript()).isEqualTo("script1");
             assertThat(result.get().thirdPartyTransferLogicScript()).isNull();
+            assertThat(result.get().unfrackingLogicScript()).isNull();
             assertThat(result.get().globalStatePolicyId()).isNull();
         }
 

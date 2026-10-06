@@ -98,6 +98,11 @@ public class Cip113RegistryNode {
 
     /** Aiken {@code Credential} inner hash (28-byte vkey or script hash, 56 hex chars). */
     @Nullable
+    @Column(name = "minting_logic_script", length = 56)
+    private String mintingLogicScript;
+
+    /** Aiken {@code Credential} inner hash (28-byte vkey or script hash, 56 hex chars). */
+    @Nullable
     @Column(name = "transfer_logic_script", length = 56)
     private String transferLogicScript;
 
@@ -105,6 +110,14 @@ public class Cip113RegistryNode {
     @Nullable
     @Column(name = "third_party_transfer_logic_script", length = 56)
     private String thirdPartyTransferLogicScript;
+
+    /**
+     * Aiken {@code Credential} inner hash (28-byte vkey or script hash, 56 hex chars).
+     * {@code null} means unfracking is forbidden for this policy ({@code empty_vkey} on-chain).
+     */
+    @Nullable
+    @Column(name = "unfracking_logic_script", length = 56)
+    private String unfrackingLogicScript;
 
     /** Currency symbol of the global-state NFT (28-byte policy_id, 56 hex chars). */
     @Nullable

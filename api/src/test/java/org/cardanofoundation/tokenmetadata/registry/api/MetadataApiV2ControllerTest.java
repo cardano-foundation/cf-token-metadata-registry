@@ -152,7 +152,9 @@ class MetadataApiV2ControllerTest {
         // CIP-113: mock FLDT as programmable with null third_party and global_state
         when(cip113RegistryService.findByPolicyId(fldtAssetType.policyId()))
                 .thenReturn(Optional.of(new ProgrammableTokenCip113(
+                        null,
                         "aabbccdd11223344aabbccdd11223344aabbccdd11223344aabbccdd",
+                        null,
                         null,
                         null
                 )));
@@ -166,7 +168,9 @@ class MetadataApiV2ControllerTest {
         // CIP-113 batch: mock FLDT as the only programmable token in batch results
         when(cip113RegistryService.findByPolicyIds(anyCollection()))
                 .thenReturn(Map.of(fldtAssetType.policyId(), new ProgrammableTokenCip113(
+                        null,
                         "aabbccdd11223344aabbccdd11223344aabbccdd11223344aabbccdd",
+                        null,
                         null,
                         null
                 )));
@@ -373,6 +377,8 @@ class MetadataApiV2ControllerTest {
                 .andExpect(MockMvcResultMatchers.jsonPath("$.subject.extensions.cip113.transfer_logic_script")
                         .value("aabbccdd11223344aabbccdd11223344aabbccdd11223344aabbccdd"))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.subject.extensions.cip113.third_party_transfer_logic_script").doesNotExist())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.subject.extensions.cip113.minting_logic_script").doesNotExist())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.subject.extensions.cip113.unfracking_logic_script").doesNotExist())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.subject.extensions.cip113.global_state_policy_id").doesNotExist());
     }
 
@@ -406,6 +412,8 @@ class MetadataApiV2ControllerTest {
                 .andExpect(MockMvcResultMatchers.jsonPath("$.subjects[1].extensions.cip113.transfer_logic_script")
                         .value("aabbccdd11223344aabbccdd11223344aabbccdd11223344aabbccdd"))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.subjects[1].extensions.cip113.third_party_transfer_logic_script").doesNotExist())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.subjects[1].extensions.cip113.minting_logic_script").doesNotExist())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.subjects[1].extensions.cip113.unfracking_logic_script").doesNotExist())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.subjects[1].extensions.cip113.global_state_policy_id").doesNotExist());
     }
 

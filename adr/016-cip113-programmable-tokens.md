@@ -16,9 +16,13 @@ CIP-113 introduces an on-chain **registry** of programmable tokens. Each registr
 
 - **key** — the policy ID of the token being registered as programmable
 - **next** — linked-list pointer to the next registry entry
+- **minting_logic_script** — optional credential that authorises minting and burning (bound to the policy ID at registration)
 - **transfer_logic_script** — optional hash of the Plutus script that validates every transfer
-- **third_party_transfer_logic_script** — optional hash of the script for issuer/admin operations (freeze, seize, burn)
-- **global_state_policy_id** — optional policy ID of a global state NFT (e.g., a denylist for freeze-and-seize)
+- **third_party_logic_script** (stored as `third_party_transfer_logic_script`) — optional hash of the script for issuer/admin operations (freeze, seize, burn)
+- **unfracking_logic_script** — optional credential that must approve any unfracking action; absent (`empty_vkey`) means unfracking is forbidden
+- **global_state_cs** (stored as `global_state_policy_id`) — optional policy ID of a global state NFT (e.g., a denylist for freeze-and-seize)
+
+The datum is the `RegistryNode` record of the reference implementation (cardano-foundation/cip113-programmable-tokens, `lib/registry_node.ak`), deployed on mainnet, preprod and preview as deployment `schemaVersion` 3: `Constr 0 [key, next, minting_logic_script, transfer_logic_script, third_party_logic_script, unfracking_logic_script, global_state_cs]` (7 fields). An earlier pre-release used 5 fields (`[key, next, transfer, third_party, global_state_cs]`); it was only deployed to test registries on preview and preprod, was never released, and is not indexed (see "On-chain indexing").
 
 The token metadata registry should surface this information so that wallets, dApps, and explorers can identify programmable tokens and display their transfer constraints alongside standard display metadata.
 
@@ -38,6 +42,8 @@ CREATE TABLE cip113_registry_node (
     transfer_logic_script VARCHAR(56),
     third_party_transfer_logic_script VARCHAR(56),
     global_state_policy_id VARCHAR(56),
+    minting_logic_script VARCHAR(56),     -- added in V5
+    unfracking_logic_script VARCHAR(56),  -- added in V5
     next VARCHAR(64) NOT NULL,
     datum TEXT NOT NULL,
     PRIMARY KEY (key, slot)
@@ -78,11 +84,13 @@ This mirrors `metadata_reference_nft`, whose key is `(policy_id, asset_name, slo
 
 | Field | Required | Nullable | Rationale |
 |-------|----------|----------|-----------|
+| `minting_logic_script` | no | yes | The minting/burning logic credential. Absent on sentinel nodes. |
 | `transfer_logic_script` | no | yes | The transfer validation script hash. May be absent in registry nodes that do not yet specify transfer logic. |
 | `third_party_transfer_logic_script` | no | yes | Not all substandards require issuer/admin operations. |
+| `unfracking_logic_script` | no | yes | Null means unfracking is forbidden for the token (`empty_vkey` on-chain). |
 | `global_state_policy_id` | no | yes | Only substandards with shared state (e.g. freeze-and-seize denylists) use this. |
 
-The indexer is defensive: anyone can put invalid data on-chain, so the parser validates the datum and skips entries with missing `key` or `next` fields (logging a warning). All three script/policy fields (`transfer_logic_script`, `third_party_transfer_logic_script`, `global_state_policy_id`) are nullable.
+The indexer is defensive: anyone can put invalid data on-chain, so the parser validates the datum and skips entries with missing `key` or `next` fields (logging a warning). All five script/policy fields are nullable.
 
 ### 2. On-chain indexing
 
@@ -90,7 +98,7 @@ CIP-113 registry nodes are indexed using the existing Yaci Store infrastructure:
 
 - **`CustomUtxoStorage`** is extended to persist UTxOs that match configured CIP-113 registry NFT policy IDs (quantity = 1)
 - **`Cip113EventListener`** processes `AddressUtxoEvent`s, filtering for UTxOs with inline datums that match monitored policy IDs
-- **`Cip113RegistryNodeParser`** deserializes the CBOR datum (ConstrPlutusData with 5 fields) into a structured record
+- **`Cip113RegistryNodeParser`** deserializes the CBOR datum (ConstrPlutusData with 7 fields) into a structured record. A node with the pre-release 5-field layout is skipped with a WARN rather than mapped, because its field positions differ (`transfer` sits at index 2 there and at index 3 in the released layout). No configured registry uses that layout (mainnet, preprod and preview all point at the official 7-field deployments), so the warning only appears if an operator configures a pre-release registry
 
 ### 3. API response
 
@@ -104,8 +112,10 @@ CIP-113 data is served as an extension on V2 subject endpoints (ADR-015). When q
     "metadata": { "name": {...}, "description": {...} },
     "extensions": {
       "cip113": {
+        "minting_logic_script": "f462a4e2...",
         "transfer_logic_script": "aaa513b0...",
         "third_party_transfer_logic_script": "def513b0...",
+        "unfracking_logic_script": "f91c65ec...",
         "global_state_policy_id": "12345678..."
       }
     }
@@ -113,7 +123,7 @@ CIP-113 data is served as an extension on V2 subject endpoints (ADR-015). When q
 }
 ```
 
-The `ProgrammableTokenCip113` record implements the `Extension` interface. All three fields (`transfer_logic_script`, `third_party_transfer_logic_script`, `global_state_policy_id`) are nullable — registry nodes may omit any of them depending on the substandard.
+The `ProgrammableTokenCip113` record implements the `Extension` interface. All five fields are nullable — registry nodes may omit any of them depending on the substandard — and null fields are left out of the JSON.
 
 ### 4. Token type classification
 
@@ -170,7 +180,7 @@ The `ORDER BY slot DESC` query pattern then naturally picks up the correct pre-r
 ### Negative
 
 - **Operator configuration**: Operators must know the policy ID(s) of the CIP-113 registry NFT minting script(s) deployed on their target network. If new registries are deployed, the configuration must be updated.
-- **CBOR parsing brittleness**: The datum parser assumes a specific ConstrPlutusData layout (constructor 0, 5 fields). If the CIP-113 datum format evolves, the parser must be updated.
+- **CBOR parsing brittleness**: The datum parser assumes a specific ConstrPlutusData layout (constructor 0, 7 fields). If the CIP-113 datum format evolves, the parser must be updated — as it already was once, from the 5-field pre-release to the released 7-field layout.
 
 ## Alternatives Considered
 

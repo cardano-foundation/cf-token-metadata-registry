@@ -37,7 +37,7 @@ See the [API Reference](https://cardano-foundation.github.io/cf-token-metadata-r
 
 ### Mainnet
 
-Syncs CIP-26 offchain metadata from GitHub and CIP-68 on-chain metadata from a public Cardano mainnet node. CIP-113 indexing is available but no registry NFT policy IDs are configured by default in [`.env`](./.env) — set `CIP113_REGISTRY_NFT_POLICY_IDS` to enable.
+Syncs CIP-26 offchain metadata from GitHub and CIP-68 on-chain metadata from a public Cardano mainnet node. CIP-113 indexing is enabled for the official mainnet registry deployment via `CIP113_REGISTRY_NFT_POLICY_IDS` in [`.env`](./.env).
 
 ```console
 docker compose up

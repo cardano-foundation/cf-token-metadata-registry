@@ -21,10 +21,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 class Cip113RegistryNodeParserTest {
 
     // All hash-shaped values are 56 hex chars = 28 bytes (Blake2b-224 / policy id).
+    // Each credential slot gets a distinct value so a shifted field mapping cannot pass.
     private static final String POLICY_A_HEX = "0befd1269cf3b5b41cce136c92c64b45dde93e4bfe11875839b713d1";
     private static final String POLICY_B_HEX = "1befd1269cf3b5b41cce136c92c64b45dde93e4bfe11875839b713d2";
+    private static final String CRED_MINTING_HEX = "999513b0fcc01d635f8535d49f38acc33d4d6b62ee8732ca6e126101";
     private static final String CRED_TRANSFER_HEX = "aaa513b0fcc01d635f8535d49f38acc33d4d6b62ee8732ca6e126102";
     private static final String CRED_THIRD_PARTY_HEX = "def513b0fcc01d635f8535d49f38acc33d4d6b62ee8732ca6e126103";
+    private static final String CRED_UNFRACKING_HEX = "bbb513b0fcc01d635f8535d49f38acc33d4d6b62ee8732ca6e126104";
     private static final String GLOBAL_STATE_POLICY_HEX = "1234567890abcdef1234567890abcdef1234567890abcdef12345678";
 
     /** Tail sentinel conventionally ~32 bytes of 0xFF in the aiken-linked-list library. */
@@ -45,51 +48,61 @@ class Cip113RegistryNodeParserTest {
     class ValidDatums {
 
         @Test
-        void parsesFullRegistryNodeWithVKeyCredentials() throws Exception {
-            String datum = buildDatum(
+        void mapsEachFieldFromItsPosition() throws Exception {
+            String datum = serialize(node(
                     hex(POLICY_A_HEX),
                     hex(POLICY_B_HEX),
+                    vkeyCred(hex(CRED_MINTING_HEX)),
                     vkeyCred(hex(CRED_TRANSFER_HEX)),
                     vkeyCred(hex(CRED_THIRD_PARTY_HEX)),
-                    hex(GLOBAL_STATE_POLICY_HEX));
+                    vkeyCred(hex(CRED_UNFRACKING_HEX)),
+                    hex(GLOBAL_STATE_POLICY_HEX)));
 
             Optional<Cip113RegistryNodeParser.ParsedRegistryNode> result = parser.parse(datum);
 
-            assertThat(result).isPresent();
-            assertThat(result.get().key()).isEqualTo(POLICY_A_HEX);
-            assertThat(result.get().next()).isEqualTo(POLICY_B_HEX);
-            assertThat(result.get().transferLogicScript()).isEqualTo(CRED_TRANSFER_HEX);
-            assertThat(result.get().thirdPartyTransferLogicScript()).isEqualTo(CRED_THIRD_PARTY_HEX);
-            assertThat(result.get().globalStatePolicyId()).isEqualTo(GLOBAL_STATE_POLICY_HEX);
+            assertThat(result).hasValue(new Cip113RegistryNodeParser.ParsedRegistryNode(
+                    POLICY_A_HEX,
+                    POLICY_B_HEX,
+                    CRED_MINTING_HEX,
+                    CRED_TRANSFER_HEX,
+                    CRED_THIRD_PARTY_HEX,
+                    CRED_UNFRACKING_HEX,
+                    GLOBAL_STATE_POLICY_HEX));
         }
 
         @Test
-        void parsesNodeWithScriptCredential() throws Exception {
+        void parsesNodeWithScriptCredentials() throws Exception {
             // Credential alternative 1 = Script (vs 0 = VerificationKey). Both are valid.
-            String datum = buildDatum(
+            String datum = serialize(node(
                     hex(POLICY_A_HEX),
                     hex(POLICY_B_HEX),
+                    scriptCred(hex(CRED_MINTING_HEX)),
                     scriptCred(hex(CRED_TRANSFER_HEX)),
                     scriptCred(hex(CRED_THIRD_PARTY_HEX)),
-                    EMPTY_BYTES);
+                    scriptCred(hex(CRED_UNFRACKING_HEX)),
+                    EMPTY_BYTES));
 
             Optional<Cip113RegistryNodeParser.ParsedRegistryNode> result = parser.parse(datum);
 
             assertThat(result).isPresent();
             // Note: the VKey vs Script variant is intentionally discarded — both surface as the same hex.
+            assertThat(result.get().mintingLogicScript()).isEqualTo(CRED_MINTING_HEX);
             assertThat(result.get().transferLogicScript()).isEqualTo(CRED_TRANSFER_HEX);
             assertThat(result.get().thirdPartyTransferLogicScript()).isEqualTo(CRED_THIRD_PARTY_HEX);
+            assertThat(result.get().unfrackingLogicScript()).isEqualTo(CRED_UNFRACKING_HEX);
         }
 
         @Test
         void parsesHeadSentinelNode() throws Exception {
-            // key = empty (head sentinel), next points to first real node.
-            String datum = buildDatum(
+            // The origin node: key empty, every credential empty_vkey, no global state.
+            String datum = serialize(node(
                     EMPTY_BYTES,
                     hex(POLICY_A_HEX),
-                    vkeyCred(hex(CRED_TRANSFER_HEX)),
-                    vkeyCred(hex(CRED_THIRD_PARTY_HEX)),
-                    EMPTY_BYTES);
+                    vkeyCred(EMPTY_BYTES),
+                    vkeyCred(EMPTY_BYTES),
+                    vkeyCred(EMPTY_BYTES),
+                    vkeyCred(EMPTY_BYTES),
+                    EMPTY_BYTES));
 
             Optional<Cip113RegistryNodeParser.ParsedRegistryNode> result = parser.parse(datum);
 
@@ -102,12 +115,7 @@ class Cip113RegistryNodeParserTest {
         @Test
         void parsesNodeWithAbsentGlobalState() throws Exception {
             // global_state_cs = empty bytes → semantically absent → null in the parsed output.
-            String datum = buildDatum(
-                    hex(POLICY_A_HEX),
-                    hex(POLICY_B_HEX),
-                    vkeyCred(hex(CRED_TRANSFER_HEX)),
-                    vkeyCred(hex(CRED_THIRD_PARTY_HEX)),
-                    EMPTY_BYTES);
+            String datum = buildDatum(hex(POLICY_A_HEX), hex(POLICY_B_HEX), EMPTY_BYTES);
 
             Optional<Cip113RegistryNodeParser.ParsedRegistryNode> result = parser.parse(datum);
 
@@ -118,12 +126,7 @@ class Cip113RegistryNodeParserTest {
         @Test
         void parsesNodeWithMaxLengthNextSentinel() throws Exception {
             // A materialized tail sentinel node: next points to the 32-byte 0xFF sentinel.
-            String datum = buildDatum(
-                    hex(POLICY_A_HEX),
-                    TAIL_SENTINEL_32B,
-                    vkeyCred(hex(CRED_TRANSFER_HEX)),
-                    vkeyCred(hex(CRED_THIRD_PARTY_HEX)),
-                    EMPTY_BYTES);
+            String datum = buildDatum(hex(POLICY_A_HEX), TAIL_SENTINEL_32B, EMPTY_BYTES);
 
             Optional<Cip113RegistryNodeParser.ParsedRegistryNode> result = parser.parse(datum);
 
@@ -135,13 +138,14 @@ class Cip113RegistryNodeParserTest {
         void parsesNodeWithAbsentTransferLogicScriptAsPlainEmptyBytes() throws Exception {
             // Real-world tolerance: plain BytesPlutusData(h'') in place of a Credential Constr
             // means "no transfer_logic_script".
-            ConstrPlutusData node = ConstrPlutusData.of(0,
-                    BytesPlutusData.of(hex(POLICY_A_HEX)),
-                    BytesPlutusData.of(hex(POLICY_B_HEX)),
+            String datum = serialize(node(
+                    hex(POLICY_A_HEX),
+                    hex(POLICY_B_HEX),
+                    vkeyCred(hex(CRED_MINTING_HEX)),
                     BytesPlutusData.of(EMPTY_BYTES),
                     vkeyCred(hex(CRED_THIRD_PARTY_HEX)),
-                    BytesPlutusData.of(EMPTY_BYTES));
-            String datum = serialize(node);
+                    vkeyCred(hex(CRED_UNFRACKING_HEX)),
+                    EMPTY_BYTES));
 
             Optional<Cip113RegistryNodeParser.ParsedRegistryNode> result = parser.parse(datum);
 
@@ -152,14 +156,15 @@ class Cip113RegistryNodeParserTest {
 
         @Test
         void parsesNodeWithAbsentTransferLogicScriptAsWrappedEmptyBytes() throws Exception {
-            // Also tolerate a Credential Constr whose inner ByteString is empty.
-            ConstrPlutusData node = ConstrPlutusData.of(0,
-                    BytesPlutusData.of(hex(POLICY_A_HEX)),
-                    BytesPlutusData.of(hex(POLICY_B_HEX)),
+            // Also tolerate a Credential Constr whose inner ByteString is empty (empty_vkey).
+            String datum = serialize(node(
+                    hex(POLICY_A_HEX),
+                    hex(POLICY_B_HEX),
+                    vkeyCred(hex(CRED_MINTING_HEX)),
                     vkeyCred(EMPTY_BYTES),
                     vkeyCred(hex(CRED_THIRD_PARTY_HEX)),
-                    BytesPlutusData.of(EMPTY_BYTES));
-            String datum = serialize(node);
+                    vkeyCred(hex(CRED_UNFRACKING_HEX)),
+                    EMPTY_BYTES));
 
             Optional<Cip113RegistryNodeParser.ParsedRegistryNode> result = parser.parse(datum);
 
@@ -168,42 +173,159 @@ class Cip113RegistryNodeParserTest {
         }
 
         @Test
-        void parsesNodeWithAbsentThirdPartyTransferLogicScript() throws Exception {
-            ConstrPlutusData node = ConstrPlutusData.of(0,
+        void parsesNodeWithAbsentUnfrackingLogicScript() throws Exception {
+            // empty_vkey unfracking credential = unfracking forbidden → null.
+            String datum = serialize(node(
+                    hex(POLICY_A_HEX),
+                    hex(POLICY_B_HEX),
+                    vkeyCred(hex(CRED_MINTING_HEX)),
+                    vkeyCred(hex(CRED_TRANSFER_HEX)),
+                    vkeyCred(hex(CRED_THIRD_PARTY_HEX)),
+                    vkeyCred(EMPTY_BYTES),
+                    EMPTY_BYTES));
+
+            Optional<Cip113RegistryNodeParser.ParsedRegistryNode> result = parser.parse(datum);
+
+            assertThat(result).isPresent();
+            assertThat(result.get().unfrackingLogicScript()).isNull();
+            assertThat(result.get().thirdPartyTransferLogicScript()).isEqualTo(CRED_THIRD_PARTY_HEX);
+        }
+
+        @Test
+        void parsesNodeWithAllOptionalFieldsAbsent() throws Exception {
+            // All five optional fields (four credentials + global_state_cs) can be simultaneously
+            // null — only 'key' and 'next' are strictly required.
+            String datum = serialize(node(
+                    hex(POLICY_A_HEX),
+                    hex(POLICY_B_HEX),
+                    BytesPlutusData.of(EMPTY_BYTES),
+                    BytesPlutusData.of(EMPTY_BYTES),
+                    BytesPlutusData.of(EMPTY_BYTES),
+                    BytesPlutusData.of(EMPTY_BYTES),
+                    EMPTY_BYTES));
+
+            Optional<Cip113RegistryNodeParser.ParsedRegistryNode> result = parser.parse(datum);
+
+            assertThat(result).hasValue(new Cip113RegistryNodeParser.ParsedRegistryNode(
+                    POLICY_A_HEX, POLICY_B_HEX, null, null, null, null, null));
+        }
+    }
+
+    // ----- Real deployed datums ---------------------------------------------------------
+
+    /**
+     * Inline datums of registry-node UTxOs from the official CIP-113 deployments (cip113-programmable-tokens
+     * deployment {@code schemaVersion} 3), fetched from mainnet, preprod and preview.
+     */
+    @Nested
+    @DisplayName("Datums from the official mainnet, preprod and preview deployments")
+    class DeployedDatums {
+
+        /** Mainnet head node (registry policy 484e733d…0e3075): every credential is empty_vkey. */
+        private static final String MAINNET_HEAD_NODE =
+                "d8799f40581c01c24df7941f8b5856762fcc8aa0bb61a8c24f0911ed6aef474034d0d8799f40ffd8799f40ffd8799f40"
+                + "ffd8799f40ff40ff";
+
+        /** Mainnet node for policy b025efe5…: Script credentials, unfracking forbidden, global state set. */
+        private static final String MAINNET_TOKEN_NODE =
+                "d8799f581cb025efe5b44b43ed154419c66b0efc9cf148fd98f464e261018c89e8581effffffffffffffffffffffffff"
+                + "ffffffffffffffffffffffffffffffffffd87a9f581cf462a4e22e5b138c17d893d4e0811790f51f1231b8be4198313e"
+                + "08d0ffd87a9f581c62b98b0894870aadfba1a7fd1b368c56aa91caa2701fb7e92a3f1bf1ffd87a9f581c1e17ac8b06f5"
+                + "f891d65923dee46e85a71e19deb401c8650e0401a3f0ffd8799f40ff581cd2683a1b0b9bf3628db24fdf7cababb08308"
+                + "4aec86a0cfd05b130ca3ff";
+
+        /** Preprod node for policy ba748823… (registry policy 3083d387…09222a): all four credentials set. */
+        private static final String PREPROD_TOKEN_NODE =
+                "d8799f581cba74882344a7946a04139263c4896703a7107f522bbf061c311aac6c581cc4e75d70e0df490e4f20868188"
+                + "9f62615bc19a89490f81caa39e86dbd87a9f581cf91c65ec585a20176feeb2c4e5281e856d3b61e95d1980717da724fc"
+                + "ffd87a9f581c0f948cd223933dfa2cf584e674f128e2baa7875cca2b8fe65aa6b1eaffd87a9f581cf91c65ec585a2017"
+                + "6feeb2c4e5281e856d3b61e95d1980717da724fcffd87a9f581cf91c65ec585a20176feeb2c4e5281e856d3b61e95d19"
+                + "80717da724fcff40ff";
+
+        /** Preview node for policy ecfe3319… (registry policy e5b339ef…fec09a): unfracking forbidden. */
+        private static final String PREVIEW_TOKEN_NODE =
+                "d8799f581cecfe3319f2162b7206f186bf47ce27592dd2e96f87c8f8c83c71e6a2581cfade8905bc06f0f30b44175e3f"
+                + "c776c7233e41855adf8df1be7ab5d3d87a9f581c0efb02aa36b3e6167c3f450249c2f9bbaf2d49efe80b930e1fb8e11e"
+                + "ffd87a9f581c108f11b59a5afbaac5451bd86e22f002ebafc23d93d01f542ce93f4effd87a9f581c24bb10207c62baea"
+                + "e9d83cfedcd515118c97fc7b3058f5c8006e49bfffd8799f40ff581c150ee5da3e245ea055dcc11e324d9fae8b7c136d"
+                + "08b32f7e57b84663ff";
+
+        @Test
+        void parsesMainnetHeadNode() {
+            assertThat(parser.parse(MAINNET_HEAD_NODE)).hasValue(new Cip113RegistryNodeParser.ParsedRegistryNode(
+                    "",
+                    "01c24df7941f8b5856762fcc8aa0bb61a8c24f0911ed6aef474034d0",
+                    null, null, null, null, null));
+        }
+
+        @Test
+        void parsesMainnetTokenNode() {
+            assertThat(parser.parse(MAINNET_TOKEN_NODE)).hasValue(new Cip113RegistryNodeParser.ParsedRegistryNode(
+                    "b025efe5b44b43ed154419c66b0efc9cf148fd98f464e261018c89e8",
+                    "ff".repeat(30),
+                    "f462a4e22e5b138c17d893d4e0811790f51f1231b8be4198313e08d0",
+                    "62b98b0894870aadfba1a7fd1b368c56aa91caa2701fb7e92a3f1bf1",
+                    "1e17ac8b06f5f891d65923dee46e85a71e19deb401c8650e0401a3f0",
+                    null,
+                    "d2683a1b0b9bf3628db24fdf7cababb083084aec86a0cfd05b130ca3"));
+        }
+
+        @Test
+        void parsesPreprodTokenNode() {
+            assertThat(parser.parse(PREPROD_TOKEN_NODE)).hasValue(new Cip113RegistryNodeParser.ParsedRegistryNode(
+                    "ba74882344a7946a04139263c4896703a7107f522bbf061c311aac6c",
+                    "c4e75d70e0df490e4f208681889f62615bc19a89490f81caa39e86db",
+                    "f91c65ec585a20176feeb2c4e5281e856d3b61e95d1980717da724fc",
+                    "0f948cd223933dfa2cf584e674f128e2baa7875cca2b8fe65aa6b1ea",
+                    "f91c65ec585a20176feeb2c4e5281e856d3b61e95d1980717da724fc",
+                    "f91c65ec585a20176feeb2c4e5281e856d3b61e95d1980717da724fc",
+                    null));
+        }
+
+        @Test
+        void parsesPreviewTokenNode() {
+            assertThat(parser.parse(PREVIEW_TOKEN_NODE)).hasValue(new Cip113RegistryNodeParser.ParsedRegistryNode(
+                    "ecfe3319f2162b7206f186bf47ce27592dd2e96f87c8f8c83c71e6a2",
+                    "fade8905bc06f0f30b44175e3fc776c7233e41855adf8df1be7ab5d3",
+                    "0efb02aa36b3e6167c3f450249c2f9bbaf2d49efe80b930e1fb8e11e",
+                    "108f11b59a5afbaac5451bd86e22f002ebafc23d93d01f542ce93f4e",
+                    "24bb10207c62baeae9d83cfedcd515118c97fc7b3058f5c8006e49bf",
+                    null,
+                    "150ee5da3e245ea055dcc11e324d9fae8b7c136d08b32f7e57b84663"));
+        }
+    }
+
+    // ----- Legacy pre-release layout ---------------------------------------------------
+
+    @Nested
+    @DisplayName("Legacy pre-release 5-field layout")
+    class LegacyLayout {
+
+        /**
+         * A 5-field node ({@code [key, next, transfer, third_party, global_state_cs]}) from the pre-release
+         * registry b9b19dc6… on preprod. Its field positions differ from the released layout, so it is
+         * skipped rather than mapped.
+         */
+        private static final String PRE_RELEASE_NODE =
+                "d87985581cd66cec6e53a5d77b85391b08ddf1cd8d3f4a694510404b6993c6075a581cd75cd6ebe4493475202d5d59a4"
+                + "eae85337d75018fda8b91588f883ced87a81581c03af1a111806f0e1fd918448a3d8b9cac8f2345c377b34e2b12cf3a7"
+                + "d87a81581ce889d2ae4b39d6d903fddf4ad4cbd80a842c90dc573c59455ff6f46b40";
+
+        @Test
+        void ignoresPreReleaseNodeFromChain() {
+            assertThat(parser.parse(PRE_RELEASE_NODE)).isEmpty();
+        }
+
+        @Test
+        void ignoresFiveFieldNodeRatherThanMappingItsShiftedFields() throws Exception {
+            ConstrPlutusData legacy = ConstrPlutusData.of(0,
                     BytesPlutusData.of(hex(POLICY_A_HEX)),
                     BytesPlutusData.of(hex(POLICY_B_HEX)),
                     vkeyCred(hex(CRED_TRANSFER_HEX)),
-                    BytesPlutusData.of(EMPTY_BYTES),
+                    vkeyCred(hex(CRED_THIRD_PARTY_HEX)),
                     BytesPlutusData.of(EMPTY_BYTES));
-            String datum = serialize(node);
 
-            Optional<Cip113RegistryNodeParser.ParsedRegistryNode> result = parser.parse(datum);
-
-            assertThat(result).isPresent();
-            assertThat(result.get().transferLogicScript()).isEqualTo(CRED_TRANSFER_HEX);
-            assertThat(result.get().thirdPartyTransferLogicScript()).isNull();
-        }
-
-        @Test
-        void parsesNodeWithAllThreeOptionalFieldsAbsent() throws Exception {
-            // Demonstrates that all three optional fields (both credentials + global_state_cs)
-            // can be simultaneously null — only 'key' and 'next' are strictly required.
-            ConstrPlutusData node = ConstrPlutusData.of(0,
-                    BytesPlutusData.of(hex(POLICY_A_HEX)),
-                    BytesPlutusData.of(hex(POLICY_B_HEX)),
-                    BytesPlutusData.of(EMPTY_BYTES),
-                    BytesPlutusData.of(EMPTY_BYTES),
-                    BytesPlutusData.of(EMPTY_BYTES));
-            String datum = serialize(node);
-
-            Optional<Cip113RegistryNodeParser.ParsedRegistryNode> result = parser.parse(datum);
-
-            assertThat(result).isPresent();
-            assertThat(result.get().key()).isEqualTo(POLICY_A_HEX);
-            assertThat(result.get().next()).isEqualTo(POLICY_B_HEX);
-            assertThat(result.get().transferLogicScript()).isNull();
-            assertThat(result.get().thirdPartyTransferLogicScript()).isNull();
-            assertThat(result.get().globalStatePolicyId()).isNull();
+            assertThat(parser.parse(serialize(legacy))).isEmpty();
         }
     }
 
@@ -237,40 +359,43 @@ class Cip113RegistryNodeParserTest {
             ConstrPlutusData node = ConstrPlutusData.of(1,
                     BytesPlutusData.of(hex(POLICY_A_HEX)),
                     BytesPlutusData.of(hex(POLICY_B_HEX)),
+                    vkeyCred(hex(CRED_MINTING_HEX)),
                     vkeyCred(hex(CRED_TRANSFER_HEX)),
                     vkeyCred(hex(CRED_THIRD_PARTY_HEX)),
+                    vkeyCred(hex(CRED_UNFRACKING_HEX)),
                     BytesPlutusData.of(EMPTY_BYTES));
-            String datum = serialize(node);
 
-            assertThat(parser.parse(datum)).isEmpty();
+            assertThat(parser.parse(serialize(node))).isEmpty();
         }
 
         @Test
-        void rejectsFewerThanFiveFields() throws Exception {
-            // 4 fields — missing global_state_cs. Spec requires all 5.
+        void rejectsFewerThanSevenFields() throws Exception {
+            // 6 fields — missing global_state_cs.
             ConstrPlutusData node = ConstrPlutusData.of(0,
                     BytesPlutusData.of(hex(POLICY_A_HEX)),
                     BytesPlutusData.of(hex(POLICY_B_HEX)),
-                    vkeyCred(hex(CRED_TRANSFER_HEX)),
-                    vkeyCred(hex(CRED_THIRD_PARTY_HEX)));
-            String datum = serialize(node);
-
-            assertThat(parser.parse(datum)).isEmpty();
-        }
-
-        @Test
-        void rejectsMoreThanFiveFields() throws Exception {
-            // 6 fields — an extra unknown trailing field.
-            ConstrPlutusData node = ConstrPlutusData.of(0,
-                    BytesPlutusData.of(hex(POLICY_A_HEX)),
-                    BytesPlutusData.of(hex(POLICY_B_HEX)),
+                    vkeyCred(hex(CRED_MINTING_HEX)),
                     vkeyCred(hex(CRED_TRANSFER_HEX)),
                     vkeyCred(hex(CRED_THIRD_PARTY_HEX)),
+                    vkeyCred(hex(CRED_UNFRACKING_HEX)));
+
+            assertThat(parser.parse(serialize(node))).isEmpty();
+        }
+
+        @Test
+        void rejectsMoreThanSevenFields() throws Exception {
+            // 8 fields — an extra unknown trailing field.
+            ConstrPlutusData node = ConstrPlutusData.of(0,
+                    BytesPlutusData.of(hex(POLICY_A_HEX)),
+                    BytesPlutusData.of(hex(POLICY_B_HEX)),
+                    vkeyCred(hex(CRED_MINTING_HEX)),
+                    vkeyCred(hex(CRED_TRANSFER_HEX)),
+                    vkeyCred(hex(CRED_THIRD_PARTY_HEX)),
+                    vkeyCred(hex(CRED_UNFRACKING_HEX)),
                     BytesPlutusData.of(EMPTY_BYTES),
                     BytesPlutusData.of(hex("cafe")));
-            String datum = serialize(node);
 
-            assertThat(parser.parse(datum)).isEmpty();
+            assertThat(parser.parse(serialize(node))).isEmpty();
         }
     }
 
@@ -286,12 +411,13 @@ class Cip113RegistryNodeParserTest {
             ConstrPlutusData node = ConstrPlutusData.of(0,
                     vkeyCred(hex(POLICY_A_HEX)),  // wrong type for field 0
                     BytesPlutusData.of(hex(POLICY_B_HEX)),
+                    vkeyCred(hex(CRED_MINTING_HEX)),
                     vkeyCred(hex(CRED_TRANSFER_HEX)),
                     vkeyCred(hex(CRED_THIRD_PARTY_HEX)),
+                    vkeyCred(hex(CRED_UNFRACKING_HEX)),
                     BytesPlutusData.of(EMPTY_BYTES));
-            String datum = serialize(node);
 
-            assertThat(parser.parse(datum)).isEmpty();
+            assertThat(parser.parse(serialize(node))).isEmpty();
         }
 
         @Test
@@ -300,27 +426,13 @@ class Cip113RegistryNodeParserTest {
             byte[] tooLong = new byte[33];
             java.util.Arrays.fill(tooLong, (byte) 0xFF);
 
-            String datum = buildDatum(
-                    tooLong,
-                    hex(POLICY_B_HEX),
-                    vkeyCred(hex(CRED_TRANSFER_HEX)),
-                    vkeyCred(hex(CRED_THIRD_PARTY_HEX)),
-                    EMPTY_BYTES);
-
-            assertThat(parser.parse(datum)).isEmpty();
+            assertThat(parser.parse(buildDatum(tooLong, hex(POLICY_B_HEX), EMPTY_BYTES))).isEmpty();
         }
 
         @Test
         void rejectsEmptyNext() throws Exception {
             // next must be non-empty — an empty next would violate key < next for any key.
-            String datum = buildDatum(
-                    hex(POLICY_A_HEX),
-                    EMPTY_BYTES,
-                    vkeyCred(hex(CRED_TRANSFER_HEX)),
-                    vkeyCred(hex(CRED_THIRD_PARTY_HEX)),
-                    EMPTY_BYTES);
-
-            assertThat(parser.parse(datum)).isEmpty();
+            assertThat(parser.parse(buildDatum(hex(POLICY_A_HEX), EMPTY_BYTES, EMPTY_BYTES))).isEmpty();
         }
 
         @Test
@@ -328,12 +440,13 @@ class Cip113RegistryNodeParserTest {
             ConstrPlutusData node = ConstrPlutusData.of(0,
                     BytesPlutusData.of(hex(POLICY_A_HEX)),
                     vkeyCred(hex(POLICY_B_HEX)),  // wrong type for field 1
+                    vkeyCred(hex(CRED_MINTING_HEX)),
                     vkeyCred(hex(CRED_TRANSFER_HEX)),
                     vkeyCred(hex(CRED_THIRD_PARTY_HEX)),
+                    vkeyCred(hex(CRED_UNFRACKING_HEX)),
                     BytesPlutusData.of(EMPTY_BYTES));
-            String datum = serialize(node);
 
-            assertThat(parser.parse(datum)).isEmpty();
+            assertThat(parser.parse(serialize(node))).isEmpty();
         }
 
         @Test
@@ -341,14 +454,7 @@ class Cip113RegistryNodeParserTest {
             byte[] tooLong = new byte[33];
             java.util.Arrays.fill(tooLong, (byte) 0xFF);
 
-            String datum = buildDatum(
-                    hex(POLICY_A_HEX),
-                    tooLong,
-                    vkeyCred(hex(CRED_TRANSFER_HEX)),
-                    vkeyCred(hex(CRED_THIRD_PARTY_HEX)),
-                    EMPTY_BYTES);
-
-            assertThat(parser.parse(datum)).isEmpty();
+            assertThat(parser.parse(buildDatum(hex(POLICY_A_HEX), tooLong, EMPTY_BYTES))).isEmpty();
         }
     }
 
@@ -360,15 +466,16 @@ class Cip113RegistryNodeParserTest {
 
         @Test
         void rejectsTransferLogicScriptAsPlainBytes() throws Exception {
-            // Field 2 is a plain BytesPlutusData of non-empty length instead of a Credential Constr.
-            // Empty plain bytes are tolerated as "absent credential"; non-empty are malformed.
-            ConstrPlutusData node = ConstrPlutusData.of(0,
-                    BytesPlutusData.of(hex(POLICY_A_HEX)),
-                    BytesPlutusData.of(hex(POLICY_B_HEX)),
+            // Non-empty plain BytesPlutusData instead of a Credential Constr. Empty plain bytes are
+            // tolerated as "absent credential"; non-empty are malformed.
+            String datum = serialize(node(
+                    hex(POLICY_A_HEX),
+                    hex(POLICY_B_HEX),
+                    vkeyCred(hex(CRED_MINTING_HEX)),
                     BytesPlutusData.of(hex(CRED_TRANSFER_HEX)),  // not wrapped in Credential Constr
                     vkeyCred(hex(CRED_THIRD_PARTY_HEX)),
-                    BytesPlutusData.of(EMPTY_BYTES));
-            String datum = serialize(node);
+                    vkeyCred(hex(CRED_UNFRACKING_HEX)),
+                    EMPTY_BYTES));
 
             assertThat(parser.parse(datum)).isEmpty();
         }
@@ -376,13 +483,14 @@ class Cip113RegistryNodeParserTest {
         @Test
         void rejectsTransferLogicScriptWithWrongByteLength() throws Exception {
             // Credential wraps 10 bytes instead of 28.
-            ConstrPlutusData node = ConstrPlutusData.of(0,
-                    BytesPlutusData.of(hex(POLICY_A_HEX)),
-                    BytesPlutusData.of(hex(POLICY_B_HEX)),
+            String datum = serialize(node(
+                    hex(POLICY_A_HEX),
+                    hex(POLICY_B_HEX),
+                    vkeyCred(hex(CRED_MINTING_HEX)),
                     vkeyCred(hex("aabbccddeeff00112233")),  // 10 bytes
                     vkeyCred(hex(CRED_THIRD_PARTY_HEX)),
-                    BytesPlutusData.of(EMPTY_BYTES));
-            String datum = serialize(node);
+                    vkeyCred(hex(CRED_UNFRACKING_HEX)),
+                    EMPTY_BYTES));
 
             assertThat(parser.parse(datum)).isEmpty();
         }
@@ -390,15 +498,14 @@ class Cip113RegistryNodeParserTest {
         @Test
         void rejectsTransferLogicScriptWithInvalidAlternative() throws Exception {
             // Aiken Credential alternatives are {0=VerificationKey, 1=Script}. Anything else is invalid.
-            ConstrPlutusData badCred = ConstrPlutusData.of(2, BytesPlutusData.of(hex(CRED_TRANSFER_HEX)));
-
-            ConstrPlutusData node = ConstrPlutusData.of(0,
-                    BytesPlutusData.of(hex(POLICY_A_HEX)),
-                    BytesPlutusData.of(hex(POLICY_B_HEX)),
-                    badCred,
+            String datum = serialize(node(
+                    hex(POLICY_A_HEX),
+                    hex(POLICY_B_HEX),
+                    vkeyCred(hex(CRED_MINTING_HEX)),
+                    ConstrPlutusData.of(2, BytesPlutusData.of(hex(CRED_TRANSFER_HEX))),
                     vkeyCred(hex(CRED_THIRD_PARTY_HEX)),
-                    BytesPlutusData.of(EMPTY_BYTES));
-            String datum = serialize(node);
+                    vkeyCred(hex(CRED_UNFRACKING_HEX)),
+                    EMPTY_BYTES));
 
             assertThat(parser.parse(datum)).isEmpty();
         }
@@ -409,40 +516,70 @@ class Cip113RegistryNodeParserTest {
             ConstrPlutusData badCred = ConstrPlutusData.of(0,
                     BytesPlutusData.of(hex(CRED_TRANSFER_HEX)),
                     BytesPlutusData.of(hex("cafe")));
-
-            ConstrPlutusData node = ConstrPlutusData.of(0,
-                    BytesPlutusData.of(hex(POLICY_A_HEX)),
-                    BytesPlutusData.of(hex(POLICY_B_HEX)),
+            String datum = serialize(node(
+                    hex(POLICY_A_HEX),
+                    hex(POLICY_B_HEX),
+                    vkeyCred(hex(CRED_MINTING_HEX)),
                     badCred,
                     vkeyCred(hex(CRED_THIRD_PARTY_HEX)),
-                    BytesPlutusData.of(EMPTY_BYTES));
-            String datum = serialize(node);
+                    vkeyCred(hex(CRED_UNFRACKING_HEX)),
+                    EMPTY_BYTES));
 
             assertThat(parser.parse(datum)).isEmpty();
         }
 
         @Test
-        void rejectsThirdPartyTransferLogicScriptAsPlainBytes() throws Exception {
-            ConstrPlutusData node = ConstrPlutusData.of(0,
-                    BytesPlutusData.of(hex(POLICY_A_HEX)),
-                    BytesPlutusData.of(hex(POLICY_B_HEX)),
+        void rejectsThirdPartyLogicScriptAsPlainBytes() throws Exception {
+            String datum = serialize(node(
+                    hex(POLICY_A_HEX),
+                    hex(POLICY_B_HEX),
+                    vkeyCred(hex(CRED_MINTING_HEX)),
                     vkeyCred(hex(CRED_TRANSFER_HEX)),
                     BytesPlutusData.of(hex(CRED_THIRD_PARTY_HEX)),  // not wrapped
-                    BytesPlutusData.of(EMPTY_BYTES));
-            String datum = serialize(node);
+                    vkeyCred(hex(CRED_UNFRACKING_HEX)),
+                    EMPTY_BYTES));
 
             assertThat(parser.parse(datum)).isEmpty();
         }
 
         @Test
-        void rejectsThirdPartyTransferLogicScriptWithWrongByteLength() throws Exception {
-            ConstrPlutusData node = ConstrPlutusData.of(0,
-                    BytesPlutusData.of(hex(POLICY_A_HEX)),
-                    BytesPlutusData.of(hex(POLICY_B_HEX)),
+        void rejectsThirdPartyLogicScriptWithWrongByteLength() throws Exception {
+            String datum = serialize(node(
+                    hex(POLICY_A_HEX),
+                    hex(POLICY_B_HEX),
+                    vkeyCred(hex(CRED_MINTING_HEX)),
                     vkeyCred(hex(CRED_TRANSFER_HEX)),
                     vkeyCred(hex("aabbccddeeff00112233")),  // 10 bytes
-                    BytesPlutusData.of(EMPTY_BYTES));
-            String datum = serialize(node);
+                    vkeyCred(hex(CRED_UNFRACKING_HEX)),
+                    EMPTY_BYTES));
+
+            assertThat(parser.parse(datum)).isEmpty();
+        }
+
+        @Test
+        void rejectsMintingLogicScriptWithWrongByteLength() throws Exception {
+            String datum = serialize(node(
+                    hex(POLICY_A_HEX),
+                    hex(POLICY_B_HEX),
+                    vkeyCred(hex("aabbccddeeff00112233")),  // 10 bytes
+                    vkeyCred(hex(CRED_TRANSFER_HEX)),
+                    vkeyCred(hex(CRED_THIRD_PARTY_HEX)),
+                    vkeyCred(hex(CRED_UNFRACKING_HEX)),
+                    EMPTY_BYTES));
+
+            assertThat(parser.parse(datum)).isEmpty();
+        }
+
+        @Test
+        void rejectsUnfrackingLogicScriptAsPlainBytes() throws Exception {
+            String datum = serialize(node(
+                    hex(POLICY_A_HEX),
+                    hex(POLICY_B_HEX),
+                    vkeyCred(hex(CRED_MINTING_HEX)),
+                    vkeyCred(hex(CRED_TRANSFER_HEX)),
+                    vkeyCred(hex(CRED_THIRD_PARTY_HEX)),
+                    BytesPlutusData.of(hex(CRED_UNFRACKING_HEX)),  // not wrapped
+                    EMPTY_BYTES));
 
             assertThat(parser.parse(datum)).isEmpty();
         }
@@ -458,28 +595,18 @@ class Cip113RegistryNodeParserTest {
         void acceptsEmptyGlobalState() throws Exception {
             // Already covered by parsesNodeWithAbsentGlobalState — duplicated here for
             // symmetry with the rejection cases in this class.
-            String datum = buildDatum(
-                    hex(POLICY_A_HEX),
-                    hex(POLICY_B_HEX),
-                    vkeyCred(hex(CRED_TRANSFER_HEX)),
-                    vkeyCred(hex(CRED_THIRD_PARTY_HEX)),
-                    EMPTY_BYTES);
+            Optional<Cip113RegistryNodeParser.ParsedRegistryNode> result =
+                    parser.parse(buildDatum(hex(POLICY_A_HEX), hex(POLICY_B_HEX), EMPTY_BYTES));
 
-            Optional<Cip113RegistryNodeParser.ParsedRegistryNode> result = parser.parse(datum);
             assertThat(result).isPresent();
             assertThat(result.get().globalStatePolicyId()).isNull();
         }
 
         @Test
         void acceptsFullLengthGlobalState() throws Exception {
-            String datum = buildDatum(
-                    hex(POLICY_A_HEX),
-                    hex(POLICY_B_HEX),
-                    vkeyCred(hex(CRED_TRANSFER_HEX)),
-                    vkeyCred(hex(CRED_THIRD_PARTY_HEX)),
-                    hex(GLOBAL_STATE_POLICY_HEX));
+            Optional<Cip113RegistryNodeParser.ParsedRegistryNode> result =
+                    parser.parse(buildDatum(hex(POLICY_A_HEX), hex(POLICY_B_HEX), hex(GLOBAL_STATE_POLICY_HEX)));
 
-            Optional<Cip113RegistryNodeParser.ParsedRegistryNode> result = parser.parse(datum);
             assertThat(result).isPresent();
             assertThat(result.get().globalStatePolicyId()).isEqualTo(GLOBAL_STATE_POLICY_HEX);
         }
@@ -487,28 +614,23 @@ class Cip113RegistryNodeParserTest {
         @Test
         void rejectsGlobalStateWithWrongLength() throws Exception {
             // 10 bytes — neither 0 (absent) nor 28 (real currency symbol).
-            String datum = buildDatum(
-                    hex(POLICY_A_HEX),
-                    hex(POLICY_B_HEX),
-                    vkeyCred(hex(CRED_TRANSFER_HEX)),
-                    vkeyCred(hex(CRED_THIRD_PARTY_HEX)),
-                    hex("aabbccddeeff00112233"));
-
-            assertThat(parser.parse(datum)).isEmpty();
+            assertThat(parser.parse(buildDatum(hex(POLICY_A_HEX), hex(POLICY_B_HEX), hex("aabbccddeeff00112233"))))
+                    .isEmpty();
         }
 
         @Test
         void rejectsGlobalStateAsConstr() throws Exception {
-            // Field 4 must be a ByteString, not a Constr.
+            // Field 6 must be a ByteString, not a Constr.
             ConstrPlutusData node = ConstrPlutusData.of(0,
                     BytesPlutusData.of(hex(POLICY_A_HEX)),
                     BytesPlutusData.of(hex(POLICY_B_HEX)),
+                    vkeyCred(hex(CRED_MINTING_HEX)),
                     vkeyCred(hex(CRED_TRANSFER_HEX)),
                     vkeyCred(hex(CRED_THIRD_PARTY_HEX)),
+                    vkeyCred(hex(CRED_UNFRACKING_HEX)),
                     vkeyCred(hex(GLOBAL_STATE_POLICY_HEX)));
-            String datum = serialize(node);
 
-            assertThat(parser.parse(datum)).isEmpty();
+            assertThat(parser.parse(serialize(node))).isEmpty();
         }
     }
 
@@ -561,28 +683,18 @@ class Cip113RegistryNodeParserTest {
 
         @Test
         void returnsTrueWhenKeyIsEmpty() throws Exception {
-            String datum = buildDatum(
-                    EMPTY_BYTES,
-                    hex(POLICY_A_HEX),
-                    vkeyCred(hex(CRED_TRANSFER_HEX)),
-                    vkeyCred(hex(CRED_THIRD_PARTY_HEX)),
-                    EMPTY_BYTES);
+            Optional<Cip113RegistryNodeParser.ParsedRegistryNode> result =
+                    parser.parse(buildDatum(EMPTY_BYTES, hex(POLICY_A_HEX), EMPTY_BYTES));
 
-            Optional<Cip113RegistryNodeParser.ParsedRegistryNode> result = parser.parse(datum);
             assertThat(result).isPresent();
             assertThat(result.get().isHeadSentinel()).isTrue();
         }
 
         @Test
         void returnsFalseForRealPolicy() throws Exception {
-            String datum = buildDatum(
-                    hex(POLICY_A_HEX),
-                    hex(POLICY_B_HEX),
-                    vkeyCred(hex(CRED_TRANSFER_HEX)),
-                    vkeyCred(hex(CRED_THIRD_PARTY_HEX)),
-                    EMPTY_BYTES);
+            Optional<Cip113RegistryNodeParser.ParsedRegistryNode> result =
+                    parser.parse(buildDatum(hex(POLICY_A_HEX), hex(POLICY_B_HEX), EMPTY_BYTES));
 
-            Optional<Cip113RegistryNodeParser.ParsedRegistryNode> result = parser.parse(datum);
             assertThat(result).isPresent();
             assertThat(result.get().isHeadSentinel()).isFalse();
         }
@@ -590,15 +702,10 @@ class Cip113RegistryNodeParserTest {
         @Test
         void returnsFalseForTailSentinelNode() throws Exception {
             // A materialized tail sentinel node has a non-empty key (e.g. 32 bytes of 0xFF).
-            // It is not the HEAD sentinel.
-            String datum = buildDatum(
-                    TAIL_SENTINEL_32B,
-                    TAIL_SENTINEL_32B,  // self-loop / terminator — allowed by the parser
-                    vkeyCred(hex(CRED_TRANSFER_HEX)),
-                    vkeyCred(hex(CRED_THIRD_PARTY_HEX)),
-                    EMPTY_BYTES);
+            // It is not the HEAD sentinel. next == key is a self-loop / terminator — allowed by the parser.
+            Optional<Cip113RegistryNodeParser.ParsedRegistryNode> result =
+                    parser.parse(buildDatum(TAIL_SENTINEL_32B, TAIL_SENTINEL_32B, EMPTY_BYTES));
 
-            Optional<Cip113RegistryNodeParser.ParsedRegistryNode> result = parser.parse(datum);
             assertThat(result).isPresent();
             assertThat(result.get().isHeadSentinel()).isFalse();
         }
@@ -606,19 +713,36 @@ class Cip113RegistryNodeParserTest {
 
     // ----- Helpers ---------------------------------------------------------------------
 
-    /** Builds a well-formed 5-field RegistryNode datum (Constr 0) and returns its hex serialization. */
-    private static String buildDatum(byte[] key,
-                                     byte[] next,
-                                     PlutusData transferLogicScript,
-                                     PlutusData thirdPartyTransferLogicScript,
-                                     byte[] globalStateCs) throws Exception {
-        ConstrPlutusData node = ConstrPlutusData.of(0,
+    /**
+     * Builds a 7-field RegistryNode (Constr 0):
+     * {@code [key, next, minting, transfer, third_party, unfracking, global_state_cs]}.
+     */
+    private static ConstrPlutusData node(byte[] key,
+                                         byte[] next,
+                                         PlutusData mintingLogicScript,
+                                         PlutusData transferLogicScript,
+                                         PlutusData thirdPartyLogicScript,
+                                         PlutusData unfrackingLogicScript,
+                                         byte[] globalStateCs) {
+        return ConstrPlutusData.of(0,
                 BytesPlutusData.of(key),
                 BytesPlutusData.of(next),
+                mintingLogicScript,
                 transferLogicScript,
-                thirdPartyTransferLogicScript,
+                thirdPartyLogicScript,
+                unfrackingLogicScript,
                 BytesPlutusData.of(globalStateCs));
-        return serialize(node);
+    }
+
+    /** A well-formed node with the four distinct VerificationKey credentials; varies key, next and global state. */
+    private static String buildDatum(byte[] key, byte[] next, byte[] globalStateCs) throws Exception {
+        return serialize(node(key,
+                next,
+                vkeyCred(hex(CRED_MINTING_HEX)),
+                vkeyCred(hex(CRED_TRANSFER_HEX)),
+                vkeyCred(hex(CRED_THIRD_PARTY_HEX)),
+                vkeyCred(hex(CRED_UNFRACKING_HEX)),
+                globalStateCs));
     }
 
     /** Wraps a hash in an Aiken {@code Credential.VerificationKey} Constr (alternative 0). */

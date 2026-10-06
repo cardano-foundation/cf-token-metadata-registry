@@ -29,8 +29,9 @@ import static org.awaitility.Awaitility.await;
 /**
  * Utility to mint a CIP-113 registry node NFT on a yaci devnet.
  * <p>
- * A CIP-113 registry node is an NFT with quantity=1 whose inline datum is a
- * ConstrPlutusData(0, [key, next, Constr(0,[transferLogic]), Constr(0,[thirdParty]), globalState]).
+ * A CIP-113 registry node is an NFT with quantity=1 whose inline datum is the 7-field
+ * ConstrPlutusData(0, [key, next, Constr(0,[mintingLogic]), Constr(0,[transferLogic]),
+ * Constr(0,[thirdPartyLogic]), Constr(0,[unfrackingLogic]), globalState]).
  * The NFT's token name equals the registered policy ID (the "key" field).
  * <p>
  * For integration testing, we use an always-true PlutusV2 script as the minting policy.
@@ -72,15 +73,19 @@ public class Cip113TestMinter {
      *
      * @param registeredPolicyId          the policy ID of the "registered" programmable token (the datum's {@code key})
      * @param next                        the {@code next} pointer in the sorted linked list
+     * @param mintingLogicScript          script hash for minting and burning
      * @param transferLogicScript         script hash for transfer validation
      * @param thirdPartyTransferLogicScript script hash for third-party transfers
+     * @param unfrackingLogicScript       script hash for unfracking ("" = forbidden, empty_vkey)
      * @param globalStatePolicyId         optional global state policy ID
      * @return the mint result with registry NFT policy ID and registered policy ID
      */
     public MintResult mintRegistryNode(String registeredPolicyId,
                                         String next,
+                                        String mintingLogicScript,
                                         String transferLogicScript,
                                         String thirdPartyTransferLogicScript,
+                                        String unfrackingLogicScript,
                                         String globalStatePolicyId) throws Exception {
 
         String senderAddress = senderAccount.baseAddress();
@@ -100,7 +105,8 @@ public class Cip113TestMinter {
         // Build the registry node datum
         PlutusData datum = buildRegistryNodeDatum(
                 registeredPolicyId, next,
-                transferLogicScript, thirdPartyTransferLogicScript,
+                mintingLogicScript, transferLogicScript,
+                thirdPartyTransferLogicScript, unfrackingLogicScript,
                 globalStatePolicyId);
 
         // The NFT token name is the registered policy ID (hex bytes, 0x prefix for cardano-client-lib)
@@ -129,19 +135,28 @@ public class Cip113TestMinter {
     }
 
     /**
-     * Builds a CIP-113 RegistryNode datum:
-     * ConstrPlutusData(0, [key, next, Constr(0,[transferLogic]), Constr(0,[thirdParty]), globalState])
+     * Builds a 7-field CIP-113 RegistryNode datum (cip113-programmable-tokens deployment schemaVersion 3):
+     * ConstrPlutusData(0, [key, next, minting, transfer, thirdParty, unfracking, globalState]),
+     * each logic script wrapped as Constr(0,[hash]).
      */
     private static PlutusData buildRegistryNodeDatum(String key, String next,
-                                                      String transferLogic, String thirdPartyLogic,
+                                                      String mintingLogic, String transferLogic,
+                                                      String thirdPartyLogic, String unfrackingLogic,
                                                       String globalState) {
         return ConstrPlutusData.of(0,
                 BytesPlutusData.of(HexUtil.decodeHexString(key)),
                 BytesPlutusData.of(HexUtil.decodeHexString(next)),
-                ConstrPlutusData.of(0, BytesPlutusData.of(HexUtil.decodeHexString(transferLogic))),
-                ConstrPlutusData.of(0, BytesPlutusData.of(HexUtil.decodeHexString(thirdPartyLogic))),
+                credential(mintingLogic),
+                credential(transferLogic),
+                credential(thirdPartyLogic),
+                credential(unfrackingLogic),
                 BytesPlutusData.of(globalState.isEmpty() ? new byte[0] : HexUtil.decodeHexString(globalState))
         );
+    }
+
+    /** Aiken {@code Credential.VerificationKey} around the hash; "" gives the empty_vkey "absent" marker. */
+    private static PlutusData credential(String hashHex) {
+        return ConstrPlutusData.of(0, BytesPlutusData.of(HexUtil.decodeHexString(hashHex)));
     }
 
     private void topUpFund(String address, long adaAmount) {

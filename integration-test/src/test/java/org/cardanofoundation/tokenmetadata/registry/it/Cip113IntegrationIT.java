@@ -11,6 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
 import java.time.Duration;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
@@ -31,8 +32,8 @@ public class Cip113IntegrationIT extends BaseIntegrationIT {
 
     // Test registry node fields.
     // All hash-shaped constants are exactly 56 hex chars = 28 bytes (Blake2b-224).
-    // The parser enforces exact 28-byte lengths on transfer_logic_script, third_party_transfer_logic_script,
-    // and global_state_policy_id — off-by-one here causes InvalidDatumException and the whole
+    // The parser enforces exact 28-byte lengths on the four logic scripts and global_state_policy_id —
+    // off-by-one here causes InvalidDatumException and the whole
     // registry node datum is rejected, which manifests as the integration tests timing out
     // waiting for the CIP-113 metric / extension to appear. Do not change these lengths.
     private static final String REGISTERED_POLICY_ID = "aabbccdd11223344aabbccdd11223344aabbccdd11223344aabbccdd";
@@ -40,6 +41,9 @@ public class Cip113IntegrationIT extends BaseIntegrationIT {
     private static final String TRANSFER_LOGIC_SCRIPT     = "11111111111111111111111111111111111111111111111111111111";
     private static final String THIRD_PARTY_SCRIPT        = "22222222222222222222222222222222222222222222222222222222";
     private static final String GLOBAL_STATE_POLICY_ID    = "33333333333333333333333333333333333333333333333333333333";
+    private static final String MINTING_LOGIC_SCRIPT      = "44444444444444444444444444444444444444444444444444444444";
+    // Empty = empty_vkey on-chain: unfracking forbidden, surfaced as an absent field
+    private static final String UNFRACKING_LOGIC_SCRIPT   = "";
 
     @BeforeAll
     static void setUp() throws Exception {
@@ -57,8 +61,10 @@ public class Cip113IntegrationIT extends BaseIntegrationIT {
         minter.mintRegistryNode(
                 REGISTERED_POLICY_ID,
                 NEXT,
+                MINTING_LOGIC_SCRIPT,
                 TRANSFER_LOGIC_SCRIPT,
                 THIRD_PARTY_SCRIPT,
+                UNFRACKING_LOGIC_SCRIPT,
                 GLOBAL_STATE_POLICY_ID
         );
 
@@ -153,8 +159,10 @@ public class Cip113IntegrationIT extends BaseIntegrationIT {
             cip113Minter.mintRegistryNode(
                     cip68Result.policyId(),
                     NEXT,
+                    MINTING_LOGIC_SCRIPT,
                     TRANSFER_LOGIC_SCRIPT,
                     THIRD_PARTY_SCRIPT,
+                    UNFRACKING_LOGIC_SCRIPT,
                     ""
             );
 
@@ -195,6 +203,8 @@ public class Cip113IntegrationIT extends BaseIntegrationIT {
             // Verify CIP-113 extension
             assertThat(json.read("$.subject.extensions.cip113.transfer_logic_script", String.class)).isEqualTo(TRANSFER_LOGIC_SCRIPT);
             assertThat(json.read("$.subject.extensions.cip113.third_party_transfer_logic_script", String.class)).isEqualTo(THIRD_PARTY_SCRIPT);
+            assertThat(json.read("$.subject.extensions.cip113.minting_logic_script", String.class)).isEqualTo(MINTING_LOGIC_SCRIPT);
+            assertThat(json.read("$.subject.extensions.cip113", Map.class)).doesNotContainKey("unfracking_logic_script");
         }
     }
 
