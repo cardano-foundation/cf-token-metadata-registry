@@ -164,6 +164,27 @@ class Cip68FTDatumParserTest {
             assertThat(cip68FTDatumParser.parse(datumHex(properties, BigInteger.ONE)))
                     .hasValueSatisfying(m -> assertThat(m.logo()).isEqualTo(first + second));
         }
+
+        @Test
+        void shouldSkipChunksThatAreNotByteStrings() throws Exception {
+            MapPlutusData properties = metadata("Token");
+            properties.put(BytesPlutusData.of("logo"), ListPlutusData.of(
+                    BytesPlutusData.of("ipfs://"), BigIntPlutusData.of(42), BytesPlutusData.of("QmLogo")));
+
+            assertThat(cip68FTDatumParser.parse(datumHex(properties, BigInteger.ONE)))
+                    .hasValueSatisfying(m -> assertThat(m.logo()).isEqualTo("ipfs://QmLogo"));
+        }
+
+        @Test
+        void shouldDropLogoGivenAsEmptyListButKeepMetadata() throws Exception {
+            MapPlutusData properties = metadata("Token");
+            properties.put(BytesPlutusData.of("logo"), ListPlutusData.of());
+
+            assertThat(cip68FTDatumParser.parse(datumHex(properties, BigInteger.ONE))).hasValueSatisfying(m -> {
+                assertThat(m.name()).isEqualTo("Token");
+                assertThat(m.logo()).isNull();
+            });
+        }
     }
 
     @Nested
@@ -255,6 +276,26 @@ class Cip68FTDatumParserTest {
             String datum = datumHex(nested(POLICY_ID, ASSET_NAME_HEX, metadata("Only")), BigInteger.valueOf(4));
 
             assertThat(cip68FTDatumParser.parse(datum)).hasValueSatisfying(m -> assertThat(m.name()).isEqualTo("Only"));
+        }
+
+        @Test
+        void shouldReturnEmptyForSeveralEntriesWithoutAssetContext() throws Exception {
+            // Without the reference NFT the right entry can't be chosen, so the datum is not guessed at
+            MapPlutusData root = nested(POLICY_ID, ASSET_NAME_HEX, metadata("Mine"));
+            MapPlutusData byPolicy = (MapPlutusData) root.getMap().get(BytesPlutusData.of("721"));
+            MapPlutusData byAsset = (MapPlutusData) byPolicy.getMap().get(BytesPlutusData.of(HexUtil.decodeHexString(POLICY_ID)));
+            byAsset.put(BytesPlutusData.of("Other".getBytes()), metadata("Other"));
+
+            assertThat(cip68FTDatumParser.parse(datumHex(root, BigInteger.valueOf(4)))).isEmpty();
+        }
+
+        @Test
+        void shouldReadVersion4DatumDirectlyWhen721IsNotAMap() throws Exception {
+            MapPlutusData properties = metadata("Direct");
+            properties.put(BytesPlutusData.of("721"), BytesPlutusData.of("x"));
+
+            assertThat(cip68FTDatumParser.parse(datumHex(properties, BigInteger.valueOf(4)), REFERENCE_NFT))
+                    .hasValueSatisfying(m -> assertThat(m.name()).isEqualTo("Direct"));
         }
 
         @Test
