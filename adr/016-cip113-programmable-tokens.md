@@ -123,7 +123,7 @@ CIP-113 data is served as an extension on V2 subject endpoints (ADR-015). When q
 }
 ```
 
-The `ProgrammableTokenCip113` record implements the `Extension` interface. All five fields are nullable — registry nodes may omit any of them depending on the substandard — and null fields are left out of the JSON.
+The `ProgrammableTokenCip113` record implements the `Extension` interface. All five fields are nullable — registry nodes may omit any of them depending on the substandard — and an absent field is served as `null`.
 
 ### 4. Token type classification
 

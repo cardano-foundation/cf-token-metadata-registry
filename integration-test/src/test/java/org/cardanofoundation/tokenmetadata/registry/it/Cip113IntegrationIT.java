@@ -42,7 +42,7 @@ public class Cip113IntegrationIT extends BaseIntegrationIT {
     private static final String THIRD_PARTY_SCRIPT        = "22222222222222222222222222222222222222222222222222222222";
     private static final String GLOBAL_STATE_POLICY_ID    = "33333333333333333333333333333333333333333333333333333333";
     private static final String MINTING_LOGIC_SCRIPT      = "44444444444444444444444444444444444444444444444444444444";
-    // Empty = empty_vkey on-chain: unfracking forbidden, surfaced as an absent field
+    // Empty = empty_vkey on-chain: unfracking forbidden, served as null
     private static final String UNFRACKING_LOGIC_SCRIPT   = "";
 
     @BeforeAll
@@ -204,7 +204,8 @@ public class Cip113IntegrationIT extends BaseIntegrationIT {
             assertThat(json.read("$.subject.extensions.cip113.transfer_logic_script", String.class)).isEqualTo(TRANSFER_LOGIC_SCRIPT);
             assertThat(json.read("$.subject.extensions.cip113.third_party_transfer_logic_script", String.class)).isEqualTo(THIRD_PARTY_SCRIPT);
             assertThat(json.read("$.subject.extensions.cip113.minting_logic_script", String.class)).isEqualTo(MINTING_LOGIC_SCRIPT);
-            assertThat(json.read("$.subject.extensions.cip113", Map.class)).doesNotContainKey("unfracking_logic_script");
+            assertThat(json.read("$.subject.extensions.cip113", Map.class))
+                    .containsEntry("unfracking_logic_script", null);
         }
     }
 

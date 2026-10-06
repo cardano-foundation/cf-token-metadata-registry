@@ -369,6 +369,9 @@ class MetadataApiV2ControllerTest {
                 );
     }
 
+    // Absent CIP-113 fields are checked with doesNotExist(), which passes for both an omitted key and a
+    // null value: this @WebMvcTest slice applies spring.jackson.default-property-inclusion=NON_NULL and
+    // omits them, while the running application serializes them as null (asserted in Cip113IntegrationIT).
     @Test
     void cip113ExtensionShouldAppearInResponse() throws Exception {
         mockMvc.perform(get("/api/v2/subjects/577f0b1342f8f8f4aed3388b80a8535812950c7a892495c0ecdf0f1e0014df10464c4454"))
