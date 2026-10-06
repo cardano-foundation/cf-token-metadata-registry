@@ -1,4 +1,0 @@
-pytest>=8.0
-allure-pytest>=2.13
-requests>=2.31
-psycopg2-binary>=2.9

@@ -1,9 +1,11 @@
 package org.cardanofoundation.tokenmetadata.registry.api.health;
 
 import com.bloxbean.cardano.yaci.store.common.domain.HealthStatus;
+import com.bloxbean.cardano.yaci.store.common.domain.SyncStatus;
 import com.bloxbean.cardano.yaci.store.core.service.HealthService;
+import com.bloxbean.cardano.yaci.store.core.service.SyncStatusService;
+import java.util.Locale;
 import lombok.RequiredArgsConstructor;
-import org.cardanofoundation.tokenmetadata.registry.api.service.OnchainSyncStatusService;
 import org.springframework.boot.actuate.health.Health;
 import org.springframework.boot.actuate.health.HealthIndicator;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
@@ -11,8 +13,9 @@ import org.springframework.stereotype.Component;
 
 /**
  * Readiness health indicator for on-chain sync — checks that the indexer is fully synced
- * to the chain tip (100%). Used by Kubernetes readiness probe to gate traffic routing.
- * A pod that is still catching up will not receive requests.
+ * to the chain tip (100%). Uses Yaci Store's upstream {@link SyncStatusService} for sync
+ * status instead of a local back-port. Used by Kubernetes readiness probe to gate traffic
+ * routing. A pod that is still catching up will not receive requests.
  *
  * <p>Only registered when Yaci Store's {@link HealthService} bean is present. In read-only mode
  * ({@code store.read-only-mode=true}), Yaci Store does not start its sync infrastructure and
@@ -26,7 +29,7 @@ public class OnchainReadinessHealthIndicator implements HealthIndicator {
     private static final String DETAIL_SYNC_STATUS = "syncStatus";
 
     private final HealthService healthService;
-    private final OnchainSyncStatusService syncStatusService;
+    private final SyncStatusService syncStatusService;
 
     @Override
     public Health health() {
@@ -63,10 +66,10 @@ public class OnchainReadinessHealthIndicator implements HealthIndicator {
                     .build();
         }
 
-        double syncPercentage = syncStatusService.getSyncPercentage();
-        builder.withDetail("syncPercentage", String.format(java.util.Locale.US, "%.2f%%", syncPercentage));
+        SyncStatus syncStatus = syncStatusService.getSyncStatus();
+        builder.withDetail("syncPercentage", String.format(Locale.US, "%.2f%%", syncStatus.syncPercentage()));
 
-        if (!syncStatusService.isSynced()) {
+        if (!syncStatus.synced()) {
             return builder.outOfService()
                     .withDetail(DETAIL_SYNC_STATUS, "Syncing")
                     .build();

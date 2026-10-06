@@ -74,8 +74,8 @@ For the full API reference (including V1 endpoints and query parameters), see th
 |--------|------|-------------|------------------|
 | GET | `/actuator/health` | Aggregated health status with details for all indicators | — |
 | GET | `/actuator/health/startup` | Checks database connectivity and Cardano node connection | Startup |
-| GET | `/actuator/health/liveness` | Checks offchain sync status and Cardano node connection | Liveness |
-| GET | `/actuator/health/readiness` | Checks offchain sync, on-chain sync progress (100%), and database | Readiness |
+| GET | `/actuator/health/liveness` | Checks the Cardano node connection (block reception) | Liveness |
+| GET | `/actuator/health/readiness` | Checks offchain sync, on-chain sync (caught up to chain tip), and database | Readiness |
 | GET | `/actuator/info` | Application info | — |
 | GET | `/actuator/prometheus` | Prometheus metrics (Micrometer) | — |
 | GET | `/actuator/metrics` | Micrometer metrics listing and details | — |
@@ -237,14 +237,16 @@ mvn clean package -pl api,common -am -DskipTests -Pnative
 
 Python-based regression tests validate all V1 and V2 business endpoints against database snapshots.
 
+Managed with [uv](https://docs.astral.sh/uv/) (`brew install uv`). Dependencies live in `regression-tests/pyproject.toml` and are pinned in `regression-tests/uv.lock`.
+
 ```console
-cd tests
-python3 -m venv venv && source venv/bin/activate && pip install -r requirements.txt
-python end2end/mainnet/fixtures/generate_fixtures.py
-cd end2end/mainnet && python -m pytest -v
+cd regression-tests
+uv sync
+uv run python mainnet/fixtures/generate_fixtures.py
+cd mainnet && uv run pytest -v
 ```
 
-See [`tests/README.md`](./tests/README.md) for full details on fixture generation, test markers, Allure reports, and configuration options.
+See [`regression-tests/README.md`](./regression-tests/README.md) for full details on fixture generation, test markers, Allure reports, and configuration options.
 
 ## Contributing
 
