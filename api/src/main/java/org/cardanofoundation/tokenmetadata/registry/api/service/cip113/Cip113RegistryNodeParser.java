@@ -203,9 +203,9 @@ public class Cip113RegistryNodeParser {
             log.warn("CIP-113 registry node rejected: {}", e.getMessage());
             return Optional.empty();
         } catch (CborDeserializationException | RuntimeException e) {
-            // Narrowed from catch(Exception): we deliberately let Error (OOM, etc.) propagate.
-            // Covers CborDeserializationException from PlutusData.deserialize on malformed CBOR,
-            // plus IllegalArgumentException from HexUtil on bad hex input.
+            // Deliberately narrower than catching every exception, so that an Error such as an
+            // OutOfMemoryError still propagates. This covers malformed CBOR rejected by the
+            // PlutusData decoder and bad hex input rejected by HexUtil.
             log.warn("Failed to parse CIP-113 registry node datum: {}", e.getMessage());
             return Optional.empty();
         }
