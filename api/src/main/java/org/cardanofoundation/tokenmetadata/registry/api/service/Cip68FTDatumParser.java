@@ -3,6 +3,7 @@ package org.cardanofoundation.tokenmetadata.registry.api.service;
 import com.bloxbean.cardano.client.exception.CborDeserializationException;
 import com.bloxbean.cardano.client.plutus.spec.*;
 import com.bloxbean.cardano.client.util.HexUtil;
+import com.bloxbean.cardano.yaci.store.common.util.StringUtil;
 import jakarta.annotation.Nullable;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -12,6 +13,7 @@ import org.cardanofoundation.tokenmetadata.registry.api.util.AssetType;
 import org.cardanofoundation.tokenmetadata.registry.util.TokenDecimals;
 import org.springframework.stereotype.Service;
 
+import java.io.ByteArrayOutputStream;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -29,9 +31,19 @@ public class Cip68FTDatumParser {
     public static final String TICKER = "ticker";
     public static final String URL = "url";
 
-    /** CIP-68 version 4 wraps the metadata in a CIP-25 style map: {"721": {policy_id: {asset_name: metadata}}}. */
+    /** Largest {@code logo} accepted, in bytes. Same limit as the CIP-26 logo. */
+    public static final int LOGO_MAX_BYTES = 64 * 1024;
+
+    /** The nested metadata format wraps the metadata in a CIP-25 style map: {"721": {policy_id: {asset_name: metadata}}}. */
     private static final BytesPlutusData NESTED_MAP_KEY = BytesPlutusData.of("721");
-    private static final long NESTED_MAP_MIN_VERSION = 4;
+
+    /**
+     * The datum versions CIP-68 defines. They are informational: how a datum is read depends on its structure (see
+     * {@link #isNested}), as the CIP's retrieval steps say, not on its version. A datum with another version is still
+     * read, and a warning is logged so a new version is noticed. Update the upper bound when the CIP adds a version.
+     */
+    static final long MIN_DEFINED_VERSION = 1;
+    static final long MAX_DEFINED_VERSION = 4;
 
     /**
      * Manually parses Cip68 Fungible Token Datum
@@ -54,6 +66,7 @@ public class Cip68FTDatumParser {
 
         try {
             return extractDatumParts(inlineDatum)
+                    .map(parts -> warnIfVersionNotDefined(parts, referenceNft))
                     .flatMap(parts -> resolveMetadata(parts, referenceNft)
                             .map(properties -> buildMetadata(properties, parts.version())));
         } catch (StackOverflowError _) {
@@ -107,16 +120,15 @@ public class Cip68FTDatumParser {
     }
 
     /**
-     * Returns the metadata map to read fields from. Versions 1–3 carry it directly; version 4 may nest it
-     * under {@code "721" -> policy_id -> asset_name} (asset name without the label prefix, both as raw
-     * bytes). A version 4 datum without the {@code "721"} key is read directly.
+     * Returns the metadata map to read fields from. A flat datum carries it directly; a nested one under
+     * {@code "721" -> policy_id -> asset_name} (asset name without the label prefix, both as raw bytes).
      */
     private Optional<MapPlutusData> resolveMetadata(DatumParts parts, @Nullable AssetType referenceNft) {
         MapPlutusData properties = parts.properties();
-        if (parts.version() < NESTED_MAP_MIN_VERSION
-                || !(properties.getMap().get(NESTED_MAP_KEY) instanceof MapPlutusData byPolicy)) {
+        if (!isNested(parts)) {
             return Optional.of(properties);
         }
+        MapPlutusData byPolicy = (MapPlutusData) properties.getMap().get(NESTED_MAP_KEY);
 
         if (referenceNft == null) {
             // No asset context: only an unambiguous single entry can be resolved
@@ -127,6 +139,51 @@ public class Cip68FTDatumParser {
         String assetNameWithoutLabel = referenceNft.assetName().substring(Cip68Constants.REFERENCE_TOKEN_PREFIX.length());
         return asMap(byPolicy.getMap().get(BytesPlutusData.of(HexUtil.decodeHexString(referenceNft.policyId()))))
                 .flatMap(byAsset -> asMap(byAsset.getMap().get(BytesPlutusData.of(HexUtil.decodeHexString(assetNameWithoutLabel)))));
+    }
+
+    /**
+     * A datum whose version CIP-68 does not define (1 to 4) is read like any other, by its structure, and a warning
+     * names the token. Not a failure: the datum decoded fine (on mainnet, Greenland Reserve Coin declares version 0).
+     * The version is stored as written.
+     */
+    private static DatumParts warnIfVersionNotDefined(DatumParts parts, @Nullable AssetType referenceNft) {
+        long version = parts.version();
+        if (version >= MIN_DEFINED_VERSION && version <= MAX_DEFINED_VERSION) {
+            return parts;
+        }
+        if (referenceNft != null) {
+            log.warn("CIP-68 datum of {}/{} has version {}, which CIP-68 does not define ({} to {}); reading it by its structure",
+                    referenceNft.policyId(), referenceNft.assetName(), version, MIN_DEFINED_VERSION, MAX_DEFINED_VERSION);
+        } else {
+            log.warn("CIP-68 datum has version {}, which CIP-68 does not define ({} to {}); reading it by its structure",
+                    version, MIN_DEFINED_VERSION, MAX_DEFINED_VERSION);
+        }
+        return parts;
+    }
+
+    /**
+     * Whether the metadata map is in the nested format: it has the {@code "721"} key, whose value is a map. This is the
+     * test in step 4 of the CIP's retrieval steps ("direct metadata (map without "721" key) or nested map format (map
+     * with "721" key)"), and it does not depend on the version. A flat map with an additional property named
+     * {@code "721"} that holds a map would be misread; none exists on mainnet.
+     */
+    private static boolean isNested(DatumParts parts) {
+        return parts.properties().getMap().get(NESTED_MAP_KEY) instanceof MapPlutusData;
+    }
+
+    /**
+     * Whether the datum is in the nested format, which can carry the metadata of several reference NFTs. A flat datum
+     * describes one token. Anything that is not a CIP-68 datum, or cannot be decoded, is not nested.
+     */
+    public boolean hasNestedMetadata(@Nullable String inlineDatum) {
+        if (inlineDatum == null || inlineDatum.isBlank()) {
+            return false;
+        }
+        try {
+            return extractDatumParts(inlineDatum).map(Cip68FTDatumParser::isNested).orElse(false);
+        } catch (Exception | StackOverflowError _) {
+            return false;
+        }
     }
 
     private static Optional<MapPlutusData> singleValue(MapPlutusData map) {
@@ -151,32 +208,56 @@ public class Cip68FTDatumParser {
     private record DatumParts(MapPlutusData properties, long version) {
     }
 
+    /**
+     * Reads a text property. CIP-68 text is UTF-8, so valid UTF-8 is stored as text. Bytes that are not valid UTF-8
+     * are stored as hex instead of being decoded with replacement characters, which would lose the original bytes.
+     */
     private Optional<String> getStringProperty(String propertyName, MapPlutusData mapPlutusData) {
         PlutusData property = mapPlutusData.getMap().get(BytesPlutusData.of(propertyName));
         if (property instanceof BytesPlutusData bytes) {
-            return Optional.of(bytesToString(bytes.getValue()));
+            return Optional.of(bytesToText(bytes.getValue()));
         } else {
             return Optional.empty();
         }
     }
 
     /**
-     * CIP-68 FT {@code logo} is a {@code uri = bounded_bytes / [* bounded_bytes]}: a value longer than
-     * 64 bytes may be split into a list of byte-string chunks. This joins them back together, and
-     * falls back to {@link #getStringProperty} for the single byte-string case.
+     * Reads a CIP-68 {@code uri} ({@code uri = bounded_bytes / [* bounded_bytes]}), used for the FT {@code logo}: a value
+     * longer than 64 bytes, the most a Plutus byte string holds, is split into a list of byte-string chunks, and this
+     * joins them back together. The chunks are joined as bytes and decoded once, so a multi-byte character cut by a
+     * chunk boundary survives. Elements of the list that are not byte strings are ignored.
+     * <p>
+     * The value is capped at {@value #LOGO_MAX_BYTES} bytes (the CIP-26 logo has the same limit): an over-long value is
+     * dropped with a warning and the rest of the datum is kept. The scheme is not validated; the value is stored as
+     * written.
      */
     private Optional<String> getStringOrChunkedProperty(String propertyName, MapPlutusData mapPlutusData) {
         PlutusData property = mapPlutusData.getMap().get(BytesPlutusData.of(propertyName));
-        if (property instanceof ListPlutusData list) {
-            StringBuilder sb = new StringBuilder();
-            for (PlutusData chunk : list.getPlutusDataList()) {
-                if (chunk instanceof BytesPlutusData bytes) {
-                    sb.append(bytesToString(bytes.getValue()));
-                }
-            }
-            return sb.isEmpty() ? Optional.empty() : Optional.of(sb.toString());
+
+        byte[] value = switch (property) {
+            case BytesPlutusData bytes -> bytes.getValue();
+            case ListPlutusData list -> joinChunks(list);
+            case null, default -> null;
+        };
+        if (value == null) {
+            return Optional.empty();
         }
-        return getStringProperty(propertyName, mapPlutusData);
+        if (value.length > LOGO_MAX_BYTES) {
+            log.warn("Ignoring CIP-68 '{}' of {} bytes (max {})", propertyName, value.length, LOGO_MAX_BYTES);
+            return Optional.empty();
+        }
+        // a single byte string keeps an empty value ("" is what some tokens declare); an empty list is nothing
+        return property instanceof ListPlutusData && value.length == 0 ? Optional.empty() : Optional.of(bytesToText(value));
+    }
+
+    private static byte[] joinChunks(ListPlutusData list) {
+        ByteArrayOutputStream joined = new ByteArrayOutputStream();
+        for (PlutusData chunk : list.getPlutusDataList()) {
+            if (chunk instanceof BytesPlutusData bytes) {
+                joined.writeBytes(bytes.getValue());
+            }
+        }
+        return joined.toByteArray();
     }
 
     /**
@@ -201,8 +282,14 @@ public class Cip68FTDatumParser {
         return Optional.of(value.longValue());
     }
 
-    private static String bytesToString(byte[] bytes) {
-        return new String(bytes, StandardCharsets.UTF_8).replace("\0", "");
+    /**
+     * Bytes as text the way CIP-68 says to convert metadata to JSON: UTF-8 when the bytes are valid UTF-8, hex
+     * otherwise. Null characters are stripped from text.
+     */
+    private static String bytesToText(byte[] bytes) {
+        return StringUtil.isValidUTF8(bytes)
+                ? new String(bytes, StandardCharsets.UTF_8).replace("\0", "")
+                : HexUtil.encodeHexString(bytes);
     }
 
 }

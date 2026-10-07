@@ -67,7 +67,7 @@ class Cip68EventListenerTest {
                     .amounts(List.of(refNftAmt))
                     .build();
 
-            when(cip68FungibleTokenService.extractReferenceNft(utxo)).thenReturn(Optional.of(refNftAmt));
+            when(cip68FungibleTokenService.extractReferenceNfts(utxo)).thenReturn(List.of(refNftAmt));
             when(cip68DatumParser.parse(datum, REF_NFT)).thenReturn(Optional.of(metadata));
             when(cip68FungibleTokenService.isValidFTMetadata(metadata)).thenReturn(true);
 
@@ -102,7 +102,7 @@ class Cip68EventListenerTest {
                             .build()))
                     .build();
 
-            when(cip68FungibleTokenService.extractReferenceNft(utxo)).thenReturn(Optional.empty());
+            when(cip68FungibleTokenService.extractReferenceNfts(utxo)).thenReturn(List.of());
 
             listener.processTransaction(buildEvent(100L, utxo));
 
@@ -123,7 +123,7 @@ class Cip68EventListenerTest {
                     .amounts(List.of(refNftAmt))
                     .build();
 
-            when(cip68FungibleTokenService.extractReferenceNft(utxo)).thenReturn(Optional.of(refNftAmt));
+            when(cip68FungibleTokenService.extractReferenceNfts(utxo)).thenReturn(List.of(refNftAmt));
             when(cip68DatumParser.parse(datum, REF_NFT)).thenReturn(Optional.empty());
 
             listener.processTransaction(buildEvent(100L, utxo));
@@ -148,7 +148,7 @@ class Cip68EventListenerTest {
                     .amounts(List.of(refNftAmt))
                     .build();
 
-            when(cip68FungibleTokenService.extractReferenceNft(utxo)).thenReturn(Optional.of(refNftAmt));
+            when(cip68FungibleTokenService.extractReferenceNfts(utxo)).thenReturn(List.of(refNftAmt));
             when(cip68DatumParser.parse(datum, REF_NFT)).thenReturn(Optional.of(metadata));
             when(cip68FungibleTokenService.isValidFTMetadata(metadata)).thenReturn(false);
 
