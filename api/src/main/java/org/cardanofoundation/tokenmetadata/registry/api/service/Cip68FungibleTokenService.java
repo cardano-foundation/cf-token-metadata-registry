@@ -54,13 +54,14 @@ public class Cip68FungibleTokenService {
     }
 
     /**
-     * Checks and returns an NFT which matches Cip68 Reference NFT requirements if present
+     * Returns every reference NFT in the output, in the order of its assets. An output normally holds one, but a
+     * nested datum can describe several, which is why they may be locked together.
      *
      * @param utxo the utxo to check
-     * @return the amt matching the Referenct NFT if found
+     * @return the amounts matching Cip68 Reference NFT requirements, empty if there are none
      */
-    public Optional<Amt> extractReferenceNft(AddressUtxo utxo) {
-        return utxo.getAmounts().stream().filter(this::isReferenceNft).findFirst();
+    public List<Amt> extractReferenceNfts(AddressUtxo utxo) {
+        return utxo.getAmounts().stream().filter(this::isReferenceNft).toList();
     }
 
     /**
