@@ -31,7 +31,6 @@ import java.util.Arrays;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -190,10 +189,12 @@ class Cip68EventListenerIndexingTest {
         }
     }
 
+    /** The rows of the single batched save the listener makes per event. */
     private List<MetadataReferenceNft> saved() {
-        ArgumentCaptor<MetadataReferenceNft> captor = ArgumentCaptor.forClass(MetadataReferenceNft.class);
-        verify(repository, atLeast(1)).save(captor.capture());
-        return captor.getAllValues();
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<MetadataReferenceNft>> captor = ArgumentCaptor.forClass(List.class);
+        verify(repository).saveAll(captor.capture());
+        return captor.getValue();
     }
 
     private List<String> warnings() {

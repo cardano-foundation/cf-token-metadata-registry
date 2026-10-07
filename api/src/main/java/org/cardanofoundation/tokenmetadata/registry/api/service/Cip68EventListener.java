@@ -2,6 +2,7 @@ package org.cardanofoundation.tokenmetadata.registry.api.service;
 
 import com.bloxbean.cardano.yaci.store.common.domain.AddressUtxo;
 import com.bloxbean.cardano.yaci.store.common.domain.Amt;
+import com.bloxbean.cardano.yaci.store.events.RollbackEvent;
 import com.bloxbean.cardano.yaci.store.utxo.domain.AddressUtxoEvent;
 import com.bloxbean.cardano.yaci.store.utxo.domain.TxInputOutput;
 import lombok.RequiredArgsConstructor;
@@ -12,7 +13,9 @@ import org.cardanofoundation.tokenmetadata.registry.entity.MetadataReferenceNft;
 import org.cardanofoundation.tokenmetadata.registry.repository.MetadataReferenceNftRepository;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
@@ -29,14 +32,21 @@ import static org.cardanofoundation.tokenmetadata.registry.api.model.cip68.Cip68
 public class Cip68EventListener {
 
     private final Cip68FungibleTokenService cip68FungibleTokenService;
-
     private final Cip68FTDatumParser cip68DatumParser;
-
     private final MetadataReferenceNftRepository metadataReferenceNftRepository;
+
+    @EventListener
+    @Transactional
+    public void handleRollback(RollbackEvent rollbackEvent) {
+        long rollbackSlot = rollbackEvent.getRollbackTo().getSlot();
+        int count = metadataReferenceNftRepository.deleteBySlotGreaterThan(rollbackSlot);
+        log.info("CIP-68 rollback to slot {}: deleted {} reference NFT records", rollbackSlot, count);
+    }
 
     @EventListener
     public void processTransaction(AddressUtxoEvent addressUtxoEvent) {
         Long slot = addressUtxoEvent.getMetadata().getSlot();
+        List<MetadataReferenceNft> entities = new ArrayList<>();
         // Per transaction: telling whether a skipped datum belongs to a fungible token needs the user token
         // paired with its reference NFT, which is minted in the same transaction
         for (TxInputOutput txInputOutput : addressUtxoEvent.getTxInputOutputs()) {
@@ -46,14 +56,17 @@ public class Cip68EventListener {
                     AssetType referenceNft = AssetType.fromUnit(referenceNftAmt.getUnit());
                     cip68DatumParser.parse(output.getInlineDatum(), referenceNft).ifPresent(metadata -> {
                         if (cip68FungibleTokenService.isValidFTMetadata(metadata)) {
-                            metadataReferenceNftRepository.save(
-                                    buildMetadataReferenceNft(metadata, referenceNft, output.getInlineDatum(), slot));
+                            entities.add(buildMetadataReferenceNft(metadata, referenceNft, output.getInlineDatum(), slot));
                         } else {
                             reportSkipped(metadata, referenceNft, assetUnitsInTx);
                         }
                     });
                 }
             }
+        }
+
+        if (!entities.isEmpty()) {
+            metadataReferenceNftRepository.saveAll(entities);
         }
     }
 

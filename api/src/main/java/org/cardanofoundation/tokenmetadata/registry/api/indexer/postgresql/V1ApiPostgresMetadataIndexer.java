@@ -23,7 +23,6 @@ import static java.util.Map.entry;
 public class V1ApiPostgresMetadataIndexer implements V1ApiMetadataIndexer {
 
     private final ObjectMapper objectMapper;
-
     private final NamedParameterJdbcTemplate jdbcTemplate;
 
     private Map<String, TokenMetadata> metadataFromQueryResults(@NotNull final List<MetadataQueryResult> queryResults,
