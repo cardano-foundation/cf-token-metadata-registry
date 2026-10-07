@@ -83,7 +83,7 @@ class Cip68EventListenerIndexingTest {
 
         @Test
         void indexesEveryReferenceNftOfANestedDatumEachWithItsOwnEntry() throws Exception {
-            String datum = nestedDatum(A, "Token A", B, "Token B", C, "Token C");
+            String datum = nestedDatum(new Entry(A, "Token A"), new Entry(B, "Token B"), new Entry(C, "Token C"));
 
             listener.processTransaction(event(output(datum, REF + A, REF + B, REF + C)));
 
@@ -97,7 +97,7 @@ class Cip68EventListenerIndexingTest {
 
         @Test
         void indexesOnlyTheReferenceNftsThatHaveAnEntry() throws Exception {
-            String datum = nestedDatum(A, "Token A", C, "Token C");
+            String datum = nestedDatum(new Entry(A, "Token A"), new Entry(C, "Token C"));
 
             listener.processTransaction(event(output(datum, REF + A, REF + B, REF + C)));
 
@@ -237,14 +237,18 @@ class Cip68EventListenerIndexingTest {
         return serialize(metadata, 1);
     }
 
-    /** {"721": {policy: {base name: {name, description}}}}, version 4, for the given (base name, token name) pairs. */
-    private static String nestedDatum(String... baseNamesAndNames) throws Exception {
+    /** One entry of a nested datum: the base name (hex, without the label prefix) and the token name. */
+    private record Entry(String baseName, String name) {
+    }
+
+    /** {"721": {policy: {base name: {name, description}}}}, version 4, for the given entries. */
+    private static String nestedDatum(Entry... entries) throws Exception {
         MapPlutusData byAsset = new MapPlutusData();
-        for (int i = 0; i < baseNamesAndNames.length; i += 2) {
+        for (Entry entry : entries) {
             MapPlutusData metadata = new MapPlutusData();
-            metadata.put(BytesPlutusData.of("name"), BytesPlutusData.of(baseNamesAndNames[i + 1]));
+            metadata.put(BytesPlutusData.of("name"), BytesPlutusData.of(entry.name()));
             metadata.put(BytesPlutusData.of("description"), BytesPlutusData.of("Desc"));
-            byAsset.put(BytesPlutusData.of(HexUtil.decodeHexString(baseNamesAndNames[i])), metadata);
+            byAsset.put(BytesPlutusData.of(HexUtil.decodeHexString(entry.baseName())), metadata);
         }
         MapPlutusData byPolicy = new MapPlutusData();
         byPolicy.put(BytesPlutusData.of(HexUtil.decodeHexString(POLICY)), byAsset);
