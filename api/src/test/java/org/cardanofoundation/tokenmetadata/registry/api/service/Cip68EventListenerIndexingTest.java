@@ -272,8 +272,8 @@ class Cip68EventListenerIndexingTest {
     }
 
     /**
-     * CIP-68 defines versions 1 to 4. A datum with another version is read by its structure and indexed, with a
-     * warning from the parser: a live fungible token on mainnet declares version 0.
+     * CIP-68 defines versions 1 to 4. A datum with another version is not indexed, and the parser warns, even for a
+     * live fungible token: on mainnet, Greenland Reserve Coin declares version 0.
      */
     @Nested
     @DisplayName("Undefined version")
@@ -290,16 +290,13 @@ class Cip68EventListenerIndexingTest {
                 + "37ffbdfdbb07d3d34bff54671c00935128da06966bc033810103ffff";
 
         @Test
-        void indexesARealVersion0FungibleToken() {
+        void doesNotIndexARealVersion0FungibleToken() {
             AddressUtxo output = AddressUtxo.builder().txHash(TX_HASH).inlineDatum(GNRC_VERSION_0_DATUM)
                     .amounts(List.of(amount(GNRC_POLICY + GNRC_REFERENCE_NFT))).build();
 
             listener.processTransaction(event(output));
 
-            assertThat(saved()).singleElement().satisfies(row -> {
-                assertThat(row.getName()).isEqualTo("Greenland Reserve Coin");
-                assertThat(row.getVersion()).isZero();
-            });
+            verifyNoInteractions(repository);
         }
     }
 

@@ -38,9 +38,9 @@ public class Cip68FTDatumParser {
     private static final BytesPlutusData NESTED_MAP_KEY = BytesPlutusData.of("721");
 
     /**
-     * The datum versions CIP-68 defines. They are informational: how a datum is read depends on its structure (see
-     * {@link #isNested}), as the CIP's retrieval steps say, not on its version. A datum with another version is still
-     * read, and a warning is logged so a new version is noticed. Update the upper bound when the CIP adds a version.
+     * The datum versions CIP-68 defines. A datum with another version is not indexed (see {@link #isDefinedVersion}).
+     * Within the range, how a datum is read depends on its structure (see {@link #isNested}), as the CIP's retrieval
+     * steps say, not on its version. Update the upper bound when the CIP adds a version.
      */
     static final long MIN_DEFINED_VERSION = 1;
     static final long MAX_DEFINED_VERSION = 4;
@@ -66,7 +66,7 @@ public class Cip68FTDatumParser {
 
         try {
             return extractDatumParts(inlineDatum)
-                    .map(parts -> warnIfVersionNotDefined(parts, referenceNft))
+                    .filter(parts -> isDefinedVersion(parts, referenceNft))
                     .flatMap(parts -> resolveMetadata(parts, referenceNft)
                             .map(properties -> buildMetadata(properties, parts.version())));
         } catch (StackOverflowError _) {
@@ -142,23 +142,26 @@ public class Cip68FTDatumParser {
     }
 
     /**
-     * A datum whose version CIP-68 does not define (1 to 4) is read like any other, by its structure, and a warning
-     * names the token. Not a failure: the datum decoded fine (on mainnet, Greenland Reserve Coin declares version 0).
-     * The version is stored as written.
+     * CIP-68 defines versions 1 to 4 (its CDDL lists them, and a change that is not backwards-compatible adds a new
+     * version). A datum with another version is not indexed: the layout of a version the CIP does not define is a
+     * guess, and a new version is added here when the CIP adds it. One warning names the token and the version. The
+     * layout of versions 1 to 4 still comes from the structure (the {@code "721"} key), not from the version.
+     *
+     * @return true if the version is one CIP-68 defines
      */
-    private static DatumParts warnIfVersionNotDefined(DatumParts parts, @Nullable AssetType referenceNft) {
+    private static boolean isDefinedVersion(DatumParts parts, @Nullable AssetType referenceNft) {
         long version = parts.version();
         if (version >= MIN_DEFINED_VERSION && version <= MAX_DEFINED_VERSION) {
-            return parts;
+            return true;
         }
         if (referenceNft != null) {
-            log.warn("CIP-68 datum of {}/{} has version {}, which CIP-68 does not define ({} to {}); reading it by its structure",
+            log.warn("Skipping CIP-68 datum of {}/{}: version {} is not one CIP-68 defines ({} to {})",
                     referenceNft.policyId(), referenceNft.assetName(), version, MIN_DEFINED_VERSION, MAX_DEFINED_VERSION);
         } else {
-            log.warn("CIP-68 datum has version {}, which CIP-68 does not define ({} to {}); reading it by its structure",
+            log.warn("Skipping CIP-68 datum: version {} is not one CIP-68 defines ({} to {})",
                     version, MIN_DEFINED_VERSION, MAX_DEFINED_VERSION);
         }
-        return parts;
+        return false;
     }
 
     /**

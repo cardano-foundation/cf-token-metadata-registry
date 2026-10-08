@@ -170,11 +170,11 @@ class Cip68FTDatumParserTest {
         }
 
         @Test
-        void shouldAcceptVersionUpToLongMaxAndRejectBeyond() throws Exception {
-            assertThat(cip68FTDatumParser.parse(datumHex(metadata("Token"), BigInteger.valueOf(Long.MAX_VALUE))))
-                    .hasValueSatisfying(m -> assertThat(m.version()).isEqualTo(Long.MAX_VALUE));
-            assertThat(cip68FTDatumParser.parse(datumHex(metadata("Token"), BigInteger.TWO.pow(63))))
-                    .isEmpty();
+        void shouldRejectEveryVersionBeyondLongWhateverItNarrowsTo() throws Exception {
+            // 2^63 narrows to Long.MIN_VALUE, 2^64 + 4 to 4 (a defined version): both must be rejected, not narrowed
+            for (BigInteger version : List.of(BigInteger.TWO.pow(63), BigInteger.TWO.pow(64).add(BigInteger.valueOf(4)))) {
+                assertThat(cip68FTDatumParser.parse(datumHex(metadata("Token"), version))).as(version.toString()).isEmpty();
+            }
         }
     }
 
@@ -428,8 +428,9 @@ class Cip68FTDatumParserTest {
     }
 
     /**
-     * The datum layout (flat or nested) is decided by the {@code "721"} key, as the CIP's retrieval steps say, not by
-     * the version. A version CIP-68 does not define (1 to 4) is read the same way, with one warning naming the token.
+     * CIP-68 defines versions 1 to 4. A datum with another version is not indexed, and one warning names the token and
+     * the version. Within the range, the layout (flat or nested) is decided by the {@code "721"} key, as the CIP's
+     * retrieval steps say, not by the version.
      */
     @Nested
     class DatumLayoutAndVersion {
@@ -479,56 +480,45 @@ class Cip68FTDatumParserTest {
         }
 
         @Test
-        void readsAnUndefinedVersionAndWarnsOnceNamingTheToken() throws Exception {
+        void rejectsAnUndefinedVersionAndWarnsOnceNamingTheToken() throws Exception {
             for (long version : new long[]{0, 5, 100, -1, Long.MAX_VALUE}) {
                 logs.list.clear();
 
                 assertThat(cip68FTDatumParser.parse(datumHex(metadata("Token"), BigInteger.valueOf(version)), REFERENCE_NFT))
-                        .as("version %d", version)
-                        .hasValueSatisfying(m -> assertThat(m.version()).isEqualTo(version));
+                        .as("version %d", version).isEmpty();
                 assertThat(warnings()).as("version %d", version).singleElement().satisfies(w -> assertThat(w)
-                        .contains("version " + version).contains(POLICY).contains(REFERENCE_NFT.assetName())
-                        .contains("does not define (1 to 4)"));
+                        .contains("Skipping").contains("version " + version).contains(POLICY)
+                        .contains(REFERENCE_NFT.assetName()).contains("(1 to 4)"));
             }
         }
 
         @Test
         void warnsWithoutATokenWhenThereIsNoReferenceNft() throws Exception {
-            assertThat(cip68FTDatumParser.parse(datumHex(metadata("Token"), BigInteger.valueOf(7)))).isPresent();
+            assertThat(cip68FTDatumParser.parse(datumHex(metadata("Token"), BigInteger.valueOf(7)))).isEmpty();
 
-            assertThat(warnings()).singleElement().satisfies(w -> assertThat(w).contains("version 7"));
+            assertThat(warnings()).singleElement().satisfies(w -> assertThat(w).contains("Skipping").contains("version 7"));
         }
 
         @Test
-        void readsTheRealMainnetVersion0FungibleToken() {
+        void rejectsTheRealMainnetVersion0FungibleToken() {
             AssetType referenceNft = new AssetType(GNRC_POLICY, GNRC_REFERENCE_NFT);
 
-            assertThat(cip68FTDatumParser.parse(GNRC_VERSION_0_DATUM, referenceNft)).hasValue(new FungibleTokenMetadata(
-                    6L,
-                    "Asset backed token secured by Greenland rubies and sapphires",
-                    "",
-                    "Greenland Reserve Coin",
-                    "GNRC",
-                    "https://www.the-mint.com/compliance",
-                    0L));
-            assertThat(warnings()).singleElement().satisfies(w -> assertThat(w).contains("version 0").contains(GNRC_POLICY));
+            assertThat(cip68FTDatumParser.parse(GNRC_VERSION_0_DATUM, referenceNft)).isEmpty();
+            assertThat(warnings()).singleElement().satisfies(w -> assertThat(w)
+                    .contains("version 0").contains(GNRC_POLICY).contains(GNRC_REFERENCE_NFT));
         }
 
         @Test
-        void readsTheRealMainnetVersion100DatumByItsStructure() {
+        void rejectsTheRealMainnetVersion100Datum() {
             AssetType referenceNft = new AssetType(HOSKY_POLICY, HOSKY_REFERENCE_NFT);
 
-            assertThat(cip68FTDatumParser.parse(HOSKY_VERSION_100_DATUM, referenceNft)).hasValueSatisfying(m -> {
-                assertThat(m.version()).isEqualTo(100L);
-                assertThat(m.name()).isEqualTo("HOSKY 10K NFT 0002");
-                assertThat(m.description()).isEqualTo("This is a reference token for CIP-68.");
-            });
+            assertThat(cip68FTDatumParser.parse(HOSKY_VERSION_100_DATUM, referenceNft)).isEmpty();
             assertThat(warnings()).singleElement().satisfies(w -> assertThat(w).contains("version 100").contains(HOSKY_POLICY));
         }
 
         @Test
-        void readsANestedDatumAsNestedWhateverItsVersion() throws Exception {
-            for (long version : new long[]{1, 3, 5}) {
+        void readsANestedDatumAsNestedWhateverItsDefinedVersion() throws Exception {
+            for (long version = 1; version <= 4; version++) {
                 String datum = datumHex(nested(metadata("Nested")), BigInteger.valueOf(version));
 
                 assertThat(cip68FTDatumParser.hasNestedMetadata(datum)).as("version %d", version).isTrue();
