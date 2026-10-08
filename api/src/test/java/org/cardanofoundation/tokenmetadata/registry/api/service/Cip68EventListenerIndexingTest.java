@@ -104,12 +104,15 @@ class Cip68EventListenerIndexingTest {
         }
 
         @Test
-        void indexesOnlyTheFirstReferenceNftOfAFlatDatumAndWarns() throws Exception {
+        void indexesEveryReferenceNftOfAFlatDatumAndWarnsOnce() throws Exception {
             listener.processTransaction(event(output(flatDatum("Token", "Desc", null), REF + A, REF + B)));
 
-            assertThat(saved()).extracting(MetadataReferenceNft::getAssetName).containsExactly(REF + A);
+            assertThat(saved()).extracting(MetadataReferenceNft::getAssetName, MetadataReferenceNft::getName)
+                    .containsExactly(
+                            org.assertj.core.groups.Tuple.tuple(REF + A, "Token"),
+                            org.assertj.core.groups.Tuple.tuple(REF + B, "Token"));
             assertThat(warnings()).singleElement().satisfies(w -> assertThat(w)
-                    .contains("2 reference NFTs").contains("flat").contains(POLICY + REF + A));
+                    .contains("2 reference NFTs").contains("flat").contains(POLICY + REF + A).contains(POLICY + REF + B));
         }
 
         @Test
@@ -167,6 +170,19 @@ class Cip68EventListenerIndexingTest {
         }
 
         @Test
+        void warnsWhenAFungibleTokenAlsoPairedWithAnNftOrRftHasNoDescription() throws Exception {
+            // CIP-68 allows user tokens of several labels for one reference NFT; the datum must satisfy the 333 rules
+            for (String label : List.of(NFT, RFT)) {
+                logs.list.clear();
+
+                listener.processTransaction(event(output(flatDatum("Token", null, null), REF + A),
+                        userToken(label + A), userToken(FT + A)));
+
+                assertThat(warnings()).as(label).singleElement().satisfies(w -> assertThat(w).contains("no description"));
+            }
+        }
+
+        @Test
         void doesNotWarnWhenThePairedUserTokenIsAnNftOrRft() throws Exception {
             for (String label : List.of(NFT, RFT)) {
                 logs.list.clear();
@@ -186,6 +202,104 @@ class Cip68EventListenerIndexingTest {
             listener.processTransaction(event(output(flatDatum("Token", null, null), REF + A), unrelated));
 
             assertThat(warnings()).isEmpty();
+        }
+    }
+
+    /**
+     * CIP-68 requires a 333 {@code logo} to be a URI with the scheme https, ipfs, ar or data. Fungible tokens whose
+     * logo has another form, most often a bare IPFS CID, are still indexed with the logo as written, and a warning
+     * names the token.
+     */
+    @Nested
+    @DisplayName("Logo URI")
+    class LogoUri {
+
+        /** Mainnet: Hustler (HSTLR), a live fungible token whose logo is a bare IPFS CID, without {@code ipfs://}. */
+        private static final String HSTLR_POLICY = "0b41f5f4ceeb45f2a58dd4c332d21bbbf95e66eb58fbf85b2c2526f1";
+        private static final String HSTLR_BASE_NAME = "487573746c6572";
+        private static final String HSTLR_DATUM =
+                "d8799fbf48646563696d616c73004b6465736372697074696f6e51487573746c696e20436f6d6d756e697479446c6f676f"
+                + "583b6261666b7265696472767035713337656876367036646464766e35757866776d796d677a67697a6461356f6e7432"
+                + "626a616f7a617a347835706f6d446e616d6547487573746c6572467469636b6572454853544c524375726c581e687474"
+                + "70733a2f2f6465762d636a6668752e6368616b72612d61692e696fff0243d87980ff";
+
+        @Test
+        void indexesARealFungibleTokenWhoseLogoIsABareCidAndWarns() {
+            AddressUtxo output = AddressUtxo.builder().txHash(TX_HASH).inlineDatum(HSTLR_DATUM)
+                    .amounts(List.of(amount(HSTLR_POLICY + REF + HSTLR_BASE_NAME))).build();
+
+            listener.processTransaction(event(output));
+
+            assertThat(saved()).singleElement().satisfies(row -> {
+                assertThat(row.getName()).isEqualTo("Hustler");
+                assertThat(row.getLogo()).isEqualTo("bafkreidrvp5q37ehv6p6dddvn5uxfwmymgzgizda5ont2bjaozaz4x5pom");
+            });
+            assertThat(warnings()).singleElement().satisfies(w -> assertThat(w)
+                    .contains(HSTLR_POLICY).contains(REF + HSTLR_BASE_NAME).contains("not a URI")
+                    .contains("bafkreidrvp5q37ehv6p6dddvn5uxfwmymgzgizda5ont2bjaozaz4x5pom"));
+        }
+
+        @Test
+        void doesNotWarnForALogoWithAnAllowedScheme() throws Exception {
+            for (String logo : List.of("ipfs://bafkreidrvp5q37eh", "https://example.com/logo.png", "ar://abc",
+                    "data:image/png;base64,iVBORw0KGgo=", "IPFS://Qm123")) {
+                logs.list.clear();
+
+                listener.processTransaction(event(output(flatDatum("Token", "Desc", null, logo), REF + A)));
+
+                assertThat(warnings()).as(logo).isEmpty();
+            }
+        }
+
+        @Test
+        void doesNotWarnForAnEmptyLogo() throws Exception {
+            listener.processTransaction(event(output(flatDatum("Token", "Desc", null, ""), REF + A)));
+
+            assertThat(saved()).singleElement().satisfies(row -> assertThat(row.getLogo()).isEmpty());
+            assertThat(warnings()).isEmpty();
+        }
+
+        @Test
+        void abbreviatesALongLogoInTheWarning() throws Exception {
+            String logo = "x".repeat(500);
+
+            listener.processTransaction(event(output(flatDatum("Token", "Desc", null, logo), REF + A)));
+
+            assertThat(saved()).singleElement().satisfies(row -> assertThat(row.getLogo()).isEqualTo(logo));
+            assertThat(warnings()).singleElement().satisfies(w -> assertThat(w)
+                    .contains("x".repeat(80) + "...").doesNotContain("x".repeat(81)));
+        }
+    }
+
+    /**
+     * CIP-68 defines versions 1 to 4. A datum with another version is read by its structure and indexed, with a
+     * warning from the parser: a live fungible token on mainnet declares version 0.
+     */
+    @Nested
+    @DisplayName("Undefined version")
+    class UndefinedVersion {
+
+        /** Mainnet: Greenland Reserve Coin (GNRC), a live fungible token whose datum declares version 0. */
+        private static final String GNRC_POLICY = "67cee89d59ab5354ee22c8af0638224126aecc6210f9372a61f13a64";
+        private static final String GNRC_REFERENCE_NFT = "000643b0474e5243";
+        private static final String GNRC_VERSION_0_DATUM =
+                "d8799fa6446e616d6556477265656e6c616e64205265736572766520436f696e4b6465736372697074696f6e583c4173"
+                + "736574206261636b656420746f6b656e207365637572656420627920477265656e6c616e642072756269657320616e64"
+                + "20736170706869726573467469636b657244474e52434375726c582368747470733a2f2f7777772e7468652d6d696e74"
+                + "2e636f6d2f636f6d706c69616e6365446c6f676f4048646563696d616c730600d866821a951b3c2b9f81581cc0bb241d"
+                + "37ffbdfdbb07d3d34bff54671c00935128da06966bc033810103ffff";
+
+        @Test
+        void indexesARealVersion0FungibleToken() {
+            AddressUtxo output = AddressUtxo.builder().txHash(TX_HASH).inlineDatum(GNRC_VERSION_0_DATUM)
+                    .amounts(List.of(amount(GNRC_POLICY + GNRC_REFERENCE_NFT))).build();
+
+            listener.processTransaction(event(output));
+
+            assertThat(saved()).singleElement().satisfies(row -> {
+                assertThat(row.getName()).isEqualTo("Greenland Reserve Coin");
+                assertThat(row.getVersion()).isZero();
+            });
         }
     }
 
@@ -225,6 +339,10 @@ class Cip68EventListenerIndexingTest {
     }
 
     private static String flatDatum(String name, String description, String ticker) throws Exception {
+        return flatDatum(name, description, ticker, null);
+    }
+
+    private static String flatDatum(String name, String description, String ticker, String logo) throws Exception {
         MapPlutusData metadata = new MapPlutusData();
         if (name != null) {
             metadata.put(BytesPlutusData.of("name"), BytesPlutusData.of(name));
@@ -234,6 +352,9 @@ class Cip68EventListenerIndexingTest {
         }
         if (ticker != null) {
             metadata.put(BytesPlutusData.of("ticker"), BytesPlutusData.of(ticker));
+        }
+        if (logo != null) {
+            metadata.put(BytesPlutusData.of("logo"), BytesPlutusData.of(logo));
         }
         return serialize(metadata, 1);
     }

@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static org.cardanofoundation.tokenmetadata.registry.api.model.cip68.Cip68Constants.FUNGIBLE_TOKEN_PREFIX;
@@ -31,6 +32,9 @@ import static org.cardanofoundation.tokenmetadata.registry.api.model.cip68.Cip68
 @Slf4j
 public class Cip68EventListener {
 
+    private static final Pattern ALLOWED_LOGO_URI =
+            Pattern.compile("^(https|ipfs|ar|data):.+", Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
+    private static final int LOGGED_LOGO_MAX_LENGTH = 80;
     private final Cip68FungibleTokenService cip68FungibleTokenService;
     private final Cip68FTDatumParser cip68DatumParser;
     private final MetadataReferenceNftRepository metadataReferenceNftRepository;
@@ -56,6 +60,7 @@ public class Cip68EventListener {
                     AssetType referenceNft = AssetType.fromUnit(referenceNftAmt.getUnit());
                     cip68DatumParser.parse(output.getInlineDatum(), referenceNft).ifPresent(metadata -> {
                         if (cip68FungibleTokenService.isValidFTMetadata(metadata)) {
+                            warnIfLogoNotAllowedUri(metadata, referenceNft);
                             entities.add(buildMetadataReferenceNft(metadata, referenceNft, output.getInlineDatum(), slot));
                         } else {
                             reportSkipped(metadata, referenceNft, assetUnitsInTx);
@@ -71,21 +76,39 @@ public class Cip68EventListener {
     }
 
     /**
-     * The reference NFTs of an output whose datum should be indexed. An output with one reference NFT is the normal
-     * case. With several, a nested datum carries the metadata of each, so all of them are indexed, each resolved to
-     * its own entry. A flat datum describes a single token and cannot be tied to any of several, so only the first is
-     * indexed and the rest are reported, not skipped silently.
+     * The reference NFTs of an output whose datum should be indexed: all of them. An output with one reference NFT is
+     * the normal case. With several, a nested datum carries the metadata of each, each resolved to its own entry. A
+     * flat datum has no entry per token, but CIP-68's retrieval steps look up the output the reference NFT is locked in
+     * and read its datum, whatever else the output holds, so a flat datum is the metadata of every reference NFT in the
+     * output. They are all indexed with it, and one warning lists them so the case can be audited.
      */
     private List<Amt> referenceNftsToIndex(AddressUtxo output) {
         List<Amt> referenceNfts = cip68FungibleTokenService.extractReferenceNfts(output);
-        if (referenceNfts.size() <= 1 || cip68DatumParser.hasNestedMetadata(output.getInlineDatum())) {
-            return referenceNfts;
+        if (referenceNfts.size() > 1 && !cip68DatumParser.hasNestedMetadata(output.getInlineDatum())) {
+            log.warn("Output {}#{} holds {} reference NFTs with a flat CIP-68 datum; CIP-68 gives a flat datum to every "
+                            + "reference NFT in the output, so indexing it for all of them: {}",
+                    output.getTxHash(), output.getOutputIndex(), referenceNfts.size(),
+                    referenceNfts.stream().map(Amt::getUnit).collect(Collectors.joining(", ")));
         }
-        log.warn("Output {}#{} holds {} reference NFTs with a flat CIP-68 datum, which describes one token; "
-                        + "indexing only {} and ignoring the other {}",
-                output.getTxHash(), output.getOutputIndex(), referenceNfts.size(), referenceNfts.getFirst().getUnit(),
-                referenceNfts.size() - 1);
-        return List.of(referenceNfts.getFirst());
+        return referenceNfts;
+    }
+
+    /**
+     * CIP-68 requires the {@code logo} of a 333 token, when present, to be a URI with the scheme {@code https},
+     * {@code ipfs}, {@code ar} or {@code data}. Many fungible tokens on mainnet carry a bare IPFS CID instead, so a logo
+     * with another form is stored as written, not dropped, and a warning names the token.
+     */
+    private static void warnIfLogoNotAllowedUri(FungibleTokenMetadata metadata, AssetType referenceNft) {
+        String logo = metadata.logo();
+        if (logo != null && !logo.isBlank() && !ALLOWED_LOGO_URI.matcher(logo).matches()) {
+            log.warn("CIP-68 datum of {}/{}: logo '{}' is not a URI with a scheme CIP-68 allows (https, ipfs, ar, data); "
+                            + "storing it as written",
+                    referenceNft.policyId(), referenceNft.assetName(), abbreviate(logo));
+        }
+    }
+
+    private static String abbreviate(String value) {
+        return value.length() <= LOGGED_LOGO_MAX_LENGTH ? value : value.substring(0, LOGGED_LOGO_MAX_LENGTH) + "...";
     }
 
     /**
@@ -109,21 +132,20 @@ public class Cip68EventListener {
     /**
      * Whether a reference NFT belongs to a 333 fungible token. CIP-68 pairs a reference NFT with its user token by
      * policy and base name ({@code 000643b0 + base} and {@code <label> + base}), so only a user token of the same
-     * policy and base name in the same transaction counts; when a 222 NFT and a 333 token are both paired, the 222
-     * wins. Without a paired user token (minted in another transaction), the datum counts as a fungible token only if
-     * it carries {@code ticker} or {@code logo}, the fields only the 333 token defines; {@code decimals} alone does not
-     * decide, since the 444 RFT defines it too.
+     * policy and base name in the same transaction counts. CIP-68 allows one reference NFT to have user tokens of
+     * several labels, and a datum must then satisfy the requirements of each, so a paired 333 token decides even when
+     * a 222 NFT or a 444 RFT is paired too. Without a paired user token (minted in another transaction), the datum
+     * counts as a fungible token only if it carries {@code ticker} or {@code logo}, the fields only the 333 token
+     * defines; {@code decimals} alone does not decide, since the 444 RFT defines it too.
      */
     private static boolean isIdentifiableAsFungibleToken(FungibleTokenMetadata metadata, AssetType referenceNft,
                                                          Set<String> assetUnitsInTx) {
         String baseName = referenceNft.assetName().substring(REFERENCE_TOKEN_PREFIX.length());
-        if (hasPairedUserToken(assetUnitsInTx, referenceNft, NFT_TOKEN_PREFIX, baseName)) {
-            return false;
-        }
         if (hasPairedUserToken(assetUnitsInTx, referenceNft, FUNGIBLE_TOKEN_PREFIX, baseName)) {
             return true;
         }
-        if (hasPairedUserToken(assetUnitsInTx, referenceNft, RICH_FUNGIBLE_TOKEN_PREFIX, baseName)) {
+        if (hasPairedUserToken(assetUnitsInTx, referenceNft, NFT_TOKEN_PREFIX, baseName)
+                || hasPairedUserToken(assetUnitsInTx, referenceNft, RICH_FUNGIBLE_TOKEN_PREFIX, baseName)) {
             return false;
         }
         return metadata.ticker() != null || metadata.logo() != null;
