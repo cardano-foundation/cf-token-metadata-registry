@@ -5,6 +5,7 @@ import com.bloxbean.cardano.yaci.store.common.domain.Amt;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.cardanofoundation.tokenmetadata.registry.api.model.cip68.FungibleTokenMetadata;
+import org.cardanofoundation.tokenmetadata.registry.api.model.cip68.ParsedCip68Datum;
 import org.cardanofoundation.tokenmetadata.registry.api.util.AssetType;
 import org.cardanofoundation.tokenmetadata.registry.repository.MetadataReferenceNftRepository;
 import org.springframework.stereotype.Service;
@@ -17,9 +18,11 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static org.cardanofoundation.tokenmetadata.registry.api.model.cip68.Cip68Constants.FUNGIBLE_TOKEN_PREFIX;
+import static org.cardanofoundation.tokenmetadata.registry.api.model.cip68.Cip68Constants.LABEL_FT;
 import static org.cardanofoundation.tokenmetadata.registry.api.model.cip68.Cip68Constants.REFERENCE_TOKEN_PREFIX;
 
 @Service
@@ -31,16 +34,59 @@ public class Cip68FungibleTokenService {
     private static final String REFERENCE_NFT_PREFIX = "000643b0";
 
     private static final String VERSION = "version";
+    /** URI schemes CIP-68 allows for {@code image} and {@code logo}: https, ipfs, ar (Arweave) and data (on-chain). */
+    private static final Pattern ALLOWED_URI_SCHEME =
+            Pattern.compile("^(https|ipfs|ar|data):.+", Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
+    private static final int LOGGED_URI_MAX_LENGTH = 60;
 
     private final MetadataReferenceNftRepository metadataReferenceNftRepository;
 
     /**
-     * In order to be a valid FT Token Metadata Reference datum there are some constraints (name and description must be present)
+     * Says why a CIP-68 datum is not valid for a user-token label, or an empty result when it is. The check is strict
+     * about what CIP-68 requires for the label:
+     * <ul>
+     *   <li>{@code name} for every label;</li>
+     *   <li>for the 333 fungible token, {@code description}, and the optional {@code logo}, when it is present, as a
+     *       URI with the scheme {@code https}, {@code ipfs}, {@code ar} or {@code data} (a missing or empty logo is
+     *       fine);</li>
+     *   <li>for the 222 NFT and the 444 RFT, {@code image} as a URI with one of the same schemes ({@code description}
+     *       is optional for them).</li>
+     * </ul>
      *
-     * @return true if the metadata are compliant to the FT Cip68 standard
+     * @param datum the parsed datum
+     * @param label the user-token label the datum belongs to: {@code 222}, {@code 333} or {@code 444}
+     * @return the reason the datum is not valid for the label, empty if it is valid
      */
-    public boolean isValidFTMetadata(FungibleTokenMetadata fungibleTokenMetadata) {
-        return fungibleTokenMetadata.name() != null && fungibleTokenMetadata.description() != null;
+    public Optional<String> invalidReason(ParsedCip68Datum datum, int label) {
+        if (datum.name() == null) {
+            return Optional.of("it has no name");
+        }
+        if (label == LABEL_FT) {
+            if (datum.description() == null) {
+                return Optional.of("it has no description, which CIP-68 requires for a fungible token (label "
+                        + LABEL_FT + ")");
+            }
+            String logo = datum.logo();
+            if (logo != null && !logo.isBlank() && !ALLOWED_URI_SCHEME.matcher(logo).matches()) {
+                return Optional.of("its logo '" + abbreviate(logo) + "' is not a URI with one of the schemes CIP-68 "
+                        + "allows (https, ipfs, ar, data)");
+            }
+            return Optional.empty();
+        }
+        String image = datum.image();
+        if (image == null || image.isBlank()) {
+            return Optional.of("it has no image, which CIP-68 requires for label " + label);
+        }
+        if (!ALLOWED_URI_SCHEME.matcher(image).matches()) {
+            return Optional.of("its image '" + abbreviate(image) + "' is not a URI with one of the schemes CIP-68 "
+                    + "allows (https, ipfs, ar, data)");
+        }
+        return Optional.empty();
+    }
+
+    private static String abbreviate(String value) {
+        String oneLine = value.replaceAll("\\s+", " ");
+        return oneLine.length() <= LOGGED_URI_MAX_LENGTH ? oneLine : oneLine.substring(0, LOGGED_URI_MAX_LENGTH) + "...";
     }
 
     /**
