@@ -60,6 +60,7 @@ public class Cip68EventListener {
                     AssetType referenceNft = AssetType.fromUnit(referenceNftAmt.getUnit());
                     cip68DatumParser.parse(output.getInlineDatum(), referenceNft)
                             .filter(datum -> isIndexable(datum, referenceNft, assetUnitsInTx))
+                            .map(datum -> withoutInvalidLogo(datum, referenceNft))
                             .ifPresent(datum -> entities.add(
                                     buildMetadataReferenceNft(datum, referenceNft, output.getInlineDatum(), slot)));
                 }
@@ -90,7 +91,7 @@ public class Cip68EventListener {
     }
 
     /**
-     * Whether a datum is stored. It has to satisfy what CIP-68 requires for every label of its reference NFT (see
+     * Whether a datum is stored. It has to satisfy what CIP-68 requires (the mandatory fields) for every label of its reference NFT (see
      * {@link Cip68FungibleTokenService#invalidReason}); the first label it fails is logged at WARN with the reason, and
      * the datum is not stored. Only fungible tokens are served, and the registry stores a description with every row,
      * so a valid datum of a 222 NFT or a 444 RFT without one is not stored either, at debug: it is not a fungible token.
@@ -112,6 +113,20 @@ public class Cip68EventListener {
             return false;
         }
         return true;
+    }
+
+    /**
+     * The logo is optional, so a bad one costs only the logo: it is left out with a warning and the rest of the datum
+     * is indexed.
+     */
+    private ParsedCip68Datum withoutInvalidLogo(ParsedCip68Datum datum, AssetType referenceNft) {
+        Optional<String> invalidReason = cip68FungibleTokenService.invalidLogoReason(datum);
+        if (invalidReason.isEmpty()) {
+            return datum;
+        }
+        log.warn("CIP-68 datum of {}/{}: dropping the logo and keeping the rest, because {}",
+                referenceNft.policyId(), referenceNft.assetName(), invalidReason.get());
+        return datum.withoutLogo();
     }
 
     /**

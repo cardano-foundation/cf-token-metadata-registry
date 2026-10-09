@@ -4,6 +4,7 @@ import com.bloxbean.cardano.yaci.store.common.domain.AddressUtxo;
 import com.bloxbean.cardano.yaci.store.common.domain.Amt;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.cardanofoundation.tokenmetadata.registry.api.model.cip68.Cip68Uri;
 import org.cardanofoundation.tokenmetadata.registry.api.model.cip68.FungibleTokenMetadata;
 import org.cardanofoundation.tokenmetadata.registry.api.model.cip68.ParsedCip68Datum;
 import org.cardanofoundation.tokenmetadata.registry.api.util.AssetType;
@@ -18,7 +19,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static org.cardanofoundation.tokenmetadata.registry.api.model.cip68.Cip68Constants.FUNGIBLE_TOKEN_PREFIX;
@@ -34,9 +34,6 @@ public class Cip68FungibleTokenService {
     private static final String REFERENCE_NFT_PREFIX = "000643b0";
 
     private static final String VERSION = "version";
-    /** URI schemes CIP-68 allows for {@code image} and {@code logo}: https, ipfs, ar (Arweave) and data (on-chain). */
-    private static final Pattern ALLOWED_URI_SCHEME =
-            Pattern.compile("^(https|ipfs|ar|data):.+", Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
     private static final int LOGGED_URI_MAX_LENGTH = 60;
 
     private final MetadataReferenceNftRepository metadataReferenceNftRepository;
@@ -46,12 +43,11 @@ public class Cip68FungibleTokenService {
      * about what CIP-68 requires for the label:
      * <ul>
      *   <li>{@code name} for every label;</li>
-     *   <li>for the 333 fungible token, {@code description}, and the optional {@code logo}, when it is present, as a
-     *       URI with the scheme {@code https}, {@code ipfs}, {@code ar} or {@code data} (a missing or empty logo is
-     *       fine);</li>
-     *   <li>for the 222 NFT and the 444 RFT, {@code image} as a URI with one of the same schemes ({@code description}
-     *       is optional for them).</li>
+     *   <li>for the 333 fungible token, {@code description};</li>
+     *   <li>for the 222 NFT and the 444 RFT, {@code image} as a URI with the scheme {@code https}, {@code ipfs},
+     *       {@code ar} or {@code data} ({@code description} is optional for them).</li>
      * </ul>
+     * The optional fields do not reject the datum: see {@link #invalidLogoReason}.
      *
      * @param datum the parsed datum
      * @param label the user-token label the datum belongs to: {@code 222}, {@code 333} or {@code 444}
@@ -66,22 +62,35 @@ public class Cip68FungibleTokenService {
                 return Optional.of("it has no description, which CIP-68 requires for a fungible token (label "
                         + LABEL_FT + ")");
             }
-            String logo = datum.logo();
-            if (logo != null && !logo.isBlank() && !ALLOWED_URI_SCHEME.matcher(logo).matches()) {
-                return Optional.of("its logo '" + abbreviate(logo) + "' is not a URI with one of the schemes CIP-68 "
-                        + "allows (https, ipfs, ar, data)");
-            }
             return Optional.empty();
         }
         String image = datum.image();
         if (image == null || image.isBlank()) {
             return Optional.of("it has no image, which CIP-68 requires for label " + label);
         }
-        if (!ALLOWED_URI_SCHEME.matcher(image).matches()) {
+        if (!Cip68Uri.hasAllowedScheme(image)) {
             return Optional.of("its image '" + abbreviate(image) + "' is not a URI with one of the schemes CIP-68 "
-                    + "allows (https, ipfs, ar, data)");
+                    + "allows (" + Cip68Uri.ALLOWED_SCHEMES + ")");
         }
         return Optional.empty();
+    }
+
+    /**
+     * Says why the {@code logo} of a datum cannot be stored, or an empty result when there is no logo or it is fine.
+     * The logo is optional, so a bad one does not reject the datum: it is left out and the rest is indexed. CIP-68
+     * defines it as a URI whose scheme is one of {@code https}, {@code ipfs}, {@code ar} or {@code data}, so a bare
+     * IPFS hash, or any other scheme, is not accepted.
+     *
+     * @param datum the parsed datum
+     * @return the reason the logo is left out, empty if there is none or it is valid
+     */
+    public Optional<String> invalidLogoReason(ParsedCip68Datum datum) {
+        String logo = datum.logo();
+        if (logo == null || logo.isBlank() || Cip68Uri.hasAllowedScheme(logo)) {
+            return Optional.empty();
+        }
+        return Optional.of("its logo '" + abbreviate(logo) + "' is not a URI with one of the schemes CIP-68 allows ("
+                + Cip68Uri.ALLOWED_SCHEMES + ")");
     }
 
     private static String abbreviate(String value) {

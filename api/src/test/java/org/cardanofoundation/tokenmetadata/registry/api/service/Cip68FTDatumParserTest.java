@@ -611,13 +611,48 @@ class Cip68FTDatumParserTest {
             MapPlutusData properties = metadata("Token");
             properties.put(BytesPlutusData.of("image"), BytesPlutusData.of("ipfs://bafy"));
             properties.put(BytesPlutusData.of("mediaType"), BytesPlutusData.of("image/png"));
-            properties.put(BytesPlutusData.of("files"), new ListPlutusData());
+            properties.put(BytesPlutusData.of("files"), ListPlutusData.of(file("image/png", "ipfs://bafy")));
 
             assertThat(cip68FTDatumParser.parse(datumHex(properties, BigInteger.ONE))).hasValueSatisfying(datum -> {
                 assertThat(datum.image()).isEqualTo("ipfs://bafy");
                 assertThat(datum.mediaType()).isEqualTo("image/png");
                 assertThat(datum.hasFiles()).isTrue();
             });
+        }
+
+        @Test
+        void doesNotCountAFilesPropertyThatCip68DoesNotDefine() throws Exception {
+            MapPlutusData noMediaType = new MapPlutusData();
+            noMediaType.put(BytesPlutusData.of("src"), BytesPlutusData.of("ipfs://bafy"));
+            for (PlutusData files : List.of(new ListPlutusData(), BytesPlutusData.of("ipfs://bafy"),
+                    ListPlutusData.of(BytesPlutusData.of("ipfs://bafy")), ListPlutusData.of(noMediaType),
+                    ListPlutusData.of(file("image/png", "QmXyz")), ListPlutusData.of(file("image/png", "")),
+                    ListPlutusData.of(file("image/png", "ipfs://bafy"), file("image/png", "iagon://abc")))) {
+                MapPlutusData properties = metadata("Token");
+                properties.put(BytesPlutusData.of("files"), files);
+
+                assertThat(cip68FTDatumParser.parse(datumHex(properties, BigInteger.ONE)))
+                        .as(files.toString()).hasValueSatisfying(datum -> assertThat(datum.hasFiles()).isFalse());
+            }
+        }
+
+        @Test
+        void countsAFilesEntryWithAChunkedSrc() throws Exception {
+            MapPlutusData file = new MapPlutusData();
+            file.put(BytesPlutusData.of("mediaType"), BytesPlutusData.of("image/png"));
+            file.put(BytesPlutusData.of("src"), ListPlutusData.of(BytesPlutusData.of("ipfs://"), BytesPlutusData.of("bafy")));
+            MapPlutusData properties = metadata("Token");
+            properties.put(BytesPlutusData.of("files"), ListPlutusData.of(file));
+
+            assertThat(cip68FTDatumParser.parse(datumHex(properties, BigInteger.ONE)))
+                    .hasValueSatisfying(datum -> assertThat(datum.hasFiles()).isTrue());
+        }
+
+        private static MapPlutusData file(String mediaType, String src) {
+            MapPlutusData file = new MapPlutusData();
+            file.put(BytesPlutusData.of("mediaType"), BytesPlutusData.of(mediaType));
+            file.put(BytesPlutusData.of("src"), BytesPlutusData.of(src));
+            return file;
         }
 
         @Test

@@ -8,6 +8,7 @@ import jakarta.annotation.Nullable;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.cardanofoundation.tokenmetadata.registry.api.model.cip68.Cip68Constants;
+import org.cardanofoundation.tokenmetadata.registry.api.model.cip68.Cip68Uri;
 import org.cardanofoundation.tokenmetadata.registry.api.model.cip68.ParsedCip68Datum;
 import org.cardanofoundation.tokenmetadata.registry.api.util.AssetType;
 import org.cardanofoundation.tokenmetadata.registry.util.TokenDecimals;
@@ -210,7 +211,30 @@ public class Cip68FTDatumParser {
                 version,
                 getStringOrChunkedProperty(IMAGE, properties).orElse(null),
                 getStringProperty(MEDIA_TYPE, properties).orElse(null),
-                properties.getMap().containsKey(BytesPlutusData.of(FILES)));
+                hasDefinedFiles(properties));
+    }
+
+    /**
+     * Whether the datum has a {@code files} property that CIP-68 defines: a non-empty list whose every entry is a map
+     * with a {@code mediaType} byte string and a {@code src} that is a URI with one of the allowed schemes. {@code files}
+     * is optional and not stored here; it only tells a 222 NFT or a 444 RFT datum apart (see the label inference in
+     * {@link Cip68EventListener}), and a {@code files} property that breaks the definition does not count.
+     */
+    private boolean hasDefinedFiles(MapPlutusData properties) {
+        if (!(properties.getMap().get(BytesPlutusData.of(FILES)) instanceof ListPlutusData files)
+                || files.getPlutusDataList().isEmpty()) {
+            return false;
+        }
+        return files.getPlutusDataList().stream().allMatch(this::isDefinedFile);
+    }
+
+    private boolean isDefinedFile(PlutusData entry) {
+        if (!(entry instanceof MapPlutusData file)
+                || !(file.getMap().get(BytesPlutusData.of(MEDIA_TYPE)) instanceof BytesPlutusData)) {
+            return false;
+        }
+        Optional<String> src = getStringOrChunkedProperty("src", file);
+        return src.isPresent() && !src.get().isBlank() && Cip68Uri.hasAllowedScheme(src.get());
     }
 
     /** Internal record for the unwrapped CIP-68 envelope (properties Map, range-checked version). */

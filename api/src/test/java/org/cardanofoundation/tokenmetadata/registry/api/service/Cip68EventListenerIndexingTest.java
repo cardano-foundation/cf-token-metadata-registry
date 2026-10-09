@@ -247,8 +247,9 @@ class Cip68EventListenerIndexingTest {
     }
 
     /**
-     * CIP-68 requires a 333 {@code logo}, when present, to be a URI with the scheme https, ipfs, ar or data. A fungible
-     * token whose logo has another form, most often a bare IPFS CID, is not indexed, and a warning names the token.
+     * CIP-68 requires a 333 {@code logo}, when present, to be a URI with the scheme https, ipfs, ar or data. The logo is
+     * optional, so one with another form, most often a bare IPFS CID, is left out with a warning naming the token, and
+     * the token is indexed without it.
      */
     @Nested
     @DisplayName("Logo URI")
@@ -264,16 +265,21 @@ class Cip68EventListenerIndexingTest {
                 + "70733a2f2f6465762d636a6668752e6368616b72612d61692e696fff0243d87980ff";
 
         @Test
-        void rejectsARealFungibleTokenWhoseLogoIsABareCidAndWarns() {
+        void indexesARealFungibleTokenWhoseLogoIsABareCidWithoutTheLogoAndWarns() {
             AddressUtxo output = AddressUtxo.builder().txHash(TX_HASH).inlineDatum(HSTLR_DATUM)
                     .amounts(List.of(amount(HSTLR_POLICY + REF + HSTLR_BASE_NAME))).build();
 
             listener.processTransaction(event(output));
 
-            verifyNoInteractions(repository);
+            assertThat(saved()).singleElement().satisfies(row -> {
+                assertThat(row.getName()).isEqualTo("Hustler");
+                assertThat(row.getDescription()).isEqualTo("Hustlin Community");
+                assertThat(row.getTicker()).isEqualTo("HSTLR");
+                assertThat(row.getLogo()).isNull();
+            });
             assertThat(warnings()).singleElement().satisfies(w -> assertThat(w)
-                    .contains(HSTLR_POLICY).contains(REF + HSTLR_BASE_NAME).contains("not a URI")
-                    .contains("bafkreidrvp5q37ehv6p6dddvn5uxfwmymgzgizda5ont2bjaozaz4x5pom"));
+                    .contains(HSTLR_POLICY).contains(REF + HSTLR_BASE_NAME).contains("dropping the logo")
+                    .contains("not a URI").contains("bafkreidrvp5q37ehv6p6dddvn5uxfwmymgzgizda5ont2bjaozaz4x5pom"));
         }
 
         @Test
@@ -299,12 +305,21 @@ class Cip68EventListenerIndexingTest {
         }
 
         @Test
+        void stillRejectsAFungibleTokenWithABadLogoAndNoDescription() throws Exception {
+            // the logo is optional, the description is not: a mandatory field missing drops the token
+            listener.processTransaction(event(output(flatDatum("Token", null, null, "QmXyz"), REF + A)));
+
+            verifyNoInteractions(repository);
+            assertThat(warnings()).singleElement().satisfies(w -> assertThat(w).contains("no description"));
+        }
+
+        @Test
         void abbreviatesALongLogoInTheWarning() throws Exception {
             String logo = "x".repeat(500);
 
             listener.processTransaction(event(output(flatDatum("Token", "Desc", null, logo), REF + A)));
 
-            verifyNoInteractions(repository);
+            assertThat(saved()).singleElement().satisfies(row -> assertThat(row.getLogo()).isNull());
             assertThat(warnings()).singleElement().satisfies(w -> assertThat(w)
                     .contains("x".repeat(60) + "...").doesNotContain("x".repeat(61)));
         }

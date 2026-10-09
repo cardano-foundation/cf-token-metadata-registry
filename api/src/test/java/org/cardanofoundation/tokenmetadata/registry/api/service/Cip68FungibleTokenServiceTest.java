@@ -109,18 +109,10 @@ class Cip68FungibleTokenServiceTest {
         }
 
         @ParameterizedTest
-        @ValueSource(strings = {"https://example.com/logo.png", "ipfs://bafkrei", "ar://abc",
-                "data:image/png;base64,iVBORw0KGgo=", "IPFS://Qm123", "", " "})
-        void acceptsAFungibleTokenLogoWithAnAllowedSchemeOrEmpty(String logo) {
+        @ValueSource(strings = {"QmXyz", "iagon://abc", "logo.png"})
+        void doesNotRejectAFungibleTokenForItsLogo(String logo) {
+            // the logo is optional: a bad one is left out (see invalidLogoReason), the datum stays valid
             assertThat(service.invalidReason(fungibleToken("Token", "Desc", logo), 333)).isEmpty();
-        }
-
-        @ParameterizedTest
-        @ValueSource(strings = {"QmXyz", "bafkreidrvp5q37eh", "iagon://abc", "http://example.com/logo.png",
-                "ipfs:", "logo.png"})
-        void rejectsAFungibleTokenLogoWithAnotherForm(String logo) {
-            assertThat(service.invalidReason(fungibleToken("Token", "Desc", logo), 333))
-                    .hasValueSatisfying(reason -> assertThat(reason).contains("not a URI").contains(logo));
         }
 
         @ParameterizedTest
@@ -146,8 +138,47 @@ class Cip68FungibleTokenServiceTest {
         }
 
         @Test
+        void abbreviatesALongImageInTheReason() {
+            assertThat(service.invalidReason(nft("Token", "Desc", "x".repeat(500)), 222))
+                    .hasValueSatisfying(reason -> assertThat(reason)
+                            .contains("x".repeat(60) + "...").doesNotContain("x".repeat(61)));
+        }
+    }
+
+    /** The optional {@code logo} of a fungible token: left out when it is not a URI with an allowed scheme. */
+    @Nested
+    class InvalidLogoReason {
+
+        private final Cip68FungibleTokenService service =
+                new Cip68FungibleTokenService(mock(MetadataReferenceNftRepository.class));
+
+        private static ParsedCip68Datum withLogo(String logo) {
+            return new ParsedCip68Datum(6L, "Desc", logo, "Token", "TKN", null, 1L, null, null, false);
+        }
+
+        @ParameterizedTest
+        @ValueSource(strings = {"https://example.com/logo.png", "ipfs://bafkrei", "ar://abc",
+                "data:image/png;base64,iVBORw0KGgo=", "IPFS://Qm123", "", " "})
+        void keepsALogoWithAnAllowedSchemeOrEmpty(String logo) {
+            assertThat(service.invalidLogoReason(withLogo(logo))).isEmpty();
+        }
+
+        @Test
+        void keepsAMissingLogo() {
+            assertThat(service.invalidLogoReason(withLogo(null))).isEmpty();
+        }
+
+        @ParameterizedTest
+        @ValueSource(strings = {"QmXyz", "bafkreidrvp5q37eh", "iagon://abc", "http://example.com/logo.png",
+                "ipfs:", "logo.png"})
+        void leavesOutALogoWithAnotherForm(String logo) {
+            assertThat(service.invalidLogoReason(withLogo(logo)))
+                    .hasValueSatisfying(reason -> assertThat(reason).contains("not a URI").contains(logo));
+        }
+
+        @Test
         void abbreviatesALongLogoInTheReason() {
-            assertThat(service.invalidReason(fungibleToken("Token", "Desc", "x".repeat(500)), 333))
+            assertThat(service.invalidLogoReason(withLogo("x".repeat(500))))
                     .hasValueSatisfying(reason -> assertThat(reason)
                             .contains("x".repeat(60) + "...").doesNotContain("x".repeat(61)));
         }
