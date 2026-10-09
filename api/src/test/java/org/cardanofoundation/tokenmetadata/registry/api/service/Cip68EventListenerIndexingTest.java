@@ -412,8 +412,11 @@ class Cip68EventListenerIndexingTest {
 
     /** A flat version 1 datum with the given text properties, as key-value pairs. */
     private static String datum(String... keyValues) throws Exception {
+        if (keyValues.length % 2 != 0) {
+            throw new IllegalArgumentException("Expected key-value pairs, got " + keyValues.length + " values");
+        }
         MapPlutusData metadata = new MapPlutusData();
-        for (int i = 0; i < keyValues.length; i += 2) {
+        for (int i = 0; i + 1 < keyValues.length; i += 2) {
             metadata.put(BytesPlutusData.of(keyValues[i]), BytesPlutusData.of(keyValues[i + 1]));
         }
         return serialize(metadata, 1);
