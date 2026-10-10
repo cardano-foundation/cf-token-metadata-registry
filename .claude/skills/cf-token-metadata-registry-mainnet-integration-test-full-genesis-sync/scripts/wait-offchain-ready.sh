@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Poll the aggregated /actuator/health endpoint until
-# components.offchainSync.status == "UP" (GitHub CIP-26 sync done).
+# components.cip26Sync.status == "UP" (GitHub CIP-26 sync done).
 # Default check interval is 60s. Pass an integer (seconds) to override.
 #
-# NOTE: offchainSync is exposed in the *readiness* group and the aggregated
+# NOTE: cip26Sync is exposed in the *readiness* group and the aggregated
 # /actuator/health endpoint, not in /actuator/health/liveness — the liveness
 # group only carries livenessState + nodeHealth. We use the aggregated
 # endpoint to keep this future-proof against group reconfiguration.
@@ -21,12 +21,12 @@ while true; do
   if [[ -z "$body" ]]; then
     echo "[$(date '+%H:%M:%S')] liveness endpoint not responding yet"
   else
-    offchain=$(echo "$body" | python3 -c 'import json,sys;d=json.load(sys.stdin);print(d.get("components",{}).get("offchainSync",{}).get("status","UNKNOWN"))' 2>/dev/null || echo "PARSE_ERROR")
-    detail=$(echo "$body" | python3 -c 'import json,sys;d=json.load(sys.stdin);print(d.get("components",{}).get("offchainSync",{}).get("details",{}).get("syncStatus",""))' 2>/dev/null || echo "")
+    offchain=$(echo "$body" | python3 -c 'import json,sys;d=json.load(sys.stdin);print(d.get("components",{}).get("cip26Sync",{}).get("status","UNKNOWN"))' 2>/dev/null || echo "PARSE_ERROR")
+    detail=$(echo "$body" | python3 -c 'import json,sys;d=json.load(sys.stdin);print(d.get("components",{}).get("cip26Sync",{}).get("details",{}).get("syncStatus",""))' 2>/dev/null || echo "")
     elapsed=$(( $(date +%s) - start ))
-    echo "[$(date '+%H:%M:%S')] offchainSync=$offchain ($detail)  elapsed=${elapsed}s"
+    echo "[$(date '+%H:%M:%S')] cip26Sync=$offchain ($detail)  elapsed=${elapsed}s"
     if [[ "$offchain" == "UP" ]]; then
-      echo "[wait-offchain] offchainSync is UP after ${elapsed}s"
+      echo "[wait-offchain] cip26Sync is UP after ${elapsed}s"
       exit 0
     fi
   fi

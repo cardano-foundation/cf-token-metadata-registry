@@ -3,7 +3,7 @@ package org.cardanofoundation.tokenmetadata.registry.api.controller;
 import com.bloxbean.cardano.yaci.store.core.health.NodeSyncIndicator;
 import jakarta.annotation.Nullable;
 import lombok.extern.slf4j.Slf4j;
-import org.cardanofoundation.tokenmetadata.registry.api.health.OffchainSyncHealthIndicator;
+import org.cardanofoundation.tokenmetadata.registry.api.health.Cip26SyncHealthIndicator;
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.HealthResponse;
 import org.springframework.boot.actuate.health.Health;
 import org.springframework.boot.actuate.health.Status;
@@ -25,7 +25,7 @@ public class HealthApiController implements HealthApi {
 
     public static final String SYNC_STATUS = "syncStatus";
 
-    private final OffchainSyncHealthIndicator offchainSyncHealthIndicator;
+    private final Cip26SyncHealthIndicator cip26SyncHealthIndicator;
 
     /**
      * Nullable because {@link NodeSyncIndicator} is conditional on Yaci Store's
@@ -36,24 +36,24 @@ public class HealthApiController implements HealthApi {
     @Nullable
     private final NodeSyncIndicator onchainSyncHealthIndicator;
 
-    public HealthApiController(OffchainSyncHealthIndicator offchainSyncHealthIndicator,
+    public HealthApiController(Cip26SyncHealthIndicator cip26SyncHealthIndicator,
                                @Nullable NodeSyncIndicator onchainSyncHealthIndicator) {
-        this.offchainSyncHealthIndicator = offchainSyncHealthIndicator;
+        this.cip26SyncHealthIndicator = cip26SyncHealthIndicator;
         this.onchainSyncHealthIndicator = onchainSyncHealthIndicator;
     }
 
     @Override
     public ResponseEntity<HealthResponse> getHealthStatus() {
-        Health offchainHealth = offchainSyncHealthIndicator.health();
+        Health cip26Health = cip26SyncHealthIndicator.health();
         Health onchainHealth = onchainSyncHealthIndicator != null
                 ? onchainSyncHealthIndicator.health()
                 : Health.up().withDetail(SYNC_STATUS, "On-chain sync disabled (read-only mode)").build();
 
-        boolean synced = Status.UP.equals(offchainHealth.getStatus())
+        boolean synced = Status.UP.equals(cip26Health.getStatus())
                 && Status.UP.equals(onchainHealth.getStatus());
 
         String syncStatus = "offchain: %s, onchain: %s".formatted(
-                offchainHealth.getDetails().get(SYNC_STATUS),
+                cip26Health.getDetails().get(SYNC_STATUS),
                 onchainHealth.getDetails().get(SYNC_STATUS));
 
         return new ResponseEntity<>(HealthResponse.builder()

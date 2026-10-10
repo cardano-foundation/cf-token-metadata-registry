@@ -1,7 +1,7 @@
 package org.cardanofoundation.tokenmetadata.registry.api.controller;
 
 import com.bloxbean.cardano.yaci.store.core.health.NodeSyncIndicator;
-import org.cardanofoundation.tokenmetadata.registry.api.health.OffchainSyncHealthIndicator;
+import org.cardanofoundation.tokenmetadata.registry.api.health.Cip26SyncHealthIndicator;
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.HealthResponse;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -20,7 +20,7 @@ import static org.mockito.Mockito.when;
 class HealthApiControllerTest {
 
     @Mock
-    private OffchainSyncHealthIndicator offchainSyncHealthIndicator;
+    private Cip26SyncHealthIndicator cip26SyncHealthIndicator;
 
     @Mock
     private NodeSyncIndicator onchainSyncHealthIndicator;
@@ -30,7 +30,7 @@ class HealthApiControllerTest {
 
     @Test
     void bothUp_shouldReturnSyncedTrue() {
-        when(offchainSyncHealthIndicator.health())
+        when(cip26SyncHealthIndicator.health())
                 .thenReturn(Health.up().withDetail("syncStatus", "Sync done").build());
         when(onchainSyncHealthIndicator.health())
                 .thenReturn(Health.up().withDetail("syncStatus", "Healthy").build());
@@ -45,7 +45,7 @@ class HealthApiControllerTest {
 
     @Test
     void offchainDown_shouldReturnSyncedFalse() {
-        when(offchainSyncHealthIndicator.health())
+        when(cip26SyncHealthIndicator.health())
                 .thenReturn(Health.down().withDetail("syncStatus", "Error while syncing").build());
         when(onchainSyncHealthIndicator.health())
                 .thenReturn(Health.up().withDetail("syncStatus", "Healthy").build());
@@ -58,7 +58,7 @@ class HealthApiControllerTest {
 
     @Test
     void onchainDown_shouldReturnSyncedFalse() {
-        when(offchainSyncHealthIndicator.health())
+        when(cip26SyncHealthIndicator.health())
                 .thenReturn(Health.up().withDetail("syncStatus", "Sync done").build());
         when(onchainSyncHealthIndicator.health())
                 .thenReturn(Health.down().withDetail("syncStatus", "Indexer unreachable").build());
@@ -71,7 +71,7 @@ class HealthApiControllerTest {
 
     @Test
     void bothDown_shouldReturnSyncedFalse() {
-        when(offchainSyncHealthIndicator.health())
+        when(cip26SyncHealthIndicator.health())
                 .thenReturn(Health.down().withDetail("syncStatus", "Error while syncing").build());
         when(onchainSyncHealthIndicator.health())
                 .thenReturn(Health.down().withDetail("syncStatus", "Indexer unreachable").build());
@@ -84,7 +84,7 @@ class HealthApiControllerTest {
 
     @Test
     void offchainOutOfService_shouldReturnSyncedFalse() {
-        when(offchainSyncHealthIndicator.health())
+        when(cip26SyncHealthIndicator.health())
                 .thenReturn(Health.outOfService().withDetail("syncStatus", "Sync in progress").build());
         when(onchainSyncHealthIndicator.health())
                 .thenReturn(Health.up().withDetail("syncStatus", "Healthy").build());

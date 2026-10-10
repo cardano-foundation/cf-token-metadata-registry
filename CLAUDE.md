@@ -113,7 +113,7 @@ Main configuration is in `api/src/main/resources/application.properties`. Key en
 | `/actuator/health` | Aggregated health status |
 | `/actuator/health/startup` | Startup probe — includes: `db`, `nodeHealth` |
 | `/actuator/health/liveness` | Liveness probe — includes: `livenessState`, `nodeHealth` |
-| `/actuator/health/readiness` | Readiness probe — includes: `readinessState`, `offchainSync`, `nodeSync`, `db` |
+| `/actuator/health/readiness` | Readiness probe — includes: `readinessState`, `cip26Sync`, `nodeSync`, `db` |
 | `/actuator/prometheus` | Prometheus metrics |
 | `/actuator/metrics` | Spring Boot metrics |
 | `/apidocs` | OpenAPI 3.0 specification (JSON) |

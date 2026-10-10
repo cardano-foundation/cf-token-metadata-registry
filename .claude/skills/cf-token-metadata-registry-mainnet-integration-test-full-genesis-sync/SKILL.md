@@ -17,7 +17,7 @@ Your job is to drive this remotely. You forward the remote API (port 8080) and P
 
 - **Never blow away an existing instance silently.** If the remote already has a stack running, the postgres volume populated, or the target ports occupied, **STOP** and report the situation to the user. Ask whether to clean up or abort. Don't `docker compose down -v` on your own.
 - **Fresh genesis means empty data.** A genesis run requires the Postgres volume to be empty. If the project has a named volume with data, surface this and let the user decide.
-- **Don't run regression tests too early.** CIP-26 tests need `offchainSync == UP`. CIP-68 tests need the indexer at tip (`nodeSync == UP`, syncPercentage ≈ 100). Running them earlier produces meaningless failures.
+- **Don't run regression tests too early.** CIP-26 tests need `cip26Sync == UP`. CIP-68 tests need the indexer at tip (`nodeSync == UP`, syncPercentage ≈ 100). Running them earlier produces meaningless failures.
 - **Genesis sync is long.** Mainnet sync from slot 65836843 (current `.env` start) can take hours; from true genesis (slot 0), days. Set realistic expectations with the user before kicking off, and prefer long fallback waits (1200–1800s) when polling.
 
 ## Required configuration
@@ -100,7 +100,7 @@ Run `scripts/open-tunnels.sh`. It opens an SSH connection in the background with
 
 ### Step 5 — Wait for CIP-26 sync (offchain)
 
-Run `scripts/wait-offchain-ready.sh`. It polls the **aggregated** `http://localhost:$LOCAL_API_PORT/actuator/health` (NOT `/health/liveness`) and waits until `components.offchainSync.status == "UP"`. Note: `offchainSync` is exposed in the readiness group + aggregated endpoint, **not** in the liveness group (liveness only carries `livenessState` + `nodeHealth`). Use the `ScheduleWakeup` tool with **1200–1800s** between polls if you're driving this directly — offchain sync typically takes 2–15 minutes; polling more often wastes cache TTL for no benefit.
+Run `scripts/wait-offchain-ready.sh`. It polls the **aggregated** `http://localhost:$LOCAL_API_PORT/actuator/health` (NOT `/health/liveness`) and waits until `components.cip26Sync.status == "UP"`. Note: `cip26Sync` is exposed in the readiness group + aggregated endpoint, **not** in the liveness group (liveness only carries `livenessState` + `nodeHealth`). Use the `ScheduleWakeup` tool with **1200–1800s** between polls if you're driving this directly — offchain sync typically takes 2–15 minutes; polling more often wastes cache TTL for no benefit.
 
 While polling, print the current status periodically so the user sees progress.
 
@@ -178,7 +178,7 @@ Observed and filed upstream as **bloxbean/yaci#161** (yaci-core) + **bloxbean/ya
     ├── start-remote.sh            # docker compose up
     ├── open-tunnels.sh            # SSH port-forward
     ├── close-tunnels.sh           # kill background SSH tunnel
-    ├── wait-offchain-ready.sh     # poll aggregated /actuator/health for offchainSync UP
+    ├── wait-offchain-ready.sh     # poll aggregated /actuator/health for cip26Sync UP
     ├── wait-onchain-tip.sh        # poll /actuator/health/readiness (final confirm only; see Step 7 caveats)
     ├── check-sync-progress.sh     # one-shot window-relative progress (DB cursor vs Koios tip; no /health hit)
     ├── monitor-sync-progress.sh   # looped progress + ETA; --until-tip exits at ~100% (preferred tip detector)

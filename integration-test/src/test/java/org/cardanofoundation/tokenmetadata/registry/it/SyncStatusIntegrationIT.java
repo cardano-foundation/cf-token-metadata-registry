@@ -170,13 +170,13 @@ public class SyncStatusIntegrationIT extends BaseIntegrationIT {
         }
 
         @Test
-        void shouldIncludeOffchainSync() {
+        void shouldIncludeCip26Sync() {
             ResponseEntity<String> response = restTemplate.getForEntity(
                     API_BASE_URL + "/actuator/health/readiness", String.class);
 
             DocumentContext json = JsonPath.parse(response.getBody());
-            assertThat(json.read("$.components.offchainSync", Object.class)).isNotNull();
-            assertThat(json.read("$.components.offchainSync.status", String.class)).isEqualTo("UP");
+            assertThat(json.read("$.components.cip26Sync", Object.class)).isNotNull();
+            assertThat(json.read("$.components.cip26Sync.status", String.class)).isEqualTo("UP");
         }
 
         @Test
