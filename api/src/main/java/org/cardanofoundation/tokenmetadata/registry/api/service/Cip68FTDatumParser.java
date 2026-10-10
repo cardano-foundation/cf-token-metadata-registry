@@ -8,7 +8,8 @@ import jakarta.annotation.Nullable;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.cardanofoundation.tokenmetadata.registry.api.model.cip68.Cip68Constants;
-import org.cardanofoundation.tokenmetadata.registry.api.model.cip68.FungibleTokenMetadata;
+import org.cardanofoundation.tokenmetadata.registry.api.model.cip68.Cip68Uri;
+import org.cardanofoundation.tokenmetadata.registry.api.model.cip68.ParsedCip68Datum;
 import org.cardanofoundation.tokenmetadata.registry.api.util.AssetType;
 import org.cardanofoundation.tokenmetadata.registry.util.TokenDecimals;
 import org.springframework.stereotype.Service;
@@ -30,28 +31,31 @@ public class Cip68FTDatumParser {
     public static final String NAME = "name";
     public static final String TICKER = "ticker";
     public static final String URL = "url";
+    public static final String IMAGE = "image";
+    public static final String MEDIA_TYPE = "mediaType";
+    public static final String FILES = "files";
 
-    /** Largest {@code logo} accepted, in bytes. Same limit as the CIP-26 logo. */
-    public static final int LOGO_MAX_BYTES = 64 * 1024;
+    /** Largest {@code logo} or {@code image} accepted, in bytes. Same limit as the CIP-26 logo. */
+    public static final int URI_MAX_BYTES = 64 * 1024;
 
     /** The nested metadata format wraps the metadata in a CIP-25 style map: {"721": {policy_id: {asset_name: metadata}}}. */
     private static final BytesPlutusData NESTED_MAP_KEY = BytesPlutusData.of("721");
 
     /**
-     * The datum versions CIP-68 defines. They are informational: how a datum is read depends on its structure (see
-     * {@link #isNested}), as the CIP's retrieval steps say, not on its version. A datum with another version is still
-     * read, and a warning is logged so a new version is noticed. Update the upper bound when the CIP adds a version.
+     * The datum versions CIP-68 defines. A datum with another version is not indexed (see {@link #isDefinedVersion}).
+     * Within the range, how a datum is read depends on its structure (see {@link #isNested}), as the CIP's retrieval
+     * steps say, not on its version. Update the upper bound when the CIP adds a version.
      */
     static final long MIN_DEFINED_VERSION = 1;
     static final long MAX_DEFINED_VERSION = 4;
 
     /**
-     * Manually parses Cip68 Fungible Token Datum
+     * Manually parses a CIP-68 datum
      *
      * @param inlineDatum the hex encoded datum
-     * @return the Cip68 Fungible Token Metadata
+     * @return the parsed datum
      */
-    public Optional<FungibleTokenMetadata> parse(String inlineDatum) {
+    public Optional<ParsedCip68Datum> parse(String inlineDatum) {
         return parse(inlineDatum, null);
     }
 
@@ -59,14 +63,14 @@ public class Cip68FTDatumParser {
      * Same as {@link #parse(String)}, but resolves a version 4 nested-map datum to the entry for
      * {@code referenceNft}. Without it, a nested map is only resolved when it has a single entry.
      */
-    public Optional<FungibleTokenMetadata> parse(String inlineDatum, @Nullable AssetType referenceNft) {
+    public Optional<ParsedCip68Datum> parse(String inlineDatum, @Nullable AssetType referenceNft) {
         if (inlineDatum == null || inlineDatum.isBlank()) {
             return Optional.empty();
         }
 
         try {
             return extractDatumParts(inlineDatum)
-                    .map(parts -> warnIfVersionNotDefined(parts, referenceNft))
+                    .filter(parts -> isDefinedVersion(parts, referenceNft))
                     .flatMap(parts -> resolveMetadata(parts, referenceNft)
                             .map(properties -> buildMetadata(properties, parts.version())));
         } catch (StackOverflowError _) {
@@ -142,23 +146,26 @@ public class Cip68FTDatumParser {
     }
 
     /**
-     * A datum whose version CIP-68 does not define (1 to 4) is read like any other, by its structure, and a warning
-     * names the token. Not a failure: the datum decoded fine (on mainnet, Greenland Reserve Coin declares version 0).
-     * The version is stored as written.
+     * CIP-68 defines versions 1 to 4 (its CDDL lists them, and a change that is not backwards-compatible adds a new
+     * version). A datum with another version is not indexed: the layout of a version the CIP does not define is a
+     * guess, and a new version is added here when the CIP adds it. One warning names the token and the version. The
+     * layout of versions 1 to 4 still comes from the structure (the {@code "721"} key), not from the version.
+     *
+     * @return true if the version is one CIP-68 defines
      */
-    private static DatumParts warnIfVersionNotDefined(DatumParts parts, @Nullable AssetType referenceNft) {
+    private static boolean isDefinedVersion(DatumParts parts, @Nullable AssetType referenceNft) {
         long version = parts.version();
         if (version >= MIN_DEFINED_VERSION && version <= MAX_DEFINED_VERSION) {
-            return parts;
+            return true;
         }
         if (referenceNft != null) {
-            log.warn("CIP-68 datum of {}/{} has version {}, which CIP-68 does not define ({} to {}); reading it by its structure",
+            log.warn("Skipping CIP-68 datum of {}/{}: version {} is not one CIP-68 defines ({} to {})",
                     referenceNft.policyId(), referenceNft.assetName(), version, MIN_DEFINED_VERSION, MAX_DEFINED_VERSION);
         } else {
-            log.warn("CIP-68 datum has version {}, which CIP-68 does not define ({} to {}); reading it by its structure",
+            log.warn("Skipping CIP-68 datum: version {} is not one CIP-68 defines ({} to {})",
                     version, MIN_DEFINED_VERSION, MAX_DEFINED_VERSION);
         }
-        return parts;
+        return false;
     }
 
     /**
@@ -194,14 +201,40 @@ public class Cip68FTDatumParser {
         return data instanceof MapPlutusData map ? Optional.of(map) : Optional.empty();
     }
 
-    private FungibleTokenMetadata buildMetadata(MapPlutusData properties, long version) {
-        return new FungibleTokenMetadata(getDecimalsProperty(properties).orElse(null),
+    private ParsedCip68Datum buildMetadata(MapPlutusData properties, long version) {
+        return new ParsedCip68Datum(getDecimalsProperty(properties).orElse(null),
                 getStringProperty(DESCRIPTION, properties).orElse(null),
                 getStringOrChunkedProperty(LOGO, properties).orElse(null),
                 getStringProperty(NAME, properties).orElse(null),
                 getStringProperty(TICKER, properties).orElse(null),
                 getStringProperty(URL, properties).orElse(null),
-                version);
+                version,
+                getStringOrChunkedProperty(IMAGE, properties).orElse(null),
+                getStringProperty(MEDIA_TYPE, properties).orElse(null),
+                hasDefinedFiles(properties));
+    }
+
+    /**
+     * Whether the datum has a {@code files} property that CIP-68 defines: a non-empty list whose every entry is a map
+     * with a {@code mediaType} byte string and a {@code src} that is a URI with one of the allowed schemes. {@code files}
+     * is optional and not stored here; it only tells a 222 NFT or a 444 RFT datum apart (see the label inference in
+     * {@link Cip68EventListener}), and a {@code files} property that breaks the definition does not count.
+     */
+    private boolean hasDefinedFiles(MapPlutusData properties) {
+        if (!(properties.getMap().get(BytesPlutusData.of(FILES)) instanceof ListPlutusData files)
+                || files.getPlutusDataList().isEmpty()) {
+            return false;
+        }
+        return files.getPlutusDataList().stream().allMatch(this::isDefinedFile);
+    }
+
+    private boolean isDefinedFile(PlutusData entry) {
+        if (!(entry instanceof MapPlutusData file)
+                || !(file.getMap().get(BytesPlutusData.of(MEDIA_TYPE)) instanceof BytesPlutusData)) {
+            return false;
+        }
+        Optional<String> src = getStringOrChunkedProperty("src", file);
+        return src.isPresent() && !src.get().isBlank() && Cip68Uri.hasAllowedScheme(src.get());
     }
 
     /** Internal record for the unwrapped CIP-68 envelope (properties Map, range-checked version). */
@@ -222,14 +255,15 @@ public class Cip68FTDatumParser {
     }
 
     /**
-     * Reads a CIP-68 {@code uri} ({@code uri = bounded_bytes / [* bounded_bytes]}), used for the FT {@code logo}: a value
+     * Reads a CIP-68 {@code uri} ({@code uri = bounded_bytes / [* bounded_bytes]}), used for the FT {@code logo} and the
+     * NFT and RFT {@code image}: a value
      * longer than 64 bytes, the most a Plutus byte string holds, is split into a list of byte-string chunks, and this
      * joins them back together. The chunks are joined as bytes and decoded once, so a multi-byte character cut by a
      * chunk boundary survives. Elements of the list that are not byte strings are ignored.
      * <p>
-     * The value is capped at {@value #LOGO_MAX_BYTES} bytes (the CIP-26 logo has the same limit): an over-long value is
-     * dropped with a warning and the rest of the datum is kept. The scheme is not validated; the value is stored as
-     * written.
+     * The value is capped at {@value #URI_MAX_BYTES} bytes (the CIP-26 logo has the same limit): an over-long value is
+     * dropped with a warning and the rest of the datum is kept. The scheme is not checked here;
+     * {@link Cip68FungibleTokenService#invalidReason} checks it.
      */
     private Optional<String> getStringOrChunkedProperty(String propertyName, MapPlutusData mapPlutusData) {
         PlutusData property = mapPlutusData.getMap().get(BytesPlutusData.of(propertyName));
@@ -242,8 +276,8 @@ public class Cip68FTDatumParser {
         if (value == null) {
             return Optional.empty();
         }
-        if (value.length > LOGO_MAX_BYTES) {
-            log.warn("Ignoring CIP-68 '{}' of {} bytes (max {})", propertyName, value.length, LOGO_MAX_BYTES);
+        if (value.length > URI_MAX_BYTES) {
+            log.warn("Ignoring CIP-68 '{}' of {} bytes (max {})", propertyName, value.length, URI_MAX_BYTES);
             return Optional.empty();
         }
         // a single byte string keeps an empty value ("" is what some tokens declare); an empty list is nothing

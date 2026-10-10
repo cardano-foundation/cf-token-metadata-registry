@@ -14,6 +14,7 @@ import ch.qos.logback.core.read.ListAppender;
 import com.bloxbean.cardano.client.util.HexUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.cardanofoundation.tokenmetadata.registry.api.model.cip68.FungibleTokenMetadata;
+import org.cardanofoundation.tokenmetadata.registry.api.model.cip68.ParsedCip68Datum;
 import org.cardanofoundation.tokenmetadata.registry.api.util.AssetType;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
@@ -59,7 +60,8 @@ class Cip68FTDatumParserTest {
 
         String fldtCip68Datum = "d8799fa648646563696d616c73064b6465736372697074696f6e5f5840546865206f6666696369616c20746f6b656e206f6620466c756964546f6b656e732c2061206c656164696e6720446546692065636f73797374656d206675656c5827656420627920696e6e6f766174696f6e20616e6420636f6d6d756e697479206261636b696e672eff446c6f676f582068747470733a2f2f666c756964746f6b656e732e636f6d2f666c64742e706e67446e616d6544464c4454467469636b657244464c44544777656273697465581868747470733a2f2f666c756964746f6b656e732e636f6d2f0101ff";
 
-        Optional<FungibleTokenMetadata> tokenMetadataOpt = cip68FTDatumParser.parse(fldtCip68Datum);
+        Optional<FungibleTokenMetadata> tokenMetadataOpt = cip68FTDatumParser.parse(fldtCip68Datum)
+                .map(ParsedCip68Datum::toFungibleTokenMetadata);
 
         if (tokenMetadataOpt.isEmpty()) {
             Assertions.fail();
@@ -84,7 +86,8 @@ class Cip68FTDatumParserTest {
 
         String fldtCip68Datum = "d8799fa7446e616d65445553444d4b6465736372697074696f6e5837466961742d6261636b656420737461626c65636f696e206e617469766520746f207468652043617264616e6f20626c6f636b636861696e467469636b6572445553444d4375726c5168747470733a2f2f6d6568656e2e696f2f446c6f676f5835697066733a2f2f516d5078596570454648747533474252754b3652684c35774b72536d7867596a624575384341644677344467687148646563696d616c7306456c6567616c582868747470733a2f2f6d6568656e2e696f2f6d6568656e5f7465726d735f6f665f736572766963652f01ff";
 
-        Optional<FungibleTokenMetadata> tokenMetadataOpt = cip68FTDatumParser.parse(fldtCip68Datum);
+        Optional<FungibleTokenMetadata> tokenMetadataOpt = cip68FTDatumParser.parse(fldtCip68Datum)
+                .map(ParsedCip68Datum::toFungibleTokenMetadata);
 
         if (tokenMetadataOpt.isEmpty()) {
             Assertions.fail();
@@ -119,7 +122,7 @@ class Cip68FTDatumParserTest {
     @Nested
     class OutOfRangeDecimals {
 
-        private Optional<FungibleTokenMetadata> parseWithDecimals(BigInteger decimals) throws Exception {
+        private Optional<ParsedCip68Datum> parseWithDecimals(BigInteger decimals) throws Exception {
             MapPlutusData properties = metadata("Token");
             properties.put(BytesPlutusData.of("decimals"), BigIntPlutusData.of(decimals));
             return cip68FTDatumParser.parse(datumHex(properties, BigInteger.ONE));
@@ -170,11 +173,11 @@ class Cip68FTDatumParserTest {
         }
 
         @Test
-        void shouldAcceptVersionUpToLongMaxAndRejectBeyond() throws Exception {
-            assertThat(cip68FTDatumParser.parse(datumHex(metadata("Token"), BigInteger.valueOf(Long.MAX_VALUE))))
-                    .hasValueSatisfying(m -> assertThat(m.version()).isEqualTo(Long.MAX_VALUE));
-            assertThat(cip68FTDatumParser.parse(datumHex(metadata("Token"), BigInteger.TWO.pow(63))))
-                    .isEmpty();
+        void shouldRejectEveryVersionBeyondLongWhateverItNarrowsTo() throws Exception {
+            // 2^63 narrows to Long.MIN_VALUE, 2^64 + 4 to 4 (a defined version): both must be rejected, not narrowed
+            for (BigInteger version : List.of(BigInteger.TWO.pow(63), BigInteger.TWO.pow(64).add(BigInteger.valueOf(4)))) {
+                assertThat(cip68FTDatumParser.parse(datumHex(metadata("Token"), version))).as(version.toString()).isEmpty();
+            }
         }
     }
 
@@ -428,8 +431,9 @@ class Cip68FTDatumParserTest {
     }
 
     /**
-     * The datum layout (flat or nested) is decided by the {@code "721"} key, as the CIP's retrieval steps say, not by
-     * the version. A version CIP-68 does not define (1 to 4) is read the same way, with one warning naming the token.
+     * CIP-68 defines versions 1 to 4. A datum with another version is not indexed, and one warning names the token and
+     * the version. Within the range, the layout (flat or nested) is decided by the {@code "721"} key, as the CIP's
+     * retrieval steps say, not by the version.
      */
     @Nested
     class DatumLayoutAndVersion {
@@ -479,56 +483,45 @@ class Cip68FTDatumParserTest {
         }
 
         @Test
-        void readsAnUndefinedVersionAndWarnsOnceNamingTheToken() throws Exception {
+        void rejectsAnUndefinedVersionAndWarnsOnceNamingTheToken() throws Exception {
             for (long version : new long[]{0, 5, 100, -1, Long.MAX_VALUE}) {
                 logs.list.clear();
 
                 assertThat(cip68FTDatumParser.parse(datumHex(metadata("Token"), BigInteger.valueOf(version)), REFERENCE_NFT))
-                        .as("version %d", version)
-                        .hasValueSatisfying(m -> assertThat(m.version()).isEqualTo(version));
+                        .as("version %d", version).isEmpty();
                 assertThat(warnings()).as("version %d", version).singleElement().satisfies(w -> assertThat(w)
-                        .contains("version " + version).contains(POLICY).contains(REFERENCE_NFT.assetName())
-                        .contains("does not define (1 to 4)"));
+                        .contains("Skipping").contains("version " + version).contains(POLICY)
+                        .contains(REFERENCE_NFT.assetName()).contains("(1 to 4)"));
             }
         }
 
         @Test
         void warnsWithoutATokenWhenThereIsNoReferenceNft() throws Exception {
-            assertThat(cip68FTDatumParser.parse(datumHex(metadata("Token"), BigInteger.valueOf(7)))).isPresent();
+            assertThat(cip68FTDatumParser.parse(datumHex(metadata("Token"), BigInteger.valueOf(7)))).isEmpty();
 
-            assertThat(warnings()).singleElement().satisfies(w -> assertThat(w).contains("version 7"));
+            assertThat(warnings()).singleElement().satisfies(w -> assertThat(w).contains("Skipping").contains("version 7"));
         }
 
         @Test
-        void readsTheRealMainnetVersion0FungibleToken() {
+        void rejectsTheRealMainnetVersion0FungibleToken() {
             AssetType referenceNft = new AssetType(GNRC_POLICY, GNRC_REFERENCE_NFT);
 
-            assertThat(cip68FTDatumParser.parse(GNRC_VERSION_0_DATUM, referenceNft)).hasValue(new FungibleTokenMetadata(
-                    6L,
-                    "Asset backed token secured by Greenland rubies and sapphires",
-                    "",
-                    "Greenland Reserve Coin",
-                    "GNRC",
-                    "https://www.the-mint.com/compliance",
-                    0L));
-            assertThat(warnings()).singleElement().satisfies(w -> assertThat(w).contains("version 0").contains(GNRC_POLICY));
+            assertThat(cip68FTDatumParser.parse(GNRC_VERSION_0_DATUM, referenceNft)).isEmpty();
+            assertThat(warnings()).singleElement().satisfies(w -> assertThat(w)
+                    .contains("version 0").contains(GNRC_POLICY).contains(GNRC_REFERENCE_NFT));
         }
 
         @Test
-        void readsTheRealMainnetVersion100DatumByItsStructure() {
+        void rejectsTheRealMainnetVersion100Datum() {
             AssetType referenceNft = new AssetType(HOSKY_POLICY, HOSKY_REFERENCE_NFT);
 
-            assertThat(cip68FTDatumParser.parse(HOSKY_VERSION_100_DATUM, referenceNft)).hasValueSatisfying(m -> {
-                assertThat(m.version()).isEqualTo(100L);
-                assertThat(m.name()).isEqualTo("HOSKY 10K NFT 0002");
-                assertThat(m.description()).isEqualTo("This is a reference token for CIP-68.");
-            });
+            assertThat(cip68FTDatumParser.parse(HOSKY_VERSION_100_DATUM, referenceNft)).isEmpty();
             assertThat(warnings()).singleElement().satisfies(w -> assertThat(w).contains("version 100").contains(HOSKY_POLICY));
         }
 
         @Test
-        void readsANestedDatumAsNestedWhateverItsVersion() throws Exception {
-            for (long version : new long[]{1, 3, 5}) {
+        void readsANestedDatumAsNestedWhateverItsDefinedVersion() throws Exception {
+            for (long version = 1; version <= 4; version++) {
                 String datum = datumHex(nested(metadata("Nested")), BigInteger.valueOf(version));
 
                 assertThat(cip68FTDatumParser.hasNestedMetadata(datum)).as("version %d", version).isTrue();
@@ -573,7 +566,8 @@ class Cip68FTDatumParserTest {
                 properties.put(BytesPlutusData.of(key), BytesPlutusData.of(invalidUtf8));
             }
 
-            assertThat(cip68FTDatumParser.parse(datumHex(properties, BigInteger.ONE))).hasValue(
+            assertThat(cip68FTDatumParser.parse(datumHex(properties, BigInteger.ONE))
+                    .map(ParsedCip68Datum::toFungibleTokenMetadata)).hasValue(
                     new FungibleTokenMetadata(null, "fffe41", "fffe41", "fffe41", "fffe41", "fffe41", 1L));
         }
 
@@ -608,13 +602,86 @@ class Cip68FTDatumParserTest {
         }
     }
 
+    /** The fields that tell a 222 NFT or a 444 RFT datum and that CIP-68 requires of it are read for validation. */
+    @Nested
+    class LabelFields {
+
+        @Test
+        void readsImageMediaTypeAndFiles() throws Exception {
+            MapPlutusData properties = metadata("Token");
+            properties.put(BytesPlutusData.of("image"), BytesPlutusData.of("ipfs://bafy"));
+            properties.put(BytesPlutusData.of("mediaType"), BytesPlutusData.of("image/png"));
+            properties.put(BytesPlutusData.of("files"), ListPlutusData.of(file("image/png", "ipfs://bafy")));
+
+            assertThat(cip68FTDatumParser.parse(datumHex(properties, BigInteger.ONE))).hasValueSatisfying(datum -> {
+                assertThat(datum.image()).isEqualTo("ipfs://bafy");
+                assertThat(datum.mediaType()).isEqualTo("image/png");
+                assertThat(datum.hasFiles()).isTrue();
+            });
+        }
+
+        @Test
+        void doesNotCountAFilesPropertyThatCip68DoesNotDefine() throws Exception {
+            MapPlutusData noMediaType = new MapPlutusData();
+            noMediaType.put(BytesPlutusData.of("src"), BytesPlutusData.of("ipfs://bafy"));
+            for (PlutusData files : List.of(new ListPlutusData(), BytesPlutusData.of("ipfs://bafy"),
+                    ListPlutusData.of(BytesPlutusData.of("ipfs://bafy")), ListPlutusData.of(noMediaType),
+                    ListPlutusData.of(file("image/png", "QmXyz")), ListPlutusData.of(file("image/png", "")),
+                    ListPlutusData.of(file("image/png", "ipfs://bafy"), file("image/png", "iagon://abc")))) {
+                MapPlutusData properties = metadata("Token");
+                properties.put(BytesPlutusData.of("files"), files);
+
+                assertThat(cip68FTDatumParser.parse(datumHex(properties, BigInteger.ONE)))
+                        .as(files.toString()).hasValueSatisfying(datum -> assertThat(datum.hasFiles()).isFalse());
+            }
+        }
+
+        @Test
+        void countsAFilesEntryWithAChunkedSrc() throws Exception {
+            MapPlutusData file = new MapPlutusData();
+            file.put(BytesPlutusData.of("mediaType"), BytesPlutusData.of("image/png"));
+            file.put(BytesPlutusData.of("src"), ListPlutusData.of(BytesPlutusData.of("ipfs://"), BytesPlutusData.of("bafy")));
+            MapPlutusData properties = metadata("Token");
+            properties.put(BytesPlutusData.of("files"), ListPlutusData.of(file));
+
+            assertThat(cip68FTDatumParser.parse(datumHex(properties, BigInteger.ONE)))
+                    .hasValueSatisfying(datum -> assertThat(datum.hasFiles()).isTrue());
+        }
+
+        private static MapPlutusData file(String mediaType, String src) {
+            MapPlutusData file = new MapPlutusData();
+            file.put(BytesPlutusData.of("mediaType"), BytesPlutusData.of(mediaType));
+            file.put(BytesPlutusData.of("src"), BytesPlutusData.of(src));
+            return file;
+        }
+
+        @Test
+        void joinsAChunkedImage() throws Exception {
+            MapPlutusData properties = metadata("Token");
+            properties.put(BytesPlutusData.of("image"),
+                    ListPlutusData.of(BytesPlutusData.of("ipfs://"), BytesPlutusData.of("bafy")));
+
+            assertThat(cip68FTDatumParser.parse(datumHex(properties, BigInteger.ONE)))
+                    .hasValueSatisfying(datum -> assertThat(datum.image()).isEqualTo("ipfs://bafy"));
+        }
+
+        @Test
+        void hasNoLabelFieldsWhenTheDatumHasNone() throws Exception {
+            assertThat(cip68FTDatumParser.parse(datumHex(metadata("Token"), BigInteger.ONE))).hasValueSatisfying(datum -> {
+                assertThat(datum.image()).isNull();
+                assertThat(datum.mediaType()).isNull();
+                assertThat(datum.hasFiles()).isFalse();
+            });
+        }
+    }
+
     /** {@code logo} is capped at 64 KiB, the CIP-26 logo limit, measured on the joined bytes. */
     @Nested
     class LogoSizeCap {
 
         private static final int MAX = 64 * 1024;
 
-        private Optional<FungibleTokenMetadata> parseWithLogo(PlutusData logo) throws Exception {
+        private Optional<ParsedCip68Datum> parseWithLogo(PlutusData logo) throws Exception {
             MapPlutusData properties = metadata("Token");
             properties.put(BytesPlutusData.of("logo"), logo);
             return cip68FTDatumParser.parse(datumHex(properties, BigInteger.ONE));

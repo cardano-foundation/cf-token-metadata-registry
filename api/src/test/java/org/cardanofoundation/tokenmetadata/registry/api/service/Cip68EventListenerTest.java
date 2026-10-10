@@ -7,7 +7,7 @@ import com.bloxbean.cardano.yaci.store.events.EventMetadata;
 import com.bloxbean.cardano.yaci.store.events.RollbackEvent;
 import com.bloxbean.cardano.yaci.store.utxo.domain.AddressUtxoEvent;
 import com.bloxbean.cardano.yaci.store.utxo.domain.TxInputOutput;
-import org.cardanofoundation.tokenmetadata.registry.api.model.cip68.FungibleTokenMetadata;
+import org.cardanofoundation.tokenmetadata.registry.api.model.cip68.ParsedCip68Datum;
 import org.cardanofoundation.tokenmetadata.registry.api.util.AssetType;
 import org.cardanofoundation.tokenmetadata.registry.entity.MetadataReferenceNft;
 import org.cardanofoundation.tokenmetadata.registry.repository.MetadataReferenceNftRepository;
@@ -55,8 +55,9 @@ class Cip68EventListenerTest {
         @Test
         void savesEntityWithCorrectFields() {
             String datum = "d8799fa34446756e6e";
-            FungibleTokenMetadata metadata = new FungibleTokenMetadata(
-                    6L, "A test token", "logo", "TestToken", "TST", "https://test.com", 1L);
+            ParsedCip68Datum metadata = new ParsedCip68Datum(
+                    6L, "A test token", "https://test.com/logo.png", "TestToken", "TST", "https://test.com", 1L,
+                    null, null, false);
 
             Amt refNftAmt = Amt.builder()
                     .unit(POLICY_ID + REF_NFT_ASSET_NAME)
@@ -71,7 +72,7 @@ class Cip68EventListenerTest {
 
             when(cip68FungibleTokenService.extractReferenceNfts(utxo)).thenReturn(List.of(refNftAmt));
             when(cip68DatumParser.parse(datum, REF_NFT)).thenReturn(Optional.of(metadata));
-            when(cip68FungibleTokenService.isValidFTMetadata(metadata)).thenReturn(true);
+            when(cip68FungibleTokenService.invalidReason(metadata, 333)).thenReturn(Optional.empty());
 
             listener.processTransaction(buildEvent(100L, utxo));
 
@@ -137,8 +138,8 @@ class Cip68EventListenerTest {
         @Test
         void skipsWhenMetadataInvalid() {
             String datum = "d8799fa34446756e6e";
-            FungibleTokenMetadata metadata = new FungibleTokenMetadata(
-                    null, null, null, null, null, null, null);
+            ParsedCip68Datum metadata = new ParsedCip68Datum(
+                    null, null, null, null, null, null, 1L, null, null, false);
 
             Amt refNftAmt = Amt.builder()
                     .unit(POLICY_ID + REF_NFT_ASSET_NAME)
@@ -153,7 +154,7 @@ class Cip68EventListenerTest {
 
             when(cip68FungibleTokenService.extractReferenceNfts(utxo)).thenReturn(List.of(refNftAmt));
             when(cip68DatumParser.parse(datum, REF_NFT)).thenReturn(Optional.of(metadata));
-            when(cip68FungibleTokenService.isValidFTMetadata(metadata)).thenReturn(false);
+            when(cip68FungibleTokenService.invalidReason(metadata, 333)).thenReturn(Optional.of("it has no name"));
 
             listener.processTransaction(buildEvent(100L, utxo));
 
