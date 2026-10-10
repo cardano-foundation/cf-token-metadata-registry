@@ -12,16 +12,17 @@
 
 # Cardano offchain metadata registry
 
-A reference implementation of a Cardano [CIP-26](https://github.com/cardano-foundation/CIPs/tree/master/CIP-0026) compliant offchain metadata registry with [CIP-68](https://github.com/cardano-foundation/CIPs/tree/master/CIP-0068) support.
+A reference implementation of a Cardano [CIP-26](https://github.com/cardano-foundation/CIPs/tree/master/CIP-0026) compliant offchain metadata registry with [CIP-68](https://github.com/cardano-foundation/CIPs/tree/master/CIP-0068) and [CIP-113](https://github.com/cardano-foundation/CIPs/tree/master/CIP-0113) support.
 
 ## Overview
 
-The registry is a Spring Boot application backed by PostgreSQL. It serves token metadata from two sources:
+The registry is a Spring Boot application backed by PostgreSQL. It serves token metadata from three sources:
 
 - **CIP-26 (offchain)**: metadata is synced from a [GitHub repository](https://github.com/cardano-foundation/cardano-token-registry) on a scheduled basis (every 60 minutes by default).
 - **CIP-68 (on-chain)**: metadata is read directly from the Cardano blockchain via [Yaci Store](https://github.com/bloxbean/yaci-store), which connects to a Cardano node and indexes CIP-68 reference NFT datums.
+- **CIP-113 (programmable tokens)**: registry node NFTs for programmable tokens are indexed from the chain and surfaced as extensions on the V2 API. Supported on preview, preprod, and mainnet — enabled per-network by setting `CIP113_REGISTRY_NFT_POLICY_IDS`.
 
-The V2 API queries both standards by priority (`CIP_68,CIP_26` by default). CIP-68 on-chain data takes precedence when available.
+The V2 API queries CIP-26 and CIP-68 by priority (`CIP_68,CIP_26` by default). CIP-68 on-chain data takes precedence when available. CIP-113 extensions are appended when the token's policy ID is in the configured programmable token registry.
 
 > [!NOTE]
 > By default, Yaci Store connects to a public Cardano node (`STORE_CARDANO_HOST` in `.env`). You can point it to your own node if preferred.
@@ -36,14 +37,26 @@ See the [API Reference](https://cardano-foundation.github.io/cf-token-metadata-r
 
 ### Mainnet
 
+Syncs CIP-26 offchain metadata from GitHub and CIP-68 on-chain metadata from a public Cardano mainnet node. CIP-113 indexing is enabled for the official mainnet registry deployment via `CIP113_REGISTRY_NFT_POLICY_IDS` in [`.env`](./.env).
+
 ```console
 docker compose up
 ```
 
 ### Preprod
 
+Syncs CIP-26 metadata from the [testnet registry](https://github.com/input-output-hk/metadata-registry-testnet), CIP-68 on-chain metadata, and CIP-113 programmable token registry nodes from a public preprod node.
+
 ```console
 docker compose --env-file .env.preprod up
+```
+
+### Preview
+
+Syncs CIP-68 on-chain metadata and CIP-113 programmable token registry nodes from the preview testnet. CIP-26 offchain sync is disabled since no offchain registry exists for preview.
+
+```console
+docker compose --env-file .env.preview up
 ```
 
 ## API Endpoints
@@ -61,8 +74,8 @@ For the full API reference (including V1 endpoints and query parameters), see th
 |--------|------|-------------|------------------|
 | GET | `/actuator/health` | Aggregated health status with details for all indicators | — |
 | GET | `/actuator/health/startup` | Checks database connectivity and Cardano node connection | Startup |
-| GET | `/actuator/health/liveness` | Checks offchain sync status and Cardano node connection | Liveness |
-| GET | `/actuator/health/readiness` | Checks offchain sync, on-chain sync progress (100%), and database | Readiness |
+| GET | `/actuator/health/liveness` | Checks the Cardano node connection (block reception) | Liveness |
+| GET | `/actuator/health/readiness` | Checks offchain sync, on-chain sync (caught up to chain tip), and database | Readiness |
 | GET | `/actuator/info` | Application info | — |
 | GET | `/actuator/prometheus` | Prometheus metrics (Micrometer) | — |
 | GET | `/actuator/metrics` | Micrometer metrics listing and details | — |
@@ -70,7 +83,7 @@ For the full API reference (including V1 endpoints and query parameters), see th
 
 ## Configuration
 
-All settings are controlled via environment variables. See [`.env`](./.env) (mainnet) and [`.env.preprod`](./.env.preprod) (preprod) for the full list.
+All settings are controlled via environment variables. See [`.env`](./.env) (mainnet), [`.env.preprod`](./.env.preprod) (preprod), and [`.env.preview`](./.env.preview) (preview) for the full list.
 
 | Variable | Description | Default |
 |----------|-------------|---------|
@@ -78,6 +91,7 @@ All settings are controlled via environment variables. See [`.env`](./.env) (mai
 | `CIP_QUERY_PRIORITY` | CIP priority order for V2 queries | `CIP_68,CIP_26` |
 | `STORE_CARDANO_HOST` | Cardano node host for CIP-68 sync | `backbone.mainnet.cardanofoundation.org` |
 | `STORE_CARDANO_PROTOCOL_MAGIC` | Network protocol magic | `764824073` (mainnet) |
+| `CIP113_REGISTRY_NFT_POLICY_IDS` | Comma-separated CIP-113 registry NFT policy IDs (enables CIP-113 when non-empty) | _(empty)_ |
 | `API_DOCKERFILE` | Dockerfile variant for `docker compose build` | `api/Dockerfile.jvm` |
 
 ## Docker Images
@@ -135,6 +149,9 @@ API_DOCKERFILE=api/Dockerfile.native docker compose up -d --build
 
 # Preprod
 docker compose --env-file .env.preprod up -d
+
+# Preview (CIP-113 programmable tokens)
+docker compose --env-file .env.preview up -d
 
 # Read-only mode (no sync, no node connection)
 COMPOSE_PROFILES=ro docker compose up -d
@@ -211,6 +228,7 @@ mvn clean package -pl api,common -am -DskipTests -Pnative
 
 - [x] CIP-26 compliant REST API
 - [x] CIP-68 fungible token support (V2 API with priority-based querying)
+- [x] CIP-113 programmable token registry support (preview, preprod, mainnet — enabled via `CIP113_REGISTRY_NFT_POLICY_IDS`)
 - [x] Prometheus metrics (`/actuator/prometheus`)
 - [x] Kubernetes / Helm deployment support (`deploy/`)
 - [x] GraalVM native-image builds — production-supported from `1.5.1`
