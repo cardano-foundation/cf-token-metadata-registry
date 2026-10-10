@@ -121,10 +121,10 @@ public class SyncStatusIntegrationIT extends BaseIntegrationIT {
                     API_BASE_URL + "/actuator/health/startup", String.class);
 
             DocumentContext json = JsonPath.parse(response.getBody());
-            assertThat(json.read("$.components.onchainConnection", Object.class)).isNotNull();
-            assertThat(json.read("$.components.onchainConnection.status", String.class)).isEqualTo("UP");
-            assertThat(json.read("$.components.onchainConnection.details.connectionAlive", Boolean.class)).isTrue();
-            assertThat(json.read("$.components.onchainConnection.details.receivingBlocks", Boolean.class)).isTrue();
+            assertThat(json.read("$.components.nodeHealth", Object.class)).isNotNull();
+            assertThat(json.read("$.components.nodeHealth.status", String.class)).isEqualTo("UP");
+            assertThat(json.read("$.components.nodeHealth.details.connectionAlive", Boolean.class)).isTrue();
+            assertThat(json.read("$.components.nodeHealth.details.receivingBlocks", Boolean.class)).isTrue();
         }
     }
 
@@ -150,7 +150,7 @@ public class SyncStatusIntegrationIT extends BaseIntegrationIT {
 
             DocumentContext json = JsonPath.parse(response.getBody());
             assertThat(json.read("$.components.livenessState", Object.class)).isNotNull();
-            assertThat(json.read("$.components.onchainConnection", Object.class)).isNotNull();
+            assertThat(json.read("$.components.nodeHealth", Object.class)).isNotNull();
         }
     }
 
@@ -170,13 +170,13 @@ public class SyncStatusIntegrationIT extends BaseIntegrationIT {
         }
 
         @Test
-        void shouldIncludeOffchainSync() {
+        void shouldIncludeCip26Sync() {
             ResponseEntity<String> response = restTemplate.getForEntity(
                     API_BASE_URL + "/actuator/health/readiness", String.class);
 
             DocumentContext json = JsonPath.parse(response.getBody());
-            assertThat(json.read("$.components.offchainSync", Object.class)).isNotNull();
-            assertThat(json.read("$.components.offchainSync.status", String.class)).isEqualTo("UP");
+            assertThat(json.read("$.components.cip26Sync", Object.class)).isNotNull();
+            assertThat(json.read("$.components.cip26Sync.status", String.class)).isEqualTo("UP");
         }
 
         @Test
@@ -185,10 +185,10 @@ public class SyncStatusIntegrationIT extends BaseIntegrationIT {
                     API_BASE_URL + "/actuator/health/readiness", String.class);
 
             DocumentContext json = JsonPath.parse(response.getBody());
-            assertThat(json.read("$.components.onchainReadiness", Object.class)).isNotNull();
-            assertThat(json.read("$.components.onchainReadiness.status", String.class)).isEqualTo("UP");
-            assertThat(json.read("$.components.onchainReadiness.details.syncStatus", String.class)).isEqualTo("Synced");
-            assertThat(json.read("$.components.onchainReadiness.details.syncPercentage", Object.class)).isNotNull();
+            assertThat(json.read("$.components.nodeSync", Object.class)).isNotNull();
+            assertThat(json.read("$.components.nodeSync.status", String.class)).isEqualTo("UP");
+            assertThat(json.read("$.components.nodeSync.details.syncStatus", String.class)).isEqualTo("Synced");
+            assertThat(json.read("$.components.nodeSync.details.syncPercentage", Object.class)).isNotNull();
         }
 
         @Test

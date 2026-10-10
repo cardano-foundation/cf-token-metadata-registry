@@ -15,20 +15,20 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class OffchainSyncHealthIndicatorTest {
+class Cip26SyncHealthIndicatorTest {
 
     @Mock
     private TokenMetadataSyncService tokenMetadataSyncService;
 
     @InjectMocks
-    private OffchainSyncHealthIndicator offchainSyncHealthIndicator;
+    private Cip26SyncHealthIndicator cip26SyncHealthIndicator;
 
     @Test
     void syncDone_shouldReturnUp() {
         when(tokenMetadataSyncService.getSyncStatus())
                 .thenReturn(SyncStatus.builder().isInitialSyncDone(true).status(SyncStatusEnum.SYNC_DONE).build());
 
-        Health health = offchainSyncHealthIndicator.health();
+        Health health = cip26SyncHealthIndicator.health();
 
         assertThat(health.getStatus()).isEqualTo(Status.UP);
         assertThat(health.getDetails()).containsEntry("syncStatus", "Sync done");
@@ -39,7 +39,7 @@ class OffchainSyncHealthIndicatorTest {
         when(tokenMetadataSyncService.getSyncStatus())
                 .thenReturn(SyncStatus.builder().isInitialSyncDone(true).status(SyncStatusEnum.SYNC_IN_EXTRA_JOB).build());
 
-        Health health = offchainSyncHealthIndicator.health();
+        Health health = cip26SyncHealthIndicator.health();
 
         assertThat(health.getStatus()).isEqualTo(Status.UP);
     }
@@ -49,7 +49,7 @@ class OffchainSyncHealthIndicatorTest {
         when(tokenMetadataSyncService.getSyncStatus())
                 .thenReturn(SyncStatus.builder().isInitialSyncDone(false).status(SyncStatusEnum.SYNC_IN_PROGRESS).build());
 
-        Health health = offchainSyncHealthIndicator.health();
+        Health health = cip26SyncHealthIndicator.health();
 
         assertThat(health.getStatus()).isEqualTo(Status.OUT_OF_SERVICE);
         assertThat(health.getDetails()).containsEntry("syncStatus", "Sync in progress");
@@ -60,7 +60,7 @@ class OffchainSyncHealthIndicatorTest {
         when(tokenMetadataSyncService.getSyncStatus())
                 .thenReturn(SyncStatus.builder().isInitialSyncDone(false).status(SyncStatusEnum.SYNC_NOT_STARTED).build());
 
-        Health health = offchainSyncHealthIndicator.health();
+        Health health = cip26SyncHealthIndicator.health();
 
         assertThat(health.getStatus()).isEqualTo(Status.OUT_OF_SERVICE);
         assertThat(health.getDetails()).containsEntry("syncStatus", "Sync not started");
@@ -71,7 +71,7 @@ class OffchainSyncHealthIndicatorTest {
         when(tokenMetadataSyncService.getSyncStatus())
                 .thenReturn(SyncStatus.builder().isInitialSyncDone(false).status(SyncStatusEnum.SYNC_ERROR).build());
 
-        Health health = offchainSyncHealthIndicator.health();
+        Health health = cip26SyncHealthIndicator.health();
 
         assertThat(health.getStatus()).isEqualTo(Status.DOWN);
         assertThat(health.getDetails()).containsEntry("syncStatus", "Error while syncing");
