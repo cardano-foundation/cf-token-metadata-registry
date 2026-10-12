@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
-public class Cip26SyncHealthIndicator implements HealthIndicator {
+public class OffchainSyncHealthIndicator implements HealthIndicator {
 
     private static final String DETAIL_SYNC_STATUS = "syncStatus";
 
