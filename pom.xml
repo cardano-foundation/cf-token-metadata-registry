@@ -73,14 +73,14 @@
         <version.commons-cli>1.9.0</version.commons-cli>
         <version.cardano-client-lib>0.7.2</version.cardano-client-lib>
         <!--
-            TODO: upgrade yaci-store to 2.0.6 or later as soon as it is on Maven Central.
-            2.0.5 and 2.0.6 are tagged on GitHub (prereleases) but not yet published there, so
-            2.0.4 is the newest we can build against. 2.0.6 keeps the sync running when a
-            reference script or CIP-68 datum is too deeply nested to decode or hash, and makes
-            the bulk cursor deletes transactional. yaci-store 2.0.4 ships yaci 0.4.6 (the latest
-            stable yaci), so no yaci override is needed.
+            yaci (the Cardano mini-protocol and CBOR library) is pinned on its own, so a yaci fix
+            can be picked up as soon as it is released, without waiting for a yaci-store release.
+            Keep it at or above the version yaci-store brings in. yaci-store 2.0.7 brings yaci
+            0.4.7, which fixes a block with 128 to 255 transactions being read as empty (mainnet
+            block 14,053,493).
         -->
-        <version.yaci-store>2.0.4</version.yaci-store>
+        <version.yaci>0.4.7</version.yaci>
+        <version.yaci-store>2.0.7</version.yaci-store>
         <version.jgit>7.1.0.202411261347-r</version.jgit>
         <version.mockito>5.18.0</version.mockito>
         <version.byte-buddy>1.17.4</version.byte-buddy>
@@ -102,6 +102,11 @@
                 <type>pom</type>
                 <version>${version.spring-boot}</version>
                 <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.bloxbean.cardano</groupId>
+                <artifactId>yaci</artifactId>
+                <version>${version.yaci}</version>
             </dependency>
             <dependency>
                 <groupId>org.springdoc</groupId>
