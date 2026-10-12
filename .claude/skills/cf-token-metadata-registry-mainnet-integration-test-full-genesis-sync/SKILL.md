@@ -17,7 +17,7 @@ Your job is to drive this remotely. You forward the remote API (port 8080) and P
 
 - **Never blow away an existing instance silently.** If the remote already has a stack running, the postgres volume populated, or the target ports occupied, **STOP** and report the situation to the user. Ask whether to clean up or abort. Don't `docker compose down -v` on your own.
 - **Fresh genesis means empty data.** A genesis run requires the Postgres volume to be empty. If the project has a named volume with data, surface this and let the user decide.
-- **Don't run regression tests too early.** CIP-26 tests need `offchainSync == UP`. CIP-68 tests need the indexer at tip (`onchainReadiness == UP`, syncPercentage ≈ 100). Running them earlier produces meaningless failures.
+- **Don't run regression tests too early.** CIP-26 tests need `offchainSync == UP`. CIP-68 tests need the indexer at tip (`nodeSync == UP`, syncPercentage ≈ 100). Running them earlier produces meaningless failures.
 - **Genesis sync is long.** Mainnet sync from slot 65836843 (current `.env` start) can take hours; from true genesis (slot 0), days. Set realistic expectations with the user before kicking off, and prefer long fallback waits (1200–1800s) when polling.
 
 ## Required configuration
@@ -100,7 +100,7 @@ Run `scripts/open-tunnels.sh`. It opens an SSH connection in the background with
 
 ### Step 5 — Wait for CIP-26 sync (offchain)
 
-Run `scripts/wait-offchain-ready.sh`. It polls the **aggregated** `http://localhost:$LOCAL_API_PORT/actuator/health` (NOT `/health/liveness`) and waits until `components.offchainSync.status == "UP"`. Note: `offchainSync` is exposed in the readiness group + aggregated endpoint, **not** in the liveness group (liveness only carries `livenessState` + `onchainConnection`). Use the `ScheduleWakeup` tool with **1200–1800s** between polls if you're driving this directly — offchain sync typically takes 2–15 minutes; polling more often wastes cache TTL for no benefit.
+Run `scripts/wait-offchain-ready.sh`. It polls the **aggregated** `http://localhost:$LOCAL_API_PORT/actuator/health` (NOT `/health/liveness`) and waits until `components.offchainSync.status == "UP"`. Note: `offchainSync` is exposed in the readiness group + aggregated endpoint, **not** in the liveness group (liveness only carries `livenessState` + `nodeHealth`). Use the `ScheduleWakeup` tool with **1200–1800s** between polls if you're driving this directly — offchain sync typically takes 2–15 minutes; polling more often wastes cache TTL for no benefit.
 
 While polling, print the current status periodically so the user sees progress.
 
@@ -121,7 +121,7 @@ If any CIP-26 test fails → report it to the user immediately (don't wait for C
 
 **Do NOT rely on the API's `syncPercentage` for progress.** yaci-store computes it as `cursor_block / network_tip_block` from **Byron genesis**, so when `STORE_CARDANO_SYNC_START_SLOT` is mid-chain (it is — ~slot 65.8M, late Alonzo) the value **starts around ~55% and is meaningless mid-window**. Only `check/monitor-sync-progress.sh` (window-relative) tells you how close you actually are.
 
-`wait-onchain-tip.sh` (polls `/actuator/health/readiness` for `onchainReadiness.status == "UP"`) still works as a *final* confirmation, but two caveats: (a) each poll triggers a `TipFinder` node connection on the API side — don't poll it tightly; (b) `onchainReadiness` can latch on `"Scheduled to stop"` (see Known issues) and never flip UP even though the cursor is at tip. So treat the DB-cursor metric as the source of truth and use the probe only to confirm `syncStatus == "Synced"` at the end.
+`wait-onchain-tip.sh` (polls `/actuator/health/readiness` for `nodeSync.status == "UP"`) still works as a *final* confirmation, but two caveats: (a) each poll triggers a `TipFinder` node connection on the API side — don't poll it tightly; (b) `nodeSync` can latch on `"Scheduled to stop"` (see Known issues) and never flip UP even though the cursor is at tip. So treat the DB-cursor metric as the source of truth and use the probe only to confirm `syncStatus == "Synced"` at the end.
 
 From slot 65836843 to tip is ~12 h on a typical box; from true genesis it's days. Use `ScheduleWakeup` with the maximum allowed delay (3600s) for this wait, and warn the user that the loop will run for a long time.
 
@@ -155,13 +155,13 @@ Summarize for the user:
 
 Observed and filed upstream as **bloxbean/yaci#161** (yaci-core) + **bloxbean/yaci-store#959** (yaci-store auto-recovery deadlock).
 
-**Symptom:** the cursor stops advancing (`check-sync-progress.sh` shows no movement); API logs spam `io.netty.channel.ConnectTimeoutException: connection timed out after 30000 ms: <host>/<ip>:3001` every ~38s; `/actuator/health` shows `onchainConnection: OUT_OF_SERVICE` / `receivingBlocks: false` and `onchainReadiness.syncStatus: "Scheduled to stop"`.
+**Symptom:** the cursor stops advancing (`check-sync-progress.sh` shows no movement); API logs spam `io.netty.channel.ConnectTimeoutException: connection timed out after 30000 ms: <host>/<ip>:3001` every ~38s; `/actuator/health` shows `nodeHealth: OUT_OF_SERVICE` / `receivingBlocks: false` and `nodeSync.syncStatus: "Scheduled to stop"`.
 
 **Cause:** the Cardano node hostname fronts a load-balanced pool of A-records; yaci-core's `TCPNodeClient` resolves to a **single** IP with no failover, and if it pins a now-unreachable member it loops forever. yaci-store's in-process auto-recovery can't escape it (its guard bails on `scheduleToStop=true`).
 
-**Recovery:** `ssh <host> 'cd <remote-dir> && docker compose --env-file <env> restart api'`. A fresh JVM re-resolves DNS and usually picks a healthy IP, then catches up the gap in seconds. The Postgres cursor persists across the restart, so no re-sync. Confirm recovery with `check-sync-progress.sh` (expect 100%) and `/actuator/health/readiness` (`onchainReadiness: UP`, `syncStatus: "Synced"`).
+**Recovery:** `ssh <host> 'cd <remote-dir> && docker compose --env-file <env> restart api'`. A fresh JVM re-resolves DNS and usually picks a healthy IP, then catches up the gap in seconds. The Postgres cursor persists across the restart, so no re-sync. Confirm recovery with `check-sync-progress.sh` (expect 100%) and `/actuator/health/readiness` (`nodeSync: UP`, `syncStatus: "Synced"`).
 
-**Note on health semantics:** `livenessState` (the component) is Spring's built-in and stays UP regardless of sync — only the liveness *group* goes 503 (because `onchainConnection` is in it). In production under Kubernetes, wiring a liveness probe to `/actuator/health/liveness` makes the kubelet restart the pod on this 503 and auto-recovers — the mitigation the in-process auto-recovery can't provide.
+**Note on health semantics:** `livenessState` (the component) is Spring's built-in and stays UP regardless of sync — only the liveness *group* goes 503 (because `nodeHealth` is in it). In production under Kubernetes, wiring a liveness probe to `/actuator/health/liveness` makes the kubelet restart the pod on this 503 and auto-recovers — the mitigation the in-process auto-recovery can't provide.
 
 ## Files this skill owns
 

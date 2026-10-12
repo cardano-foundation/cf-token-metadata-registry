@@ -1,7 +1,7 @@
 package org.cardanofoundation.tokenmetadata.registry.api.controller;
 
+import com.bloxbean.cardano.yaci.store.core.health.NodeSyncIndicator;
 import org.cardanofoundation.tokenmetadata.registry.api.health.OffchainSyncHealthIndicator;
-import org.cardanofoundation.tokenmetadata.registry.api.health.OnchainReadinessHealthIndicator;
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.HealthResponse;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -23,7 +23,7 @@ class HealthApiControllerTest {
     private OffchainSyncHealthIndicator offchainSyncHealthIndicator;
 
     @Mock
-    private OnchainReadinessHealthIndicator onchainSyncHealthIndicator;
+    private NodeSyncIndicator onchainSyncHealthIndicator;
 
     @InjectMocks
     private HealthApiController healthApiController;
