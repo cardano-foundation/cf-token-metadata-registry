@@ -30,9 +30,9 @@ The V2 API merges metadata from CIP-26 and CIP-68 using a priority mechanism:
 
 ### On-Chain Indexing (Yaci Store)
 
-Yaci Store 2.0.4 (which brings the `yaci` mini-protocol library 0.4.6) is embedded in the API module
-for real-time Cardano blockchain sync. Upgrade to 2.0.6+ once it is on Maven Central (see the TODO in
-the root `pom.xml`):
+Yaci Store 2.0.7 is embedded in the API module for real-time Cardano blockchain sync. The `yaci`
+mini-protocol library is pinned on its own (`version.yaci`, 0.4.7, in the root `pom.xml`), so a yaci fix can
+be taken without waiting for a yaci-store release:
 - `CustomUtxoStorage` filters UTxOs — only persists CIP-68 reference NFTs and CIP-113 registry nodes
 - Event listeners (`Cip68EventListener`, `Cip113EventListener`) parse datums on new blocks
 - Admin UI available at `/admin-ui/` for sync control
