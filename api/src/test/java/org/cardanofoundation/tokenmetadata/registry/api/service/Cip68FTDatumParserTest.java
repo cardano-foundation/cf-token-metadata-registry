@@ -282,6 +282,7 @@ class Cip68FTDatumParserTest {
                 assertThat(m.description()).isEqualTo("Desc");
                 assertThat(m.version()).isEqualTo(4L);
             });
+            assertThat(warnings()).isEmpty();
         }
 
         @Test
@@ -296,10 +297,23 @@ class Cip68FTDatumParserTest {
         }
 
         @Test
-        void shouldReturnEmptyWhenNestedMapHasNoEntryForReferenceNft() throws Exception {
+        void shouldReturnEmptyAndWarnWhenNestedMapHasNoEntryForReferenceNft() throws Exception {
             String datum = datumHex(nested(OTHER_POLICY_ID, ASSET_NAME_HEX, metadata("Foreign")), BigInteger.valueOf(4));
 
             assertThat(cip68FTDatumParser.parse(datum, REFERENCE_NFT)).isEmpty();
+            assertThat(warnings()).singleElement().satisfies(w -> assertThat(w)
+                    .contains(POLICY_ID).contains(REFERENCE_NFT.assetName()).contains("no usable entry"));
+        }
+
+        @Test
+        void shouldReturnEmptyAndWarnWhenTheEntryIsNotAMap() throws Exception {
+            MapPlutusData root = nested(POLICY_ID, ASSET_NAME_HEX, metadata("Mine"));
+            MapPlutusData byPolicy = (MapPlutusData) root.getMap().get(BytesPlutusData.of("721"));
+            MapPlutusData byAsset = (MapPlutusData) byPolicy.getMap().get(BytesPlutusData.of(HexUtil.decodeHexString(POLICY_ID)));
+            byAsset.put(BytesPlutusData.of(HexUtil.decodeHexString(ASSET_NAME_HEX)), BytesPlutusData.of("not a map"));
+
+            assertThat(cip68FTDatumParser.parse(datumHex(root, BigInteger.valueOf(4)), REFERENCE_NFT)).isEmpty();
+            assertThat(warnings()).singleElement().satisfies(w -> assertThat(w).contains("no usable entry"));
         }
 
         @Test
@@ -318,6 +332,7 @@ class Cip68FTDatumParserTest {
             byAsset.put(BytesPlutusData.of("Other".getBytes()), metadata("Other"));
 
             assertThat(cip68FTDatumParser.parse(datumHex(root, BigInteger.valueOf(4)))).isEmpty();
+            assertThat(warnings()).singleElement().satisfies(w -> assertThat(w).contains("no single entry"));
         }
 
         @Test

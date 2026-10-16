@@ -126,6 +126,9 @@ public class Cip68FTDatumParser {
     /**
      * Returns the metadata map to read fields from. A flat datum carries it directly; a nested one under
      * {@code "721" -> policy_id -> asset_name} (asset name without the label prefix, both as raw bytes).
+     * <p>
+     * A nested datum with no usable entry for the token (another policy, another asset name, or an entry that is not a
+     * map) is not indexed. It is a CIP-68 datum that is refused, so it leaves one warning, not a silent gap.
      */
     private Optional<MapPlutusData> resolveMetadata(DatumParts parts, @Nullable AssetType referenceNft) {
         MapPlutusData properties = parts.properties();
@@ -134,15 +137,30 @@ public class Cip68FTDatumParser {
         }
         MapPlutusData byPolicy = (MapPlutusData) properties.getMap().get(NESTED_MAP_KEY);
 
+        Optional<MapPlutusData> entry;
         if (referenceNft == null) {
             // No asset context: only an unambiguous single entry can be resolved
-            return singleValue(byPolicy)
+            entry = singleValue(byPolicy)
                     .flatMap(Cip68FTDatumParser::singleValue);
+        } else {
+            String assetNameWithoutLabel = referenceNft.assetName().substring(Cip68Constants.REFERENCE_TOKEN_PREFIX.length());
+            entry = asMap(byPolicy.getMap().get(BytesPlutusData.of(HexUtil.decodeHexString(referenceNft.policyId()))))
+                    .flatMap(byAsset -> asMap(byAsset.getMap().get(BytesPlutusData.of(HexUtil.decodeHexString(assetNameWithoutLabel)))));
         }
+        if (entry.isEmpty()) {
+            warnNoNestedEntry(referenceNft);
+        }
+        return entry;
+    }
 
-        String assetNameWithoutLabel = referenceNft.assetName().substring(Cip68Constants.REFERENCE_TOKEN_PREFIX.length());
-        return asMap(byPolicy.getMap().get(BytesPlutusData.of(HexUtil.decodeHexString(referenceNft.policyId()))))
-                .flatMap(byAsset -> asMap(byAsset.getMap().get(BytesPlutusData.of(HexUtil.decodeHexString(assetNameWithoutLabel)))));
+    private static void warnNoNestedEntry(@Nullable AssetType referenceNft) {
+        if (referenceNft != null) {
+            log.warn("Skipping CIP-68 datum of {}/{}: its nested \"721\" metadata has no usable entry for this token "
+                            + "(a map under its policy id and asset name)",
+                    referenceNft.policyId(), referenceNft.assetName());
+        } else {
+            log.warn("Skipping CIP-68 datum: its nested \"721\" metadata has no single entry to read without a token");
+        }
     }
 
     /**

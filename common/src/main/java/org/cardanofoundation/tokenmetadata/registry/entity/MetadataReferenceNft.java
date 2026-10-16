@@ -1,6 +1,7 @@
 package org.cardanofoundation.tokenmetadata.registry.entity;
 
 
+import jakarta.annotation.Nullable;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.IdClass;
@@ -28,12 +29,16 @@ public class MetadataReferenceNft {
 
     private String description;
 
+    @Nullable
     private String ticker;
 
+    @Nullable
     private String url;
 
+    @Nullable
     private Long decimals;
 
+    @Nullable
     private String logo;
 
     private Long version;
