@@ -1,0 +1,894 @@
+{
+  "network": "preprod",
+  "registry_policy_id": "3083d387537f9318b6ff5aeab7de5f5629d26495319b8fafd409222a",
+  "generated_at": "2026-10-16T09:15:54Z",
+  "source": "https://preprod.koios.rest/api/v1",
+  "policies": [
+    {
+      "policy_id": "0cc8b56b16f99695c68567fbef98a19d527897c76cb6db452b608e63",
+      "registry_utxo": "957deca8e7b3b02eb7ce489725b5834d48fe331d2c5ad1b03018fbf944d79f85#0",
+      "cip113": {
+        "minting_logic_script": "bb867a6ba28c8c8ef3071605f7313988807977cb7eb221e00b6f6f3f",
+        "transfer_logic_script": "88ced704b1b1bce3806e936eeb16886012a44958793f3af02e74fff4",
+        "third_party_transfer_logic_script": "bb867a6ba28c8c8ef3071605f7313988807977cb7eb221e00b6f6f3f",
+        "unfracking_logic_script": null,
+        "global_state_policy_id": null
+      },
+      "subjects": [
+        {
+          "subject": "0cc8b56b16f99695c68567fbef98a19d527897c76cb6db452b608e630014df106665732d746f6b656e2d6369703638",
+          "koios_cip26": false,
+          "koios_cip68_labels": [
+            "333"
+          ]
+        }
+      ]
+    },
+    {
+      "policy_id": "0dea27c19f962c4cc5980ae0e3c5b872ff47f3ff97f31c13e73bf6c2",
+      "registry_utxo": "75b361e3a83431cc825e3f34a8ba922ce366b3440b87afc2c444271f5a26f980#0",
+      "cip113": {
+        "minting_logic_script": "9f5ba90b161a04684a8aed35a50b1172a43e02619de67334e00474bd",
+        "transfer_logic_script": "e4a51efe12646ce87b165f2e7a68ee263fab4d6ec5293a9be868e6e4",
+        "third_party_transfer_logic_script": "0d9b1b521fa691ad994b63184d360cd19d163966ed292281d6b79e69",
+        "unfracking_logic_script": null,
+        "global_state_policy_id": null
+      },
+      "subjects": [
+        {
+          "subject": "0dea27c19f962c4cc5980ae0e3c5b872ff47f3ff97f31c13e73bf6c2435330303031",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        },
+        {
+          "subject": "0dea27c19f962c4cc5980ae0e3c5b872ff47f3ff97f31c13e73bf6c2435330303032",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        }
+      ]
+    },
+    {
+      "policy_id": "305a86e73c4072643db6bae5972549c42c88f9b5a8c7762e7346f7f7",
+      "registry_utxo": "75b361e3a83431cc825e3f34a8ba922ce366b3440b87afc2c444271f5a26f980#1",
+      "cip113": {
+        "minting_logic_script": "2bcb69f3ae9fd6f5a7763ed866472b7ee528ff21147b59ba4883d6ef",
+        "transfer_logic_script": "97f292880a85551b9801ff10ffa60a440bcbb3d3252f1cfea1dee560",
+        "third_party_transfer_logic_script": "e9f52ede310b452e8b5684dff7769222b6f65ffdeeca7c8839ac8150",
+        "unfracking_logic_script": null,
+        "global_state_policy_id": null
+      },
+      "subjects": [
+        {
+          "subject": "305a86e73c4072643db6bae5972549c42c88f9b5a8c7762e7346f7f742582d303030303038",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        },
+        {
+          "subject": "305a86e73c4072643db6bae5972549c42c88f9b5a8c7762e7346f7f742582d303030303039",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        }
+      ]
+    },
+    {
+      "policy_id": "354926e59d3a183cccbd2b6f41b320320717bec1df70f86ceab641c4",
+      "registry_utxo": "50d381d1e1bd8e50b6d4d3e5d340d16622aa4158a3e76e6370827b80bab6833b#1",
+      "cip113": {
+        "minting_logic_script": "6bb559effb0d7ba55c8c732f53aa8bb1259e690c4e1a69d0671afe16",
+        "transfer_logic_script": "0cb9d629aabf01da9797d115ada74a5ff6a777eb07171f7779a143ae",
+        "third_party_transfer_logic_script": "0d9b1b521fa691ad994b63184d360cd19d163966ed292281d6b79e69",
+        "unfracking_logic_script": null,
+        "global_state_policy_id": null
+      },
+      "subjects": [
+        {
+          "subject": "354926e59d3a183cccbd2b6f41b320320717bec1df70f86ceab641c44f50454e30303031",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        },
+        {
+          "subject": "354926e59d3a183cccbd2b6f41b320320717bec1df70f86ceab641c452432d5445535431",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        }
+      ]
+    },
+    {
+      "policy_id": "368a289adaeeeb9da2c1f12b92b4d25cb1eefda03853e8c2b030ba2b",
+      "registry_utxo": "58ed0552565862d0d484a4023ce337f5b1415273513e9fee9b8632be31c5a1af#0",
+      "cip113": {
+        "minting_logic_script": "e0297581e676084f79ff1b480a3e4bd69f022610810474028770947b",
+        "transfer_logic_script": "a09020174d4fe2a8db34850675b98643df00c5090514cecdea1d191e",
+        "third_party_transfer_logic_script": "6d4dc4e65032831076721fa1e4b842ffcb6c877cbfe66d3ecb670eb6",
+        "unfracking_logic_script": null,
+        "global_state_policy_id": "f6cf1a82d019268f0158ffaecf0ab9f10560fbf445ea1a5f9fa98109"
+      },
+      "subjects": [
+        {
+          "subject": "368a289adaeeeb9da2c1f12b92b4d25cb1eefda03853e8c2b030ba2b5465737431323334",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        }
+      ]
+    },
+    {
+      "policy_id": "38ee7ec472e2f75657ce9c820fe717c79d9dde32c17dfdb4934b378d",
+      "registry_utxo": "58ed0552565862d0d484a4023ce337f5b1415273513e9fee9b8632be31c5a1af#1",
+      "cip113": {
+        "minting_logic_script": "6388e40208850891e2f3adda3703ac8bdce670a582b154d0dfe09b95",
+        "transfer_logic_script": "4bbe11a924a833ea06b488439409365ec41e270046fd9bef59c8b02d",
+        "third_party_transfer_logic_script": "e9f52ede310b452e8b5684dff7769222b6f65ffdeeca7c8839ac8150",
+        "unfracking_logic_script": null,
+        "global_state_policy_id": null
+      },
+      "subjects": [
+        {
+          "subject": "38ee7ec472e2f75657ce9c820fe717c79d9dde32c17dfdb4934b378d43522d303030303031",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        },
+        {
+          "subject": "38ee7ec472e2f75657ce9c820fe717c79d9dde32c17dfdb4934b378d43522d303030303235",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        },
+        {
+          "subject": "38ee7ec472e2f75657ce9c820fe717c79d9dde32c17dfdb4934b378d43522d303030303237",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        }
+      ]
+    },
+    {
+      "policy_id": "523103dff865f8f5fcd9e6b10666b30f3b1c0b08cba5214ed17dc295",
+      "registry_utxo": "0c14e598647840cba6cb563b1b2435f1da447c19eed1b65cbab6f32f0abcf6a9#2",
+      "cip113": {
+        "minting_logic_script": "875c6f9827060da8b5b53adaa6afeca00692e592dae884b063569c22",
+        "transfer_logic_script": "02f93ebf7dc6fec17f47021965edcbdbccb34a29663d43b678e31f5d",
+        "third_party_transfer_logic_script": "02f93ebf7dc6fec17f47021965edcbdbccb34a29663d43b678e31f5d",
+        "unfracking_logic_script": "02f93ebf7dc6fec17f47021965edcbdbccb34a29663d43b678e31f5d",
+        "global_state_policy_id": null
+      },
+      "subjects": [
+        {
+          "subject": "523103dff865f8f5fcd9e6b10666b30f3b1c0b08cba5214ed17dc295414c4c4f5731",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        }
+      ]
+    },
+    {
+      "policy_id": "5568d71be0b1614f2942f0efbfd98c4d01a2eabe1d97ddf65b92ef86",
+      "registry_utxo": "0c14e598647840cba6cb563b1b2435f1da447c19eed1b65cbab6f32f0abcf6a9#1",
+      "cip113": {
+        "minting_logic_script": "4f4f0e443fee7f835a9873679f471b6a1108075c22cf31c2b5488737",
+        "transfer_logic_script": "0e1350aaa2c7f88e94f612d2991d8eddced6b46d99839829e1aea512",
+        "third_party_transfer_logic_script": "4f4f0e443fee7f835a9873679f471b6a1108075c22cf31c2b5488737",
+        "unfracking_logic_script": "4f4f0e443fee7f835a9873679f471b6a1108075c22cf31c2b5488737",
+        "global_state_policy_id": null
+      },
+      "subjects": [
+        {
+          "subject": "5568d71be0b1614f2942f0efbfd98c4d01a2eabe1d97ddf65b92ef86524550",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        }
+      ]
+    },
+    {
+      "policy_id": "5d6b379898884cd0109c946d65f35cb7699396198aef26c900229618",
+      "registry_utxo": "4d800b82bc057e7105a5e8d33803fece30bea81c95ff138326f2586017343a2e#0",
+      "cip113": {
+        "minting_logic_script": "310ae3fa6e8f181b314d2778f734996fe51103ace9c62984e84a76f0",
+        "transfer_logic_script": "3bb7c298b2c410e1ae52635ce798f42792d9055c9e95b459a4465c8b",
+        "third_party_transfer_logic_script": "29702ca025f934f0bea872a7edccc410334ebaad03d2cdbcd8ba411b",
+        "unfracking_logic_script": null,
+        "global_state_policy_id": "a67e0d9c76f147e90bc1bd648c2a467dfe86f7fe0eff5442ed7e1227"
+      },
+      "subjects": [
+        {
+          "subject": "5d6b379898884cd0109c946d65f35cb7699396198aef26c9002296185465737431323334",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        }
+      ]
+    },
+    {
+      "policy_id": "72d7361fb33ad73b3b40bc68e183ab084c60effa552834c19c7cb11c",
+      "registry_utxo": "4b3ce083f4404eb69969956030d65fa714f3aedc9e573eb374dbc5d4fde4b910#0",
+      "cip113": {
+        "minting_logic_script": "f4efbc409535d81073557c32e312d96abf8ffb53e9e9f40b9829db8e",
+        "transfer_logic_script": "0cb9d629aabf01da9797d115ada74a5ff6a777eb07171f7779a143ae",
+        "third_party_transfer_logic_script": "0d9b1b521fa691ad994b63184d360cd19d163966ed292281d6b79e69",
+        "unfracking_logic_script": null,
+        "global_state_policy_id": null
+      },
+      "subjects": []
+    },
+    {
+      "policy_id": "86d262df1baa5c6ed4240491e69f47467ce467843a40a6d06387f79d",
+      "registry_utxo": "4b3ce083f4404eb69969956030d65fa714f3aedc9e573eb374dbc5d4fde4b910#1",
+      "cip113": {
+        "minting_logic_script": "eb762df28d3b82b53bea58942de3be06202a32a85668bdaca998c4ae",
+        "transfer_logic_script": "97f292880a85551b9801ff10ffa60a440bcbb3d3252f1cfea1dee560",
+        "third_party_transfer_logic_script": "e9f52ede310b452e8b5684dff7769222b6f65ffdeeca7c8839ac8150",
+        "unfracking_logic_script": null,
+        "global_state_policy_id": null
+      },
+      "subjects": [
+        {
+          "subject": "86d262df1baa5c6ed4240491e69f47467ce467843a40a6d06387f79d",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        },
+        {
+          "subject": "86d262df1baa5c6ed4240491e69f47467ce467843a40a6d06387f79d42582d303030303033",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        },
+        {
+          "subject": "86d262df1baa5c6ed4240491e69f47467ce467843a40a6d06387f79d42582d303030303034",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        },
+        {
+          "subject": "86d262df1baa5c6ed4240491e69f47467ce467843a40a6d06387f79d42582d303030303035",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        },
+        {
+          "subject": "86d262df1baa5c6ed4240491e69f47467ce467843a40a6d06387f79d42582d303030303036",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        },
+        {
+          "subject": "86d262df1baa5c6ed4240491e69f47467ce467843a40a6d06387f79d42582d303030303236",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        }
+      ]
+    },
+    {
+      "policy_id": "8b9fff937b920f7692603b050f5b6eaad9491f7a7939c4fe7329650e",
+      "registry_utxo": "2c2f0dfc12a4fa4a0b3f548b5aafee9ff528922b721a42abb60c4f989f3a6200#1",
+      "cip113": {
+        "minting_logic_script": "6980d06b2575aff4c1cceb10407a10dea897a6fd163eb876afaf5efc",
+        "transfer_logic_script": "97f292880a85551b9801ff10ffa60a440bcbb3d3252f1cfea1dee560",
+        "third_party_transfer_logic_script": "e9f52ede310b452e8b5684dff7769222b6f65ffdeeca7c8839ac8150",
+        "unfracking_logic_script": null,
+        "global_state_policy_id": null
+      },
+      "subjects": [
+        {
+          "subject": "8b9fff937b920f7692603b050f5b6eaad9491f7a7939c4fe7329650e",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        },
+        {
+          "subject": "8b9fff937b920f7692603b050f5b6eaad9491f7a7939c4fe7329650e42582d303030303132",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        },
+        {
+          "subject": "8b9fff937b920f7692603b050f5b6eaad9491f7a7939c4fe7329650e42582d303030303133",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        },
+        {
+          "subject": "8b9fff937b920f7692603b050f5b6eaad9491f7a7939c4fe7329650e42582d303030303134",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        },
+        {
+          "subject": "8b9fff937b920f7692603b050f5b6eaad9491f7a7939c4fe7329650e42582d303030303135",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        },
+        {
+          "subject": "8b9fff937b920f7692603b050f5b6eaad9491f7a7939c4fe7329650e4f502d303030303032",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        },
+        {
+          "subject": "8b9fff937b920f7692603b050f5b6eaad9491f7a7939c4fe7329650e4f502d303030303238",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        },
+        {
+          "subject": "8b9fff937b920f7692603b050f5b6eaad9491f7a7939c4fe7329650e504b2d303030303032",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        },
+        {
+          "subject": "8b9fff937b920f7692603b050f5b6eaad9491f7a7939c4fe7329650e504b2d303030303130",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        },
+        {
+          "subject": "8b9fff937b920f7692603b050f5b6eaad9491f7a7939c4fe7329650e504b2d303030303238",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        },
+        {
+          "subject": "8b9fff937b920f7692603b050f5b6eaad9491f7a7939c4fe7329650e504b2d303030303331",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        }
+      ]
+    },
+    {
+      "policy_id": "96f52f7845253bcbda9216e00c8d2264b3cbe2df3787a80434bfb8dd",
+      "registry_utxo": "6283f0db647ea04fc9ebc2fc37195033c01cb1d9496492a63c3d95b179c3417d#1",
+      "cip113": {
+        "minting_logic_script": "d6b706b832a0cca2c8b58fda811c9e8179364c2eef71e6db6bb2278d",
+        "transfer_logic_script": "97f292880a85551b9801ff10ffa60a440bcbb3d3252f1cfea1dee560",
+        "third_party_transfer_logic_script": "e9f52ede310b452e8b5684dff7769222b6f65ffdeeca7c8839ac8150",
+        "unfracking_logic_script": null,
+        "global_state_policy_id": null
+      },
+      "subjects": [
+        {
+          "subject": "96f52f7845253bcbda9216e00c8d2264b3cbe2df3787a80434bfb8dd42582d303030303132",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        },
+        {
+          "subject": "96f52f7845253bcbda9216e00c8d2264b3cbe2df3787a80434bfb8dd42582d303030303133",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        },
+        {
+          "subject": "96f52f7845253bcbda9216e00c8d2264b3cbe2df3787a80434bfb8dd42582d303030303134",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        },
+        {
+          "subject": "96f52f7845253bcbda9216e00c8d2264b3cbe2df3787a80434bfb8dd42582d303030303135",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        },
+        {
+          "subject": "96f52f7845253bcbda9216e00c8d2264b3cbe2df3787a80434bfb8dd504b2d303030303032",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        }
+      ]
+    },
+    {
+      "policy_id": "a260168aee90d0d0793797655d8499f1f261b9fd7148d8677aaa9949",
+      "registry_utxo": "5254e41e67b7feccb9a6278b88df9da74b44ed5c5867d8a9b910ac2688bc8a25#2",
+      "cip113": {
+        "minting_logic_script": "bd33121039fbaf4a4684e77df3c7f00999bfd4d7edc0d331e410604a",
+        "transfer_logic_script": "c7a9180ea8e7b8ace076c844a1aba323b2c9ca1bd8c6767635ddc778",
+        "third_party_transfer_logic_script": "c275799b8806ce85e81cef76310f7efdfd64e9070f67587382348f92",
+        "unfracking_logic_script": null,
+        "global_state_policy_id": "661fddd3b03d52ea757db6f7ef211383af54ba1b0283cc8fdc10508d"
+      },
+      "subjects": [
+        {
+          "subject": "a260168aee90d0d0793797655d8499f1f261b9fd7148d8677aaa994954657374616161",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        }
+      ]
+    },
+    {
+      "policy_id": "a5218af98b7d4005fac5d409ad297a7fc829557763ca7f94cbaa6f14",
+      "registry_utxo": "bf2882c6fb05de757cb2b1eda96613055567e1ae8101ffe6f84590eff2d57119#1",
+      "cip113": {
+        "minting_logic_script": "d9016fc634e4495b55567224de6b3e415358eaa1d42c6845356405f8",
+        "transfer_logic_script": "2f225ad1ed22e1ab2c15621022981aeaf8d91a5265b2a32e2fc81a51",
+        "third_party_transfer_logic_script": "2f225ad1ed22e1ab2c15621022981aeaf8d91a5265b2a32e2fc81a51",
+        "unfracking_logic_script": "2f225ad1ed22e1ab2c15621022981aeaf8d91a5265b2a32e2fc81a51",
+        "global_state_policy_id": null
+      },
+      "subjects": [
+        {
+          "subject": "a5218af98b7d4005fac5d409ad297a7fc829557763ca7f94cbaa6f14414c4c4f5733",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        }
+      ]
+    },
+    {
+      "policy_id": "aaf99df76bb6b04b64c943e142fbb580b0204867cded428dd81827d3",
+      "registry_utxo": "bf2882c6fb05de757cb2b1eda96613055567e1ae8101ffe6f84590eff2d57119#2",
+      "cip113": {
+        "minting_logic_script": "37c70c11d71b65944cfb484bc9aa9a9ce93b2939d0090ef900ebc3b9",
+        "transfer_logic_script": "33d94c1adac179f6eef1137ba0dd5db2f600a87c07767f77294d1c23",
+        "third_party_transfer_logic_script": "a8192eec4478cdc5534aa078fffad6a70b978e3429b0695fc38e4329",
+        "unfracking_logic_script": null,
+        "global_state_policy_id": "bfb941ea8aab7c0693cb5db245a34c8d1b6788b1f6458d4472a2d2c3"
+      },
+      "subjects": [
+        {
+          "subject": "aaf99df76bb6b04b64c943e142fbb580b0204867cded428dd81827d35465737420536861726520546f6b656e204d696e74",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        }
+      ]
+    },
+    {
+      "policy_id": "abc02bb9a3c4c709dee2441c9aaf7e0ef6345bef920e1b7ee13e3407",
+      "registry_utxo": "ca349c497b21e10dd3f89c6d7317844c475cf625c97c10808035e07bc621fcd7#0",
+      "cip113": {
+        "minting_logic_script": "4be2c6d3f5c5e66f45d20801c0d55341f0ae3b939187c9591ec29028",
+        "transfer_logic_script": "6ae51f97696717eb0de100c151a30965a3c4ff97c167124b2b206ba9",
+        "third_party_transfer_logic_script": "4bbe11a924a833ea06b488439409365ec41e270046fd9bef59c8b02d",
+        "unfracking_logic_script": null,
+        "global_state_policy_id": null
+      },
+      "subjects": [
+        {
+          "subject": "abc02bb9a3c4c709dee2441c9aaf7e0ef6345bef920e1b7ee13e340744554d4d5932",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        }
+      ]
+    },
+    {
+      "policy_id": "b75439f519ab6bf19c8702cfcb906e39c78c74ae7643d4e909d026fd",
+      "registry_utxo": "ca349c497b21e10dd3f89c6d7317844c475cf625c97c10808035e07bc621fcd7#1",
+      "cip113": {
+        "minting_logic_script": "4c4cf63eb3f110febcd55414526032ce17a181068c5b34b27f4e02ae",
+        "transfer_logic_script": "0c5da84ad2e42d1293bad65bb5b6433e83ccbd9e25443cadc6fd7a13",
+        "third_party_transfer_logic_script": "45014636b4c964d08c5e568be662e896001e1101ff7ed88f16e3f3f4",
+        "unfracking_logic_script": null,
+        "global_state_policy_id": null
+      },
+      "subjects": [
+        {
+          "subject": "b75439f519ab6bf19c8702cfcb906e39c78c74ae7643d4e909d026fd0014df1042524c54",
+          "koios_cip26": false,
+          "koios_cip68_labels": [
+            "333"
+          ]
+        }
+      ]
+    },
+    {
+      "policy_id": "ba74882344a7946a04139263c4896703a7107f522bbf061c311aac6c",
+      "registry_utxo": "b15ac9c975ec06b590311ec0edd598eabeeb014c2101cbe9c6aa356990703f66#0",
+      "cip113": {
+        "minting_logic_script": "f91c65ec585a20176feeb2c4e5281e856d3b61e95d1980717da724fc",
+        "transfer_logic_script": "0f948cd223933dfa2cf584e674f128e2baa7875cca2b8fe65aa6b1ea",
+        "third_party_transfer_logic_script": "f91c65ec585a20176feeb2c4e5281e856d3b61e95d1980717da724fc",
+        "unfracking_logic_script": "f91c65ec585a20176feeb2c4e5281e856d3b61e95d1980717da724fc",
+        "global_state_policy_id": null
+      },
+      "subjects": [
+        {
+          "subject": "ba74882344a7946a04139263c4896703a7107f522bbf061c311aac6c524550",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        }
+      ]
+    },
+    {
+      "policy_id": "baddd482c787be3b2f11dd2cf916755bd7a30f0c41070011ec7190ee",
+      "registry_utxo": "b15ac9c975ec06b590311ec0edd598eabeeb014c2101cbe9c6aa356990703f66#1",
+      "cip113": {
+        "minting_logic_script": "a486fde69f74aca1f41a8603fcf65fd585ead4f59b619f9cae96be0e",
+        "transfer_logic_script": "4e24a7b33eeff1c8043aedb35c5c3bd078751c756f68fed9a4f75383",
+        "third_party_transfer_logic_script": "29497aa1786650b15f3ce11bd9762a4455be661064b1333ecf8356c5",
+        "unfracking_logic_script": null,
+        "global_state_policy_id": null
+      },
+      "subjects": [
+        {
+          "subject": "baddd482c787be3b2f11dd2cf916755bd7a30f0c41070011ec7190ee0014df1042524c54",
+          "koios_cip26": false,
+          "koios_cip68_labels": [
+            "333"
+          ]
+        }
+      ]
+    },
+    {
+      "policy_id": "c4e75d70e0df490e4f208681889f62615bc19a89490f81caa39e86db",
+      "registry_utxo": "d059f6c2ca88405974d8a5b7eb5d59b0b30805298ee9753d98d8f6d9ff18a21f#1",
+      "cip113": {
+        "minting_logic_script": "229a31123161bf7379ce108c80f9123ce4a4d7b70ecfbf67e5568bbc",
+        "transfer_logic_script": "1be26d9089bbb5bd846adbc6abd81e603fa8149b7896ff612761deed",
+        "third_party_transfer_logic_script": "229a31123161bf7379ce108c80f9123ce4a4d7b70ecfbf67e5568bbc",
+        "unfracking_logic_script": "229a31123161bf7379ce108c80f9123ce4a4d7b70ecfbf67e5568bbc",
+        "global_state_policy_id": null
+      },
+      "subjects": [
+        {
+          "subject": "c4e75d70e0df490e4f208681889f62615bc19a89490f81caa39e86db524550",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        }
+      ]
+    },
+    {
+      "policy_id": "cac5369eb3715f2948931d77c8dce849bb262e25feae23fe113bb587",
+      "registry_utxo": "d7f98c2c4ddd8273d50819d10bf4844e6388e6f549d31d183578b73e4bdd5d70#0",
+      "cip113": {
+        "minting_logic_script": "86fd7d72f5d11a4af1afc3543ecd2cfd44f0e0214b7db8db37f379e0",
+        "transfer_logic_script": "b092a7ab11f0b4e11ec4cb397138b18849169f11e349ec03186945d6",
+        "third_party_transfer_logic_script": "4537dabc42a7f73c4a479bc7d0fdfef6716e301723f2c98447d967eb",
+        "unfracking_logic_script": null,
+        "global_state_policy_id": "ce18ee4023f2169527a539c999b19a92626f24b7c2d8e4cb2ca594b1"
+      },
+      "subjects": [
+        {
+          "subject": "cac5369eb3715f2948931d77c8dce849bb262e25feae23fe113bb58754657374313233343536",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        }
+      ]
+    },
+    {
+      "policy_id": "d4bbefa289c42148092cc58faf560af62c8e0f6fe21369dc15c3942d",
+      "registry_utxo": "beabe4efc596eb361b77104be6d580f8a3b364b9ee6e88ec51de0ce6a76be871#1",
+      "cip113": {
+        "minting_logic_script": "9d345115f0f9006cd59a9855f0598e0abf5dd7485264c46ac8c91d4e",
+        "transfer_logic_script": "97f292880a85551b9801ff10ffa60a440bcbb3d3252f1cfea1dee560",
+        "third_party_transfer_logic_script": "e9f52ede310b452e8b5684dff7769222b6f65ffdeeca7c8839ac8150",
+        "unfracking_logic_script": null,
+        "global_state_policy_id": null
+      },
+      "subjects": [
+        {
+          "subject": "d4bbefa289c42148092cc58faf560af62c8e0f6fe21369dc15c3942d",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        },
+        {
+          "subject": "d4bbefa289c42148092cc58faf560af62c8e0f6fe21369dc15c3942d42582d303030303038",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        }
+      ]
+    },
+    {
+      "policy_id": "d4d3d31e6098d45d9e38e6c1a1724dab0ba88b2c0e9203bd0355fc75",
+      "registry_utxo": "beabe4efc596eb361b77104be6d580f8a3b364b9ee6e88ec51de0ce6a76be871#2",
+      "cip113": {
+        "minting_logic_script": "e42ecb5ee28eab9aa57b0d2491ae06448fe5cdf17ea3d1938b433aef",
+        "transfer_logic_script": "4ce9b84794186ac977145fc37cda90ef38ad2a4b8d2ea4b36dba5f0e",
+        "third_party_transfer_logic_script": "1d4d43570a7ad5110bf33a42c6e8452ba9a7d11c099ee8917485042e",
+        "unfracking_logic_script": null,
+        "global_state_policy_id": "48038d01378f12c7522156e30ffee1285f875aa111e59644b2d1f7d1"
+      },
+      "subjects": [
+        {
+          "subject": "d4d3d31e6098d45d9e38e6c1a1724dab0ba88b2c0e9203bd0355fc754e657731",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        }
+      ]
+    },
+    {
+      "policy_id": "d64930a3099fc65c9daf207bf43843284322d6561489008479a86d6a",
+      "registry_utxo": "5a7e9526af05792180316c686e7344d4faa2a12ecaaaa62c4584fac60a70ae14#0",
+      "cip113": {
+        "minting_logic_script": "709e9ae2b4adc62abb59139b5f12f5e0b17557448c74b8fa9fbc9be4",
+        "transfer_logic_script": "0f8a6b1f67b0a5e5a509cc1533a452d6f01ce41c58cae56c94634f57",
+        "third_party_transfer_logic_script": "4bd96a9082194ff43ddd10d3092167f5856375959ff0ca1e1478ef6a",
+        "unfracking_logic_script": null,
+        "global_state_policy_id": null
+      },
+      "subjects": [
+        {
+          "subject": "d64930a3099fc65c9daf207bf43843284322d6561489008479a86d6a41555344",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        }
+      ]
+    },
+    {
+      "policy_id": "db798ae15b3629ca998a96f057d3b603daedef88b0a0551dc041a3e5",
+      "registry_utxo": "3fd420dfbf9ee6fcb0bcf46b4df956d50f21d84cd1246c197c3d77cc8ef0d3f0#0",
+      "cip113": {
+        "minting_logic_script": "821bdb3e8f2ad249d65bddd1d615a748b2eec8358f06557c1cdabaaf",
+        "transfer_logic_script": "97f292880a85551b9801ff10ffa60a440bcbb3d3252f1cfea1dee560",
+        "third_party_transfer_logic_script": "e9f52ede310b452e8b5684dff7769222b6f65ffdeeca7c8839ac8150",
+        "unfracking_logic_script": null,
+        "global_state_policy_id": null
+      },
+      "subjects": [
+        {
+          "subject": "db798ae15b3629ca998a96f057d3b603daedef88b0a0551dc041a3e542582d303030303136",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        },
+        {
+          "subject": "db798ae15b3629ca998a96f057d3b603daedef88b0a0551dc041a3e542582d303030303137",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        },
+        {
+          "subject": "db798ae15b3629ca998a96f057d3b603daedef88b0a0551dc041a3e542582d303030303138",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        },
+        {
+          "subject": "db798ae15b3629ca998a96f057d3b603daedef88b0a0551dc041a3e542582d303030303139",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        },
+        {
+          "subject": "db798ae15b3629ca998a96f057d3b603daedef88b0a0551dc041a3e542582d303030303230",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        },
+        {
+          "subject": "db798ae15b3629ca998a96f057d3b603daedef88b0a0551dc041a3e542582d303030303231",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        },
+        {
+          "subject": "db798ae15b3629ca998a96f057d3b603daedef88b0a0551dc041a3e542582d303030303232",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        },
+        {
+          "subject": "db798ae15b3629ca998a96f057d3b603daedef88b0a0551dc041a3e542582d303030303234",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        },
+        {
+          "subject": "db798ae15b3629ca998a96f057d3b603daedef88b0a0551dc041a3e542582d303030303235",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        }
+      ]
+    },
+    {
+      "policy_id": "de0155601c1e09e2da4b11ddab8465efed519141e5c662ddb9a275f2",
+      "registry_utxo": "3fd420dfbf9ee6fcb0bcf46b4df956d50f21d84cd1246c197c3d77cc8ef0d3f0#1",
+      "cip113": {
+        "minting_logic_script": "e62941cb1a9a6b01503a32fa7fa450772649d1ed861d94143d908f2a",
+        "transfer_logic_script": "97f292880a85551b9801ff10ffa60a440bcbb3d3252f1cfea1dee560",
+        "third_party_transfer_logic_script": "e9f52ede310b452e8b5684dff7769222b6f65ffdeeca7c8839ac8150",
+        "unfracking_logic_script": null,
+        "global_state_policy_id": null
+      },
+      "subjects": [
+        {
+          "subject": "de0155601c1e09e2da4b11ddab8465efed519141e5c662ddb9a275f2",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        },
+        {
+          "subject": "de0155601c1e09e2da4b11ddab8465efed519141e5c662ddb9a275f242582d303030303136",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        },
+        {
+          "subject": "de0155601c1e09e2da4b11ddab8465efed519141e5c662ddb9a275f242582d303030303138",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        },
+        {
+          "subject": "de0155601c1e09e2da4b11ddab8465efed519141e5c662ddb9a275f242582d303030303139",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        },
+        {
+          "subject": "de0155601c1e09e2da4b11ddab8465efed519141e5c662ddb9a275f242582d303030303230",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        },
+        {
+          "subject": "de0155601c1e09e2da4b11ddab8465efed519141e5c662ddb9a275f242582d303030303231",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        },
+        {
+          "subject": "de0155601c1e09e2da4b11ddab8465efed519141e5c662ddb9a275f242582d303030303232",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        },
+        {
+          "subject": "de0155601c1e09e2da4b11ddab8465efed519141e5c662ddb9a275f242582d303030303234",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        },
+        {
+          "subject": "de0155601c1e09e2da4b11ddab8465efed519141e5c662ddb9a275f242582d303030303235",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        }
+      ]
+    },
+    {
+      "policy_id": "df3b066a0cdc13c980bd887fc7614d046835fa37275b4df0c0c226cd",
+      "registry_utxo": "aff4449d5e8c8f736f34201999fc66533bbc23c0679644603167c47e61c0b299#1",
+      "cip113": {
+        "minting_logic_script": "24e606e22f5aa00f58a3a5ea9ba0923571e5c84a7543284ef2226099",
+        "transfer_logic_script": "97f292880a85551b9801ff10ffa60a440bcbb3d3252f1cfea1dee560",
+        "third_party_transfer_logic_script": "e9f52ede310b452e8b5684dff7769222b6f65ffdeeca7c8839ac8150",
+        "unfracking_logic_script": null,
+        "global_state_policy_id": null
+      },
+      "subjects": [
+        {
+          "subject": "df3b066a0cdc13c980bd887fc7614d046835fa37275b4df0c0c226cd42582d303030303033",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        },
+        {
+          "subject": "df3b066a0cdc13c980bd887fc7614d046835fa37275b4df0c0c226cd42582d303030303034",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        },
+        {
+          "subject": "df3b066a0cdc13c980bd887fc7614d046835fa37275b4df0c0c226cd42582d303030303035",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        },
+        {
+          "subject": "df3b066a0cdc13c980bd887fc7614d046835fa37275b4df0c0c226cd42582d303030303036",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        },
+        {
+          "subject": "df3b066a0cdc13c980bd887fc7614d046835fa37275b4df0c0c226cd42582d303030303236",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        }
+      ]
+    },
+    {
+      "policy_id": "e51eaaa4c59eaefa3fac791a3c1aa0adb7577bd028408a61bd1bacba",
+      "registry_utxo": "c9d459093b6b873ac8a1a5982d0e7b51f761c4b29466ea432cbc6ac3ed19af74#1",
+      "cip113": {
+        "minting_logic_script": "4cbf679a732546366df4aa2fe1743d94b670559f539cfaf515d21ba7",
+        "transfer_logic_script": "6dc2e967481c2b126c73cee193a9d0b145039caf8493c6c9e060384d",
+        "third_party_transfer_logic_script": "c7a3563299deb86f902f0d2f6fe7e3c9e0e05eb072ae1e523b5eed6e",
+        "unfracking_logic_script": null,
+        "global_state_policy_id": "593aa8d0b50f4505427003cd8d0db52a174af0b96ba52983f8f35d9a"
+      },
+      "subjects": [
+        {
+          "subject": "e51eaaa4c59eaefa3fac791a3c1aa0adb7577bd028408a61bd1bacba3030302064656772656573",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        },
+        {
+          "subject": "e51eaaa4c59eaefa3fac791a3c1aa0adb7577bd028408a61bd1bacba3030312064656772656573",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        },
+        {
+          "subject": "e51eaaa4c59eaefa3fac791a3c1aa0adb7577bd028408a61bd1bacba3030322064656772656573",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        },
+        {
+          "subject": "e51eaaa4c59eaefa3fac791a3c1aa0adb7577bd028408a61bd1bacba3030332064656772656573",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        },
+        {
+          "subject": "e51eaaa4c59eaefa3fac791a3c1aa0adb7577bd028408a61bd1bacba3030342064656772656573",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        },
+        {
+          "subject": "e51eaaa4c59eaefa3fac791a3c1aa0adb7577bd028408a61bd1bacba3030352064656772656573",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        },
+        {
+          "subject": "e51eaaa4c59eaefa3fac791a3c1aa0adb7577bd028408a61bd1bacba3030362064656772656573",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        },
+        {
+          "subject": "e51eaaa4c59eaefa3fac791a3c1aa0adb7577bd028408a61bd1bacba3030372064656772656573",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        },
+        {
+          "subject": "e51eaaa4c59eaefa3fac791a3c1aa0adb7577bd028408a61bd1bacba3030382064656772656573",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        },
+        {
+          "subject": "e51eaaa4c59eaefa3fac791a3c1aa0adb7577bd028408a61bd1bacba3030392064656772656573",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        },
+        {
+          "subject": "e51eaaa4c59eaefa3fac791a3c1aa0adb7577bd028408a61bd1bacba3031302064656772656573",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        },
+        {
+          "subject": "e51eaaa4c59eaefa3fac791a3c1aa0adb7577bd028408a61bd1bacba3031312064656772656573",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        },
+        {
+          "subject": "e51eaaa4c59eaefa3fac791a3c1aa0adb7577bd028408a61bd1bacba3031322064656772656573",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        },
+        {
+          "subject": "e51eaaa4c59eaefa3fac791a3c1aa0adb7577bd028408a61bd1bacba3031332064656772656573",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        },
+        {
+          "subject": "e51eaaa4c59eaefa3fac791a3c1aa0adb7577bd028408a61bd1bacba3031342064656772656573",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        },
+        {
+          "subject": "e51eaaa4c59eaefa3fac791a3c1aa0adb7577bd028408a61bd1bacba3031352064656772656573",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        },
+        {
+          "subject": "e51eaaa4c59eaefa3fac791a3c1aa0adb7577bd028408a61bd1bacba3031362064656772656573",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        },
+        {
+          "subject": "e51eaaa4c59eaefa3fac791a3c1aa0adb7577bd028408a61bd1bacba3031372064656772656573",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        },
+        {
+          "subject": "e51eaaa4c59eaefa3fac791a3c1aa0adb7577bd028408a61bd1bacba3031382064656772656573",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        },
+        {
+          "subject": "e51eaaa4c59eaefa3fac791a3c1aa0adb7577bd028408a61bd1bacba3031392064656772656573",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        },
+        {
+          "subject": "e51eaaa4c59eaefa3fac791a3c1aa0adb7577bd028408a61bd1bacba3032302064656772656573",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        },
+        {
+          "subject": "e51eaaa4c59eaefa3fac791a3c1aa0adb7577bd028408a61bd1bacba3032312064656772656573",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        },
+        {
+          "subject": "e51eaaa4c59eaefa3fac791a3c1aa0adb7577bd028408a61bd1bacba3032322064656772656573",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        },
+        {
+          "subject": "e51eaaa4c59eaefa3fac791a3c1aa0adb7577bd028408a61bd1bacba3032332064656772656573",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        },
+        {
+          "subject": "e51eaaa4c59eaefa3fac791a3c1aa0adb7577bd028408a61bd1bacba3032342064656772656573",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        }
+      ]
+    },
+    {
+      "policy_id": "f496fd70e00ff13c14da42ed5965c8dd8d507f5617f78935bebc322d",
+      "registry_utxo": "c9d459093b6b873ac8a1a5982d0e7b51f761c4b29466ea432cbc6ac3ed19af74#2",
+      "cip113": {
+        "minting_logic_script": "fd7a4107160862f0077e147ca13887b4b64a48162ef79a731532721c",
+        "transfer_logic_script": "36953599ade5f939f2fbcb1f62d6f6cac7766511ae4138ebae9ab43c",
+        "third_party_transfer_logic_script": "dd187f7717de3ab5f08d6ae8cb225d403f50cf752fdc02651528fd8d",
+        "unfracking_logic_script": null,
+        "global_state_policy_id": "fbb3fa1cb3806f2bc32477c46fd616d4bd78c9c68b4a9394d08a3db3"
+      },
+      "subjects": [
+        {
+          "subject": "f496fd70e00ff13c14da42ed5965c8dd8d507f5617f78935bebc322d43495031373054657374",
+          "koios_cip26": false,
+          "koios_cip68_labels": []
+        }
+      ]
+    }
+  ],
+  "skipped_registry_nodes": []
+}

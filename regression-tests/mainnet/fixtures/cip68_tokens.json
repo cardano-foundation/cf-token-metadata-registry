@@ -5782,20 +5782,6 @@
     "version": 2
   },
   {
-    "subject": "67cee89d59ab5354ee22c8af0638224126aecc6210f9372a61f13a640014df10474e5243",
-    "policy_id": "67cee89d59ab5354ee22c8af0638224126aecc6210f9372a61f13a64",
-    "asset_name": "000643b0474e5243",
-    "ft_asset_name": "0014df10474e5243",
-    "slot": 167661514,
-    "name": "Greenland Reserve Coin",
-    "description": "Asset backed token secured by Greenland rubies and sapphires",
-    "ticker": "GNRC",
-    "url": "https://www.the-mint.com/compliance",
-    "decimals": 6,
-    "has_logo": false,
-    "version": 0
-  },
-  {
     "subject": "683b68ab76d2216466d1ae1e563252288c7b3698d872a826d012553d0014df105363726170",
     "policy_id": "683b68ab76d2216466d1ae1e563252288c7b3698d872a826d012553d",
     "asset_name": "000643b05363726170",

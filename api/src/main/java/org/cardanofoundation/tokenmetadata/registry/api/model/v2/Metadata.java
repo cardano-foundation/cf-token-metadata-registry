@@ -1,10 +1,11 @@
 package org.cardanofoundation.tokenmetadata.registry.api.model.v2;
 
-import com.bloxbean.cardano.client.util.HexUtil;
 import lombok.Builder;
 import org.cardanofoundation.tokenmetadata.registry.api.model.QueryPriority;
 import org.cardanofoundation.tokenmetadata.registry.api.model.cip68.FungibleTokenMetadata;
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.TokenMetadata;
+
+import java.util.Base64;
 
 @Builder(toBuilder = true)
 public record Metadata(StringProperty name, StringProperty description, StringProperty ticker, LongProperty decimals,
@@ -33,7 +34,10 @@ public record Metadata(StringProperty name, StringProperty description, StringPr
         StringProperty description = metadata.getDescription() != null ? new StringProperty(metadata.getDescription().getValue(), QueryPriority.CIP_26.name()) : null;
         StringProperty ticker = metadata.getTicker() != null ? new StringProperty(metadata.getTicker().getValue(), QueryPriority.CIP_26.name()) : null;
         LongProperty decimals = metadata.getDecimals() != null ? new LongProperty(metadata.getDecimals().getValue().longValue(), QueryPriority.CIP_26.name()) : null;
-        StringProperty logo = metadata.getLogo() != null ? new StringProperty(HexUtil.encodeHexString(metadata.getLogo().getValue()), QueryPriority.CIP_26.name()) : null;
+        // CIP-26 spec: logo bytes must be base64-encoded. Was previously hex-encoded here, which
+        // diverged from both the spec and from this same response's standards.cip26.logo block
+        // (Jackson's default byte[] serialization is base64). Standardise on base64 everywhere.
+        StringProperty logo = metadata.getLogo() != null ? new StringProperty(Base64.getEncoder().encodeToString(metadata.getLogo().getValue()), QueryPriority.CIP_26.name()) : null;
         StringProperty url = metadata.getUrl() != null ? new StringProperty(metadata.getUrl().getValue(), QueryPriority.CIP_26.name()) : null;
 
         return new Metadata(name, description, ticker, decimals, logo, url, null);

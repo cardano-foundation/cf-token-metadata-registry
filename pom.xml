@@ -72,9 +72,15 @@
         <version.bouncycastle>1.80</version.bouncycastle>
         <version.commons-cli>1.9.0</version.commons-cli>
         <version.cardano-client-lib>0.7.2</version.cardano-client-lib>
-        <version.yaci-store>2.0.2.1</version.yaci-store>
-        <!-- yaci-store 2.0.2.1 ships yaci 0.4.4; overridden below to pick up 0.4.6 fixes -->
-        <version.yaci>0.4.6</version.yaci>
+        <!--
+            yaci (the Cardano mini-protocol and CBOR library) is pinned on its own, so a yaci fix
+            can be picked up as soon as it is released, without waiting for a yaci-store release.
+            Keep it at or above the version yaci-store brings in. yaci-store 2.0.7 brings yaci
+            0.4.7, which fixes a block with 128 to 255 transactions being read as empty (mainnet
+            block 14,053,493).
+        -->
+        <version.yaci>0.4.7</version.yaci>
+        <version.yaci-store>2.0.7</version.yaci-store>
         <version.jgit>7.1.0.202411261347-r</version.jgit>
         <version.mockito>5.18.0</version.mockito>
         <version.byte-buddy>1.17.4</version.byte-buddy>
@@ -96,6 +102,11 @@
                 <type>pom</type>
                 <version>${version.spring-boot}</version>
                 <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.bloxbean.cardano</groupId>
+                <artifactId>yaci</artifactId>
+                <version>${version.yaci}</version>
             </dependency>
             <dependency>
                 <groupId>org.springdoc</groupId>
@@ -165,33 +176,6 @@
                 <artifactId>byte-buddy-agent</artifactId>
                 <version>${version.byte-buddy}</version>
                 <scope>test</scope>
-            </dependency>
-            <!--
-                yaci-store 2.0.2.1 declares yaci 0.4.4. We stay on the 2.0.2.x store line
-                (2.0.3 is still rc) but pull the yaci mini-protocol fixes from 0.4.6.
-                The cardano-client-core exclusion mirrors the one yaci-store declares,
-                so the managed entry does not widen the dependency graph.
-            -->
-            <dependency>
-                <groupId>com.bloxbean.cardano</groupId>
-                <artifactId>yaci</artifactId>
-                <version>${version.yaci}</version>
-                <exclusions>
-                    <exclusion>
-                        <groupId>com.bloxbean.cardano</groupId>
-                        <artifactId>cardano-client-core</artifactId>
-                    </exclusion>
-                </exclusions>
-            </dependency>
-            <dependency>
-                <groupId>com.bloxbean.cardano</groupId>
-                <artifactId>yaci-core</artifactId>
-                <version>${version.yaci}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.bloxbean.cardano</groupId>
-                <artifactId>yaci-helper</artifactId>
-                <version>${version.yaci}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

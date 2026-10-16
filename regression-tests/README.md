@@ -104,6 +104,7 @@ uv run pytest -m v1           # V1 endpoints only
 uv run pytest -m v2           # V2 endpoints only
 uv run pytest -m cip26        # CIP-26 token tests
 uv run pytest -m cip68        # CIP-68 token tests
+uv run pytest -m cip113       # CIP-113 programmable token tests
 uv run pytest -m batch        # Batch query tests
 ```
 
@@ -121,6 +122,34 @@ API_BASE_URL=http://myhost:8080 uv run pytest -v
 ```
 
 Default is `http://localhost:8080`.
+
+## CIP-113 programmable tokens
+
+The CIP-113 suite runs on mainnet (`mainnet/test_v2_cip113.py`) and on preprod (`preprod/`), since mainnet has few
+registered tokens. Its fixture, `<network>/fixtures/cip113_tokens.json`, comes from the chain through Koios and not
+from the database, so the suite checks the indexer against an independent source. For each policy in the official
+CIP-113 registry, it holds the extension the API must return and the tokens minted under that policy:
+
+```bash
+uv run python shared/generate_cip113_fixtures.py mainnet
+uv run python shared/generate_cip113_fixtures.py preprod
+```
+
+A programmable token is served only when it also has valid CIP-26 or CIP-68 metadata. A token with valid metadata must
+be `PROGRAMMABLE`, with `extensions.cip113` equal to its registry node. A token without valid metadata must be a 404.
+`preprod/test_v2_cip113.py` lists in `NOT_SERVED` the tokens whose on-chain metadata the registry rejects, with the
+reason. Regenerate the fixture on purpose, when a registration changes, never as part of a test run.
+
+```bash
+cd preprod
+API_BASE_URL=http://my-preprod-host:8080 uv run pytest -v
+```
+
+## Tokens dropped by stricter rules
+
+`mainnet/fixtures/cip68_dropped_tokens.json` holds CIP-68 tokens taken out of `cip68_tokens.json` because a stricter
+CIP-68 rule no longer indexes their datum, each with the reason. `test_v2_cip68_dropped.py` asserts they are not served
+from CIP-68.
 
 ## Viewing Results with Allure (Web UI)
 
@@ -203,16 +232,26 @@ regression-tests/
 ├── pyproject.toml                            # Project metadata + dependencies
 ├── uv.lock                                   # Locked dependency versions (commit this)
 ├── README.md                                 # This file
+├── shared/
+│   ├── cip113_suite.py                       # CIP-113 test class, built per network
+│   └── generate_cip113_fixtures.py           # Chain (Koios) -> CIP-113 fixture
+├── preprod/
+│   ├── test_v2_cip113.py                     # CIP-113 programmable tokens on preprod
+│   └── fixtures/cip113_tokens.json           # CIP-113 registry snapshot (generated)
 └── mainnet/
     ├── conftest.py                           # Shared pytest fixtures and helpers
     ├── pytest.ini                            # Test markers configuration
     ├── fixtures/
     │   ├── generate_fixtures.py              # DB -> JSON snapshot script
     │   ├── cip26_tokens.json                 # CIP-26 token snapshots (generated)
-    │   └── cip68_tokens.json                 # CIP-68 token snapshots (generated)
+    │   ├── cip68_tokens.json                 # CIP-68 token snapshots (generated)
+    │   ├── cip68_dropped_tokens.json         # CIP-68 tokens a stricter rule drops, with the reason
+    │   └── cip113_tokens.json                # CIP-113 registry snapshot (generated)
     ├── test_v1_get_subject.py                # V1 GET /metadata/{subject}
     ├── test_v1_get_property.py               # V1 GET /metadata/{subject}/properties/{property}
     ├── test_v1_batch_query.py                # V1 POST /metadata/query
     ├── test_v2_get_subject.py                # V2 GET /api/v2/subjects/{subject}
-    └── test_v2_batch_query.py                # V2 POST /api/v2/subjects/query
+    ├── test_v2_batch_query.py                # V2 POST /api/v2/subjects/query
+    ├── test_v2_cip68_dropped.py              # CIP-68 tokens a stricter rule drops
+    └── test_v2_cip113.py                     # CIP-113 programmable tokens
 ```

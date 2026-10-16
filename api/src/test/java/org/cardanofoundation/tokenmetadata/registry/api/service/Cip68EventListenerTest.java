@@ -1,11 +1,14 @@
 package org.cardanofoundation.tokenmetadata.registry.api.service;
 
+import com.bloxbean.cardano.yaci.core.protocol.chainsync.messages.Point;
 import com.bloxbean.cardano.yaci.store.common.domain.AddressUtxo;
 import com.bloxbean.cardano.yaci.store.common.domain.Amt;
 import com.bloxbean.cardano.yaci.store.events.EventMetadata;
+import com.bloxbean.cardano.yaci.store.events.RollbackEvent;
 import com.bloxbean.cardano.yaci.store.utxo.domain.AddressUtxoEvent;
 import com.bloxbean.cardano.yaci.store.utxo.domain.TxInputOutput;
-import org.cardanofoundation.tokenmetadata.registry.api.model.cip68.FungibleTokenMetadata;
+import org.cardanofoundation.tokenmetadata.registry.api.model.cip68.ParsedCip68Datum;
+import org.cardanofoundation.tokenmetadata.registry.api.util.AssetType;
 import org.cardanofoundation.tokenmetadata.registry.entity.MetadataReferenceNft;
 import org.cardanofoundation.tokenmetadata.registry.repository.MetadataReferenceNftRepository;
 import org.junit.jupiter.api.DisplayName;
@@ -30,6 +33,7 @@ class Cip68EventListenerTest {
 
     private static final String POLICY_ID = "aabbccdd11223344aabbccdd11223344aabbccdd11223344aabbccdd";
     private static final String REF_NFT_ASSET_NAME = "000643b0464c4454";
+    private static final AssetType REF_NFT = new AssetType(POLICY_ID, REF_NFT_ASSET_NAME);
     private static final String TX_HASH = "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890";
 
     @Mock
@@ -51,8 +55,9 @@ class Cip68EventListenerTest {
         @Test
         void savesEntityWithCorrectFields() {
             String datum = "d8799fa34446756e6e";
-            FungibleTokenMetadata metadata = new FungibleTokenMetadata(
-                    6L, "A test token", "logo", "TestToken", "TST", "https://test.com", 1L);
+            ParsedCip68Datum metadata = new ParsedCip68Datum(
+                    6L, "A test token", "https://test.com/logo.png", "TestToken", "TST", "https://test.com", 1L,
+                    null, null, false);
 
             Amt refNftAmt = Amt.builder()
                     .unit(POLICY_ID + REF_NFT_ASSET_NAME)
@@ -65,16 +70,17 @@ class Cip68EventListenerTest {
                     .amounts(List.of(refNftAmt))
                     .build();
 
-            when(cip68FungibleTokenService.extractReferenceNft(utxo)).thenReturn(Optional.of(refNftAmt));
-            when(cip68DatumParser.parse(datum)).thenReturn(Optional.of(metadata));
-            when(cip68FungibleTokenService.isValidFTMetadata(metadata)).thenReturn(true);
+            when(cip68FungibleTokenService.extractReferenceNfts(utxo)).thenReturn(List.of(refNftAmt));
+            when(cip68DatumParser.parse(datum, REF_NFT)).thenReturn(Optional.of(metadata));
+            when(cip68FungibleTokenService.invalidReason(metadata, 333)).thenReturn(Optional.empty());
 
             listener.processTransaction(buildEvent(100L, utxo));
 
-            ArgumentCaptor<MetadataReferenceNft> captor = ArgumentCaptor.forClass(MetadataReferenceNft.class);
-            verify(metadataReferenceNftRepository).save(captor.capture());
+            @SuppressWarnings("unchecked")
+            ArgumentCaptor<List<MetadataReferenceNft>> captor = ArgumentCaptor.forClass(List.class);
+            verify(metadataReferenceNftRepository).saveAll(captor.capture());
 
-            MetadataReferenceNft saved = captor.getValue();
+            MetadataReferenceNft saved = captor.getValue().getFirst();
             assertThat(saved.getPolicyId()).isEqualTo(POLICY_ID);
             assertThat(saved.getAssetName()).isEqualTo(REF_NFT_ASSET_NAME);
             assertThat(saved.getSlot()).isEqualTo(100L);
@@ -100,7 +106,7 @@ class Cip68EventListenerTest {
                             .build()))
                     .build();
 
-            when(cip68FungibleTokenService.extractReferenceNft(utxo)).thenReturn(Optional.empty());
+            when(cip68FungibleTokenService.extractReferenceNfts(utxo)).thenReturn(List.of());
 
             listener.processTransaction(buildEvent(100L, utxo));
 
@@ -121,8 +127,8 @@ class Cip68EventListenerTest {
                     .amounts(List.of(refNftAmt))
                     .build();
 
-            when(cip68FungibleTokenService.extractReferenceNft(utxo)).thenReturn(Optional.of(refNftAmt));
-            when(cip68DatumParser.parse(datum)).thenReturn(Optional.empty());
+            when(cip68FungibleTokenService.extractReferenceNfts(utxo)).thenReturn(List.of(refNftAmt));
+            when(cip68DatumParser.parse(datum, REF_NFT)).thenReturn(Optional.empty());
 
             listener.processTransaction(buildEvent(100L, utxo));
 
@@ -132,8 +138,8 @@ class Cip68EventListenerTest {
         @Test
         void skipsWhenMetadataInvalid() {
             String datum = "d8799fa34446756e6e";
-            FungibleTokenMetadata metadata = new FungibleTokenMetadata(
-                    null, null, null, null, null, null, null);
+            ParsedCip68Datum metadata = new ParsedCip68Datum(
+                    null, null, null, null, null, null, 1L, null, null, false);
 
             Amt refNftAmt = Amt.builder()
                     .unit(POLICY_ID + REF_NFT_ASSET_NAME)
@@ -146,13 +152,44 @@ class Cip68EventListenerTest {
                     .amounts(List.of(refNftAmt))
                     .build();
 
-            when(cip68FungibleTokenService.extractReferenceNft(utxo)).thenReturn(Optional.of(refNftAmt));
-            when(cip68DatumParser.parse(datum)).thenReturn(Optional.of(metadata));
-            when(cip68FungibleTokenService.isValidFTMetadata(metadata)).thenReturn(false);
+            when(cip68FungibleTokenService.extractReferenceNfts(utxo)).thenReturn(List.of(refNftAmt));
+            when(cip68DatumParser.parse(datum, REF_NFT)).thenReturn(Optional.of(metadata));
+            when(cip68FungibleTokenService.invalidReason(metadata, 333)).thenReturn(Optional.of("it has no name"));
 
             listener.processTransaction(buildEvent(100L, utxo));
 
             verifyNoInteractions(metadataReferenceNftRepository);
+        }
+    }
+
+    @Nested
+    @DisplayName("Rollback handling")
+    class Rollback {
+
+        @Test
+        void deletesEntriesAfterRollbackSlot() {
+            when(metadataReferenceNftRepository.deleteBySlotGreaterThan(500L)).thenReturn(5);
+
+            RollbackEvent event = RollbackEvent.builder()
+                    .rollbackTo(new Point(500L, "blockhash"))
+                    .build();
+
+            listener.handleRollback(event);
+
+            verify(metadataReferenceNftRepository).deleteBySlotGreaterThan(500L);
+        }
+
+        @Test
+        void handlesRollbackWithNoEntries() {
+            when(metadataReferenceNftRepository.deleteBySlotGreaterThan(1000L)).thenReturn(0);
+
+            RollbackEvent event = RollbackEvent.builder()
+                    .rollbackTo(new Point(1000L, "blockhash"))
+                    .build();
+
+            listener.handleRollback(event);
+
+            verify(metadataReferenceNftRepository).deleteBySlotGreaterThan(1000L);
         }
     }
 
