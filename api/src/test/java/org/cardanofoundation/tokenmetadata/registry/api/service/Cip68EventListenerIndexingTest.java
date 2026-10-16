@@ -15,6 +15,7 @@ import com.bloxbean.cardano.yaci.store.common.domain.Amt;
 import com.bloxbean.cardano.yaci.store.events.EventMetadata;
 import com.bloxbean.cardano.yaci.store.utxo.domain.AddressUtxoEvent;
 import com.bloxbean.cardano.yaci.store.utxo.domain.TxInputOutput;
+import org.cardanofoundation.tokenmetadata.registry.api.util.AssetType;
 import org.cardanofoundation.tokenmetadata.registry.entity.MetadataReferenceNft;
 import org.cardanofoundation.tokenmetadata.registry.repository.MetadataReferenceNftRepository;
 import org.junit.jupiter.api.AfterEach;
@@ -31,8 +32,12 @@ import java.util.Arrays;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.clearInvocations;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
@@ -64,17 +69,20 @@ class Cip68EventListenerIndexingTest {
             new Cip68FungibleTokenService(repository), new Cip68FTDatumParser(), repository);
 
     private final Logger listenerLogger = (Logger) LoggerFactory.getLogger(Cip68EventListener.class);
+    private final Logger parserLogger = (Logger) LoggerFactory.getLogger(Cip68FTDatumParser.class);
     private final ListAppender<ILoggingEvent> logs = new ListAppender<>();
 
     @BeforeEach
     void captureLogs() {
         logs.start();
         listenerLogger.addAppender(logs);
+        parserLogger.addAppender(logs);
     }
 
     @AfterEach
     void releaseLogs() {
         listenerLogger.detachAppender(logs);
+        parserLogger.detachAppender(logs);
     }
 
     @Nested
@@ -96,24 +104,49 @@ class Cip68EventListenerIndexingTest {
         }
 
         @Test
-        void indexesOnlyTheReferenceNftsThatHaveAnEntry() throws Exception {
+        void indexesOnlyTheReferenceNftsThatHaveAnEntryAndWarnsForTheOther() throws Exception {
             String datum = nestedDatum(new Entry(A, "Token A"), new Entry(C, "Token C"));
 
             listener.processTransaction(event(output(datum, REF + A, REF + B, REF + C)));
 
             assertThat(saved()).extracting(MetadataReferenceNft::getAssetName).containsExactly(REF + A, REF + C);
+            assertThat(warnings()).singleElement().satisfies(w -> assertThat(w)
+                    .contains(POLICY).contains(REF + B).contains("no usable entry"));
         }
 
         @Test
-        void indexesEveryReferenceNftOfAFlatDatumAndWarnsOnce() throws Exception {
+        void indexesEveryReferenceNftOfAFlatDatumWithOneInfoLine() throws Exception {
+            // a valid case, so it is audited at INFO, not warned about
             listener.processTransaction(event(output(flatDatum("Token", "Desc", null), REF + A, REF + B)));
 
             assertThat(saved()).extracting(MetadataReferenceNft::getAssetName, MetadataReferenceNft::getName)
                     .containsExactly(
                             org.assertj.core.groups.Tuple.tuple(REF + A, "Token"),
                             org.assertj.core.groups.Tuple.tuple(REF + B, "Token"));
-            assertThat(warnings()).singleElement().satisfies(w -> assertThat(w)
+            assertThat(warnings()).isEmpty();
+            assertThat(messages(Level.INFO)).singleElement().satisfies(i -> assertThat(i)
                     .contains("2 reference NFTs").contains("flat").contains(POLICY + REF + A).contains(POLICY + REF + B));
+        }
+
+        @Test
+        void dropsTheBadLogoOfAFlatDatumFromEveryRowAndWarnsOnce() throws Exception {
+            listener.processTransaction(event(output(flatDatum("Token", "Desc", null, "QmXyz"), REF + A, REF + B, REF + C)));
+
+            assertThat(saved()).hasSize(3).allSatisfy(row -> assertThat(row.getLogo()).isNull());
+            assertThat(warnings()).singleElement().satisfies(w -> assertThat(w)
+                    .contains("shared by its 3 reference NFTs").contains("dropping the logo"));
+        }
+
+        @Test
+        void warnsOnceForAnUndefinedVersionOfAFlatDatum() throws Exception {
+            MapPlutusData metadata = new MapPlutusData();
+            metadata.put(BytesPlutusData.of("name"), BytesPlutusData.of("Token"));
+            metadata.put(BytesPlutusData.of("description"), BytesPlutusData.of("Desc"));
+
+            listener.processTransaction(event(output(serialize(metadata, 0), REF + A, REF + B)));
+
+            verifyNoInteractions(repository);
+            assertThat(warnings()).singleElement().satisfies(w -> assertThat(w).contains("version 0"));
         }
 
         @Test
@@ -354,6 +387,35 @@ class Cip68EventListenerIndexingTest {
         }
     }
 
+    /**
+     * The listener runs inside yaci-store's block transaction, so an exception would stop the whole sync. An output
+     * whose indexing fails unexpectedly is skipped with a warning, and the other outputs are indexed.
+     */
+    @Nested
+    @DisplayName("Unexpected failure")
+    class UnexpectedFailure {
+
+        private final Cip68FTDatumParser parser = spy(new Cip68FTDatumParser());
+        private final Cip68EventListener failingListener = new Cip68EventListener(
+                new Cip68FungibleTokenService(repository), parser, repository);
+
+        @Test
+        void skipsTheOutputThatFailsAndIndexesTheOthers() throws Exception {
+            String failing = flatDatum("Broken", "Desc", null);
+            doThrow(new IllegalStateException("unforeseen datum")).when(parser).parse(eq(failing), any(AssetType.class));
+
+            failingListener.processTransaction(event(
+                    output(flatDatum("Token A", "Desc", null), REF + A),
+                    output(failing, REF + B),
+                    output(flatDatum("Token C", "Desc", null), REF + C)));
+
+            assertThat(saved()).extracting(MetadataReferenceNft::getName).containsExactly("Token A", "Token C");
+            assertThat(warnings()).singleElement().satisfies(w -> assertThat(w)
+                    .contains(TX_HASH).contains("failed unexpectedly").contains("IllegalStateException")
+                    .contains("unforeseen datum").contains(failing));
+        }
+    }
+
     /** The rows of the single batched save the listener makes per event. */
     private List<MetadataReferenceNft> saved() {
         @SuppressWarnings("unchecked")
@@ -363,7 +425,11 @@ class Cip68EventListenerIndexingTest {
     }
 
     private List<String> warnings() {
-        return logs.list.stream().filter(e -> e.getLevel() == Level.WARN).map(ILoggingEvent::getFormattedMessage).toList();
+        return messages(Level.WARN);
+    }
+
+    private List<String> messages(Level level) {
+        return logs.list.stream().filter(e -> e.getLevel() == level).map(ILoggingEvent::getFormattedMessage).toList();
     }
 
     private static AddressUtxoEvent event(AddressUtxo... outputs) {

@@ -5,6 +5,7 @@ import com.bloxbean.cardano.yaci.store.common.domain.Amt;
 import com.bloxbean.cardano.yaci.store.events.RollbackEvent;
 import com.bloxbean.cardano.yaci.store.utxo.domain.AddressUtxoEvent;
 import com.bloxbean.cardano.yaci.store.utxo.domain.TxInputOutput;
+import jakarta.annotation.Nullable;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.cardanofoundation.tokenmetadata.registry.api.model.cip68.ParsedCip68Datum;
@@ -56,13 +57,10 @@ public class Cip68EventListener {
         for (TxInputOutput txInputOutput : addressUtxoEvent.getTxInputOutputs()) {
             Set<String> assetUnitsInTx = collectAssetUnits(txInputOutput);
             for (AddressUtxo output : txInputOutput.getOutputs()) {
-                for (Amt referenceNftAmt : referenceNftsToIndex(output)) {
-                    AssetType referenceNft = AssetType.fromUnit(referenceNftAmt.getUnit());
-                    cip68DatumParser.parse(output.getInlineDatum(), referenceNft)
-                            .filter(datum -> isIndexable(datum, referenceNft, assetUnitsInTx))
-                            .map(datum -> withoutInvalidLogo(datum, referenceNft))
-                            .ifPresent(datum -> entities.add(
-                                    buildMetadataReferenceNft(datum, referenceNft, output.getInlineDatum(), slot)));
+                try {
+                    indexOutput(output, assetUnitsInTx, slot, entities);
+                } catch (RuntimeException e) {
+                    skipOutput(output, e);
                 }
             }
         }
@@ -73,21 +71,68 @@ public class Cip68EventListener {
     }
 
     /**
-     * The reference NFTs of an output whose datum should be indexed: all of them. An output with one reference NFT is
-     * the normal case. With several, a nested datum carries the metadata of each, each resolved to its own entry. A
-     * flat datum has no entry per token, but CIP-68's retrieval steps look up the output the reference NFT is locked in
-     * and read its datum, whatever else the output holds, so a flat datum is the metadata of every reference NFT in the
-     * output. They are all indexed with it, and one warning lists them so the case can be audited.
+     * Indexes all the reference NFTs of an output. An output with one reference NFT is the normal case. With several, a
+     * nested datum carries the metadata of each, each resolved to its own entry. A flat datum has no entry per token,
+     * but CIP-68's retrieval steps look up the output the reference NFT is locked in and read its datum, whatever else
+     * the output holds, so a flat datum is the metadata of every reference NFT in the output. They are all indexed with
+     * it, and one info line lists them so the case can be audited. It is a valid case, so it is not a warning; whatever
+     * the shared datum loses is reported as a warning of its own, once for the output.
      */
-    private List<Amt> referenceNftsToIndex(AddressUtxo output) {
+    private void indexOutput(AddressUtxo output, Set<String> assetUnitsInTx, Long slot, List<MetadataReferenceNft> entities) {
         List<Amt> referenceNfts = cip68FungibleTokenService.extractReferenceNfts(output);
+        SharedDatum shared = null;
         if (referenceNfts.size() > 1 && !cip68DatumParser.hasNestedMetadata(output.getInlineDatum())) {
-            log.warn("Output {}#{} holds {} reference NFTs with a flat CIP-68 datum; CIP-68 gives a flat datum to every "
+            log.info("Output {}#{} holds {} reference NFTs with a flat CIP-68 datum; CIP-68 gives a flat datum to every "
                             + "reference NFT in the output, so indexing it for all of them: {}",
                     output.getTxHash(), output.getOutputIndex(), referenceNfts.size(),
                     referenceNfts.stream().map(Amt::getUnit).collect(Collectors.joining(", ")));
+            shared = new SharedDatum(output, referenceNfts.size());
         }
-        return referenceNfts;
+        for (Amt referenceNftAmt : referenceNfts) {
+            AssetType referenceNft = AssetType.fromUnit(referenceNftAmt.getUnit());
+            SharedDatum sharedDatum = shared;
+            Optional<ParsedCip68Datum> parsed = sharedDatum != null
+                    ? sharedDatum.parsed
+                    : cip68DatumParser.parse(output.getInlineDatum(), referenceNft);
+            parsed.filter(datum -> isIndexable(datum, referenceNft, assetUnitsInTx))
+                    .map(datum -> withoutInvalidLogo(datum, referenceNft, sharedDatum))
+                    .ifPresent(datum -> entities.add(
+                            buildMetadataReferenceNft(datum, referenceNft, output.getInlineDatum(), slot)));
+        }
+    }
+
+    /**
+     * An unexpected exception while indexing an output means the datum is something the parser did not foresee, and on
+     * a public chain anyone can put a datum there. This listener runs inside yaci-store's block transaction, so an
+     * exception would stop the whole sync (bloxbean/yaci-store#1243). The metadata of a token is not worth that: the
+     * output is skipped with a warning and the sync goes on. Rows already built for this output are kept. A failure
+     * that only shows at flush or commit, inside the database, is not caught here.
+     */
+    private void skipOutput(AddressUtxo output, RuntimeException e) {
+        log.warn("Output {}#{}: skipping the CIP-68 datum, indexing it failed unexpectedly ({}: {}); datum {}",
+                output.getTxHash(), output.getOutputIndex(), e.getClass().getSimpleName(), e.getMessage(),
+                output.getInlineDatum());
+        log.debug("Stack trace of the CIP-68 indexing failure of output {}#{}", output.getTxHash(), output.getOutputIndex(), e);
+    }
+
+    /**
+     * The flat datum of an output that holds several reference NFTs. It is the metadata of each of them and is the same
+     * for all, so it is parsed once, and what it loses (an undecodable datum, an undefined version, a bad logo) is
+     * reported once for the output instead of once per reference NFT. The checks against the labels stay per reference
+     * NFT, since each has its own row and its own user tokens.
+     */
+    private final class SharedDatum {
+        private final AddressUtxo output;
+        private final int referenceNfts;
+        private final Optional<ParsedCip68Datum> parsed;
+        private boolean logoReported;
+
+        private SharedDatum(AddressUtxo output, int referenceNfts) {
+            this.output = output;
+            this.referenceNfts = referenceNfts;
+            // Parsed here, once, without a reference NFT: the datum is not specific to one of them.
+            this.parsed = cip68DatumParser.parse(output.getInlineDatum());
+        }
     }
 
     /**
@@ -117,15 +162,23 @@ public class Cip68EventListener {
 
     /**
      * The logo is optional, so a bad one costs only the logo: it is left out with a warning and the rest of the datum
-     * is indexed.
+     * is indexed. The logo of a datum that several reference NFTs share is left out of each of their rows, but
+     * reported once for the output.
      */
-    private ParsedCip68Datum withoutInvalidLogo(ParsedCip68Datum datum, AssetType referenceNft) {
+    private ParsedCip68Datum withoutInvalidLogo(ParsedCip68Datum datum, AssetType referenceNft, @Nullable SharedDatum shared) {
         Optional<String> invalidReason = cip68FungibleTokenService.invalidLogoReason(datum);
         if (invalidReason.isEmpty()) {
             return datum;
         }
-        log.warn("CIP-68 datum of {}/{}: dropping the logo and keeping the rest, because {}",
-                referenceNft.policyId(), referenceNft.assetName(), invalidReason.get());
+        if (shared == null) {
+            log.warn("CIP-68 datum of {}/{}: dropping the logo and keeping the rest, because {}",
+                    referenceNft.policyId(), referenceNft.assetName(), invalidReason.get());
+        } else if (!shared.logoReported) {
+            shared.logoReported = true;
+            log.warn("Output {}#{}: dropping the logo of the flat datum shared by its {} reference NFTs and keeping the rest, "
+                            + "because {}",
+                    shared.output.getTxHash(), shared.output.getOutputIndex(), shared.referenceNfts, invalidReason.get());
+        }
         return datum.withoutLogo();
     }
 
