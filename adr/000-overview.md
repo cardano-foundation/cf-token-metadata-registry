@@ -48,6 +48,7 @@ The API exposes both a legacy V1 (CIP-26 only) and an enhanced V2 (CIP-26 + CIP-
 | [ADR-006](006-flyway-database-migrations.md) | Flyway for Database Schema Management | Accepted |
 | [ADR-015](015-v2-api-extensions-model.md) | V2 API Extensions Model | Accepted |
 | [ADR-016](016-cip113-programmable-tokens.md) | CIP-113 Programmable Token Support | Accepted |
+| [ADR-017](017-cip68-last-valid-datum.md) | Serve the Last Valid CIP-68 Datum | Accepted |
 
 ### Data Ingestion
 
