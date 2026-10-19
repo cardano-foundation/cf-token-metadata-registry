@@ -26,7 +26,7 @@ class MetadataV2ParserTest {
                 new LongProperty(6L, QueryPriority.CIP_26.name()),
                 new StringProperty("logo", QueryPriority.CIP_26.name()),
                 new StringProperty("http://url.com", QueryPriority.CIP_26.name()),
-                new LongProperty(1L, QueryPriority.CIP_26.name()));
+                new LongProperty(1L, QueryPriority.CIP_26.name()), false);
 
         Subject subject = new Subject("subject", TokenType.NATIVE, metadata, new Standards(null, null), null);
         Response response = new Response(subject, priorities);

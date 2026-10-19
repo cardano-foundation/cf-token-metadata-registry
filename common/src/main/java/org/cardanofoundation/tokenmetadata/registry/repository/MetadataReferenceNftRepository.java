@@ -31,6 +31,9 @@ public interface MetadataReferenceNftRepository extends JpaRepository<MetadataRe
             nativeQuery = true)
     List<MetadataReferenceNft> findLatestByPolicyIds(@Param("policyIds") Collection<String> policyIds);
 
+    /** Whether any version of the reference NFT's metadata is stored. */
+    boolean existsByPolicyIdAndAssetName(String policyId, String assetName);
+
     int deleteBySlotGreaterThan(Long slot);
 
 }
