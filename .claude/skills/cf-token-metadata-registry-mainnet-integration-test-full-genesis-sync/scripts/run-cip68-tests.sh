@@ -1,22 +1,33 @@
 #!/usr/bin/env bash
 # Run CIP-68 regression tests against the API. Uses the COMMITTED fixture
-# snapshot under regression-tests/mainnet/fixtures/cip68_tokens.json —
-# do NOT regenerate. Assumes wait-onchain-tip.sh has already returned.
+# snapshots under regression-tests/mainnet/fixtures/ — do NOT regenerate:
+#   cip68_tokens.json          CIP-68 fungible tokens (333), DB snapshot
+#   cip68_dropped_tokens.json  tokens a stricter CIP-68 rule drops (must be 404)
+#   cip68_rft_tokens.json      CIP-68 rich fungible tokens (444), chain snapshot via Koios
+# Assumes wait-onchain-tip.sh (or monitor-sync-progress.sh --until-tip) has already returned.
+#
+# Usage: run-cip68-tests.sh [pytest marker expression]   (default: cip68, which includes the RFT tests)
+#   run-cip68-tests.sh rft                    RFT (444) tests only
+#   run-cip68-tests.sh "cip68 and not rft"    for a build without RFT support (before PR #110 / ADR-018)
 
 set -euo pipefail
 # shellcheck disable=SC1091
 source "$(dirname "${BASH_SOURCE[0]}")/load-config.sh"
 
+MARKERS="${1:-cip68}"
 PROJECT_ROOT="$(cd "$SKILL_DIR/../../.." && pwd)"
 REGRESSION_DIR="$PROJECT_ROOT/regression-tests"
+FIXTURES_DIR="$REGRESSION_DIR/mainnet/fixtures"
 
-if [[ ! -s "$REGRESSION_DIR/mainnet/fixtures/cip68_tokens.json" ]]; then
-  echo "ERROR: committed CIP-68 fixture missing or empty: $REGRESSION_DIR/mainnet/fixtures/cip68_tokens.json" >&2
-  exit 1
-fi
+for fixture in cip68_tokens.json cip68_rft_tokens.json; do
+  if [[ ! -s "$FIXTURES_DIR/$fixture" ]]; then
+    echo "ERROR: committed CIP-68 fixture missing or empty: $FIXTURES_DIR/$fixture" >&2
+    exit 1
+  fi
+done
 
 cd "$REGRESSION_DIR"
-echo "[cip68] running pytest -m cip68 against http://localhost:${LOCAL_API_PORT} (using committed fixtures)..."
+echo "[cip68] running pytest -m \"$MARKERS\" against http://localhost:${LOCAL_API_PORT} (using committed fixtures)..."
 cd mainnet
 API_BASE_URL="http://localhost:${LOCAL_API_PORT}" \
-  uv run pytest -m cip68 -v --alluredir=../allure-results
+  uv run pytest -m "$MARKERS" -v --alluredir=../allure-results
