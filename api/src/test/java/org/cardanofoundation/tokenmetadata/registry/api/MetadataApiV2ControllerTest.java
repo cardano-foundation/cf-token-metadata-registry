@@ -1,5 +1,11 @@
 package org.cardanofoundation.tokenmetadata.registry.api;
 
+import com.bloxbean.cardano.client.common.cbor.CborSerializationUtil;
+import com.bloxbean.cardano.client.plutus.spec.BigIntPlutusData;
+import com.bloxbean.cardano.client.plutus.spec.BytesPlutusData;
+import com.bloxbean.cardano.client.plutus.spec.ConstrPlutusData;
+import com.bloxbean.cardano.client.plutus.spec.MapPlutusData;
+import com.bloxbean.cardano.client.util.HexUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.EntityManager;
 import net.minidev.json.JSONArray;
@@ -12,6 +18,7 @@ import org.cardanofoundation.tokenmetadata.registry.api.model.rest.BatchRequest;
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.TokenMetadata;
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.wellknownproperties.*;
 import org.cardanofoundation.tokenmetadata.registry.api.model.cip113.ProgrammableTokenCip113;
+import org.cardanofoundation.tokenmetadata.registry.api.service.Cip68FTDatumParser;
 import org.cardanofoundation.tokenmetadata.registry.api.service.Cip68FungibleTokenService;
 import org.cardanofoundation.tokenmetadata.registry.api.service.RegistryMetricsService;
 import org.cardanofoundation.tokenmetadata.registry.api.service.cip113.Cip113RegistryService;
@@ -20,6 +27,7 @@ import org.cardanofoundation.tokenmetadata.registry.entity.MetadataReferenceNft;
 import org.cardanofoundation.tokenmetadata.registry.repository.MetadataReferenceNftRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Nested;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -42,7 +50,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(V2ApiController.class)
-@Import({SpringWebSecurityConfig.class, Cip68FungibleTokenService.class, AppConfig.CipPriorityConfiguration.class})
+@Import({SpringWebSecurityConfig.class, Cip68FungibleTokenService.class, Cip68FTDatumParser.class, AppConfig.CipPriorityConfiguration.class})
 @ActiveProfiles("test")
 @SuppressWarnings("java:S5738") // @MockBean deprecated — @MockitoBean cannot replace it here (EntityManager needs early registration)
 class MetadataApiV2ControllerTest {
@@ -418,6 +426,68 @@ class MetadataApiV2ControllerTest {
                 .andExpect(MockMvcResultMatchers.jsonPath("$.subjects[1].extensions.cip113.minting_logic_script").doesNotExist())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.subjects[1].extensions.cip113.unfracking_logic_script").doesNotExist())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.subjects[1].extensions.cip113.global_state_policy_id").doesNotExist());
+    }
+
+    /** CIP-68 rich fungible tokens (label 444): served with their image as the logo, valid without a description. */
+    @Nested
+    class RichFungibleTokens {
+
+        private static final String RFT_POLICY = "7d1382d6031f8f9b1c2a3e4d5f60718293a4b5c6d7e8f90a1b2c3d4e";
+        private static final String BASE_NAME = "50555a5a4c45";
+        private static final String RFT_SUBJECT = RFT_POLICY + "001bc280" + BASE_NAME;
+
+        @BeforeEach
+        void storeRichFungibleToken() throws Exception {
+            MetadataReferenceNft row = rftRow();
+            when(metadataReferenceNftRepository.findFirstByPolicyIdAndAssetNameOrderBySlotDesc(RFT_POLICY, "000643b0" + BASE_NAME))
+                    .thenReturn(Optional.of(row));
+            when(metadataReferenceNftRepository.findLatestByPolicyIds(anyCollection())).thenReturn(List.of(row));
+        }
+
+        @Test
+        void servesTheImageAsTheLogoWithoutDescription() throws Exception {
+            mockMvc.perform(get("/api/v2/subjects/" + RFT_SUBJECT))
+                    .andExpect(status().isOk())
+                    .andExpect(MockMvcResultMatchers.jsonPath("$.subject.metadata.name.value").value("PUZZLE"))
+                    .andExpect(MockMvcResultMatchers.jsonPath("$.subject.metadata.logo.value").value("ipfs://bafypuzzle"))
+                    .andExpect(MockMvcResultMatchers.jsonPath("$.subject.metadata.logo.source").value("CIP_68"))
+                    .andExpect(MockMvcResultMatchers.jsonPath("$.subject.metadata.description").doesNotExist())
+                    .andExpect(MockMvcResultMatchers.jsonPath("$.subject.metadata.valid").value(true))
+                    .andExpect(MockMvcResultMatchers.jsonPath("$.subject.metadata.descriptionOptional").doesNotExist());
+        }
+
+        @Test
+        void servesItInABatch() throws Exception {
+            BatchRequest request = new BatchRequest(List.of(RFT_SUBJECT), List.of());
+
+            mockMvc.perform(post("/api/v2/subjects/query")
+                            .contentType("application/json")
+                            .content(new ObjectMapper().writeValueAsString(request)))
+                    .andExpect(status().isOk())
+                    .andExpect(MockMvcResultMatchers.jsonPath("$.subjects.length()").value(1))
+                    .andExpect(MockMvcResultMatchers.jsonPath("$.subjects[0].metadata.logo.value").value("ipfs://bafypuzzle"));
+        }
+
+        @Test
+        void doesNotServeTheNftOfTheSameBaseName() throws Exception {
+            mockMvc.perform(get("/api/v2/subjects/" + RFT_POLICY + "000de140" + BASE_NAME))
+                    .andExpect(status().isNotFound());
+        }
+
+        private static MetadataReferenceNft rftRow() throws Exception {
+            MapPlutusData metadata = new MapPlutusData();
+            metadata.put(BytesPlutusData.of("name"), BytesPlutusData.of("PUZZLE"));
+            metadata.put(BytesPlutusData.of("image"), BytesPlutusData.of("ipfs://bafypuzzle"));
+            ConstrPlutusData datum = ConstrPlutusData.of(0, metadata, BigIntPlutusData.of(1));
+            return MetadataReferenceNft.builder()
+                    .policyId(RFT_POLICY)
+                    .assetName("000643b0" + BASE_NAME)
+                    .slot(100L)
+                    .name("PUZZLE")
+                    .version(1L)
+                    .datum(HexUtil.encodeHexString(CborSerializationUtil.serialize(datum.serialize())))
+                    .build();
+        }
     }
 
 }

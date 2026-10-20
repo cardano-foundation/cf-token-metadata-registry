@@ -27,6 +27,8 @@ public class MetadataReferenceNft {
 
     private String name;
 
+    /** Required for a fungible token (label 333), optional for a rich fungible token (label 444). */
+    @Nullable
     private String description;
 
     @Nullable

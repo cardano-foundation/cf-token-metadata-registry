@@ -227,7 +227,7 @@ mvn clean package -pl api,common -am -DskipTests -Pnative
 ## Features
 
 - [x] CIP-26 compliant REST API
-- [x] CIP-68 fungible token support (V2 API with priority-based querying)
+- [x] CIP-68 fungible token (333) and rich fungible token (444) support (V2 API with priority-based querying)
 - [x] CIP-113 programmable token registry support (preview, preprod, mainnet — enabled via `CIP113_REGISTRY_NFT_POLICY_IDS`)
 - [x] Prometheus metrics (`/actuator/prometheus`)
 - [x] Kubernetes / Helm deployment support (`deploy/`)

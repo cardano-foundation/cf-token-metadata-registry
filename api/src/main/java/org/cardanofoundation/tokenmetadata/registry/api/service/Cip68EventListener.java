@@ -136,10 +136,15 @@ public class Cip68EventListener {
     }
 
     /**
-     * Whether a datum is stored. It has to satisfy what CIP-68 requires (the mandatory fields) for every label of its reference NFT (see
-     * {@link Cip68FungibleTokenService#invalidReason}); the first label it fails is logged at WARN with the reason, and
-     * the datum is not stored. Only fungible tokens are served, and the registry stores a description with every row,
-     * so a valid datum of a 222 NFT or a 444 RFT without one is not stored either, at debug: it is not a fungible token.
+     * Whether a datum is stored. It has to satisfy what CIP-68 requires (the mandatory fields) for every label of its
+     * reference NFT (see {@link Cip68FungibleTokenService#invalidReason}); the first label it fails is logged at WARN
+     * with the reason, and the datum is not stored.
+     * <p>
+     * Fungible tokens (333) and rich fungible tokens (444) are served. A 333 datum always has a description, since the
+     * rules above require it. A 444 datum may have none, so a valid datum without a description is stored when a 444
+     * user token is paired with it, or when it updates a reference NFT that already has a stored version: an update
+     * that does not carry the user token has its label inferred, and an RFT datum without {@code decimals} reads as a
+     * 222 NFT. Any other valid datum without a description is a 222 NFT, which is not served, and is skipped at debug.
      */
     private boolean isIndexable(ParsedCip68Datum datum, AssetType referenceNft, Set<String> assetUnitsInTx) {
         List<Integer> labels = deriveLabels(referenceNft, assetUnitsInTx, datum);
@@ -152,8 +157,9 @@ public class Cip68EventListener {
                 return false;
             }
         }
-        if (datum.description() == null) {
-            log.debug("Skipping CIP-68 datum of {}/{} (label {}): no description, and not a fungible token",
+        if (datum.description() == null && !labels.contains(LABEL_RFT)
+                && !metadataReferenceNftRepository.existsByPolicyIdAndAssetName(referenceNft.policyId(), referenceNft.assetName())) {
+            log.debug("Skipping CIP-68 datum of {}/{} (label {}): no description, and not a fungible or rich fungible token",
                     referenceNft.policyId(), referenceNft.assetName(), labels.getFirst());
             return false;
         }

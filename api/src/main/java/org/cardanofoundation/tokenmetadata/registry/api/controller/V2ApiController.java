@@ -76,7 +76,8 @@ public class V2ApiController implements V2Api {
         List<QueryPriority> queryPriority = priorities != null ? priorities : priorityConfiguration.getDefaultPriority();
 
         ResolvedMetadata tokenMetadata = queryPriority.stream()
-                .reduce(IDENTITY, combineStandards(subject, queryProperties), aggregateResults());
+                .reduce(IDENTITY, combineStandards(subject, queryProperties), aggregateResults())
+                .withDescriptionOptional(cip68FungibleTokenService.isRichFungibleToken(subject));
 
         if (tokenMetadata.metadata().isEmpty() || !tokenMetadata.metadata().isValid()) {
             metricsService.recordNotFound();
@@ -138,7 +139,8 @@ public class V2ApiController implements V2Api {
             case CIP_26 -> v1ApiMetadataIndexer.findSubjectSelectProperties(subject, properties)
                     .map(metadata -> new ResolvedMetadata(Metadata.from(metadata), new Standards(metadata, null)));
             case CIP_68 -> cip68FungibleTokenService.getReferenceNftSubject(subject)
-                    .flatMap(assetType -> cip68FungibleTokenService.findSubject(assetType.policyId(), assetType.assetName(), properties))
+                    .flatMap(assetType -> cip68FungibleTokenService.findSubject(assetType.policyId(), assetType.assetName(), properties,
+                            cip68FungibleTokenService.isRichFungibleToken(subject)))
                     .map(fungibleTokenMetadata -> new ResolvedMetadata(Metadata.from(fungibleTokenMetadata), new Standards(null, fungibleTokenMetadata)));
         };
     }
@@ -164,7 +166,8 @@ public class V2ApiController implements V2Api {
                     .map(metadata -> new ResolvedMetadata(Metadata.from(metadata), new Standards(metadata, null)));
 
             case CIP_68 -> cip68FungibleTokenService.getReferenceNftSubject(subject)
-                    .flatMap(assetType -> cip68FungibleTokenService.findSubject(assetType.policyId(), assetType.assetName(), properties, prefetch.cip68Map()))
+                    .flatMap(assetType -> cip68FungibleTokenService.findSubject(assetType.policyId(), assetType.assetName(), properties, prefetch.cip68Map(),
+                            cip68FungibleTokenService.isRichFungibleToken(subject)))
                     .map(fungibleTokenMetadata -> new ResolvedMetadata(Metadata.from(fungibleTokenMetadata), new Standards(null, fungibleTokenMetadata)));
         };
     }
@@ -203,7 +206,8 @@ public class V2ApiController implements V2Api {
                                  BatchPrefetchData prefetch,
                                  boolean includeCipsDetails) {
         ResolvedMetadata resolved = queryPriority.stream()
-                .reduce(IDENTITY, combineStandardsBatch(subject, queryProperties, prefetch), aggregateResults());
+                .reduce(IDENTITY, combineStandardsBatch(subject, queryProperties, prefetch), aggregateResults())
+                .withDescriptionOptional(cip68FungibleTokenService.isRichFungibleToken(subject));
 
         Map<String, Extension> extensions = new LinkedHashMap<>();
         ProgrammableTokenCip113 cip113 = prefetch.cip113Map().get(AssetType.fromUnit(subject).policyId());
@@ -233,6 +237,11 @@ public class V2ApiController implements V2Api {
 
         ResolvedMetadata merge(ResolvedMetadata that) {
             return new ResolvedMetadata(metadata.merge(that.metadata()), standards.merge(that.standards()));
+        }
+
+        /** A rich fungible token (CIP-68 label 444) is valid without a description. */
+        ResolvedMetadata withDescriptionOptional(boolean descriptionOptional) {
+            return new ResolvedMetadata(metadata.withDescriptionOptional(descriptionOptional), standards);
         }
 
     }

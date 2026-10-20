@@ -37,9 +37,11 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
 /**
  * {@link Cip68EventListener} with the real datum parser and token service: which reference NFTs of an output are
@@ -66,7 +68,7 @@ class Cip68EventListenerIndexingTest {
 
     private final MetadataReferenceNftRepository repository = mock(MetadataReferenceNftRepository.class);
     private final Cip68EventListener listener = new Cip68EventListener(
-            new Cip68FungibleTokenService(repository), new Cip68FTDatumParser(), repository);
+            new Cip68FungibleTokenService(repository, new Cip68FTDatumParser()), new Cip68FTDatumParser(), repository);
 
     private final Logger listenerLogger = (Logger) LoggerFactory.getLogger(Cip68EventListener.class);
     private final Logger parserLogger = (Logger) LoggerFactory.getLogger(Cip68FTDatumParser.class);
@@ -217,16 +219,12 @@ class Cip68EventListenerIndexingTest {
         }
 
         @Test
-        void doesNotIndexOrWarnForAValidNftOrRftWithoutDescription() throws Exception {
-            for (String label : List.of(NFT, RFT)) {
-                logs.list.clear();
+        void doesNotIndexOrWarnForAValidNftWithoutDescription() throws Exception {
+            listener.processTransaction(event(output(datum("name", "Token", "image", "ipfs://bafy"), REF + A),
+                    userToken(NFT + A)));
 
-                listener.processTransaction(event(output(datum("name", "Token", "image", "ipfs://bafy"), REF + A),
-                        userToken(label + A)));
-
-                assertThat(warnings()).as(label).isEmpty();
-            }
-            verifyNoInteractions(repository);
+            verify(repository, never()).saveAll(any());
+            assertThat(warnings()).isEmpty();
         }
 
         @Test
@@ -276,6 +274,53 @@ class Cip68EventListenerIndexingTest {
                     unrelated));
 
             assertThat(warnings()).isEmpty();
+        }
+    }
+
+    /**
+     * A rich fungible token (444) is served, and CIP-68 requires only a name and an image for it, so its datum is
+     * stored without a description.
+     */
+    @Nested
+    @DisplayName("Rich fungible tokens (444)")
+    class RichFungibleTokens {
+
+        @Test
+        void indexesAPairedRftWithoutDescription() throws Exception {
+            listener.processTransaction(event(output(datum("name", "Token", "image", "ipfs://bafy"), REF + A),
+                    userToken(RFT + A)));
+
+            assertThat(saved()).singleElement().satisfies(row -> {
+                assertThat(row.getName()).isEqualTo("Token");
+                assertThat(row.getDescription()).isNull();
+            });
+            assertThat(warnings()).isEmpty();
+        }
+
+        @Test
+        void indexesAnUpdateWithoutDescriptionOfAReferenceNftThatIsAlreadyStored() throws Exception {
+            // an update that does not carry the user token: without decimals, the RFT datum reads as a 222 NFT
+            when(repository.existsByPolicyIdAndAssetName(POLICY, REF + A)).thenReturn(true);
+
+            listener.processTransaction(event(output(datum("name", "Token v2", "image", "ipfs://bafy"), REF + A)));
+
+            assertThat(saved()).singleElement().satisfies(row -> assertThat(row.getName()).isEqualTo("Token v2"));
+        }
+
+        @Test
+        void doesNotIndexAnUnpairedDatumWithoutDescriptionOfAReferenceNftThatIsNotStored() throws Exception {
+            listener.processTransaction(event(output(datum("name", "Token", "image", "ipfs://bafy"), REF + A)));
+
+            verify(repository, never()).saveAll(any());
+        }
+
+        @Test
+        void stillRejectsAnRftWithoutImage() throws Exception {
+            listener.processTransaction(event(output(datum("name", "Token", "description", "Desc"), REF + A),
+                    userToken(RFT + A)));
+
+            verify(repository, never()).saveAll(any());
+            assertThat(warnings()).singleElement().satisfies(w -> assertThat(w).contains("label 444").contains("no image"));
         }
     }
 
@@ -397,7 +442,7 @@ class Cip68EventListenerIndexingTest {
 
         private final Cip68FTDatumParser parser = spy(new Cip68FTDatumParser());
         private final Cip68EventListener failingListener = new Cip68EventListener(
-                new Cip68FungibleTokenService(repository), parser, repository);
+                new Cip68FungibleTokenService(repository, parser), parser, repository);
 
         @Test
         void skipsTheOutputThatFailsAndIndexesTheOthers() throws Exception {

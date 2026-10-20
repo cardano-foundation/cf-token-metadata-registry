@@ -103,7 +103,8 @@ uv run pytest -v --alluredir=../allure-results
 uv run pytest -m v1           # V1 endpoints only
 uv run pytest -m v2           # V2 endpoints only
 uv run pytest -m cip26        # CIP-26 token tests
-uv run pytest -m cip68        # CIP-68 token tests
+uv run pytest -m cip68        # CIP-68 token tests (includes the RFT tests)
+uv run pytest -m rft          # CIP-68 rich fungible token (444) tests
 uv run pytest -m cip113       # CIP-113 programmable token tests
 uv run pytest -m batch        # Batch query tests
 ```
@@ -144,6 +145,28 @@ reason. Regenerate the fixture on purpose, when a registration changes, never as
 cd preprod
 API_BASE_URL=http://my-preprod-host:8080 uv run pytest -v
 ```
+
+## CIP-68 rich fungible tokens (444)
+
+The V2 API serves CIP-68 rich fungible tokens (label 444, prefix `001bc280`) with their `image` as `metadata.logo`
+(ADR-018). Their fixture, `mainnet/fixtures/cip68_rft_tokens.json`, comes from the chain through Koios, like the
+CIP-113 one, and not from the database:
+
+```bash
+uv run python shared/generate_cip68_rft_fixtures.py mainnet
+```
+
+It holds the RFTs whose current 444 datum has a name, a description and an image URI with a scheme CIP-68 allows,
+read the way the registry reads them, with a live reference NFT that holds an inline datum. The file records how many
+RFTs were left out and why (no description, a name that is not a plain byte string, a datum hash instead of an inline
+datum, a burned reference NFT, and so on). RFTs without a description are left out because builds before RFT support
+skipped their datums, so they are served only by a database re-indexed since.
+
+`mainnet/test_v2_cip68_rft.py` checks, for every RFT, that V2 serves its name, description, ticker, decimals, version
+and image (as the logo) from CIP-68. On a sample, it also checks `show_cips_details`, that the batch query returns
+them, and that neither the 222 NFT nor the reference NFT of the same base name is served. V1 serves CIP-26 only, so it
+must not serve an RFT. Regenerate the fixture on purpose, never as part of a test run. Run the suite against an
+instance at tip first, and remove a token with a reason, or treat the difference as a bug.
 
 ## Tokens dropped by stricter rules
 
@@ -224,6 +247,7 @@ uv run pytest -v --alluredir=../allure-results
 | `/metadata/query` | POST | Batch queries, property filters, mixed known/unknown subjects, edge cases |
 | `/api/v2/subjects/{subject}` | GET | All CIP-26 + CIP-68 tokens, `query_priority`, `show_cips_details`, property filter |
 | `/api/v2/subjects/query` | POST | Batch with priority combos, CIP details toggle, mixed CIP types, validity filtering |
+| `/api/v2/subjects/{subject}` and `/query` | GET, POST | Every CIP-68 RFT (444) with a description: fields, image as logo, batch |
 
 ## Project Structure
 
@@ -234,7 +258,8 @@ regression-tests/
 ├── README.md                                 # This file
 ├── shared/
 │   ├── cip113_suite.py                       # CIP-113 test class, built per network
-│   └── generate_cip113_fixtures.py           # Chain (Koios) -> CIP-113 fixture
+│   ├── generate_cip113_fixtures.py           # Chain (Koios) -> CIP-113 fixture
+│   └── generate_cip68_rft_fixtures.py        # Chain (Koios) -> CIP-68 RFT (444) fixture
 ├── preprod/
 │   ├── test_v2_cip113.py                     # CIP-113 programmable tokens on preprod
 │   └── fixtures/cip113_tokens.json           # CIP-113 registry snapshot (generated)
@@ -246,6 +271,7 @@ regression-tests/
     │   ├── cip26_tokens.json                 # CIP-26 token snapshots (generated)
     │   ├── cip68_tokens.json                 # CIP-68 token snapshots (generated)
     │   ├── cip68_dropped_tokens.json         # CIP-68 tokens a stricter rule drops, with the reason
+    │   ├── cip68_rft_tokens.json             # CIP-68 RFT (444) snapshot from the chain (generated)
     │   └── cip113_tokens.json                # CIP-113 registry snapshot (generated)
     ├── test_v1_get_subject.py                # V1 GET /metadata/{subject}
     ├── test_v1_get_property.py               # V1 GET /metadata/{subject}/properties/{property}
@@ -253,5 +279,6 @@ regression-tests/
     ├── test_v2_get_subject.py                # V2 GET /api/v2/subjects/{subject}
     ├── test_v2_batch_query.py                # V2 POST /api/v2/subjects/query
     ├── test_v2_cip68_dropped.py              # CIP-68 tokens a stricter rule drops
+    ├── test_v2_cip68_rft.py                  # CIP-68 rich fungible tokens (444)
     └── test_v2_cip113.py                     # CIP-113 programmable tokens
 ```

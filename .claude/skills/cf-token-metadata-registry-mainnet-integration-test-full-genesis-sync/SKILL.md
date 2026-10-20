@@ -1,6 +1,6 @@
 ---
 name: cf-token-metadata-registry-mainnet-integration-test-full-genesis-sync
-description: QA Automation Engineer — drives a full mainnet integration test of cf-token-metadata-registry on a remote host via SSH. Provisions a fresh Postgres + API stack from genesis using docker compose, monitors /actuator/health, runs CIP-26 regression tests once offchain sync completes, then waits for tip and runs CIP-68 regression tests. Use when the user wants to validate a branch end-to-end against mainnet on a remote box (typed `/cf-token-metadata-registry-mainnet-integration-test-full-genesis-sync` or asked for a "mainnet genesis sync regression run").
+description: QA Automation Engineer — drives a full mainnet integration test of cf-token-metadata-registry on a remote host via SSH. Provisions a fresh Postgres + API stack from genesis using docker compose, monitors /actuator/health, runs CIP-26 regression tests once offchain sync completes, then waits for tip and runs CIP-68 regression tests, including the CIP-68 rich fungible token (444) suite. Use when the user wants to validate a branch end-to-end against mainnet on a remote box (typed `/cf-token-metadata-registry-mainnet-integration-test-full-genesis-sync` or asked for a "mainnet genesis sync regression run").
 ---
 
 # Mainnet Full-Genesis-Sync Integration Test (Remote, via SSH)
@@ -125,11 +125,24 @@ If any CIP-26 test fails → report it to the user immediately (don't wait for C
 
 From slot 65836843 to tip is ~12 h on a typical box; from true genesis it's days. Use `ScheduleWakeup` with the maximum allowed delay (3600s) for this wait, and warn the user that the loop will run for a long time.
 
-### Step 8 — Run CIP-68 regression tests
+### Step 8 — Run CIP-68 regression tests (fungible tokens and rich fungible tokens)
 
-When the indexer reaches tip, the `metadata_reference_nft` table is populated. Run `scripts/run-cip68-tests.sh`, which runs `uv run pytest -m cip68 -v --alluredir=../allure-results` against the committed `regression-tests/mainnet/fixtures/cip68_tokens.json` snapshot.
+When the indexer reaches tip, the `metadata_reference_nft` table is populated. Run `scripts/run-cip68-tests.sh`, which runs `uv run pytest -m cip68 -v --alluredir=../allure-results` against the committed snapshots. `-m cip68` covers:
 
-**Same fixture rule as CIP-26: do not regenerate.** The committed snapshot is the regression baseline.
+- **CIP-68 fungible tokens (333)**: `regression-tests/mainnet/fixtures/cip68_tokens.json` (a DB snapshot), plus `cip68_dropped_tokens.json` (tokens a stricter rule drops, which must be 404 from CIP-68).
+- **CIP-68 rich fungible tokens (444, prefix `001bc280`)**: `regression-tests/mainnet/fixtures/cip68_rft_tokens.json` and `test_v2_cip68_rft.py` (marker `rft`, about 550 tests). The fixture comes from the **chain via Koios** (`shared/generate_cip68_rft_fixtures.py`), not from a DB. It holds every RFT whose current 444 datum has a name, a description and an image URI, read from a live reference NFT with an inline datum. For each one, V2 must serve the datum's name, description, ticker, decimals and version, and its **image as `metadata.logo`** (ADR-018). On a sample, the suite also checks the batch query, `show_cips_details`, that the 222 NFT and the reference NFT of the same base name are 404, and that V1 does not serve RFTs (V1 is CIP-26 only).
+
+To run one group only: `scripts/run-cip68-tests.sh rft`, or `scripts/run-cip68-tests.sh "cip68 and not rft"`.
+
+**RFT support exists only from PR #110 (ADR-018) on.** When the branch under test is older, every RFT test fails with 404. That's expected, not a regression: run `scripts/run-cip68-tests.sh "cip68 and not rft"` and say so in the report. A full genesis sync on a build with RFT support also stores RFTs **without** a description. They aren't in the fixture, which covers only RFTs with a description, so they don't affect the result.
+
+**Same fixture rule as CIP-26: do not regenerate.** The committed snapshots are the regression baseline.
+
+**Triaging an RFT failure.** The fixture holds the 444 datum Koios showed when it was generated, and the registry serves the last valid datum it indexed (ADR-017). For a token that fails:
+1. `GET /api/v2/subjects/{subject}?query_priority=CIP_68` against the instance, and look at the token's current 444 datum on Koios (`asset_info` → `cip68_metadata.444`).
+2. If the datum changed on chain since the fixture was generated, the API is right and the fixture entry is stale. Correct that single entry deliberately; don't regenerate the whole file.
+3. A **404** usually means the registry can't read the datum: the reference NFT moved to a datum hash or was burned, or the new datum breaks a rule (no name, an image without an allowed URI scheme, name as a chunk list). Check the API's WARN lines for the reference NFT (`000643b0` + base name). Remove the token with the reason, or treat it as a bug if the datum is valid.
+4. A **logo** that differs from the `image` means a bug in serving the image as the logo, unless the datum changed (step 2).
 
 **CIP-68 failures are often legitimate on-chain drift, not API bugs.** Unlike CIP-26 (GitHub-sourced, stable), CIP-68 metadata is a **mutable on-chain datum** — the token owner can change name/description/ticker/url at any time. When a CIP-68 assertion fails, first compare the fixture value against what the live API returns for that subject (`GET /api/v2/subjects/{subject}`). If the API value matches current chain state, the API is correct and the **fixture is stale** — fix it with a **targeted single-token correction** of just the drifted fields (still not a wholesale regenerate). Only treat it as a real regression if the API value disagrees with the chain. (Example seen in practice: a token rebranded on-chain to "abandoned" — name/description/ticker all changed, url removed.)
 
@@ -140,7 +153,7 @@ Summarize for the user:
 - Branch + commit tested.
 - Time spent: offchain sync, onchain sync, total.
 - CIP-26: pass/fail counts + first 5 failures.
-- CIP-68: pass/fail counts + first 5 failures.
+- CIP-68: pass/fail counts + first 5 failures, with the fungible token (333) and rich fungible token (444, `-m rft`) results reported separately.
 - Where the Allure results are (`regression-tests/allure-results/`); how to view them (`allure serve regression-tests/allure-results`).
 - Remind the user that the docker compose stack is **still running** on the remote so they can poke at it; ask if you should `docker compose down -v` and remove the SSH tunnels, or leave it up for further inspection.
 
@@ -183,7 +196,7 @@ Observed and filed upstream as **bloxbean/yaci#161** (yaci-core) + **bloxbean/ya
     ├── check-sync-progress.sh     # one-shot window-relative progress (DB cursor vs Koios tip; no /health hit)
     ├── monitor-sync-progress.sh   # looped progress + ETA; --until-tip exits at ~100% (preferred tip detector)
     ├── run-cip26-tests.sh         # pytest -m cip26 against committed fixtures (NO regenerate)
-    └── run-cip68-tests.sh         # pytest -m cip68 against committed fixtures (NO regenerate)
+    └── run-cip68-tests.sh         # pytest -m cip68 (FTs + RFTs) against committed fixtures (NO regenerate); optional marker arg
 ```
 
 All scripts are idempotent and safe to re-run. They print clear progress lines and exit non-zero on failure.

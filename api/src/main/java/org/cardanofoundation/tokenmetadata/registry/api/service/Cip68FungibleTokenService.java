@@ -24,6 +24,7 @@ import java.util.stream.Collectors;
 import static org.cardanofoundation.tokenmetadata.registry.api.model.cip68.Cip68Constants.FUNGIBLE_TOKEN_PREFIX;
 import static org.cardanofoundation.tokenmetadata.registry.api.model.cip68.Cip68Constants.LABEL_FT;
 import static org.cardanofoundation.tokenmetadata.registry.api.model.cip68.Cip68Constants.REFERENCE_TOKEN_PREFIX;
+import static org.cardanofoundation.tokenmetadata.registry.api.model.cip68.Cip68Constants.RICH_FUNGIBLE_TOKEN_PREFIX;
 
 @Service
 @RequiredArgsConstructor
@@ -37,6 +38,7 @@ public class Cip68FungibleTokenService {
     private static final int LOGGED_URI_MAX_LENGTH = 60;
 
     private final MetadataReferenceNftRepository metadataReferenceNftRepository;
+    private final Cip68FTDatumParser cip68DatumParser;
 
     /**
      * Says why a CIP-68 datum is not valid for a user-token label, or an empty result when it is. The check is strict
@@ -144,32 +146,59 @@ public class Cip68FungibleTokenService {
 
     /**
      * Looks up CIP-68 metadata from a pre-fetched map. Falls back to DB query if not found.
+     *
+     * @param richFungibleToken whether the subject is a rich fungible token (label 444), see {@link #toFungibleTokenMetadata}
      */
     public Optional<FungibleTokenMetadata> findSubject(String policyId, String assetName, List<String> properties,
-                                                       @Nullable Map<String, MetadataReferenceNft> prefetchedMap) {
+                                                       @Nullable Map<String, MetadataReferenceNft> prefetchedMap,
+                                                       boolean richFungibleToken) {
         if (prefetchedMap != null) {
             MetadataReferenceNft referenceNft = prefetchedMap.get(policyId + ":" + assetName);
             if (referenceNft != null) {
-                return Optional.of(toFungibleTokenMetadata(referenceNft, properties));
+                return Optional.of(toFungibleTokenMetadata(referenceNft, properties, richFungibleToken));
             }
             return Optional.empty();
         }
-        return findSubject(policyId, assetName, properties);
+        return findSubject(policyId, assetName, properties, richFungibleToken);
     }
 
-    public Optional<FungibleTokenMetadata> findSubject(String policyId, String assetName, List<String> properties) {
+    /**
+     * @param richFungibleToken whether the subject is a rich fungible token (label 444), see {@link #toFungibleTokenMetadata}
+     */
+    public Optional<FungibleTokenMetadata> findSubject(String policyId, String assetName, List<String> properties,
+                                                       boolean richFungibleToken) {
         return metadataReferenceNftRepository.findFirstByPolicyIdAndAssetNameOrderBySlotDesc(policyId, assetName)
-                .map(referenceNft -> toFungibleTokenMetadata(referenceNft, properties));
+                .map(referenceNft -> toFungibleTokenMetadata(referenceNft, properties, richFungibleToken));
     }
 
-    private FungibleTokenMetadata toFungibleTokenMetadata(MetadataReferenceNft referenceNft, List<String> properties) {
+    /**
+     * The served metadata of a reference NFT. A rich fungible token (444) has no {@code logo} in CIP-68; its picture is
+     * the required {@code image}, so it is served as the logo. The image is not stored in a column of its own: it is
+     * read from the stored datum, which also serves the rows indexed before rich fungible tokens were served.
+     */
+    private FungibleTokenMetadata toFungibleTokenMetadata(MetadataReferenceNft referenceNft, List<String> properties,
+                                                          boolean richFungibleToken) {
+        String logo = richFungibleToken ? findImage(referenceNft) : referenceNft.getLogo();
         return new FungibleTokenMetadata(getPropertyIfRequired(Cip68FTDatumParser.DECIMALS, referenceNft.getDecimals(), properties),
                 getPropertyIfRequired(Cip68FTDatumParser.DESCRIPTION, referenceNft.getDescription(), properties),
-                getPropertyIfRequired(Cip68FTDatumParser.LOGO, referenceNft.getLogo(), properties),
+                getPropertyIfRequired(Cip68FTDatumParser.LOGO, logo, properties),
                 getPropertyIfRequired(Cip68FTDatumParser.NAME, referenceNft.getName(), properties),
                 getPropertyIfRequired(Cip68FTDatumParser.TICKER, referenceNft.getTicker(), properties),
                 getPropertyIfRequired(Cip68FTDatumParser.URL, referenceNft.getUrl(), properties),
                 getPropertyIfRequired(VERSION, referenceNft.getVersion(), properties));
+    }
+
+    /**
+     * The {@code image} of the stored datum, if it is a URI with a scheme CIP-68 allows. A 444 datum is stored only with
+     * such an image, but the same reference NFT may also have been stored for another label, so it is checked here too.
+     */
+    @Nullable
+    private String findImage(MetadataReferenceNft referenceNft) {
+        AssetType referenceNftAssetType = new AssetType(referenceNft.getPolicyId(), referenceNft.getAssetName());
+        return cip68DatumParser.parse(referenceNft.getDatum(), referenceNftAssetType)
+                .map(ParsedCip68Datum::image)
+                .filter(Cip68Uri::hasAllowedScheme)
+                .orElse(null);
     }
 
     private <T> T getPropertyIfRequired(String propertyName, T propertyValue, List<String> properties) {
@@ -181,16 +210,27 @@ public class Cip68FungibleTokenService {
     }
 
 
+    /**
+     * The reference NFT that holds the metadata of a served CIP-68 user token: a fungible token (label 333, prefix
+     * {@code 0014df10}) or a rich fungible token (label 444, prefix {@code 001bc280}). Empty for any other subject.
+     */
     public Optional<AssetType> getReferenceNftSubject(String subject) {
         AssetType assetType = AssetType.fromUnit(subject);
         String assetName = assetType.assetName();
         int tokenPrefixLength = REFERENCE_TOKEN_PREFIX.length();
-        if (assetName.length() > tokenPrefixLength && assetName.startsWith(FUNGIBLE_TOKEN_PREFIX)) {
+        if (assetName.length() > tokenPrefixLength
+                && (assetName.startsWith(FUNGIBLE_TOKEN_PREFIX) || assetName.startsWith(RICH_FUNGIBLE_TOKEN_PREFIX))) {
             String refNftAssetName = String.format("%s%s", REFERENCE_TOKEN_PREFIX, assetType.assetName().substring(tokenPrefixLength));
             return Optional.of(new AssetType(assetType.policyId(), refNftAssetName));
         } else {
             return Optional.empty();
         }
+    }
+
+    /** Whether the subject is a CIP-68 rich fungible token (label 444, prefix {@code 001bc280}). */
+    public boolean isRichFungibleToken(String subject) {
+        String assetName = AssetType.fromUnit(subject).assetName();
+        return assetName.length() > RICH_FUNGIBLE_TOKEN_PREFIX.length() && assetName.startsWith(RICH_FUNGIBLE_TOKEN_PREFIX);
     }
 
 }

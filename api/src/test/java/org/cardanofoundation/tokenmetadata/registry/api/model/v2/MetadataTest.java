@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Base64;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.cardanofoundation.tokenmetadata.registry.api.model.QueryPriority.CIP_26;
 import static org.cardanofoundation.tokenmetadata.registry.api.model.QueryPriority.CIP_68;
 
@@ -82,4 +83,34 @@ class MetadataTest {
         Assertions.assertEquals(new StringProperty(expectedBase64, CIP_26.name()), actual.logo());
     }
 
+    @Test
+    void isValidOnlyWithNameAndDescription() {
+        Metadata nameOnly = Metadata.builder().name(new StringProperty("Token", CIP_68.name())).build();
+
+        assertThat(nameOnly.isValid()).isFalse();
+        assertThat(nameOnly.toBuilder().description(new StringProperty("Desc", CIP_68.name())).build().isValid()).isTrue();
+    }
+
+    @Test
+    void isValidWithANameAloneWhenTheDescriptionIsOptional() {
+        Metadata nameOnly = Metadata.builder().name(new StringProperty("Token", CIP_68.name())).build();
+
+        assertThat(nameOnly.withDescriptionOptional(true).isValid()).isTrue();
+        assertThat(Metadata.empty().withDescriptionOptional(true).isValid()).isFalse();
+    }
+
+    @Test
+    void staysEmptyWhenTheDescriptionIsOptional() {
+        assertThat(Metadata.empty().withDescriptionOptional(true).isEmpty()).isTrue();
+    }
+
+    @Test
+    void keepsTheOptionalDescriptionWhenMerged() {
+        Metadata rft = Metadata.builder().name(new StringProperty("Token", CIP_68.name())).build().withDescriptionOptional(true);
+
+        assertThat(rft.merge(Metadata.empty()).isValid()).isTrue();
+        assertThat(Metadata.empty().merge(rft).isValid()).isTrue();
+    }
+
 }
+

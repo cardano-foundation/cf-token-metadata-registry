@@ -1,5 +1,6 @@
 package org.cardanofoundation.tokenmetadata.registry.api.model.v2;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Builder;
 import org.cardanofoundation.tokenmetadata.registry.api.model.QueryPriority;
 import org.cardanofoundation.tokenmetadata.registry.api.model.cip68.FungibleTokenMetadata;
@@ -7,9 +8,15 @@ import org.cardanofoundation.tokenmetadata.registry.api.model.rest.TokenMetadata
 
 import java.util.Base64;
 
+/**
+ * The merged metadata of a subject. {@code descriptionOptional} is not part of the response: it is set for a CIP-68
+ * rich fungible token (label 444), for which CIP-68 makes the description optional, so the metadata is valid with a
+ * name alone.
+ */
 @Builder(toBuilder = true)
 public record Metadata(StringProperty name, StringProperty description, StringProperty ticker, LongProperty decimals,
-                       StringProperty logo, StringProperty url, LongProperty version) {
+                       StringProperty logo, StringProperty url, LongProperty version,
+                       @JsonIgnore boolean descriptionOptional) {
 
     private static final Metadata EMPTY_METADATA = Metadata.builder().build();
 
@@ -24,7 +31,13 @@ public record Metadata(StringProperty name, StringProperty description, StringPr
                 decimals != null ? decimals : that.decimals(),
                 logo != null ? logo : that.logo(),
                 url != null ? url : that.url(),
-                version != null ? version : that.version());
+                version != null ? version : that.version(),
+                descriptionOptional || that.descriptionOptional());
+    }
+
+    /** The same metadata, valid without a description when {@code descriptionOptional} is true. */
+    public Metadata withDescriptionOptional(boolean descriptionOptional) {
+        return toBuilder().descriptionOptional(descriptionOptional).build();
     }
 
 
@@ -40,7 +53,7 @@ public record Metadata(StringProperty name, StringProperty description, StringPr
         StringProperty logo = metadata.getLogo() != null ? new StringProperty(Base64.getEncoder().encodeToString(metadata.getLogo().getValue()), QueryPriority.CIP_26.name()) : null;
         StringProperty url = metadata.getUrl() != null ? new StringProperty(metadata.getUrl().getValue(), QueryPriority.CIP_26.name()) : null;
 
-        return new Metadata(name, description, ticker, decimals, logo, url, null);
+        return new Metadata(name, description, ticker, decimals, logo, url, null, false);
     }
 
     public static Metadata from(FungibleTokenMetadata fungibleTokenMetadata) {
@@ -53,15 +66,15 @@ public record Metadata(StringProperty name, StringProperty description, StringPr
         StringProperty url = fungibleTokenMetadata.url() != null ? new StringProperty(fungibleTokenMetadata.url(), QueryPriority.CIP_68.name()) : null;
         LongProperty version = fungibleTokenMetadata.version() != null ? new LongProperty(fungibleTokenMetadata.version(), QueryPriority.CIP_68.name()) : null;
 
-        return new Metadata(name, description, ticker, decimals, logo, url, version);
+        return new Metadata(name, description, ticker, decimals, logo, url, version, false);
     }
 
     public boolean isEmpty() {
-        return this.equals(EMPTY_METADATA);
+        return withDescriptionOptional(false).equals(EMPTY_METADATA);
     }
 
     public boolean isValid() {
-        return this.name != null && this.description != null;
+        return this.name != null && (this.description != null || this.descriptionOptional);
     }
 
 }

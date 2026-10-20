@@ -17,7 +17,7 @@ Multi-standard Cardano token metadata registry built with Spring Boot 3 and Java
 ### Metadata Standards
 
 - **CIP-26** (offchain): JSON metadata files synced from GitHub, stored in `metadata` table
-- **CIP-68** (on-chain): Reference NFT datum parsed from blockchain UTxOs (prefix `000643b0`), stored in `metadata_reference_nft` table. Fungible tokens (prefix `0014df10`) are mapped to their reference NFT counterpart
+- **CIP-68** (on-chain): Reference NFT datum parsed from blockchain UTxOs (prefix `000643b0`), stored in `metadata_reference_nft` table. Fungible tokens (label 333, prefix `0014df10`) and rich fungible tokens (label 444, prefix `001bc280`) are mapped to their reference NFT counterpart. An RFT's `image` is served as `logo`, and its description is optional (ADR-018). NFTs (label 222) are not served
 - **CIP-113** (programmable tokens): Registry node NFTs with minting, transfer, third-party and unfracking logic scripts, stored in `cip113_registry_node` table. Enabled when `CIP113_REGISTRY_NFT_POLICY_IDS` is non-empty. The parser reads the 7-field `RegistryNode` datum and skips any other shape with a WARN
 
 ### V2 Query Priority
@@ -25,7 +25,7 @@ Multi-standard Cardano token metadata registry built with Spring Boot 3 and Java
 The V2 API merges metadata from CIP-26 and CIP-68 using a priority mechanism:
 - Default priority: `CIP_68,CIP_26` (on-chain preferred, configurable via `cip.query.priority`)
 - Per-request override via `query_priority` parameter
-- First source with valid data (name + description) wins; gaps filled by lower-priority sources
+- First source with valid data (name + description; name alone for a 444 RFT) wins; gaps filled by lower-priority sources
 - CIP-113 extensions are appended when the token's policy ID is in the programmable token registry
 
 ### On-Chain Indexing (Yaci Store)
