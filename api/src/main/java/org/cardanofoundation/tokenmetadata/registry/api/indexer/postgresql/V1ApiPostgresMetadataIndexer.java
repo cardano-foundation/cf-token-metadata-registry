@@ -1,13 +1,17 @@
 package org.cardanofoundation.tokenmetadata.registry.api.indexer.postgresql;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.cardanofoundation.tokenmetadata.registry.api.indexer.V1ApiMetadataIndexer;
 import org.cardanofoundation.tokenmetadata.registry.api.indexer.postgresql.data.MetadataQueryResult;
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.TokenMetadata;
+import org.cardanofoundation.tokenmetadata.registry.api.util.LogSanitizer;
+import org.cardanofoundation.tokenmetadata.registry.validation.ValidationError;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
@@ -21,6 +25,9 @@ import static java.util.Map.entry;
 @RequiredArgsConstructor
 @Slf4j
 public class V1ApiPostgresMetadataIndexer implements V1ApiMetadataIndexer {
+
+    private static final TypeReference<List<ValidationError>> VALIDATION_ERRORS = new TypeReference<>() {
+    };
 
     private final ObjectMapper objectMapper;
     private final NamedParameterJdbcTemplate jdbcTemplate;
@@ -113,5 +120,31 @@ public class V1ApiPostgresMetadataIndexer implements V1ApiMetadataIndexer {
                 params,
                 (rs, rowNum) -> MetadataQueryResult.fromSubjectAndPropertiesResultSet(rs));
         return metadataFromQueryResults(queryResults, properties).values().stream().findFirst();
+    }
+
+    @Override
+    public Map<String, List<ValidationError>> findValidationErrors(Collection<String> subjects) {
+        if (subjects.isEmpty()) {
+            return Map.of();
+        }
+        final SqlParameterSource params = new MapSqlParameterSource(Map.ofEntries(entry("subjects", subjects)));
+        final Map<String, List<ValidationError>> errors = new HashMap<>();
+        jdbcTemplate.query("SELECT subject, validation_errors FROM metadata WHERE subject IN (:subjects)", params, rs -> {
+            errors.put(rs.getString("subject"), readValidationErrors(rs.getString("subject"), rs.getString("validation_errors")));
+        });
+        return errors;
+    }
+
+    @Nullable
+    private List<ValidationError> readValidationErrors(String subject, @Nullable String json) {
+        if (json == null) {
+            return null;
+        }
+        try {
+            return objectMapper.readValue(json, VALIDATION_ERRORS);
+        } catch (final JsonProcessingException e) {
+            log.warn("Could not read the validation errors of subject {}: {}", LogSanitizer.sanitizeHex(subject), e.getMessage());
+            return null;
+        }
     }
 }

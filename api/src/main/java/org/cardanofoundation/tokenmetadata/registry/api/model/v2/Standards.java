@@ -1,9 +1,16 @@
 package org.cardanofoundation.tokenmetadata.registry.api.model.v2;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.cardanofoundation.tokenmetadata.registry.api.model.cip68.FungibleTokenMetadata;
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.TokenMetadata;
 
 public record Standards(TokenMetadata cip26, FungibleTokenMetadata cip68) {
+
+    /** True when neither standard has anything indexed for the subject. */
+    @JsonIgnore
+    public boolean isEmpty() {
+        return cip26 == null && cip68 == null;
+    }
 
     public static Standards empty() {
         return new Standards(null, null);

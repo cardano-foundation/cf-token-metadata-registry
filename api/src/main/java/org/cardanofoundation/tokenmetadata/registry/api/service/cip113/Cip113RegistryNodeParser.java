@@ -7,6 +7,7 @@ import com.bloxbean.cardano.client.plutus.spec.PlutusData;
 import com.bloxbean.cardano.client.util.HexUtil;
 import jakarta.annotation.Nullable;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.helpers.MessageFormatter;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -124,9 +125,29 @@ public class Cip113RegistryNodeParser {
         }
     }
 
+    /**
+     * The outcome of reading a registry node datum: the node, or why it is rejected (the reason is recorded in
+     * {@code invalid_token}, ADR-020).
+     */
+    public record ParseResult(@Nullable ParsedRegistryNode node, @Nullable String rejection) {
+
+        static ParseResult parsed(ParsedRegistryNode node) {
+            return new ParseResult(node, null);
+        }
+
+        static ParseResult rejected(String rejection) {
+            return new ParseResult(null, rejection);
+        }
+    }
+
     public Optional<ParsedRegistryNode> parse(String inlineDatum) {
+        return Optional.ofNullable(parseDetailed(inlineDatum).node());
+    }
+
+    /** Like {@link #parse(String)}, but says why a datum is rejected; each rejection is also logged at WARN. */
+    public ParseResult parseDetailed(@Nullable String inlineDatum) {
         if (inlineDatum == null || inlineDatum.isBlank()) {
-            return Optional.empty();
+            return ParseResult.rejected("the registry node output has no inline datum");
         }
 
         // Hard size cap BEFORE we touch HexUtil or the recursive CBOR decoder.
@@ -136,9 +157,8 @@ public class Cip113RegistryNodeParser {
         // deliberately does not swallow. Bounding the input at 4096 hex chars keeps the
         // decoder's working set small enough that neither class of attack is realistic.
         if (inlineDatum.length() > MAX_DATUM_HEX_LEN) {
-            log.warn("CIP-113 registry node: inline datum too large ({} hex chars, max {})",
+            return rejected("CIP-113 registry node: inline datum too large ({} hex chars, max {})",
                     inlineDatum.length(), MAX_DATUM_HEX_LEN);
-            return Optional.empty();
         }
 
         try {
@@ -146,38 +166,33 @@ public class Cip113RegistryNodeParser {
 
             // Invariant #1: root must be a Constr with alternative 0.
             if (!(plutusData instanceof ConstrPlutusData constr)) {
-                log.warn("CIP-113 registry node: expected root ConstrPlutusData, got {}",
+                return rejected("CIP-113 registry node: expected root ConstrPlutusData, got {}",
                         plutusData.getClass().getSimpleName());
-                return Optional.empty();
             }
             if (constr.getAlternative() != REGISTRY_NODE_CONSTR_ALTERNATIVE) {
-                log.warn("CIP-113 registry node: expected Constr alternative {}, got {}",
+                return rejected("CIP-113 registry node: expected Constr alternative {}, got {}",
                         REGISTRY_NODE_CONSTR_ALTERNATIVE, constr.getAlternative());
-                return Optional.empty();
             }
 
             // Invariant #2: exactly 7 fields.
             List<PlutusData> fields = constr.getData().getPlutusDataList();
             if (fields.size() != EXPECTED_FIELD_COUNT) {
-                log.warn("CIP-113 registry node: expected {} fields, got {}",
+                return rejected("CIP-113 registry node: expected {} fields, got {}",
                         EXPECTED_FIELD_COUNT, fields.size());
-                return Optional.empty();
             }
 
             // Invariant #3: key — ByteString, 0 to 32 bytes (head sentinel, real policy, or tail sentinel).
             byte[] keyBytes = extractByteArray(fields.get(0));
             if (keyBytes == null || keyBytes.length > MAX_KEY_BYTE_LEN) {
-                log.warn("CIP-113 registry node: invalid 'key' field (expected ByteString of length 0..{} bytes)",
+                return rejected("CIP-113 registry node: invalid 'key' field (expected ByteString of length 0..{} bytes)",
                         MAX_KEY_BYTE_LEN);
-                return Optional.empty();
             }
 
             // Invariant #4: next — ByteString, 1 to 32 bytes (must be non-empty).
             byte[] nextBytes = extractByteArray(fields.get(1));
             if (nextBytes == null || nextBytes.length == 0 || nextBytes.length > MAX_KEY_BYTE_LEN) {
-                log.warn("CIP-113 registry node: invalid 'next' field (expected ByteString of length 1..{} bytes)",
+                return rejected("CIP-113 registry node: invalid 'next' field (expected ByteString of length 1..{} bytes)",
                         MAX_KEY_BYTE_LEN);
-                return Optional.empty();
             }
 
             // Invariants #5–#8: the four logic scripts — optional Credentials (null when empty).
@@ -190,7 +205,7 @@ public class Cip113RegistryNodeParser {
             // Invariant #9: global_state_cs — ByteString, 0 bytes (null) or exactly 28 bytes.
             String globalStatePolicyId = extractOptionalGlobalStateCs(fields.get(6));
 
-            return Optional.of(new ParsedRegistryNode(
+            return ParseResult.parsed(new ParsedRegistryNode(
                     HexUtil.encodeHexString(keyBytes),
                     HexUtil.encodeHexString(nextBytes),
                     mintingLogicScript,
@@ -200,15 +215,20 @@ public class Cip113RegistryNodeParser {
                     globalStatePolicyId));
 
         } catch (InvalidDatumException e) {
-            log.warn("CIP-113 registry node rejected: {}", e.getMessage());
-            return Optional.empty();
+            return rejected("CIP-113 registry node rejected: {}", e.getMessage());
         } catch (CborDeserializationException | RuntimeException e) {
             // Deliberately narrower than catching every exception, so that an Error such as an
             // OutOfMemoryError still propagates. This covers malformed CBOR rejected by the
             // PlutusData decoder and bad hex input rejected by HexUtil.
-            log.warn("Failed to parse CIP-113 registry node datum: {}", e.getMessage());
-            return Optional.empty();
+            return rejected("Failed to parse CIP-113 registry node datum: {}", e.getMessage());
         }
+    }
+
+    /** Logs a rejected datum at WARN, with the message formatted as in the log, and returns it as the rejection. */
+    private static ParseResult rejected(String format, Object... arguments) {
+        String message = MessageFormatter.arrayFormat(format, arguments).getMessage();
+        log.warn(message);
+        return ParseResult.rejected(message);
     }
 
     /**

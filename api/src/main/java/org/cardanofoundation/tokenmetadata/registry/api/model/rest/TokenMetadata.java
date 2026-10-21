@@ -10,9 +10,11 @@ import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.cardanofoundation.metadatatools.core.cip26.model.Metadata;
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.wellknownproperties.*;
+import org.cardanofoundation.tokenmetadata.registry.validation.ValidationError;
 
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Data
@@ -66,6 +68,14 @@ public class TokenMetadata {
   @Valid
   @Schema(name = "logo")
   private LogoProperty logo;
+
+  /**
+   * How the CIP-26 entry departs from CIP-26 (ADR-019). Set only in V2 responses ({@code standards.cip26}); the V1
+   * response, which is the registry server's own format, never carries it.
+   */
+  @JsonProperty("validation_errors")
+  @Schema(name = "validation_errors", description = "How the entry departs from CIP-26 (V2 only); empty when it follows it.")
+  private List<ValidationError> validationErrors;
 
   @JsonProperty("updated")
   @Valid

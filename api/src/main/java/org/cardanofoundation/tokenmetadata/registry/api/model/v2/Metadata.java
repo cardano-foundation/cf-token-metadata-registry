@@ -1,6 +1,5 @@
 package org.cardanofoundation.tokenmetadata.registry.api.model.v2;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Builder;
 import org.cardanofoundation.tokenmetadata.registry.api.model.QueryPriority;
 import org.cardanofoundation.tokenmetadata.registry.api.model.cip68.FungibleTokenMetadata;
@@ -9,14 +8,17 @@ import org.cardanofoundation.tokenmetadata.registry.api.model.rest.TokenMetadata
 import java.util.Base64;
 
 /**
- * The merged metadata of a subject. {@code descriptionOptional} is not part of the response: it is set for a CIP-68
- * rich fungible token (label 444), for which CIP-68 makes the description optional, so the metadata is valid with a
- * name alone.
+ * The merged display metadata of a token.
+ * <p>
+ * {@code valid} says whether the token follows its CIP completely: {@code true} when its {@code validation_errors} are
+ * empty, mandatory and optional fields alike (ADR-019). It is in the JSON where it has always been. It used to mean
+ * "name and description are both there" and was the gate of the API, so it was {@code true} for every token returned;
+ * there is no gate any more, so it can be {@code false}. It is set from the errors of every standard that has the token,
+ * after the merge; a token indexed before validation existed falls back to the old rule.
  */
 @Builder(toBuilder = true)
 public record Metadata(StringProperty name, StringProperty description, StringProperty ticker, LongProperty decimals,
-                       StringProperty logo, StringProperty url, LongProperty version,
-                       @JsonIgnore boolean descriptionOptional) {
+                       StringProperty logo, StringProperty url, LongProperty version, boolean valid) {
 
     private static final Metadata EMPTY_METADATA = Metadata.builder().build();
 
@@ -24,6 +26,7 @@ public record Metadata(StringProperty name, StringProperty description, StringPr
         return EMPTY_METADATA;
     }
 
+    /** The first standard wins per property; {@code valid} is set after the merge, from the errors. */
     public Metadata merge(Metadata that) {
         return new Metadata(name != null ? name : that.name(),
                 description != null ? description : that.description(),
@@ -32,14 +35,8 @@ public record Metadata(StringProperty name, StringProperty description, StringPr
                 logo != null ? logo : that.logo(),
                 url != null ? url : that.url(),
                 version != null ? version : that.version(),
-                descriptionOptional || that.descriptionOptional());
+                valid);
     }
-
-    /** The same metadata, valid without a description when {@code descriptionOptional} is true. */
-    public Metadata withDescriptionOptional(boolean descriptionOptional) {
-        return toBuilder().descriptionOptional(descriptionOptional).build();
-    }
-
 
     public static Metadata from(TokenMetadata metadata) {
 
@@ -69,12 +66,10 @@ public record Metadata(StringProperty name, StringProperty description, StringPr
         return new Metadata(name, description, ticker, decimals, logo, url, version, false);
     }
 
+    /** True when no property has a value ({@code valid} is not a property). */
     public boolean isEmpty() {
-        return withDescriptionOptional(false).equals(EMPTY_METADATA);
-    }
-
-    public boolean isValid() {
-        return this.name != null && (this.description != null || this.descriptionOptional);
+        return name == null && description == null && ticker == null && decimals == null
+                && logo == null && url == null && version == null;
     }
 
 }

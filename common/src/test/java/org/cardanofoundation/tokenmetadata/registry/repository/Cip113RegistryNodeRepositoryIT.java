@@ -138,4 +138,18 @@ class Cip113RegistryNodeRepositoryIT {
                 .datum("d8799f40ff")
                 .build();
     }
+
+    @Test
+    void findRegisteredPolicyIds_returnsEveryPolicyOnceAndNoSentinel() {
+        String policy = "aa".repeat(28);
+        repository.saveAll(List.of(
+                node("", 1L), node(policy, 2L), node(policy, 3L), node("ff".repeat(30), 4L)));
+        entityManager.flush();
+
+        assertThat(repository.findRegisteredPolicyIds()).containsExactly(policy);
+    }
+
+    private static Cip113RegistryNode node(String key, long slot) {
+        return Cip113RegistryNode.builder().key(key).slot(slot).txHash("ab".repeat(32)).next("ff").datum("d87980").build();
+    }
 }

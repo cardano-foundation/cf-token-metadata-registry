@@ -5,20 +5,29 @@ import com.bloxbean.cardano.yaci.store.common.domain.Amt;
 import com.bloxbean.cardano.yaci.store.events.RollbackEvent;
 import com.bloxbean.cardano.yaci.store.utxo.domain.AddressUtxoEvent;
 import com.bloxbean.cardano.yaci.store.utxo.domain.TxInputOutput;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.Nullable;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.cardanofoundation.tokenmetadata.registry.api.model.cip68.ParseOutcome;
 import org.cardanofoundation.tokenmetadata.registry.api.model.cip68.ParsedCip68Datum;
 import org.cardanofoundation.tokenmetadata.registry.api.util.AssetType;
 import org.cardanofoundation.tokenmetadata.registry.entity.MetadataReferenceNft;
+import org.cardanofoundation.tokenmetadata.registry.invalidtoken.InvalidTokenReason;
+import org.cardanofoundation.tokenmetadata.registry.invalidtoken.InvalidTokenRecorder;
+import org.cardanofoundation.tokenmetadata.registry.invalidtoken.InvalidTokenReport;
 import org.cardanofoundation.tokenmetadata.registry.repository.MetadataReferenceNftRepository;
+import org.cardanofoundation.tokenmetadata.registry.validation.ValidationError;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -31,14 +40,32 @@ import static org.cardanofoundation.tokenmetadata.registry.api.model.cip68.Cip68
 import static org.cardanofoundation.tokenmetadata.registry.api.model.cip68.Cip68Constants.REFERENCE_TOKEN_PREFIX;
 import static org.cardanofoundation.tokenmetadata.registry.api.model.cip68.Cip68Constants.RICH_FUNGIBLE_TOKEN_PREFIX;
 
+/**
+ * Indexes CIP-68 reference NFT datums, as yaci-store's processor does (bloxbean/yaci-store#1220): a datum that can be
+ * decoded is stored as written, with what departs from CIP-68 in its {@code validation_errors} (ADR-019), and only what
+ * cannot be decoded, or fails unexpectedly, is dropped and recorded in {@code invalid_token} (ADR-020).
+ * <p>
+ * The registry serves fungible tokens (333) and rich fungible tokens (444) only, so only their datums are stored: a
+ * datum whose reference NFT is paired with (or, without a user token in the transaction, inferred as) a 333 or 444
+ * token, or that updates a reference NFT already stored. A 222-only datum is skipped at debug.
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class Cip68EventListener {
 
+    /**
+     * Writes the {@code properties} JSON once, early, so that a value Jackson refuses is found while the output is
+     * built: Hibernate writes it at flush, inside the block transaction, where an exception stops the whole sync
+     * (bloxbean/yaci-store#1240, #1243). Do not remove it as "unused serialization".
+     */
+    private static final ObjectMapper PROPERTIES_MAPPER = new ObjectMapper();
+    private static final int DATUM_PREFIX_CHARS = 256;
+
     private final Cip68FungibleTokenService cip68FungibleTokenService;
     private final Cip68FTDatumParser cip68DatumParser;
     private final MetadataReferenceNftRepository metadataReferenceNftRepository;
+    private final InvalidTokenRecorder invalidTokenRecorder;
 
     @EventListener
     @Transactional
@@ -60,7 +87,7 @@ public class Cip68EventListener {
                 try {
                     indexOutput(output, assetUnitsInTx, slot, entities);
                 } catch (RuntimeException e) {
-                    skipOutput(output, e);
+                    skipOutput(output, slot, e);
                 }
             }
         }
@@ -71,12 +98,10 @@ public class Cip68EventListener {
     }
 
     /**
-     * Indexes all the reference NFTs of an output. An output with one reference NFT is the normal case. With several, a
-     * nested datum carries the metadata of each, each resolved to its own entry. A flat datum has no entry per token,
-     * but CIP-68's retrieval steps look up the output the reference NFT is locked in and read its datum, whatever else
-     * the output holds, so a flat datum is the metadata of every reference NFT in the output. They are all indexed with
-     * it, and one info line lists them so the case can be audited. It is a valid case, so it is not a warning; whatever
-     * the shared datum loses is reported as a warning of its own, once for the output.
+     * Indexes all the reference NFTs of an output. With several, a nested datum carries the metadata of each, each
+     * resolved to its own entry; a flat datum is the metadata of every reference NFT of the output (CIP-68's retrieval
+     * steps read the datum of the output, whatever else it holds), and one info line lists them so the case can be
+     * audited. One reference NFT failing does not take the others of the output with it.
      */
     private void indexOutput(AddressUtxo output, Set<String> assetUnitsInTx, Long slot, List<MetadataReferenceNft> entities) {
         List<Amt> referenceNfts = cip68FungibleTokenService.extractReferenceNfts(output);
@@ -90,110 +115,209 @@ public class Cip68EventListener {
         }
         for (Amt referenceNftAmt : referenceNfts) {
             AssetType referenceNft = AssetType.fromUnit(referenceNftAmt.getUnit());
-            SharedDatum sharedDatum = shared;
-            Optional<ParsedCip68Datum> parsed = sharedDatum != null
-                    ? sharedDatum.parsed
-                    : cip68DatumParser.parse(output.getInlineDatum(), referenceNft);
-            parsed.filter(datum -> isIndexable(datum, referenceNft, assetUnitsInTx))
-                    .map(datum -> withoutInvalidLogo(datum, referenceNft, sharedDatum))
-                    .ifPresent(datum -> entities.add(
-                            buildMetadataReferenceNft(datum, referenceNft, output.getInlineDatum(), slot)));
+            try {
+                toEntity(output, referenceNft, assetUnitsInTx, slot, shared).ifPresent(entities::add);
+            } catch (RuntimeException e) {
+                skipReferenceNft(output, slot, referenceNft, e);
+            }
         }
     }
 
     /**
-     * An unexpected exception while indexing an output means the datum is something the parser did not foresee, and on
-     * a public chain anyone can put a datum there. This listener runs inside yaci-store's block transaction, so an
-     * exception would stop the whole sync (bloxbean/yaci-store#1243). The metadata of a token is not worth that: the
-     * output is skipped with a warning and the sync goes on. Rows already built for this output are kept. A failure
-     * that only shows at flush or commit, inside the database, is not caught here.
+     * The row for one reference NFT of an output, or empty if its datum is not stored. A datum is stored whatever is
+     * wrong with it; one that cannot be decoded is recorded in {@code invalid_token}, once for a shared flat datum.
      */
-    private void skipOutput(AddressUtxo output, RuntimeException e) {
+    private Optional<MetadataReferenceNft> toEntity(AddressUtxo output, AssetType referenceNft, Set<String> assetUnitsInTx,
+                                                    Long slot, @Nullable SharedDatum shared) {
+        ParseOutcome outcome = shared != null
+                ? shared.outcome
+                : cip68DatumParser.parseDetailed(output.getInlineDatum(), referenceNft);
+        if (outcome instanceof ParseOutcome.Parsed(ParsedCip68Datum parsed)) {
+            return indexDatum(parsed, output, referenceNft, assetUnitsInTx, slot, shared);
+        }
+        if (outcome instanceof ParseOutcome.Dropped(String reasonCode, String message) && (shared == null || shared.markReported())) {
+            recordDropped(output, slot, referenceNft, reasonCode, message, shared);
+        }
+        return Optional.empty();
+    }
+
+    /** The row for a datum that was read: its labels, the errors it gets for each, and what is reported about it. */
+    private Optional<MetadataReferenceNft> indexDatum(ParsedCip68Datum parsed, AddressUtxo output, AssetType referenceNft,
+                                                      Set<String> assetUnitsInTx, Long slot, @Nullable SharedDatum shared) {
+        // A reference NFT can have user tokens of several labels (the CIP allows it): the datum is checked against each
+        List<Integer> labels = deriveLabels(referenceNft, assetUnitsInTx, parsed);
+        if (!labels.contains(LABEL_FT) && !labels.contains(LABEL_RFT)
+                && !metadataReferenceNftRepository.existsByPolicyIdAndAssetName(referenceNft.policyId(), referenceNft.assetName())) {
+            log.debug("Skipping CIP-68 datum of {}/{} (labels {}): not a fungible or rich fungible token",
+                    referenceNft.policyId(), referenceNft.assetName(), labels);
+            return Optional.empty();
+        }
+
+        // what is wrong with the datum itself does not depend on the label (the parser's errors, and the logo)
+        List<ValidationError> datumErrors = new ArrayList<>(parsed.validationErrors());
+        ValidationError logoError = Cip68Validator.validateLogo(parsed);
+        if (logoError != null) {
+            datumErrors.add(logoError);
+        }
+        List<ValidationError> errors = new ArrayList<>(datumErrors);
+        for (int label : labels) {
+            errors.addAll(Cip68Validator.validate(parsed, label));
+        }
+
+        MetadataReferenceNft entity = buildMetadataReferenceNft(parsed, errors, referenceNft, output.getInlineDatum(), slot);
+        requireSerializableProperties(entity);
+        // what the datum itself gets wrong is the same for every reference NFT of a shared flat datum: warn once
+        if (shared == null || shared.markReported()) {
+            warnPropertiesDroppedAsAttack(output, referenceNft, datumErrors);
+        }
+        if (!errors.isEmpty()) {
+            log.debug("CIP-68 datum of {}/{} (labels {}) is indexed with {} validation errors: {}",
+                    referenceNft.policyId(), referenceNft.assetName(), labels, errors.size(), errors);
+        }
+        if (labels.size() > 1) {
+            log.info("CIP-68 reference NFT {}/{} has user tokens for labels {}; the datum is checked against all of them",
+                    referenceNft.policyId(), referenceNft.assetName(), labels);
+        }
+        return Optional.of(entity);
+    }
+
+    /**
+     * A property nested more than 100 levels is dropped as an attack (ADR-019): one WARN per property names the token and
+     * the transaction, so that the attempt can be found afterwards.
+     */
+    private void warnPropertiesDroppedAsAttack(AddressUtxo output, AssetType referenceNft, List<ValidationError> datumErrors) {
+        for (ValidationError error : datumErrors) {
+            if (Cip68FTDatumParser.TOO_DEEP.equals(error.code())) {
+                log.warn("Output {}#{}: dropping property '{}' of the CIP-68 datum of {}/{} and keeping the rest, because its "
+                                + "value is nested deeper than {} levels, this looks like an attack",
+                        output.getTxHash(), output.getOutputIndex(), error.fieldName(), referenceNft.policyId(),
+                        referenceNft.assetName(), Cip68FTDatumParser.MAX_PROPERTY_DEPTH);
+            }
+        }
+    }
+
+    /** Throws if the {@code properties} cannot be written as JSON, so that the reference NFT is skipped, not the sync. */
+    private static void requireSerializableProperties(MetadataReferenceNft entity) {
+        if (entity.getProperties() == null) {
+            return;
+        }
+        try {
+            PROPERTIES_MAPPER.writeValueAsString(entity.getProperties());
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException("the properties cannot be written as JSON: " + e.getOriginalMessage(), e);
+        }
+    }
+
+    /**
+     * An unexpected exception while indexing a reference NFT means the datum is something the parser did not foresee,
+     * and anyone can put a datum on-chain. This listener runs inside yaci-store's block transaction, so an exception would
+     * stop the whole sync (bloxbean/yaci-store#1243): the reference NFT is skipped with a warning and recorded in
+     * {@code invalid_token}, and the sync goes on. A failure that only shows at flush or commit is not caught here.
+     */
+    private void skipReferenceNft(AddressUtxo output, Long slot, AssetType referenceNft, RuntimeException e) {
+        log.warn("Output {}#{}: skipping the CIP-68 datum of {}/{}, indexing it failed unexpectedly ({}: {}); datum {}",
+                output.getTxHash(), output.getOutputIndex(), referenceNft.policyId(), referenceNft.assetName(),
+                e.getClass().getSimpleName(), e.getMessage(), output.getInlineDatum());
+        log.debug("Stack trace of the CIP-68 indexing failure of output {}#{}", output.getTxHash(), output.getOutputIndex(), e);
+        recordProcessingFailure(output, slot, referenceNft, e);
+    }
+
+    /** The same for a failure that cannot be put on one reference NFT: the whole output is skipped. */
+    private void skipOutput(AddressUtxo output, Long slot, RuntimeException e) {
         log.warn("Output {}#{}: skipping the CIP-68 datum, indexing it failed unexpectedly ({}: {}); datum {}",
                 output.getTxHash(), output.getOutputIndex(), e.getClass().getSimpleName(), e.getMessage(),
                 output.getInlineDatum());
         log.debug("Stack trace of the CIP-68 indexing failure of output {}#{}", output.getTxHash(), output.getOutputIndex(), e);
+        List<Amt> referenceNfts;
+        try {
+            referenceNfts = cip68FungibleTokenService.extractReferenceNfts(output);
+        } catch (RuntimeException ignored) {
+            referenceNfts = List.of();
+        }
+        if (referenceNfts.isEmpty()) {
+            recordProcessingFailure(output, slot, null, e);
+        }
+        for (Amt referenceNft : referenceNfts) {
+            recordProcessingFailure(output, slot, AssetType.fromUnit(referenceNft.getUnit()), e);
+        }
+    }
+
+    private void recordProcessingFailure(AddressUtxo output, Long slot, @Nullable AssetType referenceNft, RuntimeException e) {
+        Map<String, Object> details = new LinkedHashMap<>();
+        details.put("exception", e.getClass().getName());
+        details.put("message", String.valueOf(e.getMessage()));
+        details.put("datum_prefix", abbreviateDatum(output.getInlineDatum()));
+        invalidTokenRecorder.report(droppedReport(output, slot, referenceNft, InvalidTokenReason.PROCESSING_FAILURE,
+                "indexing the output failed unexpectedly: " + e.getClass().getSimpleName() + ": " + e.getMessage(), details));
+    }
+
+    private void recordDropped(AddressUtxo output, Long slot, AssetType referenceNft, String reasonCode, String message,
+                               @Nullable SharedDatum shared) {
+        Map<String, Object> details = new LinkedHashMap<>();
+        details.put("datum_prefix", abbreviateDatum(output.getInlineDatum()));
+        details.put("datum_bytes", output.getInlineDatum() == null ? 0 : output.getInlineDatum().length() / 2);
+        if (shared != null) {
+            details.put("reference_nfts_in_output", shared.referenceNfts);
+        }
+        invalidTokenRecorder.report(droppedReport(output, slot, referenceNft, reasonCode, message, details));
+    }
+
+    private static InvalidTokenReport droppedReport(AddressUtxo output, Long slot, @Nullable AssetType referenceNft,
+                                                    String reasonCode, String reason, Map<String, Object> details) {
+        return InvalidTokenReport.builder()
+                .standard(InvalidTokenReason.CIP_68)
+                .reasonCode(reasonCode)
+                .reason(reason)
+                .policyId(referenceNft == null ? null : referenceNft.policyId())
+                .assetName(referenceNft == null ? null : referenceNft.assetName())
+                .subject(referenceNft == null ? null : referenceNft.toUnit())
+                .slot(slot)
+                .txHash(output.getTxHash())
+                .outputIndex(output.getOutputIndex())
+                .details(details)
+                .build();
+    }
+
+    /** A datum can be 16 KB: the table keeps its start, which is enough to find it. */
+    private static String abbreviateDatum(@Nullable String datum) {
+        if (datum == null) {
+            return "";
+        }
+        return datum.length() <= DATUM_PREFIX_CHARS ? datum : datum.substring(0, DATUM_PREFIX_CHARS) + "...";
     }
 
     /**
      * The flat datum of an output that holds several reference NFTs. It is the metadata of each of them and is the same
-     * for all, so it is parsed once, and what it loses (an undecodable datum, an undefined version, a bad logo) is
-     * reported once for the output instead of once per reference NFT. The checks against the labels stay per reference
-     * NFT, since each has its own row and its own user tokens.
+     * for all, so it is parsed once, and what is wrong with it is reported once for the output. The rows and the checks
+     * against the labels stay per reference NFT, since each has its own row and its own user tokens.
      */
     private final class SharedDatum {
         private final AddressUtxo output;
         private final int referenceNfts;
-        private final Optional<ParsedCip68Datum> parsed;
-        private boolean logoReported;
+        private final ParseOutcome outcome;
+        private boolean reported;
 
         private SharedDatum(AddressUtxo output, int referenceNfts) {
             this.output = output;
             this.referenceNfts = referenceNfts;
             // Parsed here, once, without a reference NFT: the datum is not specific to one of them.
-            this.parsed = cip68DatumParser.parse(output.getInlineDatum());
+            this.outcome = cip68DatumParser.parseDetailed(output.getInlineDatum(), null);
         }
-    }
 
-    /**
-     * Whether a datum is stored. It has to satisfy what CIP-68 requires (the mandatory fields) for every label of its
-     * reference NFT (see {@link Cip68FungibleTokenService#invalidReason}); the first label it fails is logged at WARN
-     * with the reason, and the datum is not stored.
-     * <p>
-     * Fungible tokens (333) and rich fungible tokens (444) are served. A 333 datum always has a description, since the
-     * rules above require it. A 444 datum may have none, so a valid datum without a description is stored when a 444
-     * user token is paired with it, or when it updates a reference NFT that already has a stored version: an update
-     * that does not carry the user token has its label inferred, and an RFT datum without {@code decimals} reads as a
-     * 222 NFT. Any other valid datum without a description is a 222 NFT, which is not served, and is skipped at debug.
-     */
-    private boolean isIndexable(ParsedCip68Datum datum, AssetType referenceNft, Set<String> assetUnitsInTx) {
-        List<Integer> labels = deriveLabels(referenceNft, assetUnitsInTx, datum);
-        for (int label : labels) {
-            Optional<String> invalidReason = cip68FungibleTokenService.invalidReason(datum, label);
-            if (invalidReason.isPresent()) {
-                log.warn("Skipping CIP-68 datum of {}/{} (label {}{}): {}", referenceNft.policyId(),
-                        referenceNft.assetName(), label, labels.size() > 1 ? ", user tokens " + labels : "",
-                        invalidReason.get());
-                return false;
-            }
+        /** True the first time it is called: what the shared datum gets wrong is reported by the first reference NFT. */
+        private boolean markReported() {
+            boolean first = !reported;
+            reported = true;
+            return first;
         }
-        if (datum.description() == null && !labels.contains(LABEL_RFT)
-                && !metadataReferenceNftRepository.existsByPolicyIdAndAssetName(referenceNft.policyId(), referenceNft.assetName())) {
-            log.debug("Skipping CIP-68 datum of {}/{} (label {}): no description, and not a fungible or rich fungible token",
-                    referenceNft.policyId(), referenceNft.assetName(), labels.getFirst());
-            return false;
-        }
-        return true;
-    }
-
-    /**
-     * The logo is optional, so a bad one costs only the logo: it is left out with a warning and the rest of the datum
-     * is indexed. The logo of a datum that several reference NFTs share is left out of each of their rows, but
-     * reported once for the output.
-     */
-    private ParsedCip68Datum withoutInvalidLogo(ParsedCip68Datum datum, AssetType referenceNft, @Nullable SharedDatum shared) {
-        Optional<String> invalidReason = cip68FungibleTokenService.invalidLogoReason(datum);
-        if (invalidReason.isEmpty()) {
-            return datum;
-        }
-        if (shared == null) {
-            log.warn("CIP-68 datum of {}/{}: dropping the logo and keeping the rest, because {}",
-                    referenceNft.policyId(), referenceNft.assetName(), invalidReason.get());
-        } else if (!shared.logoReported) {
-            shared.logoReported = true;
-            log.warn("Output {}#{}: dropping the logo of the flat datum shared by its {} reference NFTs and keeping the rest, "
-                            + "because {}",
-                    shared.output.getTxHash(), shared.output.getOutputIndex(), shared.referenceNfts, invalidReason.get());
-        }
-        return datum.withoutLogo();
     }
 
     /**
      * The CIP-68 user-token labels of a reference NFT, from the user tokens paired with it. CIP-68 pairs them by policy
      * and base name ({@code 000643b0 + base} and {@code <label> + base}), so only a user token of the same policy and
      * base name in the same transaction counts. CIP-68 allows one reference NFT to have user tokens of several labels,
-     * and then the datum has to satisfy the requirements of each; they are returned in the order 222, 333, 444. Without
-     * a paired user token (it was minted in another transaction), the label is inferred from the datum, see
+     * and then the datum is checked against each; they are returned in the order 222, 333, 444. Without a paired user
+     * token (it was minted in another transaction), the label is inferred from the datum, see
      * {@link #inferLabelFromDatum}, and it is the only one.
      */
     private static List<Integer> deriveLabels(AssetType referenceNft, Set<String> assetUnitsInTx, ParsedCip68Datum datum) {
@@ -214,8 +338,7 @@ public class Cip68EventListener {
     /**
      * The label of a reference NFT whose user token is not in the transaction. {@code ticker} and {@code logo} are
      * defined only for the 333 fungible token; {@code image}, {@code mediaType} and {@code files} only for the 222 NFT
-     * and the 444 RFT, which {@code decimals} tells apart. A datum with none of them is treated as a fungible token, so
-     * the fungible token rules apply to it.
+     * and the 444 RFT, which {@code decimals} tells apart. A datum with none of them is treated as a fungible token.
      */
     private static int inferLabelFromDatum(ParsedCip68Datum datum) {
         if (datum.ticker() != null || datum.logo() != null) {
@@ -244,20 +367,24 @@ public class Cip68EventListener {
         return unit.toLowerCase(Locale.ROOT);
     }
 
-    private MetadataReferenceNft buildMetadataReferenceNft(ParsedCip68Datum metadata, AssetType assetType, String datum, Long slot) {
+    private static MetadataReferenceNft buildMetadataReferenceNft(ParsedCip68Datum parsed, List<ValidationError> errors,
+                                                                  AssetType assetType, String datum, Long slot) {
         return MetadataReferenceNft.builder()
                 .policyId(assetType.policyId())
                 .assetName(assetType.assetName())
                 .slot(slot)
-                .name(metadata.name())
-                .description(metadata.description())
-                .ticker(metadata.ticker())
-                .url(metadata.url())
-                .decimals(metadata.decimals())
-                .logo(metadata.logo())
-                .version(metadata.version())
+                .name(parsed.name())
+                .description(parsed.description())
+                .ticker(parsed.ticker())
+                .url(parsed.url())
+                .decimals(parsed.decimals())
+                .logo(parsed.logo())
+                .image(parsed.image())
+                .mediaType(parsed.mediaType())
+                .version(parsed.version())
                 .datum(datum)
+                .properties(parsed.properties())
+                .validationErrors(errors)
                 .build();
     }
-
 }

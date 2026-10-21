@@ -9,8 +9,9 @@ import com.bloxbean.cardano.client.util.HexUtil;
 import com.bloxbean.cardano.yaci.store.common.domain.AddressUtxo;
 import com.bloxbean.cardano.yaci.store.common.domain.Amt;
 import lombok.extern.slf4j.Slf4j;
-import org.cardanofoundation.tokenmetadata.registry.api.model.cip68.ParsedCip68Datum;
 import org.cardanofoundation.tokenmetadata.registry.api.util.AssetType;
+import org.cardanofoundation.tokenmetadata.registry.api.model.cip68.FungibleTokenMetadata;
+import org.cardanofoundation.tokenmetadata.registry.validation.ValidationError;
 import org.cardanofoundation.tokenmetadata.registry.entity.MetadataReferenceNft;
 import org.cardanofoundation.tokenmetadata.registry.repository.MetadataReferenceNftRepository;
 import org.junit.jupiter.api.Assertions;
@@ -88,113 +89,6 @@ class Cip68FungibleTokenServiceTest {
 
     /** What CIP-68 requires of a datum for each user-token label. */
     @Nested
-    class InvalidReason {
-
-        private final Cip68FungibleTokenService service =
-                new Cip68FungibleTokenService(mock(MetadataReferenceNftRepository.class), new Cip68FTDatumParser());
-
-        private static ParsedCip68Datum fungibleToken(String name, String description, String logo) {
-            return new ParsedCip68Datum(6L, description, logo, name, "TKN", null, 1L, null, null, false);
-        }
-
-        private static ParsedCip68Datum nft(String name, String description, String image) {
-            return new ParsedCip68Datum(null, description, null, name, null, null, 1L, image, null, false);
-        }
-
-        @ParameterizedTest
-        @ValueSource(ints = {222, 333, 444})
-        void rejectsADatumWithoutANameForEveryLabel(int label) {
-            assertThat(service.invalidReason(fungibleToken(null, "Desc", null), label)).hasValue("it has no name");
-        }
-
-        @Test
-        void acceptsAFungibleTokenWithNameAndDescriptionAndNoLogo() {
-            assertThat(service.invalidReason(fungibleToken("Token", "Desc", null), 333)).isEmpty();
-        }
-
-        @Test
-        void rejectsAFungibleTokenWithoutDescription() {
-            assertThat(service.invalidReason(fungibleToken("Token", null, null), 333))
-                    .hasValueSatisfying(reason -> assertThat(reason).contains("no description"));
-        }
-
-        @ParameterizedTest
-        @ValueSource(strings = {"QmXyz", "iagon://abc", "logo.png"})
-        void doesNotRejectAFungibleTokenForItsLogo(String logo) {
-            // the logo is optional: a bad one is left out (see invalidLogoReason), the datum stays valid
-            assertThat(service.invalidReason(fungibleToken("Token", "Desc", logo), 333)).isEmpty();
-        }
-
-        @ParameterizedTest
-        @ValueSource(ints = {222, 444})
-        void acceptsAnNftOrRftWithAnImageAndNoDescription(int label) {
-            assertThat(service.invalidReason(nft("Token", null, "ipfs://bafy"), label)).isEmpty();
-        }
-
-        @ParameterizedTest
-        @ValueSource(ints = {222, 444})
-        void rejectsAnNftOrRftWithoutImage(int label) {
-            assertThat(service.invalidReason(nft("Token", "Desc", null), label))
-                    .hasValueSatisfying(reason -> assertThat(reason).contains("no image"));
-            assertThat(service.invalidReason(nft("Token", "Desc", ""), label))
-                    .hasValueSatisfying(reason -> assertThat(reason).contains("no image"));
-        }
-
-        @ParameterizedTest
-        @ValueSource(ints = {222, 444})
-        void rejectsAnNftOrRftImageWithAnotherScheme(int label) {
-            assertThat(service.invalidReason(nft("Token", "Desc", "iagon://abc"), label))
-                    .hasValueSatisfying(reason -> assertThat(reason).contains("not a URI"));
-        }
-
-        @Test
-        void abbreviatesALongImageInTheReason() {
-            assertThat(service.invalidReason(nft("Token", "Desc", "x".repeat(500)), 222))
-                    .hasValueSatisfying(reason -> assertThat(reason)
-                            .contains("x".repeat(60) + "...").doesNotContain("x".repeat(61)));
-        }
-    }
-
-    /** The optional {@code logo} of a fungible token: left out when it is not a URI with an allowed scheme. */
-    @Nested
-    class InvalidLogoReason {
-
-        private final Cip68FungibleTokenService service =
-                new Cip68FungibleTokenService(mock(MetadataReferenceNftRepository.class), new Cip68FTDatumParser());
-
-        private static ParsedCip68Datum withLogo(String logo) {
-            return new ParsedCip68Datum(6L, "Desc", logo, "Token", "TKN", null, 1L, null, null, false);
-        }
-
-        @ParameterizedTest
-        @ValueSource(strings = {"https://example.com/logo.png", "ipfs://bafkrei", "ar://abc",
-                "data:image/png;base64,iVBORw0KGgo=", "IPFS://Qm123", "", " "})
-        void keepsALogoWithAnAllowedSchemeOrEmpty(String logo) {
-            assertThat(service.invalidLogoReason(withLogo(logo))).isEmpty();
-        }
-
-        @Test
-        void keepsAMissingLogo() {
-            assertThat(service.invalidLogoReason(withLogo(null))).isEmpty();
-        }
-
-        @ParameterizedTest
-        @ValueSource(strings = {"QmXyz", "bafkreidrvp5q37eh", "iagon://abc", "http://example.com/logo.png",
-                "ipfs:", "logo.png"})
-        void leavesOutALogoWithAnotherForm(String logo) {
-            assertThat(service.invalidLogoReason(withLogo(logo)))
-                    .hasValueSatisfying(reason -> assertThat(reason).contains("not a URI").contains(logo));
-        }
-
-        @Test
-        void abbreviatesALongLogoInTheReason() {
-            assertThat(service.invalidLogoReason(withLogo("x".repeat(500))))
-                    .hasValueSatisfying(reason -> assertThat(reason)
-                            .contains("x".repeat(60) + "...").doesNotContain("x".repeat(61)));
-        }
-    }
-
-    @Nested
     class ReferenceNftSubject {
 
         private static final String POLICY = "aabbccdd11223344aabbccdd11223344aabbccdd11223344aabbccdd";
@@ -256,11 +150,22 @@ class Cip68FungibleTokenServiceTest {
         }
 
         @Test
-        void servesNoLogoForAnImageWithAnotherScheme() throws Exception {
+        void servesAnImageWithAnotherSchemeAsWritten() throws Exception {
+            // the image is served as written; the validation errors say it breaks CIP-68 (ADR-019)
             stored(row("QmBareCid"));
 
             assertThat(service.findSubject(POLICY, REFERENCE_NFT, List.of(), true))
-                    .hasValueSatisfying(metadata -> assertThat(metadata.logo()).isNull());
+                    .hasValueSatisfying(metadata -> assertThat(metadata.logo()).isEqualTo("QmBareCid"));
+        }
+
+        @Test
+        void prefersTheStoredImageToTheDatum() throws Exception {
+            MetadataReferenceNft row = row("ipfs://bafyfromdatum");
+            row.setImage("ipfs://bafystored");
+            stored(row);
+
+            assertThat(service.findSubject(POLICY, REFERENCE_NFT, List.of(), true))
+                    .hasValueSatisfying(metadata -> assertThat(metadata.logo()).isEqualTo("ipfs://bafystored"));
         }
 
         @Test
@@ -288,6 +193,42 @@ class Cip68FungibleTokenServiceTest {
                     .version(1L)
                     .datum(HexUtil.encodeHexString(CborSerializationUtil.serialize(datum.serialize())))
                     .build();
+        }
+    }
+
+    /** A subject gets the errors of its own label and those that do not depend on a label (ADR-019). */
+    @Nested
+    class ErrorsForLabel {
+
+        private final ValidationError version = ValidationError.mandatory("CIP-68", null, "version", "undefined_version", "v0");
+        private final ValidationError nftImage = ValidationError.mandatory("CIP-68", "222", "image", "missing_value", "no image");
+        private final ValidationError ftDescription = ValidationError.mandatory("CIP-68", "333", "description", "missing_value", "no description");
+
+        @Test
+        void keepsTheErrorsOfTheLabelAndThoseOfNoLabel() {
+            List<ValidationError> errors = List.of(version, nftImage, ftDescription);
+
+            assertThat(Cip68FungibleTokenService.errorsForLabel(errors, 333)).containsExactly(version, ftDescription);
+            assertThat(Cip68FungibleTokenService.errorsForLabel(errors, 444)).containsExactly(version);
+        }
+
+        @Test
+        void leavesARowThatWasNeverCheckedUnchecked() {
+            assertThat(Cip68FungibleTokenService.errorsForLabel(null, 333)).isNull();
+        }
+
+        @Test
+        void servesAFungibleTokenPairedWithAnNftWithoutTheNftRequirement() throws Exception {
+            MetadataReferenceNft row = MetadataReferenceNft.builder().policyId("aa".repeat(28)).assetName("000643b041").slot(1L)
+                    .name("LP").description("Pool share").version(1L).datum("d87980")
+                    .validationErrors(List.of(nftImage)).build();
+            MetadataReferenceNftRepository repository = mock(MetadataReferenceNftRepository.class);
+            when(repository.findFirstByPolicyIdAndAssetNameOrderBySlotDesc("aa".repeat(28), "000643b041")).thenReturn(Optional.of(row));
+
+            Optional<FungibleTokenMetadata> served = new Cip68FungibleTokenService(repository, new Cip68FTDatumParser())
+                    .findSubject("aa".repeat(28), "000643b041", List.of(), false);
+
+            assertThat(served).hasValueSatisfying(metadata -> assertThat(metadata.validationErrors()).isEmpty());
         }
     }
 

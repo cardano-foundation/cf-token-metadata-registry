@@ -198,11 +198,15 @@ public class Cip26IntegrationIT extends BaseIntegrationIT {
         }
 
         @Test
-        void missingRequiredProperties_returnsBadRequest() {
-            assertThatThrownBy(() -> restTemplate.getForEntity(
-                    API_BASE_URL + "/api/v2/subjects/" + FULL_TOKEN_SUBJECT + "?property=ticker",
-                    String.class))
-                    .isInstanceOf(HttpClientErrorException.BadRequest.class);
+        void aFilterWithoutNameOrDescription_returnsTheRequestedPropertyWithItsErrors() {
+            // a property filter no longer has to include name and description (ADR-019)
+            ResponseEntity<String> response = restTemplate.getForEntity(
+                    API_BASE_URL + "/api/v2/subjects/" + FULL_TOKEN_SUBJECT + "?property=ticker", String.class);
+
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+            DocumentContext json = JsonPath.parse(response.getBody());
+            assertThat(json.read("$.subject.metadata.ticker.value", String.class)).isEqualTo("TSTF");
+            assertThat(json.read("$.subject.validation_errors", List.class)).isEmpty();
         }
     }
 
@@ -276,12 +280,14 @@ public class Cip26IntegrationIT extends BaseIntegrationIT {
         }
 
         @Test
-        void missingRequiredProperties_returnsBadRequest() {
+        void aFilterWithoutNameOrDescription_returnsTheRequestedProperty() {
             String body = String.format(
                     "{\"subjects\": [\"%s\"], \"properties\": [\"ticker\"]}", FULL_TOKEN_SUBJECT);
 
-            assertThatThrownBy(() -> postJson(API_BASE_URL + "/api/v2/subjects/query", body))
-                    .isInstanceOf(HttpClientErrorException.BadRequest.class);
+            ResponseEntity<String> response = postJson(API_BASE_URL + "/api/v2/subjects/query", body);
+
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+            assertThat(JsonPath.parse(response.getBody()).read("$.subjects[0].metadata.ticker.value", String.class)).isEqualTo("TSTF");
         }
 
         @Test

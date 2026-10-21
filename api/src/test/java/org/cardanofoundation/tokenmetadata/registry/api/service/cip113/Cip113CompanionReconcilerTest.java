@@ -1,0 +1,139 @@
+package org.cardanofoundation.tokenmetadata.registry.api.service.cip113;
+
+import org.cardanofoundation.tokenmetadata.registry.api.config.Cip113Configuration;
+import org.cardanofoundation.tokenmetadata.registry.entity.InvalidToken;
+import org.cardanofoundation.tokenmetadata.registry.invalidtoken.InvalidTokenReason;
+import org.cardanofoundation.tokenmetadata.registry.invalidtoken.InvalidTokenRecorder;
+import org.cardanofoundation.tokenmetadata.registry.invalidtoken.InvalidTokenReport;
+import org.cardanofoundation.tokenmetadata.registry.repository.Cip113RegistryNodeRepository;
+import org.cardanofoundation.tokenmetadata.registry.repository.InvalidTokenRepository;
+import org.cardanofoundation.tokenmetadata.registry.repository.MetadataReferenceNftRepository;
+import org.cardanofoundation.tokenmetadata.registry.repository.TokenMetadataRepository;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.util.Collection;
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyCollection;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
+
+/**
+ * A policy registered in the CIP-113 registry whose tokens have no CIP-26 or CIP-68 metadata cannot be served: it has one
+ * {@code no_companion_metadata} row in {@code invalid_token}, kept in step with the data (ADR-020).
+ */
+@ExtendWith(MockitoExtension.class)
+@DisplayName("Cip113CompanionReconciler")
+class Cip113CompanionReconcilerTest {
+
+    private static final String REGISTRY_POLICY = "3083d387537f9318b6ff5aeab7de5f5629d26495319b8fafd409222a";
+    private static final String WITH_CIP26 = "11111111111111111111111111111111111111111111111111111111";
+    private static final String WITH_CIP68 = "22222222222222222222222222222222222222222222222222222222";
+    private static final String WITHOUT = "33333333333333333333333333333333333333333333333333333333";
+
+    @Mock
+    private Cip113RegistryNodeRepository registryNodeRepository;
+    @Mock
+    private TokenMetadataRepository tokenMetadataRepository;
+    @Mock
+    private MetadataReferenceNftRepository metadataReferenceNftRepository;
+    @Mock
+    private InvalidTokenRepository invalidTokenRepository;
+    @Mock
+    private InvalidTokenRecorder invalidTokenRecorder;
+
+    private Cip113CompanionReconciler reconciler;
+
+    @BeforeEach
+    void setUp() {
+        Cip113Configuration configuration = new Cip113Configuration();
+        configuration.setRegistryNftPolicyIds(List.of(REGISTRY_POLICY));
+        configuration.init();
+        reconciler = new Cip113CompanionReconciler(configuration, registryNodeRepository, tokenMetadataRepository,
+                metadataReferenceNftRepository, invalidTokenRepository, invalidTokenRecorder);
+    }
+
+    @Test
+    void recordsEveryRegisteredPolicyWithoutCip26OrCip68Metadata() {
+        when(registryNodeRepository.findRegisteredPolicyIds()).thenReturn(List.of(WITH_CIP26, WITH_CIP68, WITHOUT));
+        when(tokenMetadataRepository.findPolicyIdsWithMetadata(anyCollection())).thenReturn(List.of(WITH_CIP26));
+        when(metadataReferenceNftRepository.findPolicyIdsWithMetadata(anyCollection())).thenReturn(List.of(WITH_CIP68));
+        when(invalidTokenRepository.findByStandardAndReasonCode(InvalidTokenReason.CIP_113, InvalidTokenReason.NO_COMPANION_METADATA))
+                .thenReturn(List.of());
+
+        reconciler.reconcile();
+
+        ArgumentCaptor<InvalidTokenReport> report = ArgumentCaptor.forClass(InvalidTokenReport.class);
+        verify(invalidTokenRecorder).report(report.capture());
+        assertThat(report.getValue().standard()).isEqualTo(InvalidTokenReason.CIP_113);
+        assertThat(report.getValue().reasonCode()).isEqualTo(InvalidTokenReason.NO_COMPANION_METADATA);
+        assertThat(report.getValue().policyId()).isEqualTo(WITHOUT);
+        assertThat(report.getValue().slot()).isNull();
+        verify(invalidTokenRepository, never()).deleteByIdIn(anyCollection());
+    }
+
+    @Test
+    void removesTheRowOfAPolicyThatNowHasMetadataAndKeepsTheOthers() {
+        when(registryNodeRepository.findRegisteredPolicyIds()).thenReturn(List.of(WITH_CIP68, WITHOUT));
+        when(tokenMetadataRepository.findPolicyIdsWithMetadata(anyCollection())).thenReturn(List.of());
+        when(metadataReferenceNftRepository.findPolicyIdsWithMetadata(anyCollection())).thenReturn(List.of(WITH_CIP68));
+        when(invalidTokenRepository.findByStandardAndReasonCode(InvalidTokenReason.CIP_113, InvalidTokenReason.NO_COMPANION_METADATA))
+                .thenReturn(List.of(row("id-cip68", WITH_CIP68), row("id-without", WITHOUT)));
+
+        reconciler.reconcile();
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<Collection<String>> removed = ArgumentCaptor.forClass(Collection.class);
+        verify(invalidTokenRepository).deleteByIdIn(removed.capture());
+        assertThat(removed.getValue()).containsExactly("id-cip68");
+        // the row of the policy still without metadata is already there: nothing new is written
+        verify(invalidTokenRecorder, never()).report(any());
+    }
+
+    @Test
+    void removesTheRowOfAPolicyThatIsNoLongerRegistered() {
+        when(registryNodeRepository.findRegisteredPolicyIds()).thenReturn(List.of());
+        when(invalidTokenRepository.findByStandardAndReasonCode(InvalidTokenReason.CIP_113, InvalidTokenReason.NO_COMPANION_METADATA))
+                .thenReturn(List.of(row("id-gone", WITHOUT)));
+
+        reconciler.reconcile();
+
+        verify(invalidTokenRepository).deleteByIdIn(List.of("id-gone"));
+        verifyNoInteractions(tokenMetadataRepository, metadataReferenceNftRepository);
+    }
+
+    @Test
+    void doesNothingWhenCip113IsNotEnabled() {
+        Cip113Configuration disabled = new Cip113Configuration();
+        disabled.setRegistryNftPolicyIds(List.of());
+        disabled.init();
+
+        new Cip113CompanionReconciler(disabled, registryNodeRepository, tokenMetadataRepository, metadataReferenceNftRepository,
+                invalidTokenRepository, invalidTokenRecorder).reconcile();
+
+        verifyNoInteractions(registryNodeRepository, invalidTokenRepository, invalidTokenRecorder);
+    }
+
+    @Test
+    void neverThrowsSinceItCanRunInsideTheBlockTransaction() {
+        when(registryNodeRepository.findRegisteredPolicyIds()).thenThrow(new IllegalStateException("database down"));
+
+        assertThatCode(reconciler::reconcile).doesNotThrowAnyException();
+    }
+
+    private static InvalidToken row(String id, String policyId) {
+        return InvalidToken.builder().id(id).standard(InvalidTokenReason.CIP_113)
+                .reasonCode(InvalidTokenReason.NO_COMPANION_METADATA).reason("r").policyId(policyId).build();
+    }
+}

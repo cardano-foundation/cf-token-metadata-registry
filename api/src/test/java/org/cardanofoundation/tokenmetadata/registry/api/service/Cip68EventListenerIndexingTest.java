@@ -10,14 +10,21 @@ import com.bloxbean.cardano.client.plutus.spec.BytesPlutusData;
 import com.bloxbean.cardano.client.plutus.spec.ConstrPlutusData;
 import com.bloxbean.cardano.client.plutus.spec.MapPlutusData;
 import com.bloxbean.cardano.client.util.HexUtil;
+import com.bloxbean.cardano.yaci.core.protocol.chainsync.messages.Point;
 import com.bloxbean.cardano.yaci.store.common.domain.AddressUtxo;
 import com.bloxbean.cardano.yaci.store.common.domain.Amt;
 import com.bloxbean.cardano.yaci.store.events.EventMetadata;
+import com.bloxbean.cardano.yaci.store.events.RollbackEvent;
 import com.bloxbean.cardano.yaci.store.utxo.domain.AddressUtxoEvent;
 import com.bloxbean.cardano.yaci.store.utxo.domain.TxInputOutput;
 import org.cardanofoundation.tokenmetadata.registry.api.util.AssetType;
 import org.cardanofoundation.tokenmetadata.registry.entity.MetadataReferenceNft;
+import org.cardanofoundation.tokenmetadata.registry.invalidtoken.InvalidTokenReason;
+import org.cardanofoundation.tokenmetadata.registry.invalidtoken.InvalidTokenRecorder;
+import org.cardanofoundation.tokenmetadata.registry.invalidtoken.InvalidTokenReport;
 import org.cardanofoundation.tokenmetadata.registry.repository.MetadataReferenceNftRepository;
+import org.cardanofoundation.tokenmetadata.registry.validation.FieldCategory;
+import org.cardanofoundation.tokenmetadata.registry.validation.ValidationError;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -32,22 +39,21 @@ import java.util.Arrays;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 /**
- * {@link Cip68EventListener} with the real datum parser and token service: which reference NFTs of an output are
- * indexed, and the warning left by a datum that is skipped.
+ * The CIP-68 listener with the real parser and validator: a datum that can be decoded is stored as written, with what
+ * departs from CIP-68 in its validation errors, per label (ADR-019); only 333 and 444 datums are stored; what cannot be
+ * decoded, or fails unexpectedly, is recorded in {@code invalid_token} (ADR-020).
  */
-@DisplayName("Cip68EventListener indexing")
 class Cip68EventListenerIndexingTest {
 
     private static final String POLICY = "aabbccdd11223344aabbccdd11223344aabbccdd11223344aabbccdd";
@@ -60,15 +66,11 @@ class Cip68EventListenerIndexingTest {
     private static final String B = HexUtil.encodeHexString("B".getBytes());
     private static final String C = HexUtil.encodeHexString("C".getBytes());
 
-    /** Mainnet NFT from bloxbean/yaci-store#1159: a name, an empty image, a constructor property, no description. */
-    private static final String NFT_WITHOUT_DESCRIPTION =
-            "d87982a3446e616d65464e465420233145696d616765404c636f6e747261637444617461d879860181581cdc9acfee35"
-            + "243d123e8f10bc58692a6bc5aa3135c7eafc2aac9daafcd87a80581c9abc17656a6d1c24688292777c18c1ce599845a5"
-            + "88f4d893c1884da2d87a80d87a8001";
-
     private final MetadataReferenceNftRepository repository = mock(MetadataReferenceNftRepository.class);
+    private final InvalidTokenRecorder recorder = mock(InvalidTokenRecorder.class);
+    private final Cip68FTDatumParser parser = new Cip68FTDatumParser();
     private final Cip68EventListener listener = new Cip68EventListener(
-            new Cip68FungibleTokenService(repository, new Cip68FTDatumParser()), new Cip68FTDatumParser(), repository);
+            new Cip68FungibleTokenService(repository, parser), parser, repository, recorder);
 
     private final Logger listenerLogger = (Logger) LoggerFactory.getLogger(Cip68EventListener.class);
     private final Logger parserLogger = (Logger) LoggerFactory.getLogger(Cip68FTDatumParser.class);
@@ -88,6 +90,155 @@ class Cip68EventListenerIndexingTest {
     }
 
     @Nested
+    @DisplayName("A datum that follows CIP-68")
+    class ValidDatums {
+
+        @Test
+        void storesAFungibleTokenWithNoErrors() throws Exception {
+            listener.processTransaction(event(output(flatDatum("Token", "Desc", "TKN"), REF + A), userToken(FT + A)));
+
+            assertThat(saved()).singleElement().satisfies(row -> {
+                assertThat(row.getName()).isEqualTo("Token");
+                assertThat(row.getTicker()).isEqualTo("TKN");
+                assertThat(row.getValidationErrors()).isEmpty();
+            });
+            assertThat(warnings()).isEmpty();
+        }
+
+        @Test
+        void storesARichFungibleTokenWithItsImageAndNoDescription() throws Exception {
+            listener.processTransaction(event(output(datum("name", "Token", "image", "ipfs://bafy", "mediaType", "image/png"),
+                    REF + A), userToken(RFT + A)));
+
+            assertThat(saved()).singleElement().satisfies(row -> {
+                assertThat(row.getImage()).isEqualTo("ipfs://bafy");
+                assertThat(row.getMediaType()).isEqualTo("image/png");
+                assertThat(row.getDescription()).isNull();
+                assertThat(row.getValidationErrors()).isEmpty();
+            });
+        }
+
+        @Test
+        void keepsTheAdditionalPropertiesAsJson() throws Exception {
+            listener.processTransaction(event(output(datum("name", "Token", "description", "Desc", "website", "https://x.io"),
+                    REF + A), userToken(FT + A)));
+
+            assertThat(saved()).singleElement().satisfies(row ->
+                    assertThat(row.getProperties()).containsKey("additional_properties"));
+        }
+    }
+
+    @Nested
+    @DisplayName("A datum that breaks CIP-68 is stored with its errors")
+    class DatumsWithErrors {
+
+        @Test
+        void storesAFungibleTokenWithoutDescriptionWithAMandatoryError() throws Exception {
+            listener.processTransaction(event(output(flatDatum("Token", null, "TKN"), REF + A), userToken(FT + A)));
+
+            assertThat(saved()).singleElement().satisfies(row -> assertThat(row.getValidationErrors())
+                    .extracting(ValidationError::subStandard, ValidationError::fieldName, ValidationError::fieldCategory,
+                            ValidationError::code)
+                    .containsExactly(tuple("333", "description", FieldCategory.MANDATORY, "missing_value")));
+            // what is indexed with errors is a DEBUG line, not a WARN: the errors are the report
+            assertThat(warnings()).isEmpty();
+        }
+
+        @Test
+        void storesADatumWithoutNameWithAMandatoryError() throws Exception {
+            listener.processTransaction(event(output(flatDatum(null, "Desc", "TKN"), REF + A), userToken(FT + A)));
+
+            assertThat(saved()).singleElement().satisfies(row -> {
+                assertThat(row.getName()).isNull();
+                assertThat(row.getValidationErrors()).extracting(ValidationError::fieldName).containsExactly("name");
+            });
+        }
+
+        @Test
+        void keepsABareCidLogoAsWrittenWithAnOptionalError() throws Exception {
+            listener.processTransaction(event(output(flatDatum("Token", "Desc", "TKN", "QmXyz"), REF + A), userToken(FT + A)));
+
+            assertThat(saved()).singleElement().satisfies(row -> {
+                assertThat(row.getLogo()).isEqualTo("QmXyz");
+                assertThat(row.getValidationErrors()).singleElement().satisfies(error -> {
+                    assertThat(error.fieldName()).isEqualTo("logo");
+                    assertThat(error.fieldCategory()).isEqualTo(FieldCategory.OPTIONAL);
+                    assertThat(error.code()).isEqualTo("invalid_uri_scheme");
+                    assertThat(error.subStandard()).isNull();
+                });
+            });
+        }
+
+        @Test
+        void checksADatumAgainstEveryLabelItsReferenceNftIsPairedWith() throws Exception {
+            // the SundaeSwap LP case: a pool NFT (222) and the LP token (333) share one reference NFT
+            listener.processTransaction(event(output(flatDatum("LP", "Pool share", "LP"), REF + A),
+                    userToken(NFT + A), userToken(FT + A)));
+
+            assertThat(saved()).singleElement().satisfies(row -> assertThat(row.getValidationErrors())
+                    .extracting(ValidationError::subStandard, ValidationError::fieldName)
+                    .containsExactly(tuple("222", "image")));
+        }
+
+        /** Mainnet: Greenland Reserve Coin, whose datum declares version 0. */
+        @Test
+        void storesARealVersion0FungibleTokenWithAnUndefinedVersionError() {
+            String gnrcPolicy = "67cee89d59ab5354ee22c8af0638224126aecc6210f9372a61f13a64";
+            String gnrcReferenceNft = "000643b0474e5243";
+            String gnrcDatum = "d8799fa6446e616d6556477265656e6c616e64205265736572766520436f696e4b6465736372697074696f6e583c4173"
+                    + "736574206261636b656420746f6b656e207365637572656420627920477265656e6c616e642072756269657320616e64"
+                    + "20736170706869726573467469636b657244474e52434375726c582368747470733a2f2f7777772e7468652d6d696e74"
+                    + "2e636f6d2f636f6d706c69616e6365446c6f676f4048646563696d616c730600d866821a951b3c2b9f81581cc0bb241d"
+                    + "37ffbdfdbb07d3d34bff54671c00935128da06966bc033810103ffff";
+            AddressUtxo output = AddressUtxo.builder().txHash(TX_HASH).inlineDatum(gnrcDatum)
+                    .amounts(List.of(amount(gnrcPolicy + gnrcReferenceNft))).build();
+
+            listener.processTransaction(event(output));
+
+            assertThat(saved()).singleElement().satisfies(row -> {
+                assertThat(row.getName()).isEqualTo("Greenland Reserve Coin");
+                assertThat(row.getVersion()).isZero();
+                assertThat(row.getValidationErrors()).extracting(ValidationError::fieldName, ValidationError::code)
+                        .contains(tuple("version", "undefined_version"));
+            });
+        }
+    }
+
+    /**
+     * The registry serves fungible (333) and rich fungible (444) tokens only: a datum paired with, or inferred as, a 222
+     * NFT only is skipped, unless it updates a reference NFT that is already stored.
+     */
+    @Nested
+    @DisplayName("Which datums are stored")
+    class StoredLabels {
+
+        @Test
+        void skipsADatumOfAnNftOnly() throws Exception {
+            listener.processTransaction(event(output(datum("name", "Token", "image", "ipfs://bafy"), REF + A), userToken(NFT + A)));
+
+            verify(repository, never()).saveAll(any());
+            assertThat(warnings()).isEmpty();
+        }
+
+        @Test
+        void storesAnUpdateWithoutTheUserTokenOfAReferenceNftThatIsAlreadyStored() throws Exception {
+            // without decimals, the update of an RFT reads as a 222 NFT
+            when(repository.existsByPolicyIdAndAssetName(POLICY, REF + A)).thenReturn(true);
+
+            listener.processTransaction(event(output(datum("name", "Token v2", "image", "ipfs://bafy"), REF + A)));
+
+            assertThat(saved()).singleElement().satisfies(row -> assertThat(row.getName()).isEqualTo("Token v2"));
+        }
+
+        @Test
+        void storesAnUnpairedDatumInferredAsAFungibleToken() throws Exception {
+            listener.processTransaction(event(output(flatDatum("Token", "Desc", "TKN"), REF + A)));
+
+            assertThat(saved()).hasSize(1);
+        }
+    }
+
+    @Nested
     @DisplayName("Several reference NFTs in one output")
     class SeveralReferenceNftsInOneOutput {
 
@@ -98,356 +249,85 @@ class Cip68EventListenerIndexingTest {
             listener.processTransaction(event(output(datum, REF + A, REF + B, REF + C)));
 
             assertThat(saved()).extracting(MetadataReferenceNft::getAssetName, MetadataReferenceNft::getName)
-                    .containsExactly(
-                            org.assertj.core.groups.Tuple.tuple(REF + A, "Token A"),
-                            org.assertj.core.groups.Tuple.tuple(REF + B, "Token B"),
-                            org.assertj.core.groups.Tuple.tuple(REF + C, "Token C"));
-            assertThat(warnings()).isEmpty();
+                    .containsExactly(tuple(REF + A, "Token A"), tuple(REF + B, "Token B"), tuple(REF + C, "Token C"));
         }
 
         @Test
-        void indexesOnlyTheReferenceNftsThatHaveAnEntryAndWarnsForTheOther() throws Exception {
+        void storesAReferenceNftWithNoNestedEntryWithAnError() throws Exception {
             String datum = nestedDatum(new Entry(A, "Token A"), new Entry(C, "Token C"));
 
             listener.processTransaction(event(output(datum, REF + A, REF + B, REF + C)));
 
-            assertThat(saved()).extracting(MetadataReferenceNft::getAssetName).containsExactly(REF + A, REF + C);
-            assertThat(warnings()).singleElement().satisfies(w -> assertThat(w)
-                    .contains(POLICY).contains(REF + B).contains("no usable entry"));
+            assertThat(saved()).extracting(MetadataReferenceNft::getAssetName).containsExactly(REF + A, REF + B, REF + C);
+            assertThat(saved().get(1).getValidationErrors()).extracting(ValidationError::code).contains("no_nested_entry");
         }
 
         @Test
         void indexesEveryReferenceNftOfAFlatDatumWithOneInfoLine() throws Exception {
-            // a valid case, so it is audited at INFO, not warned about
             listener.processTransaction(event(output(flatDatum("Token", "Desc", null), REF + A, REF + B)));
 
             assertThat(saved()).extracting(MetadataReferenceNft::getAssetName, MetadataReferenceNft::getName)
-                    .containsExactly(
-                            org.assertj.core.groups.Tuple.tuple(REF + A, "Token"),
-                            org.assertj.core.groups.Tuple.tuple(REF + B, "Token"));
-            assertThat(warnings()).isEmpty();
-            assertThat(messages(Level.INFO)).singleElement().satisfies(i -> assertThat(i)
+                    .containsExactly(tuple(REF + A, "Token"), tuple(REF + B, "Token"));
+            assertThat(messages(Level.INFO)).anySatisfy(info -> assertThat(info)
                     .contains("2 reference NFTs").contains("flat").contains(POLICY + REF + A).contains(POLICY + REF + B));
         }
 
         @Test
-        void dropsTheBadLogoOfAFlatDatumFromEveryRowAndWarnsOnce() throws Exception {
-            listener.processTransaction(event(output(flatDatum("Token", "Desc", null, "QmXyz"), REF + A, REF + B, REF + C)));
-
-            assertThat(saved()).hasSize(3).allSatisfy(row -> assertThat(row.getLogo()).isNull());
-            assertThat(warnings()).singleElement().satisfies(w -> assertThat(w)
-                    .contains("shared by its 3 reference NFTs").contains("dropping the logo"));
-        }
-
-        @Test
-        void warnsOnceForAnUndefinedVersionOfAFlatDatum() throws Exception {
-            MapPlutusData metadata = new MapPlutusData();
-            metadata.put(BytesPlutusData.of("name"), BytesPlutusData.of("Token"));
-            metadata.put(BytesPlutusData.of("description"), BytesPlutusData.of("Desc"));
-
-            listener.processTransaction(event(output(serialize(metadata, 0), REF + A, REF + B)));
-
-            verifyNoInteractions(repository);
-            assertThat(warnings()).singleElement().satisfies(w -> assertThat(w).contains("version 0"));
-        }
-
-        @Test
-        void indexesEveryTokenOfACollectionMintedWithOneOutputEach() throws Exception {
-            listener.processTransaction(event(
-                    output(flatDatum("Token A", "Desc", null), REF + A),
-                    output(flatDatum("Token B", "Desc", null), REF + B)));
-
-            assertThat(saved()).extracting(MetadataReferenceNft::getName).containsExactly("Token A", "Token B");
-            assertThat(warnings()).isEmpty();
-        }
-    }
-
-    /**
-     * A datum has to satisfy what CIP-68 requires for every label of its reference NFT, or it is not indexed and a
-     * warning names the token, the label and the reason. The labels come from the user tokens paired with the
-     * reference NFT in the transaction, or, without one, from the fields of the datum. A valid datum of a 222 NFT or a
-     * 444 RFT without a description is not a fungible token: it is not indexed either, without a warning.
-     */
-    @Nested
-    @DisplayName("Skipped datums")
-    class SkippedDatums {
-
-        @Test
-        void warnsWhenADatumHasNoName() throws Exception {
-            listener.processTransaction(event(output(flatDatum(null, "Desc", null), REF + A)));
-
-            verifyNoInteractions(repository);
-            assertThat(warnings()).singleElement().satisfies(w -> assertThat(w)
-                    .contains(POLICY).contains(REF + A).contains("no name"));
-        }
-
-        @Test
-        void warnsWhenAPairedFungibleTokenHasNoDescription() throws Exception {
-            listener.processTransaction(event(output(flatDatum("Token", null, null), REF + A), userToken(FT + A)));
-
-            verifyNoInteractions(repository);
-            assertThat(warnings()).singleElement().satisfies(w -> assertThat(w)
-                    .contains(POLICY).contains(REF + A).contains("label 333").contains("no description"));
-        }
-
-        @Test
-        void warnsWhenAnUnpairedDatumWithFungibleTokenFieldsHasNoDescription() throws Exception {
-            // ticker is a field only the 333 fungible token defines; its user token was minted in another transaction
-            listener.processTransaction(event(output(flatDatum("Token", null, "TKN"), REF + A)));
-
-            verifyNoInteractions(repository);
-            assertThat(warnings()).singleElement().satisfies(w -> assertThat(w).contains("no description"));
-        }
-
-        @Test
-        void warnsWhenAnUnpairedDatumWithoutFieldsOfAnyLabelHasNoDescription() throws Exception {
-            // nothing tells the label, so the datum is held to the fungible token rules
-            listener.processTransaction(event(output(flatDatum("Token", null, null), REF + A)));
-
-            verifyNoInteractions(repository);
-            assertThat(warnings()).singleElement().satisfies(w -> assertThat(w)
-                    .contains("label 333").contains("no description"));
-        }
-
-        @Test
-        void warnsForARealNftWithAnEmptyImage() {
-            listener.processTransaction(event(output(NFT_WITHOUT_DESCRIPTION, REF + A)));
-
-            verifyNoInteractions(repository);
-            assertThat(warnings()).singleElement().satisfies(w -> assertThat(w)
-                    .contains("label 222").contains("no image"));
-        }
-
-        @Test
-        void doesNotIndexOrWarnForAValidNftWithoutDescription() throws Exception {
-            listener.processTransaction(event(output(datum("name", "Token", "image", "ipfs://bafy"), REF + A),
-                    userToken(NFT + A)));
+        void recordsAnUndecodableSharedDatumOnceForTheOutput() {
+            listener.processTransaction(event(output("deadbeef", REF + A, REF + B)));
 
             verify(repository, never()).saveAll(any());
-            assertThat(warnings()).isEmpty();
-        }
-
-        @Test
-        void rejectsAFungibleTokenAlsoPairedWithAnNftOrRftThatHasNoImage() throws Exception {
-            // CIP-68 allows user tokens of several labels for one reference NFT; the datum must satisfy each of them
-            for (String label : List.of(NFT, RFT)) {
-                logs.list.clear();
-
-                listener.processTransaction(event(output(flatDatum("Token", "Desc", "TKN"), REF + A),
-                        userToken(label + A), userToken(FT + A)));
-
-                assertThat(warnings()).as(label).singleElement().satisfies(w -> assertThat(w)
-                        .contains("user tokens").contains("no image"));
-            }
-            verifyNoInteractions(repository);
-        }
-
-        @Test
-        void rejectsAFungibleTokenAlsoPairedWithAnNftThatHasNoDescription() throws Exception {
-            listener.processTransaction(event(output(datum("name", "Token", "image", "ipfs://bafy"), REF + A),
-                    userToken(NFT + A), userToken(FT + A)));
-
-            verifyNoInteractions(repository);
-            assertThat(warnings()).singleElement().satisfies(w -> assertThat(w)
-                    .contains("label 333").contains("no description"));
-        }
-
-        @Test
-        void indexesAFungibleTokenAlsoPairedWithAnNftThatSatisfiesBoth() throws Exception {
-            listener.processTransaction(event(
-                    output(datum("name", "Token", "description", "Desc", "image", "ipfs://bafy"), REF + A),
-                    userToken(NFT + A), userToken(FT + A)));
-
-            assertThat(saved()).singleElement().satisfies(row -> assertThat(row.getName()).isEqualTo("Token"));
-            assertThat(warnings()).isEmpty();
-        }
-
-        @Test
-        void ignoresAUserTokenOfAnotherBaseNameOrPolicy() throws Exception {
-            // the datum has the shape of an NFT; a 333 token of another base name or policy must not make it a
-            // fungible token, which would require a description
-            String otherPolicy = "11223344aabbccdd11223344aabbccdd11223344aabbccdd11223344";
-            AddressUtxo unrelated = AddressUtxo.builder().txHash(TX_HASH).amounts(List.of(
-                    amount(POLICY + FT + B), amount(otherPolicy + FT + A))).build();
-
-            listener.processTransaction(event(output(datum("name", "Token", "image", "ipfs://bafy"), REF + A),
-                    unrelated));
-
-            assertThat(warnings()).isEmpty();
+            verify(recorder).report(any());
         }
     }
 
-    /**
-     * A rich fungible token (444) is served, and CIP-68 requires only a name and an image for it, so its datum is
-     * stored without a description.
-     */
+    /** What cannot be decoded is dropped and recorded in invalid_token (ADR-020). */
     @Nested
-    @DisplayName("Rich fungible tokens (444)")
-    class RichFungibleTokens {
+    @DisplayName("Dropped datums")
+    class DroppedDatums {
 
         @Test
-        void indexesAPairedRftWithoutDescription() throws Exception {
-            listener.processTransaction(event(output(datum("name", "Token", "image", "ipfs://bafy"), REF + A),
-                    userToken(RFT + A)));
-
-            assertThat(saved()).singleElement().satisfies(row -> {
-                assertThat(row.getName()).isEqualTo("Token");
-                assertThat(row.getDescription()).isNull();
-            });
-            assertThat(warnings()).isEmpty();
-        }
-
-        @Test
-        void indexesAnUpdateWithoutDescriptionOfAReferenceNftThatIsAlreadyStored() throws Exception {
-            // an update that does not carry the user token: without decimals, the RFT datum reads as a 222 NFT
-            when(repository.existsByPolicyIdAndAssetName(POLICY, REF + A)).thenReturn(true);
-
-            listener.processTransaction(event(output(datum("name", "Token v2", "image", "ipfs://bafy"), REF + A)));
-
-            assertThat(saved()).singleElement().satisfies(row -> assertThat(row.getName()).isEqualTo("Token v2"));
-        }
-
-        @Test
-        void doesNotIndexAnUnpairedDatumWithoutDescriptionOfAReferenceNftThatIsNotStored() throws Exception {
-            listener.processTransaction(event(output(datum("name", "Token", "image", "ipfs://bafy"), REF + A)));
+        void recordsAnUndecodableDatum() {
+            listener.processTransaction(event(output("deadbeef", REF + A)));
 
             verify(repository, never()).saveAll(any());
+            InvalidTokenReport report = recorded();
+            assertThat(report.standard()).isEqualTo(InvalidTokenReason.CIP_68);
+            assertThat(report.reasonCode()).isEqualTo(InvalidTokenReason.DATUM_UNDECODABLE);
+            assertThat(report.policyId()).isEqualTo(POLICY);
+            assertThat(report.assetName()).isEqualTo(REF + A);
+            assertThat(report.txHash()).isEqualTo(TX_HASH);
+            assertThat(report.slot()).isEqualTo(100L);
         }
 
         @Test
-        void stillRejectsAnRftWithoutImage() throws Exception {
-            listener.processTransaction(event(output(datum("name", "Token", "description", "Desc"), REF + A),
-                    userToken(RFT + A)));
+        void ignoresADatumThatIsNotACip68Datum() throws Exception {
+            // a reference NFT output can carry any datum: one that is not CIP-68 is neither stored nor recorded
+            String notCip68 = HexUtil.encodeHexString(CborSerializationUtil.serialize(BigIntPlutusData.of(42).serialize()));
+
+            listener.processTransaction(event(output(notCip68, REF + A)));
 
             verify(repository, never()).saveAll(any());
-            assertThat(warnings()).singleElement().satisfies(w -> assertThat(w).contains("label 444").contains("no image"));
+            verify(recorder, never()).report(any());
         }
     }
 
     /**
-     * CIP-68 requires a 333 {@code logo}, when present, to be a URI with the scheme https, ipfs, ar or data. The logo is
-     * optional, so one with another form, most often a bare IPFS CID, is left out with a warning naming the token, and
-     * the token is indexed without it.
-     */
-    @Nested
-    @DisplayName("Logo URI")
-    class LogoUri {
-
-        /** Mainnet: Hustler (HSTLR), a live fungible token whose logo is a bare IPFS CID, without {@code ipfs://}. */
-        private static final String HSTLR_POLICY = "0b41f5f4ceeb45f2a58dd4c332d21bbbf95e66eb58fbf85b2c2526f1";
-        private static final String HSTLR_BASE_NAME = "487573746c6572";
-        private static final String HSTLR_DATUM =
-                "d8799fbf48646563696d616c73004b6465736372697074696f6e51487573746c696e20436f6d6d756e697479446c6f676f"
-                + "583b6261666b7265696472767035713337656876367036646464766e35757866776d796d677a67697a6461356f6e7432"
-                + "626a616f7a617a347835706f6d446e616d6547487573746c6572467469636b6572454853544c524375726c581e687474"
-                + "70733a2f2f6465762d636a6668752e6368616b72612d61692e696fff0243d87980ff";
-
-        @Test
-        void indexesARealFungibleTokenWhoseLogoIsABareCidWithoutTheLogoAndWarns() {
-            AddressUtxo output = AddressUtxo.builder().txHash(TX_HASH).inlineDatum(HSTLR_DATUM)
-                    .amounts(List.of(amount(HSTLR_POLICY + REF + HSTLR_BASE_NAME))).build();
-
-            listener.processTransaction(event(output));
-
-            assertThat(saved()).singleElement().satisfies(row -> {
-                assertThat(row.getName()).isEqualTo("Hustler");
-                assertThat(row.getDescription()).isEqualTo("Hustlin Community");
-                assertThat(row.getTicker()).isEqualTo("HSTLR");
-                assertThat(row.getLogo()).isNull();
-            });
-            assertThat(warnings()).singleElement().satisfies(w -> assertThat(w)
-                    .contains(HSTLR_POLICY).contains(REF + HSTLR_BASE_NAME).contains("dropping the logo")
-                    .contains("not a URI").contains("bafkreidrvp5q37ehv6p6dddvn5uxfwmymgzgizda5ont2bjaozaz4x5pom"));
-        }
-
-        @Test
-        void indexesALogoWithAnAllowedSchemeWithoutWarning() throws Exception {
-            for (String logo : List.of("ipfs://bafkreidrvp5q37eh", "https://example.com/logo.png", "ar://abc",
-                    "data:image/png;base64,iVBORw0KGgo=", "IPFS://Qm123")) {
-                logs.list.clear();
-                clearInvocations(repository);
-
-                listener.processTransaction(event(output(flatDatum("Token", "Desc", null, logo), REF + A)));
-
-                assertThat(saved()).as(logo).singleElement().satisfies(row -> assertThat(row.getLogo()).isEqualTo(logo));
-                assertThat(warnings()).as(logo).isEmpty();
-            }
-        }
-
-        @Test
-        void indexesAnEmptyLogoWithoutWarning() throws Exception {
-            listener.processTransaction(event(output(flatDatum("Token", "Desc", null, ""), REF + A)));
-
-            assertThat(saved()).singleElement().satisfies(row -> assertThat(row.getLogo()).isEmpty());
-            assertThat(warnings()).isEmpty();
-        }
-
-        @Test
-        void stillRejectsAFungibleTokenWithABadLogoAndNoDescription() throws Exception {
-            // the logo is optional, the description is not: a mandatory field missing drops the token
-            listener.processTransaction(event(output(flatDatum("Token", null, null, "QmXyz"), REF + A)));
-
-            verifyNoInteractions(repository);
-            assertThat(warnings()).singleElement().satisfies(w -> assertThat(w).contains("no description"));
-        }
-
-        @Test
-        void abbreviatesALongLogoInTheWarning() throws Exception {
-            String logo = "x".repeat(500);
-
-            listener.processTransaction(event(output(flatDatum("Token", "Desc", null, logo), REF + A)));
-
-            assertThat(saved()).singleElement().satisfies(row -> assertThat(row.getLogo()).isNull());
-            assertThat(warnings()).singleElement().satisfies(w -> assertThat(w)
-                    .contains("x".repeat(60) + "...").doesNotContain("x".repeat(61)));
-        }
-    }
-
-    /**
-     * CIP-68 defines versions 1 to 4. A datum with another version is not indexed, and the parser warns, even for a
-     * live fungible token: on mainnet, Greenland Reserve Coin declares version 0.
-     */
-    @Nested
-    @DisplayName("Undefined version")
-    class UndefinedVersion {
-
-        /** Mainnet: Greenland Reserve Coin (GNRC), a live fungible token whose datum declares version 0. */
-        private static final String GNRC_POLICY = "67cee89d59ab5354ee22c8af0638224126aecc6210f9372a61f13a64";
-        private static final String GNRC_REFERENCE_NFT = "000643b0474e5243";
-        private static final String GNRC_VERSION_0_DATUM =
-                "d8799fa6446e616d6556477265656e6c616e64205265736572766520436f696e4b6465736372697074696f6e583c4173"
-                + "736574206261636b656420746f6b656e207365637572656420627920477265656e6c616e642072756269657320616e64"
-                + "20736170706869726573467469636b657244474e52434375726c582368747470733a2f2f7777772e7468652d6d696e74"
-                + "2e636f6d2f636f6d706c69616e6365446c6f676f4048646563696d616c730600d866821a951b3c2b9f81581cc0bb241d"
-                + "37ffbdfdbb07d3d34bff54671c00935128da06966bc033810103ffff";
-
-        @Test
-        void doesNotIndexARealVersion0FungibleToken() {
-            AddressUtxo output = AddressUtxo.builder().txHash(TX_HASH).inlineDatum(GNRC_VERSION_0_DATUM)
-                    .amounts(List.of(amount(GNRC_POLICY + GNRC_REFERENCE_NFT))).build();
-
-            listener.processTransaction(event(output));
-
-            verifyNoInteractions(repository);
-        }
-    }
-
-    /**
-     * The listener runs inside yaci-store's block transaction, so an exception would stop the whole sync. An output
-     * whose indexing fails unexpectedly is skipped with a warning, and the other outputs are indexed.
+     * The listener runs inside yaci-store's block transaction, so an exception would stop the whole sync. A reference NFT
+     * whose indexing fails unexpectedly is skipped, recorded, and the others are indexed.
      */
     @Nested
     @DisplayName("Unexpected failure")
     class UnexpectedFailure {
 
-        private final Cip68FTDatumParser parser = spy(new Cip68FTDatumParser());
+        private final Cip68FTDatumParser failingParser = spy(new Cip68FTDatumParser());
         private final Cip68EventListener failingListener = new Cip68EventListener(
-                new Cip68FungibleTokenService(repository, parser), parser, repository);
+                new Cip68FungibleTokenService(repository, failingParser), failingParser, repository, recorder);
 
         @Test
-        void skipsTheOutputThatFailsAndIndexesTheOthers() throws Exception {
+        void skipsTheReferenceNftThatFailsRecordsItAndIndexesTheOthers() throws Exception {
             String failing = flatDatum("Broken", "Desc", null);
-            doThrow(new IllegalStateException("unforeseen datum")).when(parser).parse(eq(failing), any(AssetType.class));
+            doThrow(new IllegalStateException("unforeseen datum")).when(failingParser).parseDetailed(eq(failing), any(AssetType.class));
 
             failingListener.processTransaction(event(
                     output(flatDatum("Token A", "Desc", null), REF + A),
@@ -456,8 +336,24 @@ class Cip68EventListenerIndexingTest {
 
             assertThat(saved()).extracting(MetadataReferenceNft::getName).containsExactly("Token A", "Token C");
             assertThat(warnings()).singleElement().satisfies(w -> assertThat(w)
-                    .contains(TX_HASH).contains("failed unexpectedly").contains("IllegalStateException")
-                    .contains("unforeseen datum").contains(failing));
+                    .contains(TX_HASH).contains("failed unexpectedly").contains("IllegalStateException").contains("unforeseen datum"));
+            InvalidTokenReport report = recorded();
+            assertThat(report.reasonCode()).isEqualTo(InvalidTokenReason.PROCESSING_FAILURE);
+            assertThat(report.assetName()).isEqualTo(REF + B);
+        }
+    }
+
+    @Nested
+    @DisplayName("Rollback")
+    class Rollback {
+
+        @Test
+        void deletesTheRowsAfterTheRollbackSlot() {
+            when(repository.deleteBySlotGreaterThan(500L)).thenReturn(5);
+
+            listener.handleRollback(RollbackEvent.builder().rollbackTo(new Point(500L, "blockhash")).build());
+
+            verify(repository).deleteBySlotGreaterThan(500L);
         }
     }
 
@@ -467,6 +363,12 @@ class Cip68EventListenerIndexingTest {
         ArgumentCaptor<List<MetadataReferenceNft>> captor = ArgumentCaptor.forClass(List.class);
         verify(repository).saveAll(captor.capture());
         return captor.getValue();
+    }
+
+    private InvalidTokenReport recorded() {
+        ArgumentCaptor<InvalidTokenReport> report = ArgumentCaptor.forClass(InvalidTokenReport.class);
+        verify(recorder).report(report.capture());
+        return report.getValue();
     }
 
     private List<String> warnings() {
@@ -523,9 +425,6 @@ class Cip68EventListenerIndexingTest {
 
     /** A flat version 1 datum with the given text properties, as key-value pairs. */
     private static String datum(String... keyValues) throws Exception {
-        if (keyValues.length % 2 != 0) {
-            throw new IllegalArgumentException("Expected key-value pairs, got " + keyValues.length + " values");
-        }
         MapPlutusData metadata = new MapPlutusData();
         for (int i = 0; i + 1 < keyValues.length; i += 2) {
             metadata.put(BytesPlutusData.of(keyValues[i]), BytesPlutusData.of(keyValues[i + 1]));

@@ -1,24 +1,42 @@
 package org.cardanofoundation.tokenmetadata.registry.api.model.cip68;
 
 import jakarta.annotation.Nullable;
+import org.cardanofoundation.tokenmetadata.registry.validation.ValidationError;
+
+import java.util.List;
+import java.util.Map;
 
 /**
- * A parsed CIP-68 datum: the fungible token fields the registry serves, plus the fields that tell which user-token
- * label the datum is for and that the 222 NFT and 444 RFT require ({@code image}, {@code mediaType}, {@code files}).
- * Those are only used to validate the datum and are not stored. {@code hasFiles} is true only for a {@code files}
- * property that CIP-68 defines (see {@code Cip68FTDatumParser}).
+ * A parsed CIP-68 datum, as written: the fungible token fields the registry serves, and the NFT and RFT fields
+ * ({@code image}, {@code mediaType}) and the {@code files} and additional properties ({@code properties}, as JSON:
+ * {@code {"files": [...], "additional_properties": {...}}}, either key may be absent, {@code null} when there is neither).
+ * <p>
+ * {@link #validationErrors} are the ways the datum departs from CIP-68 that do not depend on the label of the token (a
+ * wrong type, a version CIP-68 does not define, a Plutus constructor in a property, ...). What a label requires is checked
+ * later, by {@code Cip68Validator} (ADR-019).
  */
-public record ParsedCip68Datum(@Nullable Long decimals, @Nullable String description, @Nullable String logo,
-                               @Nullable String name, @Nullable String ticker, @Nullable String url, long version,
-                               @Nullable String image, @Nullable String mediaType, boolean hasFiles) {
+public record ParsedCip68Datum(@Nullable Long decimals,
+                               @Nullable String description,
+                               @Nullable String logo,
+                               @Nullable String name,
+                               @Nullable String ticker,
+                               @Nullable String url,
+                               @Nullable Long version,
+                               @Nullable String image,
+                               @Nullable String mediaType,
+                               @Nullable Map<String, Object> properties,
+                               List<ValidationError> validationErrors) {
 
-    /** The same datum without its {@code logo}. */
-    public ParsedCip68Datum withoutLogo() {
-        return new ParsedCip68Datum(decimals, description, null, name, ticker, url, version, image, mediaType, hasFiles);
+    /** A datum that departs from nothing the parser checks (tests and callers that do not care about errors). */
+    public ParsedCip68Datum(@Nullable Long decimals, @Nullable String description, @Nullable String logo,
+                            @Nullable String name, @Nullable String ticker, @Nullable String url,
+                            @Nullable Long version, @Nullable String image, @Nullable String mediaType,
+                            @Nullable Map<String, Object> properties) {
+        this(decimals, description, logo, name, ticker, url, version, image, mediaType, properties, List.of());
     }
 
-    public FungibleTokenMetadata toFungibleTokenMetadata() {
-        return new FungibleTokenMetadata(decimals, description, logo, name, ticker, url, version);
+    /** Whether the datum has a {@code files} property (kept as written, whether or not it follows CIP-68). */
+    public boolean hasFiles() {
+        return properties != null && properties.containsKey("files");
     }
-
 }
