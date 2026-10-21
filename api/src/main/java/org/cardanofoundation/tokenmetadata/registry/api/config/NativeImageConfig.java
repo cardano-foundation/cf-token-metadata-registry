@@ -12,10 +12,13 @@ import org.cardanofoundation.tokenmetadata.registry.api.model.rest.VerifyFailure
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.WalletFraudIncident;
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.WalletHashes;
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.WalletTrustCheckResponse;
+import org.cardanofoundation.tokenmetadata.registry.entity.InvalidToken;
 import org.cardanofoundation.tokenmetadata.registry.entity.MetadataReferenceNft;
 import org.cardanofoundation.tokenmetadata.registry.entity.MetadataReferenceNftId;
 import org.cardanofoundation.tokenmetadata.registry.entity.OffChainSyncState;
 import org.cardanofoundation.tokenmetadata.registry.entity.TokenLogo;
+import org.cardanofoundation.tokenmetadata.registry.validation.FieldCategory;
+import org.cardanofoundation.tokenmetadata.registry.validation.ValidationError;
 import org.eclipse.jgit.diff.DiffAlgorithm;
 import org.eclipse.jgit.diff.DiffConfig;
 import org.eclipse.jgit.lib.CommitConfig;
@@ -47,7 +50,8 @@ public class NativeImageConfig {
                     TokenLogo.class,
                     MetadataReferenceNft.class,
                     MetadataReferenceNftId.class,
-                    OffChainSyncState.class
+                    OffChainSyncState.class,
+                    InvalidToken.class
             }) {
                 reflection.registerType(clazz,
                         INVOKE_DECLARED_CONSTRUCTORS,
@@ -71,6 +75,14 @@ public class NativeImageConfig {
                     WalletHashes.class,
                     WalletTrustCheckResponse.class
             }) {
+                reflection.registerType(clazz,
+                        INVOKE_DECLARED_CONSTRUCTORS,
+                        INVOKE_DECLARED_METHODS,
+                        DECLARED_FIELDS);
+            }
+
+            // Validation errors (ADR-019): written and read as JSON by Hibernate (validation_errors columns) and Jackson
+            for (Class<?> clazz : new Class<?>[]{ValidationError.class, FieldCategory.class}) {
                 reflection.registerType(clazz,
                         INVOKE_DECLARED_CONSTRUCTORS,
                         INVOKE_DECLARED_METHODS,
