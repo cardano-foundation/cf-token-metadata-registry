@@ -408,9 +408,12 @@ public class Cip26IntegrationIT extends BaseIntegrationIT {
 
         @Test
         void aFileNamedAfterAnotherSubjectIsIndexedUnderNeither() {
-            assertThatThrownBy(() -> restTemplate.getForEntity(API_BASE_URL + "/metadata/" + MISMATCH_FILE_SUBJECT, String.class))
-                    .isInstanceOf(HttpClientErrorException.NotFound.class);
-            assertThatThrownBy(() -> restTemplate.getForEntity(API_BASE_URL + "/metadata/" + MISMATCH_INNER_SUBJECT, String.class))
+            // V1 answers an unknown subject with 204, V2 with 404
+            assertThat(restTemplate.getForEntity(API_BASE_URL + "/metadata/" + MISMATCH_FILE_SUBJECT, String.class).getStatusCode())
+                    .isEqualTo(HttpStatus.NO_CONTENT);
+            assertThat(restTemplate.getForEntity(API_BASE_URL + "/metadata/" + MISMATCH_INNER_SUBJECT, String.class).getStatusCode())
+                    .isEqualTo(HttpStatus.NO_CONTENT);
+            assertThatThrownBy(() -> restTemplate.getForEntity(API_BASE_URL + "/api/v2/subjects/" + MISMATCH_FILE_SUBJECT, String.class))
                     .isInstanceOf(HttpClientErrorException.NotFound.class);
             assertThatThrownBy(() -> restTemplate.getForEntity(API_BASE_URL + "/api/v2/subjects/" + MISMATCH_INNER_SUBJECT, String.class))
                     .isInstanceOf(HttpClientErrorException.NotFound.class);
