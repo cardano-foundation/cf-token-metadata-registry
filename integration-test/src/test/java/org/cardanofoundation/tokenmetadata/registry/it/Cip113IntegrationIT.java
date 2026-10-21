@@ -209,4 +209,21 @@ public class Cip113IntegrationIT extends BaseIntegrationIT {
         }
     }
 
+    /** A programmable token is served only with CIP-26 or CIP-68 metadata: a policy without any is recorded (ADR-020). */
+    @Nested
+    @DisplayName("CIP-113 - Registered policy without companion metadata")
+    class NoCompanionMetadata {
+
+        @Test
+        void aRegisteredPolicyWithoutMetadataIsCountedAsAnInvalidToken() {
+            // the node minted in setUp registers a policy that has neither CIP-26 nor CIP-68 metadata
+            await().atMost(Duration.ofMinutes(2))
+                    .pollInterval(Duration.ofSeconds(2))
+                    .untilAsserted(() -> assertThat(restTemplate.getForEntity(API_BASE_URL + "/actuator/prometheus", String.class)
+                            .getBody().lines())
+                            .anyMatch(line -> line.startsWith("token_metadata_invalid_tokens_total{")
+                                    && line.contains("reason_code=\"no_companion_metadata\"")
+                                    && line.contains("standard=\"CIP-113\"")));
+        }
+    }
 }
