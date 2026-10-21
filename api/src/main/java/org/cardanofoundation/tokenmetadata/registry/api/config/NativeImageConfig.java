@@ -1,5 +1,7 @@
 package org.cardanofoundation.tokenmetadata.registry.api.config;
 
+import org.cardanofoundation.tokenmetadata.registry.api.model.cip113.ProgrammableTokenCip113;
+import org.cardanofoundation.tokenmetadata.registry.api.model.cip68.FungibleTokenMetadata;
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.AnnotatedSignature;
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.BatchRequest;
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.BatchResponse;
@@ -12,6 +14,15 @@ import org.cardanofoundation.tokenmetadata.registry.api.model.rest.VerifyFailure
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.WalletFraudIncident;
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.WalletHashes;
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.WalletTrustCheckResponse;
+import org.cardanofoundation.tokenmetadata.registry.api.model.v2.LongProperty;
+import org.cardanofoundation.tokenmetadata.registry.api.model.v2.Metadata;
+import org.cardanofoundation.tokenmetadata.registry.api.model.v2.Response;
+import org.cardanofoundation.tokenmetadata.registry.api.model.v2.Standards;
+import org.cardanofoundation.tokenmetadata.registry.api.model.v2.StringProperty;
+import org.cardanofoundation.tokenmetadata.registry.api.model.v2.Subject;
+import org.cardanofoundation.tokenmetadata.registry.api.model.v2.TokenType;
+import org.cardanofoundation.tokenmetadata.registry.entity.Cip113RegistryNode;
+import org.cardanofoundation.tokenmetadata.registry.entity.Cip113RegistryNodeId;
 import org.cardanofoundation.tokenmetadata.registry.entity.InvalidToken;
 import org.cardanofoundation.tokenmetadata.registry.entity.MetadataReferenceNft;
 import org.cardanofoundation.tokenmetadata.registry.entity.MetadataReferenceNftId;
@@ -51,7 +62,9 @@ public class NativeImageConfig {
                     MetadataReferenceNft.class,
                     MetadataReferenceNftId.class,
                     OffChainSyncState.class,
-                    InvalidToken.class
+                    InvalidToken.class,
+                    Cip113RegistryNode.class,
+                    Cip113RegistryNodeId.class
             }) {
                 reflection.registerType(clazz,
                         INVOKE_DECLARED_CONSTRUCTORS,
@@ -74,6 +87,27 @@ public class NativeImageConfig {
                     WalletFraudIncident.class,
                     WalletHashes.class,
                     WalletTrustCheckResponse.class
+            }) {
+                reflection.registerType(clazz,
+                        INVOKE_DECLARED_CONSTRUCTORS,
+                        INVOKE_DECLARED_METHODS,
+                        DECLARED_FIELDS);
+            }
+
+            // V2 response types. The CIP-113 extension is held as Map<String, Extension>, so the concrete
+            // ProgrammableTokenCip113 cannot be inferred from the controller's return type and Jackson would have no
+            // reflection data for it; the records around it are registered too, rather than relying on the inference.
+            for (Class<?> clazz : new Class<?>[]{
+                    ProgrammableTokenCip113.class,
+                    Response.class,
+                    org.cardanofoundation.tokenmetadata.registry.api.model.v2.BatchResponse.class,
+                    Subject.class,
+                    Metadata.class,
+                    Standards.class,
+                    StringProperty.class,
+                    LongProperty.class,
+                    TokenType.class,
+                    FungibleTokenMetadata.class
             }) {
                 reflection.registerType(clazz,
                         INVOKE_DECLARED_CONSTRUCTORS,
