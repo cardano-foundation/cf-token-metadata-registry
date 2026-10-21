@@ -90,7 +90,7 @@ This mirrors `metadata_reference_nft`, whose key is `(policy_id, asset_name, slo
 | `unfracking_logic_script` | no | yes | Null means unfracking is forbidden for the token (`empty_vkey` on-chain). |
 | `global_state_policy_id` | no | yes | Only substandards with shared state (e.g. freeze-and-seize denylists) use this. |
 
-The indexer is defensive: anyone can put invalid data on-chain, so the parser validates the datum and skips entries with missing `key` or `next` fields (logging a warning). All five script/policy fields are nullable.
+The indexer is defensive: anyone can put invalid data on-chain, so the parser validates the datum and skips entries with missing `key` or `next` fields (logging a warning). Since ADR-020, a skipped node is also recorded in `invalid_token` as `registry_node_unparseable`. All five script/policy fields are nullable.
 
 ### 2. On-chain indexing
 
@@ -137,6 +137,8 @@ The type is derived from the presence of extensions: if any extension is present
 ### 5. Not a metadata source
 
 CIP-113 is a layer on top of existing metadata standards — it defines how to constrain CIP-26/CIP-68 tokens inside smart contracts with transfer validation logic. It does not provide display metadata (name, description, ticker). Display metadata for programmable tokens comes from CIP-26 or CIP-68, same as for any other Cardano token. Therefore, CIP-113 is not part of the `QueryPriority` enum and does not participate in the metadata merge.
+
+A programmable token is served only with a companion: CIP-26 or CIP-68 metadata. A registered policy none of whose tokens has any is recorded in `invalid_token` as `no_companion_metadata`, and the record is kept in step with the metadata (ADR-020). Companion metadata with validation errors is a companion: the token is served with its errors (ADR-019).
 
 ### 6. Implicit enablement
 

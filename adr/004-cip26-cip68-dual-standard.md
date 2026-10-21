@@ -30,7 +30,7 @@ We support both CIP-26 and CIP-68 as first-class metadata sources with the follo
 
 4. **CIP-68 reference NFT identification**: Reference NFTs are identified by the `000643b0` prefix in their asset name and must have a quantity of exactly 1. The `CustomUtxoStorage` filters UTXOs to store only matching reference NFTs.
 
-5. **Validation**: CIP-26 tokens are validated against the spec using the `cf-tokens-cip26` library. CIP-68 tokens are validated structurally during datum parsing.
+5. **Validation**: CIP-26 tokens are validated against the spec using the `cf-tokens-cip26` library, and CIP-68 datums against the rules of their label. Since ADR-019, what breaks a rule is reported as `validation_errors` and the token is stored and served; only what cannot be stored is dropped and recorded (ADR-020).
 
 ## Consequences
 

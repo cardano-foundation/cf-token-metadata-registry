@@ -26,7 +26,7 @@ We introduce a V2 API at `/api/v2` alongside the existing V1 API, with the follo
 
 3. **Query priority model**: A `QueryPriority` enum (`CIP_26`, `CIP_68`) controls the order in which sources are queried. The default priority is configured via `cip.query.priority=CIP_68,CIP_26` (on-chain preferred). V2 API consumers can override the priority per request.
 
-4. **Required properties validation**: V2 API enforces that `name` and `description` are always included in property filters, as these are considered essential metadata fields.
+4. **Required properties validation** (superseded by ADR-019): V2 used to require `name` and `description` in every property filter, and answered 404 for a token without both. Since ADR-019, a filter can name any properties, a token is served as indexed with its `validation_errors`, and `?validation=` chooses how strict the response is.
 
 5. **CIP details flag**: When `showCipsDetails=true`, the response includes information about which CIP standard provided the data, enabling transparency about the data source.
 
