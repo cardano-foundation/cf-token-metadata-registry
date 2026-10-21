@@ -3387,13 +3387,13 @@
     "subject": "084f29a424e87baca7a80b9d856f26933bc8a023ef1ffe53ed8f98dd4c61796572",
     "policy": "82018201828200581cf950845fdf374bba64605f96a9d5940890cc2bb92c4b5b55139cc00982051a0989595c",
     "name": "Layer Forge Studio",
-    "ticker": "$Layer",
-    "url": "https://layerforgestudio.com/",
+    "ticker": "Layer",
+    "url": "https://www.layerforgestudio.com",
     "description": "Utility token for rewards and prints at Layer Forge Studio.",
     "decimals": 0,
-    "updated": "2025-07-27T00:07:30",
-    "updated_by": "dixeflatlinespam@gmail.com",
-    "has_logo": false
+    "updated": "2026-08-14T22:42:46",
+    "updated_by": "Contact@layerforgestudio.com",
+    "has_logo": true
   },
   {
     "subject": "0869714fb4d1ad0cca1f749aabf56bed55613c5e0c08fc44731df36e477265656e53756e4772617373",

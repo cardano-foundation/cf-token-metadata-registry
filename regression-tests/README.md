@@ -105,6 +105,7 @@ uv run pytest -m v2           # V2 endpoints only
 uv run pytest -m cip26        # CIP-26 token tests
 uv run pytest -m cip68        # CIP-68 token tests (includes the RFT tests)
 uv run pytest -m rft          # CIP-68 rich fungible token (444) tests
+uv run pytest -m validation   # validation_errors and ?validation= tests (ADR-019)
 uv run pytest -m cip113       # CIP-113 programmable token tests
 uv run pytest -m batch        # Batch query tests
 ```
@@ -168,11 +169,26 @@ them, and that neither the 222 NFT nor the reference NFT of the same base name i
 must not serve an RFT. Regenerate the fixture on purpose, never as part of a test run. Run the suite against an
 instance at tip first, and remove a token with a reason, or treat the difference as a bug.
 
-## Tokens dropped by stricter rules
+## Validation errors (ADR-019)
 
-`mainnet/fixtures/cip68_dropped_tokens.json` holds CIP-68 tokens taken out of `cip68_tokens.json` because a stricter
-CIP-68 rule no longer indexes their datum, each with the reason. `test_v2_cip68_dropped.py` asserts they are not served
-from CIP-68.
+The registry serves tokens as indexed, with `validation_errors` saying how their metadata departs from its CIP, and
+`?validation=ALL|MANDATORY_ONLY|STRICT` choosing how strict a response is. Two suites cover it (marker `validation`):
+
+- `mainnet/test_v2_validation.py` checks the contract on samples of the CIP-26 and CIP-68 baselines: every token has a
+  `validation_errors` array, `metadata.valid` is true exactly when it is empty, `?validation=` returns a token exactly
+  when its errors allow it, and under `?property=` the errors are about the requested properties only.
+- `mainnet/test_v2_cip68_validation_errors.py` checks tokens that break CIP-68 in a known way, from
+  `mainnet/fixtures/cip68_validation_errors_tokens.json`, each with the reason: Greenland Reserve Coin (version 0, a
+  MANDATORY error), tokens whose logo is a bare IPFS CID (kept as written, an OPTIONAL error), and the SundaeSwap
+  USDrf/sUSDrf LP token (served as a clean 333 token, though its reference NFT is paired with a pool NFT). Before
+  ADR-019 these were a 404 or lost their logo. The listed errors must be among the token's errors; others are allowed.
+
+The CIP-113 suite follows the same rule: a programmable token with on-chain metadata is served with its errors, one
+without any has no companion and is a 404. `WITH_MANDATORY_ERRORS` (preprod) lists those hidden with
+`validation=MANDATORY_ONLY`.
+
+These suites need a build with ADR-019 and a database **synced from scratch** with it: rows written before have no
+errors recorded. Against an older build, run `-m "not validation"`.
 
 ## Viewing Results with Allure (Web UI)
 
@@ -270,7 +286,7 @@ regression-tests/
     │   ├── generate_fixtures.py              # DB -> JSON snapshot script
     │   ├── cip26_tokens.json                 # CIP-26 token snapshots (generated)
     │   ├── cip68_tokens.json                 # CIP-68 token snapshots (generated)
-    │   ├── cip68_dropped_tokens.json         # CIP-68 tokens a stricter rule drops, with the reason
+    │   ├── cip68_validation_errors_tokens.json  # CIP-68 tokens served with known validation errors
     │   ├── cip68_rft_tokens.json             # CIP-68 RFT (444) snapshot from the chain (generated)
     │   └── cip113_tokens.json                # CIP-113 registry snapshot (generated)
     ├── test_v1_get_subject.py                # V1 GET /metadata/{subject}
@@ -278,7 +294,8 @@ regression-tests/
     ├── test_v1_batch_query.py                # V1 POST /metadata/query
     ├── test_v2_get_subject.py                # V2 GET /api/v2/subjects/{subject}
     ├── test_v2_batch_query.py                # V2 POST /api/v2/subjects/query
-    ├── test_v2_cip68_dropped.py              # CIP-68 tokens a stricter rule drops
+    ├── test_v2_cip68_validation_errors.py    # CIP-68 tokens served with known validation errors
+    ├── test_v2_validation.py                 # validation_errors / ?validation= contract (ADR-019)
     ├── test_v2_cip68_rft.py                  # CIP-68 rich fungible tokens (444)
     └── test_v2_cip113.py                     # CIP-113 programmable tokens
 ```

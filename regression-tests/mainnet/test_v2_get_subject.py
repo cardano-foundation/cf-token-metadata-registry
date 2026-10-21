@@ -128,14 +128,17 @@ class TestV2GetSubjectCip26:
         assert metadata.get("decimals") is None
         assert metadata.get("logo") is None
 
-    @allure.story("Property filter without required properties returns 400")
-    def test_property_filter_missing_required(self):
+    @allure.story("A property filter no longer needs name and description (ADR-019)")
+    def test_property_filter_without_description(self):
         subject = CIP26_SUBJECTS[0]
         resp = requests.get(
             f"{API_BASE_URL}/api/v2/subjects/{subject}",
             params={"property": ["name", "ticker"]},
         )
-        assert resp.status_code == 400
+        assert resp.status_code == 200
+        metadata = resp.json()["subject"]["metadata"]
+        assert metadata.get("description") is None
+        assert metadata["name"]["value"] == CIP26_BY_SUBJECT[subject]["name"]
 
     @allure.story("V2 CIP-26 standards detail matches DB fixture")
     def test_cips_details_match_fixture(self):
