@@ -22,6 +22,12 @@ should it be shown?* It collects metadata from the three ways a token can carry 
   [Validation errors](../concepts/validation-errors/)
 - **Run your own instance**, for example to index a test network. [Run your own registry](../reference/self-hosting/)
 
+## The API
+
+**V2** (`/api/v2/subjects/...`) is the current API, for one token or a batch, with all properties or only those you
+name. **V1** (`/metadata/...`) is deprecated: CIP-26 only, kept for existing integrations.
+[Getting started](../getting-started/)
+
 ## How a token is identified
 
 A token is identified by its **subject**: the policy id (56 hex characters) followed by the asset name in hex. For a

@@ -5,14 +5,16 @@ description: The endpoints of the registry, V2 and V1, and the validate endpoint
 
 Every instance publishes its OpenAPI description at **`/apidocs`**.
 
-## V2: CIP-26, CIP-68 and CIP-113
+## V2: CIP-26, CIP-68 and CIP-113 (current)
 
 | Method | Path | Returns |
 |---|---|---|
 | GET | `/api/v2/subjects/{subject}` | one token |
 | POST | `/api/v2/subjects/query` | several tokens: `{"subjects": [...]}` |
 
-Both take `property`, `query_priority`, `show_cips_details` and `validation`, see [Getting started](../../getting-started/#options).
+Both take `query_priority`, `show_cips_details` and `validation`, see [Getting started](../../getting-started/#options).
+To return only some properties, pass `property` (single subject, repeatable) or `"properties": [...]` (batch body), see
+[only the properties you need](../../getting-started/#only-the-properties-you-need).
 
 ## Validate
 
@@ -63,9 +65,10 @@ curl -X POST "$REGISTRY/api/v2/validate/cip68" -H 'Content-Type: application/jso
 
 A request over 64 KiB is refused. A registry operator can switch the endpoint off.
 
-## V1: CIP-26 only
+## V1: CIP-26 only (deprecated)
 
-The format of the original CIP-26 metadata server.
+The format of the original CIP-26 metadata server. **Deprecated:** kept for existing integrations, it serves CIP-26
+only, without CIP-68, CIP-113 or validation errors. Use V2.
 
 | Method | Path | Returns |
 |---|---|---|
