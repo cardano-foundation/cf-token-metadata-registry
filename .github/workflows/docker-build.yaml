@@ -11,7 +11,7 @@ on:
       variant:
         type: string
         required: true
-        description: 'Build variant: jvm or native'
+        description: 'Build variant: jvm, native, or native-readonly (native image built for read-only mode, see ADR-021)'
       push:
         type: boolean
         default: false
@@ -105,14 +105,16 @@ jobs:
             fi
           done
 
-          if [ "${INPUT_VARIANT}" == "native" ]; then
+          # Native variants are tagged <tag>-native and <tag>-native-readonly. The read-only image is a separate build
+          # because read-only mode is fixed when a native image is built (ADR-021, bloxbean/yaci-store#1293).
+          if [ "${INPUT_VARIANT}" != "jvm" ]; then
             for i in "${!resolved_tags[@]}"; do
               image_ref="${resolved_tags[$i]}"
               image_repo="${image_ref%:*}"
               image_tag="${image_ref##*:}"
 
-              if [[ "${image_tag}" != *-native ]]; then
-                resolved_tags[$i]="${image_repo}:${image_tag}-native"
+              if [[ "${image_tag}" != *-${INPUT_VARIANT} ]]; then
+                resolved_tags[$i]="${image_repo}:${image_tag}-${INPUT_VARIANT}"
               fi
             done
           fi
@@ -159,8 +161,10 @@ jobs:
       - name: Build Docker image
         uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
-          context: ${{ inputs.variant == 'native' && '.' || inputs.app }}
-          file: ${{ inputs.variant == 'native' && format('{0}/Dockerfile.native', inputs.app) || format('{0}/Dockerfile', inputs.app) }}
+          context: ${{ startsWith(inputs.variant, 'native') && '.' || inputs.app }}
+          file: ${{ startsWith(inputs.variant, 'native') && format('{0}/Dockerfile.native', inputs.app) || format('{0}/Dockerfile', inputs.app) }}
+          build-args: |
+            READ_ONLY_MODE=${{ inputs.variant == 'native-readonly' }}
           push: ${{ inputs.push }}
           load: ${{ !inputs.push }}
           tags: ${{ steps.meta.outputs.tags }}

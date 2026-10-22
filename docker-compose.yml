@@ -63,6 +63,13 @@ services:
       API_LOCAL_BIND_PORT: "${API_LOCAL_BIND_PORT}"
   api-ro:
     <<: *api-service-common
+    # With API_DOCKERFILE=api/Dockerfile.native this builds the read-only native image: read-only mode is fixed when a
+    # native image is built, not when it runs (ADR-021, bloxbean/yaci-store#1293). The JVM Dockerfile ignores the arg.
+    build:
+      context: .
+      dockerfile: ${API_DOCKERFILE:-api/Dockerfile.jvm}
+      args:
+        READ_ONLY_MODE: "true"
     profiles:
       - ro
     ports:
