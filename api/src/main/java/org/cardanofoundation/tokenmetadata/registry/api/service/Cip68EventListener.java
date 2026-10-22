@@ -12,7 +12,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.cardanofoundation.tokenmetadata.registry.api.model.cip68.ParseOutcome;
 import org.cardanofoundation.tokenmetadata.registry.api.model.cip68.ParsedCip68Datum;
-import org.cardanofoundation.tokenmetadata.registry.api.service.cip113.Cip113CompanionReconciler;
+import org.cardanofoundation.tokenmetadata.registry.api.event.Cip68MetadataIndexedEvent;
 import org.cardanofoundation.tokenmetadata.registry.api.util.AssetType;
 import org.cardanofoundation.tokenmetadata.registry.entity.MetadataReferenceNft;
 import org.cardanofoundation.tokenmetadata.registry.invalidtoken.InvalidTokenReason;
@@ -21,6 +21,7 @@ import org.cardanofoundation.tokenmetadata.registry.invalidtoken.InvalidTokenRep
 import org.cardanofoundation.tokenmetadata.registry.repository.Cip68UserTokenRepository;
 import org.cardanofoundation.tokenmetadata.registry.repository.MetadataReferenceNftRepository;
 import org.cardanofoundation.tokenmetadata.registry.validation.ValidationError;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -71,7 +72,7 @@ public class Cip68EventListener {
     private final InvalidTokenRecorder invalidTokenRecorder;
     private final Cip68UserTokenRecorder userTokenRecorder;
     private final Cip68UserTokenRepository userTokenRepository;
-    private final Cip113CompanionReconciler companionReconciler;
+    private final ApplicationEventPublisher eventPublisher;
 
     @EventListener
     @Transactional
@@ -108,11 +109,13 @@ public class Cip68EventListener {
         // exists (ADR-022)
         Set<String> newUserTokens = userTokenRecorder.recordSeen(userTokens, slot);
 
-        // a programmable token (CIP-113) may now have served CIP-68 metadata (ADR-020)
+        // what depends on CIP-68 metadata reacts after the block commits, e.g. the CIP-113 companion check (ADR-020)
         Set<String> policies = new HashSet<>();
         entities.forEach(entity -> policies.add(entity.getPolicyId()));
         newUserTokens.forEach(unit -> policies.add(AssetType.fromUnit(unit).policyId()));
-        companionReconciler.reconcileIfRegistered(policies);
+        if (!policies.isEmpty()) {
+            eventPublisher.publishEvent(new Cip68MetadataIndexedEvent(policies));
+        }
     }
 
     /** The 333 and 444 user tokens in the outputs of a transaction, each with the first transaction of the block that showed it. */

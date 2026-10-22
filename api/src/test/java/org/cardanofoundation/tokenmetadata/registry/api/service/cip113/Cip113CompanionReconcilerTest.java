@@ -18,7 +18,17 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.transaction.event.TransactionalEventListener;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Propagation;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.cardanofoundation.tokenmetadata.registry.api.event.Cip68MetadataIndexedEvent;
+import org.cardanofoundation.tokenmetadata.registry.api.event.Cip113RegistryChangedEvent;
 
+import java.lang.reflect.Method;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
@@ -88,9 +98,34 @@ class Cip113CompanionReconcilerTest {
         void afterACip26SyncRunInThisProcess() {
             nothingRegistered();
 
-            reconciler.reconcileAfterCip26Sync(new Cip26SyncCompletedEvent(3, 0));
+            reconciler.onCip26SyncCompleted(new Cip26SyncCompletedEvent(3, 0));
 
             verify(invalidTokenRepository).findByStandardAndReasonCode(InvalidTokenReason.CIP_113, InvalidTokenReason.NO_COMPANION_METADATA);
+        }
+
+        @Test
+        void whenTheCip113RegistryChanged() {
+            nothingRegistered();
+
+            reconciler.onCip113RegistryChanged(new Cip113RegistryChangedEvent());
+
+            verify(invalidTokenRepository).findByStandardAndReasonCode(InvalidTokenReason.CIP_113, InvalidTokenReason.NO_COMPANION_METADATA);
+        }
+
+        /**
+         * The events are published inside Yaci Store's block transaction; the reconciler must run after it commits, in a
+         * transaction of its own, so that a database error here cannot abort the block and stop the sync.
+         */
+        @ParameterizedTest
+        @ValueSource(strings = {"onCip26SyncCompleted", "onCip113RegistryChanged", "onCip68MetadataIndexed"})
+        void reactsAfterThePublishingTransactionCommitsInATransactionOfItsOwn(String handler) {
+            Method method = Arrays.stream(Cip113CompanionReconciler.class.getMethods())
+                    .filter(m -> m.getName().equals(handler)).findFirst().orElseThrow();
+
+            TransactionalEventListener listener = method.getAnnotation(TransactionalEventListener.class);
+            assertThat(listener.phase()).isEqualTo(TransactionPhase.AFTER_COMMIT);
+            assertThat(listener.fallbackExecution()).as("also delivered when published outside a transaction").isTrue();
+            assertThat(method.getAnnotation(Transactional.class).propagation()).isEqualTo(Propagation.REQUIRES_NEW);
         }
 
         @Test
@@ -124,7 +159,7 @@ class Cip113CompanionReconcilerTest {
             when(invalidTokenRepository.findByStandardAndReasonCode(InvalidTokenReason.CIP_113, InvalidTokenReason.NO_COMPANION_METADATA))
                     .thenReturn(List.of());
 
-            reconciler.reconcileIfRegistered(Set.of(WITHOUT, WITH_CIP68));
+            reconciler.onCip68MetadataIndexed(new Cip68MetadataIndexedEvent(Set.of(WITHOUT, WITH_CIP68)));
 
             verify(invalidTokenRepository).findByStandardAndReasonCode(InvalidTokenReason.CIP_113, InvalidTokenReason.NO_COMPANION_METADATA);
         }
@@ -133,14 +168,14 @@ class Cip113CompanionReconcilerTest {
         void notWhenTheCip68ListenerSeesMetadataOfPoliciesThatAreNotRegistered() {
             when(registryNodeRepository.findRegisteredPolicyIds()).thenReturn(List.of(WITHOUT));
 
-            reconciler.reconcileIfRegistered(Set.of(WITH_CIP68));
+            reconciler.onCip68MetadataIndexed(new Cip68MetadataIndexedEvent(Set.of(WITH_CIP68)));
 
             verifyNoInteractions(invalidTokenRepository);
         }
 
         @Test
         void notForABlockWithoutCip68Metadata() {
-            reconciler.reconcileIfRegistered(Set.of());
+            reconciler.onCip68MetadataIndexed(new Cip68MetadataIndexedEvent(Set.of()));
 
             verifyNoInteractions(registryNodeRepository, invalidTokenRepository);
         }
@@ -151,7 +186,8 @@ class Cip113CompanionReconcilerTest {
 
             readOnly.reconcile();
             readOnly.reconcileOnSchedule();
-            readOnly.reconcileIfRegistered(Set.of(WITHOUT));
+            readOnly.onCip68MetadataIndexed(new Cip68MetadataIndexedEvent(Set.of(WITHOUT)));
+            readOnly.onCip113RegistryChanged(new Cip113RegistryChangedEvent());
 
             verifyNoInteractions(registryNodeRepository, invalidTokenRepository, invalidTokenRecorder);
         }

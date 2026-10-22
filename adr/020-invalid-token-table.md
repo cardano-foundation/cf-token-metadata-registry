@@ -57,25 +57,53 @@ A datum that is not CIP-68 at all is ignored, not recorded, since a reference NF
 
 ### 3. CIP-113: a registered policy without a companion
 
+**Why this check exists.** A CIP-113 registry node says only that a policy is *programmable*: which scripts govern its
+minting and transfers. It carries no name, ticker, decimals or logo. Those come from the token's ordinary metadata, in
+CIP-26 or CIP-68, which we call its **companion**. The V2 API serves a programmable token only with its companion
+(ADR-016): it returns the metadata with `type: PROGRAMMABLE` and the node under `extensions.cip113`. A token with only
+a registry node is a 404, because there is nothing a wallet could show.
+
+So a policy can be registered in the CIP-113 registry and still be invisible in the API, with no error anywhere: the
+indexer did its job, and V2 correctly has nothing to serve. The check makes that state visible to operators. One
+`invalid_token` row per such policy, and the `token_metadata_invalid_tokens_total` counter, answer "which programmable
+tokens can we not serve, and why", for example to tell an issuer that their token needs CIP-26 or CIP-68 metadata.
+**It changes no API response;** it is a diagnostic.
+
+**Why a reconciler.** Whether a policy has a companion is a *state*, made of three inputs that change independently:
+the registry nodes (on chain), the CIP-26 entries (the GitHub registry, synced off chain) and the CIP-68 metadata (on
+chain). No single moment knows all three. So the rows are not written once by one listener; they are recomputed from
+the three inputs by `Cip113CompanionReconciler` whenever one of them changes.
+
 The registry indexes registry nodes, not the mints or the programmable-token ("jail") address. So the gap is known per
 **policy**, not per token, and a policy registered with nothing minted yet is reported the same way.
 
-The row describes a state, not an event, so it is recomputed by `Cip113CompanionReconciler`:
 - **What it computes:** the registered policies (node keys of a policy id's length) minus those with a companion. A
   companion is a CIP-26 entry, or **served** CIP-68 metadata: a reference NFT whose 333 or 444 user token was minted
   (ADR-022). A reference NFT alone serves nothing, so it does not count. Metadata with validation errors counts, since
   it is served.
 - **What it writes:** one row per policy without a companion. Rows of policies that now have one, or are no longer
   registered, are removed.
-- **When it runs:** when one of its inputs changes:
-  - registry nodes are indexed, or removed by a rollback;
-  - the CIP-68 listener stores a reference NFT, or sees a user token for the first time, of a registered policy;
-  - a CIP-26 sync run in the same process stores or removes entries (`Cip26SyncCompletedEvent`);
-  - the application starts.
+- **When it runs: on events.** Each input publishes a Spring application event when it changes, and the reconciler
+  listens to them:
+
+  | Event | Published by | When |
+  |---|---|---|
+  | `Cip113RegistryChangedEvent` | CIP-113 listener | registry nodes were indexed, or removed by a rollback |
+  | `Cip68MetadataIndexedEvent(policyIds)` | CIP-68 listener | a block stored a reference NFT, or saw a 333/444 user token for the first time; the reconciler runs only if one of the policies is registered |
+  | `Cip26SyncCompletedEvent` | CIP-26 sync | a sync run in the same process stored or removed entries |
+  | `ApplicationReadyEvent` | Spring | the application started |
+
+  The listeners do not call the reconciler; they publish facts, and anything that depends on them can listen.
+- **After the commit, in its own transaction.** The CIP-68 and CIP-113 events are published inside Yaci Store's block
+  transaction. The reconciler reacts with `@TransactionalEventListener(phase = AFTER_COMMIT)` and
+  `@Transactional(REQUIRES_NEW)`: it runs once the block is committed, in a transaction of its own. A database error in
+  the reconciler, which on PostgreSQL would abort the transaction it runs in, can therefore never stop the sync. If the
+  process stops between the commit and the reconciliation, nothing is lost for long: the next event, or the next
+  start, recomputes everything. An event published outside a transaction, as by the CIP-26 sync, is delivered at once.
 - **When the CIP-26 sync runs in a separate `job` process** (`TOKEN_METADATA_SYNC_JOB=false`, as on mainnet), its
-  changes reach the API only through the database. The reconciler then also runs on a schedule
-  (`cip113.companion.reconcile.interval-ms`, 10 minutes by default). When the API runs the sync itself, the schedule
-  does nothing.
+  events never reach the API, whose only view of the changes is the database. The reconciler then also runs on a
+  schedule (`cip113.companion.reconcile.interval-ms`, 10 minutes by default). When the API runs the sync itself, the
+  schedule does nothing.
 - **Read-only instances** never reconcile: they do not write.
 - **Rollbacks:** these rows have no slot, so a rollback does not remove them; the reconciliation does.
 

@@ -2,6 +2,8 @@ package org.cardanofoundation.tokenmetadata.registry.api.service.cip113;
 
 import lombok.extern.slf4j.Slf4j;
 import org.cardanofoundation.tokenmetadata.registry.api.config.Cip113Configuration;
+import org.cardanofoundation.tokenmetadata.registry.api.event.Cip113RegistryChangedEvent;
+import org.cardanofoundation.tokenmetadata.registry.api.event.Cip68MetadataIndexedEvent;
 import org.cardanofoundation.tokenmetadata.registry.entity.InvalidToken;
 import org.cardanofoundation.tokenmetadata.registry.invalidtoken.InvalidTokenReason;
 import org.cardanofoundation.tokenmetadata.registry.invalidtoken.InvalidTokenRecorder;
@@ -14,6 +16,9 @@ import org.cardanofoundation.tokenmetadata.registry.service.Cip26SyncCompletedEv
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,13 +39,15 @@ import java.util.stream.Collectors;
  * The registry indexes the registry nodes, not the mints or the programmable-token ("jail") address, so this is known
  * per policy, not per token, and a policy registered with nothing minted yet is reported the same way.
  * <p>
- * It is a state, not an event, so it is recomputed when its inputs change:
+ * It is a state, not an event, so it is recomputed when its inputs change. Each input is a Spring application event, and
+ * the reconciler reacts <b>after the transaction that published it commits</b>, in a transaction of its own: a problem
+ * here can never abort Yaci Store's block transaction and stop the sync.
  * <ul>
- *   <li>registry nodes are indexed or rolled back ({@code Cip113EventListener});</li>
- *   <li>the CIP-68 listener stores a reference NFT or sees a new user token of a registered policy
- *       ({@link #reconcileIfRegistered});</li>
- *   <li>a CIP-26 sync run in this process changes entries ({@link Cip26SyncCompletedEvent});</li>
- *   <li>the application starts.</li>
+ *   <li>{@link Cip113RegistryChangedEvent}: registry nodes were indexed, or removed by a rollback;</li>
+ *   <li>{@link Cip68MetadataIndexedEvent}: the CIP-68 listener stored a reference NFT, or saw a new user token, of some
+ *       policies; it reconciles only if one of them is registered;</li>
+ *   <li>{@link Cip26SyncCompletedEvent}: a CIP-26 sync run in this process changed entries;</li>
+ *   <li>the application started.</li>
  * </ul>
  * When the CIP-26 sync runs in a separate {@code job} process ({@code token.metadata.job.enabled=false}), its changes
  * reach this process only through the database, so it also runs on a schedule
@@ -85,10 +92,22 @@ public class Cip113CompanionReconciler {
         reconcile();
     }
 
-    @EventListener
-    @Transactional
-    public void reconcileAfterCip26Sync(Cip26SyncCompletedEvent event) {
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void onCip26SyncCompleted(Cip26SyncCompletedEvent event) {
         reconcile();
+    }
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void onCip113RegistryChanged(Cip113RegistryChangedEvent event) {
+        reconcile();
+    }
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void onCip68MetadataIndexed(Cip68MetadataIndexedEvent event) {
+        reconcileIfRegistered(event.policyIds());
     }
 
     /** Only when the CIP-26 sync runs in another process: its changes cannot be seen any other way. */
@@ -101,11 +120,8 @@ public class Cip113CompanionReconciler {
         }
     }
 
-    /**
-     * Recomputes the rows if one of {@code policyIds} is registered in the CIP-113 registry: the CIP-68 listener calls
-     * it with the policies of the reference NFTs it stored and of the user tokens it saw for the first time. Never throws.
-     */
-    public void reconcileIfRegistered(Set<String> policyIds) {
+    /** Recomputes the rows if one of {@code policyIds} is registered in the CIP-113 registry. Never throws. */
+    void reconcileIfRegistered(Set<String> policyIds) {
         if (policyIds.isEmpty() || !cip113Configuration.isEnabled() || readOnly) {
             return;
         }

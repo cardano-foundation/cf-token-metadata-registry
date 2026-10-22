@@ -17,7 +17,9 @@ import org.cardanofoundation.tokenmetadata.registry.invalidtoken.InvalidTokenRep
 import org.cardanofoundation.tokenmetadata.registry.api.config.Cip113Configuration;
 import org.cardanofoundation.tokenmetadata.registry.entity.Cip113RegistryNode;
 import org.cardanofoundation.tokenmetadata.registry.repository.Cip113RegistryNodeRepository;
+import org.cardanofoundation.tokenmetadata.registry.api.event.Cip113RegistryChangedEvent;
 import org.junit.jupiter.api.BeforeEach;
+import org.springframework.context.ApplicationEventPublisher;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -52,7 +54,7 @@ class Cip113EventListenerTest {
     private InvalidTokenRecorder invalidTokenRecorder;
 
     @Mock
-    private Cip113CompanionReconciler companionReconciler;
+    private ApplicationEventPublisher eventPublisher;
 
     private Cip113Configuration config;
     private Cip113EventListener listener;
@@ -65,7 +67,7 @@ class Cip113EventListenerTest {
 
         Cip113RegistryNodeParser parser = new Cip113RegistryNodeParser();
         Cip113RegistryService registryService = new Cip113RegistryService(repository, config);
-        listener = new Cip113EventListener(config, parser, repository, registryService, invalidTokenRecorder, companionReconciler);
+        listener = new Cip113EventListener(config, parser, repository, registryService, invalidTokenRecorder, eventPublisher);
     }
 
     @Nested
@@ -93,7 +95,7 @@ class Cip113EventListenerTest {
             assertThat(saved.getUnfrackingLogicScript()).isEqualTo(UNFRACKING_LOGIC);
             assertThat(saved.getDatum()).isEqualTo(datum);
             // a newly registered policy may have no CIP-26 or CIP-68 metadata yet
-            verify(companionReconciler).reconcile();
+            verify(eventPublisher).publishEvent(new Cip113RegistryChangedEvent());
         }
 
         @Test
@@ -207,7 +209,7 @@ class Cip113EventListenerTest {
             listener.processTransaction(buildEvent(100L, REGISTRY_NFT_POLICY_ID, REGISTERED_POLICY_ID, "deadbeef", TX_HASH));
             verifyNoInteractions(repository);
             assertRecordedUnparseable("Failed to parse CIP-113 registry node datum");
-            verifyNoInteractions(companionReconciler);
+            verifyNoInteractions(eventPublisher);
         }
 
         private void assertRecordedUnparseable(String reasonFragment) {
@@ -239,7 +241,7 @@ class Cip113EventListenerTest {
 
             verify(repository).deleteBySlotGreaterThan(500L);
             // a policy whose node was rolled back may no longer be registered
-            verify(companionReconciler).reconcile();
+            verify(eventPublisher).publishEvent(new Cip113RegistryChangedEvent());
         }
 
         @Test
@@ -253,7 +255,7 @@ class Cip113EventListenerTest {
             listener.handleRollback(event);
 
             verify(repository).deleteBySlotGreaterThan(1000L);
-            verifyNoInteractions(companionReconciler);
+            verifyNoInteractions(eventPublisher);
         }
     }
 
