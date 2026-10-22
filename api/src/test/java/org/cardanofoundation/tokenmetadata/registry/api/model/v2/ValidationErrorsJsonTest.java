@@ -19,7 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 class ValidationErrorsJsonTest {
 
-    private final ObjectMapper mapper = new ObjectMapper().setSerializationInclusion(JsonInclude.Include.NON_NULL);
+    private final ObjectMapper mapper = new ObjectMapper().setDefaultPropertyInclusion(JsonInclude.Include.NON_NULL);
 
     private static final ValidationError ERROR = ValidationError.mandatory("CIP-68", "333", "description", "missing_value",
             "description field is missing a mandatory value");

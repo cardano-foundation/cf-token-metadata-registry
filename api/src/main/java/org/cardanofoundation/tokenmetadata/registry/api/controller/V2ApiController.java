@@ -69,7 +69,7 @@ public class V2ApiController implements V2Api {
 
         log.info("subject: {}, properties: {}, priorities: {}, showCipsDetails: {}, validation: {}",
                 LogSanitizer.sanitizeHex(subject),
-                properties != null ? String.join(",", properties) : "",
+                properties != null ? properties.stream().map(LogSanitizer::sanitize).collect(Collectors.joining(",")) : "",
                 priorities != null ? priorities.stream().map(QueryPriority::name).collect(Collectors.joining(",")) : "",
                 showCipsDetails, validation);
 

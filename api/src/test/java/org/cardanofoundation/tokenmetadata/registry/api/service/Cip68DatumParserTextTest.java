@@ -173,6 +173,9 @@ class Cip68FTDatumParserTextTest {
     }
 
     private static MapPlutusData props(String... keyValues) {
+        if (keyValues.length % 2 != 0) {
+            throw new IllegalArgumentException("keys and values come in pairs");
+        }
         MapPlutusData map = new MapPlutusData();
         for (int i = 0; i < keyValues.length; i += 2) {
             map.put(BytesPlutusData.of(keyValues[i]), BytesPlutusData.of(keyValues[i + 1]));

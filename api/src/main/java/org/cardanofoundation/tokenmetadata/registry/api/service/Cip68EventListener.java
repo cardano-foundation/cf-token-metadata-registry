@@ -111,7 +111,7 @@ public class Cip68EventListener {
                             + "reference NFT in the output, so indexing it for all of them: {}",
                     output.getTxHash(), output.getOutputIndex(), referenceNfts.size(),
                     referenceNfts.stream().map(Amt::getUnit).collect(Collectors.joining(", ")));
-            shared = new SharedDatum(output, referenceNfts.size());
+            shared = new SharedDatum(cip68DatumParser, output, referenceNfts.size());
         }
         for (Amt referenceNftAmt : referenceNfts) {
             AssetType referenceNft = AssetType.fromUnit(referenceNftAmt.getUnit());
@@ -291,15 +291,15 @@ public class Cip68EventListener {
      * for all, so it is parsed once, and what is wrong with it is reported once for the output. The rows and the checks
      * against the labels stay per reference NFT, since each has its own row and its own user tokens.
      */
-    private final class SharedDatum {
+    private static final class SharedDatum {
         private final int referenceNfts;
         private final ParseOutcome outcome;
         private boolean reported;
 
-        private SharedDatum(AddressUtxo output, int referenceNfts) {
+        private SharedDatum(Cip68FTDatumParser parser, AddressUtxo output, int referenceNfts) {
             this.referenceNfts = referenceNfts;
             // Parsed here, once, without a reference NFT: the datum is not specific to one of them.
-            this.outcome = cip68DatumParser.parseDetailed(output.getInlineDatum(), null);
+            this.outcome = parser.parseDetailed(output.getInlineDatum(), null);
         }
 
         /** True the first time it is called: what the shared datum gets wrong is reported by the first reference NFT. */
