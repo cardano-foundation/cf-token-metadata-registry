@@ -22,6 +22,7 @@ import org.cardanofoundation.tokenmetadata.registry.entity.MetadataReferenceNft;
 import org.cardanofoundation.tokenmetadata.registry.invalidtoken.InvalidTokenReason;
 import org.cardanofoundation.tokenmetadata.registry.invalidtoken.InvalidTokenRecorder;
 import org.cardanofoundation.tokenmetadata.registry.invalidtoken.InvalidTokenReport;
+import org.cardanofoundation.tokenmetadata.registry.repository.Cip68UserTokenRepository;
 import org.cardanofoundation.tokenmetadata.registry.repository.MetadataReferenceNftRepository;
 import org.cardanofoundation.tokenmetadata.registry.validation.FieldCategory;
 import org.cardanofoundation.tokenmetadata.registry.validation.ValidationError;
@@ -37,6 +38,8 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
@@ -68,9 +71,11 @@ class Cip68EventListenerIndexingTest {
 
     private final MetadataReferenceNftRepository repository = mock(MetadataReferenceNftRepository.class);
     private final InvalidTokenRecorder recorder = mock(InvalidTokenRecorder.class);
+    private final Cip68UserTokenRecorder userTokenRecorder = mock(Cip68UserTokenRecorder.class);
+    private final Cip68UserTokenRepository userTokenRepository = mock(Cip68UserTokenRepository.class);
     private final Cip68FTDatumParser parser = new Cip68FTDatumParser();
     private final Cip68EventListener listener = new Cip68EventListener(
-            new Cip68FungibleTokenService(repository, parser), parser, repository, recorder);
+            new Cip68FungibleTokenService(repository, parser), parser, repository, recorder, userTokenRecorder, userTokenRepository);
 
     private final Logger listenerLogger = (Logger) LoggerFactory.getLogger(Cip68EventListener.class);
     private final Logger parserLogger = (Logger) LoggerFactory.getLogger(Cip68FTDatumParser.class);
@@ -322,7 +327,8 @@ class Cip68EventListenerIndexingTest {
 
         private final Cip68FTDatumParser failingParser = spy(new Cip68FTDatumParser());
         private final Cip68EventListener failingListener = new Cip68EventListener(
-                new Cip68FungibleTokenService(repository, failingParser), failingParser, repository, recorder);
+                new Cip68FungibleTokenService(repository, failingParser), failingParser, repository, recorder, userTokenRecorder,
+                userTokenRepository);
 
         @Test
         void skipsTheReferenceNftThatFailsRecordsItAndIndexesTheOthers() throws Exception {
@@ -377,6 +383,43 @@ class Cip68EventListenerIndexingTest {
 
     private List<String> messages(Level level) {
         return logs.list.stream().filter(e -> e.getLevel() == level).map(ILoggingEvent::getFormattedMessage).toList();
+    }
+
+    /** The 333 and 444 user tokens of a block are recorded, so that V2 serves only subjects whose token exists (ADR-022). */
+    @Nested
+    @DisplayName("User tokens")
+    class UserTokens {
+
+        @Test
+        void recordsThe333And444TokensOfTheBlockWithTheTransactionThatShowedThem() throws Exception {
+            listener.processTransaction(event(output(flatDatum("Token", "Desc", null), REF + A), userToken(FT + A), userToken(RFT + B)));
+
+            verify(userTokenRecorder).recordSeen(Map.of(POLICY + FT + A, TX_HASH, POLICY + RFT + B, TX_HASH), 100L);
+        }
+
+        @Test
+        void leavesOutReferenceNftsNftsAndALabelWithoutAName() throws Exception {
+            listener.processTransaction(event(output(flatDatum("Token", "Desc", null), REF + A), userToken(NFT + A), userToken(FT)));
+
+            verify(userTokenRecorder).recordSeen(Map.of(), 100L);
+        }
+
+        @Test
+        void recordsUpperCaseUnitsInLowerCase() {
+            String upperCaseFungible = (POLICY + FT + A).toUpperCase(Locale.ROOT);
+
+            listener.processTransaction(event(AddressUtxo.builder().txHash(TX_HASH).amounts(List.of(amount(upperCaseFungible))).build()));
+
+            verify(userTokenRecorder).recordSeen(Map.of(POLICY + FT + A, TX_HASH), 100L);
+        }
+
+        @Test
+        void aRollbackRemovesTheUserTokensSeenAfterTheRollbackSlot() {
+            listener.handleRollback(RollbackEvent.builder()
+                    .rollbackTo(new Point(50L, "aa")).build());
+
+            verify(userTokenRepository).deleteBySlotGreaterThan(50L);
+        }
     }
 
     private static AddressUtxoEvent event(AddressUtxo... outputs) {

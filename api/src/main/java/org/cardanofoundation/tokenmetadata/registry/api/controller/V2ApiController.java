@@ -21,6 +21,7 @@ import org.cardanofoundation.tokenmetadata.registry.api.model.v2.TokenType;
 import org.cardanofoundation.tokenmetadata.registry.api.model.v2.ValidationScope;
 import org.cardanofoundation.tokenmetadata.registry.entity.MetadataReferenceNft;
 import org.cardanofoundation.tokenmetadata.registry.api.service.Cip68FungibleTokenService;
+import org.cardanofoundation.tokenmetadata.registry.api.service.Cip68UserTokenService;
 import org.cardanofoundation.tokenmetadata.registry.api.service.RegistryMetricsService;
 import org.cardanofoundation.tokenmetadata.registry.api.service.cip113.Cip113RegistryService;
 import org.cardanofoundation.tokenmetadata.registry.api.util.AssetType;
@@ -35,6 +36,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.BinaryOperator;
 import java.util.stream.Collectors;
@@ -51,6 +53,7 @@ public class V2ApiController implements V2Api {
 
     private final AppConfig.CipPriorityConfiguration priorityConfiguration;
     private final Cip68FungibleTokenService cip68FungibleTokenService;
+    private final Cip68UserTokenService cip68UserTokenService;
     private final V1ApiMetadataIndexer v1ApiMetadataIndexer;
     private final Cip113RegistryService cip113RegistryService;
     private final RegistryMetricsService metricsService;
@@ -157,7 +160,9 @@ public class V2ApiController implements V2Api {
             case CIP_26 -> v1ApiMetadataIndexer.findSubjectSelectProperties(subject, properties)
                     .map(metadata -> cip26(metadata, v1ApiMetadataIndexer.findValidationErrors(List.of(subject)).get(subject),
                             properties));
+            // a 333 or 444 subject is served from CIP-68 only when its user token was seen on chain (ADR-022)
             case CIP_68 -> cip68FungibleTokenService.getReferenceNftSubject(subject)
+                    .filter(referenceNft -> cip68UserTokenService.exists(subject))
                     .flatMap(assetType -> cip68FungibleTokenService.findSubject(assetType.policyId(), assetType.assetName(), properties,
                             cip68FungibleTokenService.isRichFungibleToken(subject)))
                     .map(fungibleTokenMetadata -> cip68(fungibleTokenMetadata, properties));
@@ -189,8 +194,9 @@ public class V2ApiController implements V2Api {
                 : v1ApiMetadataIndexer.findValidationErrors(cip26Map.keySet());
         Map<String, MetadataReferenceNft> cip68Map = cip68FungibleTokenService.findLatestByPolicyIds(policyIds);
         Map<String, ProgrammableTokenCip113> cip113Map = cip113RegistryService.findByPolicyIds(policyIds);
+        Set<String> cip68UserTokens = cip68UserTokenService.existing(subjects);
 
-        return new BatchPrefetchData(cip26Map, cip26ErrorsMap, cip68Map, cip113Map);
+        return new BatchPrefetchData(cip26Map, cip26ErrorsMap, cip68Map, cip113Map, cip68UserTokens);
     }
 
     private Optional<ResolvedMetadata> findMetadataBatch(String subject,
@@ -202,6 +208,7 @@ public class V2ApiController implements V2Api {
                     .map(metadata -> cip26(metadata, prefetch.cip26ErrorsMap().get(subject), properties));
 
             case CIP_68 -> cip68FungibleTokenService.getReferenceNftSubject(subject)
+                    .filter(referenceNft -> prefetch.cip68UserTokens().contains(Cip68UserTokenService.normalize(subject)))
                     .flatMap(assetType -> cip68FungibleTokenService.findSubject(assetType.policyId(), assetType.assetName(), properties, prefetch.cip68Map(),
                             cip68FungibleTokenService.isRichFungibleToken(subject)))
                     .map(fungibleTokenMetadata -> cip68(fungibleTokenMetadata, properties));
