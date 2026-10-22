@@ -34,6 +34,19 @@ jobs:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
       DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
 
+  # Native image for read-only API instances. A workaround: read-only mode is fixed when a native image is built, so it
+  # needs its own image until Yaci Store checks it at runtime (ADR-021, bloxbean/yaci-store#1293).
+  docker-api-native-readonly:
+    needs: java-build
+    uses: ./.github/workflows/docker-build.yaml
+    with:
+      app: api
+      variant: native-readonly
+      push: true
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+
   docker-job:
     needs: java-build
     uses: ./.github/workflows/docker-build.yaml

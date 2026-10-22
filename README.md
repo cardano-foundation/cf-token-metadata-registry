@@ -102,6 +102,7 @@ Two Docker image variants are available. **Both are fully supported for producti
 |---------|-----------|---------|--------|------------|----------|
 | **JVM** | Eclipse Temurin 25 LTS | ~11 s | ~2.4 GiB | ~400 MB | Production, development |
 | **Native** | GraalVM 25 LTS (AOT-compiled) | ~1.8 s | ~740 MiB | ~584 MB | Production (low-memory / fast-start) |
+| **Native, read-only** | GraalVM 25 LTS (AOT-compiled) | not measured | not measured | as Native | Read-only API instances, see [below](#read-only-instances-and-the-native-image) |
 
 Observed figures above are from long-running mainnet deploys on the `CIP-113-token` branch — startup measured from container start to Spring Boot's `Started … in` log; memory measured as Docker RSS ~1 h into mainnet sync; image size measured on a fresh `docker inspect`. Your numbers will differ slightly depending on JVM tuning, GraalVM profile-guided optimisation, and base image. Native image sync throughput sits within ~5 % of the JVM build on the same hardware.
 
@@ -136,6 +137,32 @@ docker build -t cardanofoundation/cf-token-metadata-registry-api:latest -f api/D
 > [!NOTE]
 > The native image is **built** with [Oracle GraalVM](https://www.oracle.com/java/graalvm/) under the [GraalVM Free Terms and Conditions (GFTC)](https://www.oracle.com/downloads/licenses/graal-free-license.html). Oracle GraalVM is free for development and production use, but redistribution of the GraalVM SDK itself is restricted. This does not affect the final Docker image or binary — the multi-stage build ensures only the compiled native binary (not the GraalVM toolchain) is included in the runtime image. Users who build from source need to accept the GFTC to pull the Oracle GraalVM build image.
 
+### Read-only instances and the native image
+
+A read-only API instance serves queries from an existing database and never indexes (`STORE_READONLYMODE=true`,
+`STORE_SYNCAUTOSTART=false`, `TOKEN_METADATA_SYNC_JOB=false`, `SPRING_PROFILES_ACTIVE=readonly`, see the `api-ro`
+service in `docker-compose.yml`).
+
+With a **native** image, read-only mode is fixed when the image is built, not when it runs. Spring AOT decides at build
+time which of Yaci Store's beans exist, and read-only mode works by leaving the sync beans out. So pick the image for
+the role:
+
+| Role | JVM image | Native image |
+|---|---|---|
+| Indexer | `<version>` | `<version>-native` |
+| Read-only API | `<version>` | **`<version>-native-readonly`** |
+
+Starting `<version>-native` in read-only mode **still indexes** (#90). This separate image is a **workaround** until
+Yaci Store checks read-only mode at runtime ([bloxbean/yaci-store#1293](https://github.com/bloxbean/yaci-store/issues/1293));
+see [ADR-021](adr/021-native-image-read-only-mode.md). To build it yourself:
+
+```console
+docker build --build-arg READ_ONLY_MODE=true -t cardanofoundation/cf-token-metadata-registry-api:latest-native-readonly -f api/Dockerfile.native .
+```
+
+The read-only settings above must still be set when it runs: they configure the rest of the app, such as the health
+groups and the CIP-26 job.
+
 ### Running locally with Docker Compose
 
 By default, `docker compose` uses the JVM Dockerfile. To use the native image instead, set `API_DOCKERFILE`:
@@ -155,6 +182,9 @@ docker compose --env-file .env.preview up -d
 
 # Read-only mode (no sync, no node connection)
 COMPOSE_PROFILES=ro docker compose up -d
+
+# Read-only mode, native image (api-ro builds the read-only native image, see above)
+COMPOSE_PROFILES=ro API_DOCKERFILE=api/Dockerfile.native docker compose up -d --build
 ```
 
 > [!NOTE]
@@ -220,6 +250,9 @@ sdk use java 25.0.2-graal
 
 # Build the native binary
 mvn clean package -pl api,common -am -DskipTests -Pnative
+
+# Build the native binary for read-only instances (see "Read-only instances and the native image")
+mvn clean package -pl api,common -am -DskipTests -Pnative -Dnative.read-only-mode=true
 
 # The binary is at api/target/api
 ```

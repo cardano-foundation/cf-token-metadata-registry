@@ -36,6 +36,7 @@ be taken without waiting for a yaci-store release:
 - `CustomUtxoStorage` filters UTxOs — only persists CIP-68 reference NFTs and CIP-113 registry nodes
 - Event listeners (`Cip68EventListener`, `Cip113EventListener`) parse datums on new blocks
 - Admin UI available at `/admin-ui/` for sync control
+- Read-only mode (`STORE_READONLYMODE=true`) is a bean condition in Yaci Store, so in a **native image** it is fixed at build time (Spring AOT): read-only instances need the `<version>-native-readonly` image, built with `-Dnative.read-only-mode=true` / `READ_ONLY_MODE=true`. A workaround until bloxbean/yaci-store#1293 (ADR-021)
 
 ## Key Commands
 

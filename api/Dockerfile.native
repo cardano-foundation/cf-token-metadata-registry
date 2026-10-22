@@ -13,7 +13,10 @@ RUN mvn dependency:go-offline -pl api,common -am -B
 
 COPY common/ common/
 COPY api/ api/
-RUN mvn clean package -pl api,common -am -DskipTests -Pnative -B
+# true builds the read-only image (no indexing, no node connection). Read-only mode is fixed when the image is built,
+# not when it runs: https://github.com/bloxbean/yaci-store/issues/1293, see ADR-021.
+ARG READ_ONLY_MODE=false
+RUN mvn clean package -pl api,common -am -DskipTests -Pnative -B -Dnative.read-only-mode=${READ_ONLY_MODE}
 
 FROM debian:trixie-slim
 
