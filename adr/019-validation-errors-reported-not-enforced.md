@@ -22,9 +22,9 @@ mainnet this hid, among others:
 - the SundaeSwap USDrf/sUSDrf LP token, whose reference NFT is paired with a pool NFT
 - 217 fungible tokens whose logo was a bare IPFS CID
 
-yaci-store's `assets-ext`, which shares its CIP-68 code with the registry, changed its policy after a team decision:
-index what is written, and say what is wrong with it. The registry follows the same design, so the two agree on what a
-token is.
+The team decided on a different policy: index what is written, and say what is wrong with it. The design (the
+`validation_errors` contract and the `invalid_token` table) was first worked out for yaci-store's `assets-ext`, and the
+registry's CIP-68 parser and validators are ported from it.
 
 ## Decision
 
@@ -149,7 +149,6 @@ is no backfill.
 - Owners and wallets see why a token is not what its CIP asks for. A wallet can be strict with `MANDATORY_ONLY` or
   `STRICT`.
 - Fewer projects find their token missing from the registry for a detail.
-- The registry and yaci-store agree on what a token is, its errors included.
 
 ### Negative
 
@@ -169,7 +168,7 @@ is no backfill.
 - **Keep V1 to the entries without `MANDATORY` errors**, so that V1 does not change. Rejected: V1 would then answer
   differently from V2's default for the same CIP-26 entry, and the registry would still be dropping entries for its
   oldest clients. V1 has no way to report why an entry is missing, which is the problem this ADR solves.
-- **A strict/lenient switch for operators.** Rejected, as in yaci-store: it gives operators a decision they can't make,
+- **A strict/lenient switch for operators.** Rejected: it gives operators a decision they can't make,
   and two behaviours to test.
 - **Repair what is wrong** (e.g. a bare IPFS CID to `ipfs://...`). Rejected: the registry would then state something
   that is not on-chain.
