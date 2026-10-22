@@ -71,10 +71,9 @@ class Cip113CompanionReconcilerTest {
 
     @BeforeEach
     void setUp() {
-        Cip113Configuration configuration = new Cip113Configuration();
+        configuration = new Cip113Configuration();
         configuration.setRegistryNftPolicyIds(List.of(REGISTRY_POLICY));
         configuration.init();
-        this.configuration = configuration;
         reconciler = reconciler(true, false);
     }
 
@@ -107,7 +106,7 @@ class Cip113CompanionReconcilerTest {
         void whenTheCip113RegistryChanged() {
             nothingRegistered();
 
-            reconciler.onCip113RegistryChanged(new Cip113RegistryChangedEvent());
+            reconciler.onCip113RegistryChanged(Cip113RegistryChangedEvent.indexed(1));
 
             verify(invalidTokenRepository).findByStandardAndReasonCode(InvalidTokenReason.CIP_113, InvalidTokenReason.NO_COMPANION_METADATA);
         }
@@ -187,7 +186,7 @@ class Cip113CompanionReconcilerTest {
             readOnly.reconcile();
             readOnly.reconcileOnSchedule();
             readOnly.onCip68MetadataIndexed(new Cip68MetadataIndexedEvent(Set.of(WITHOUT)));
-            readOnly.onCip113RegistryChanged(new Cip113RegistryChangedEvent());
+            readOnly.onCip113RegistryChanged(Cip113RegistryChangedEvent.indexed(1));
 
             verifyNoInteractions(registryNodeRepository, invalidTokenRepository, invalidTokenRecorder);
         }

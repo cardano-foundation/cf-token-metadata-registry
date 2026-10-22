@@ -95,7 +95,7 @@ class Cip113EventListenerTest {
             assertThat(saved.getUnfrackingLogicScript()).isEqualTo(UNFRACKING_LOGIC);
             assertThat(saved.getDatum()).isEqualTo(datum);
             // a newly registered policy may have no CIP-26 or CIP-68 metadata yet
-            verify(eventPublisher).publishEvent(new Cip113RegistryChangedEvent());
+            verify(eventPublisher).publishEvent(Cip113RegistryChangedEvent.indexed(1));
         }
 
         @Test
@@ -241,7 +241,7 @@ class Cip113EventListenerTest {
 
             verify(repository).deleteBySlotGreaterThan(500L);
             // a policy whose node was rolled back may no longer be registered
-            verify(eventPublisher).publishEvent(new Cip113RegistryChangedEvent());
+            verify(eventPublisher).publishEvent(Cip113RegistryChangedEvent.rolledBack(3));
         }
 
         @Test

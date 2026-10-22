@@ -45,7 +45,7 @@ public class Cip113EventListener {
         int count = cip113RegistryNodeRepository.deleteBySlotGreaterThan(rollbackSlot);
         log.info("CIP-113 rollback to slot {}: deleted {} registry node records", rollbackSlot, count);
         if (count > 0) {
-            eventPublisher.publishEvent(new Cip113RegistryChangedEvent());
+            eventPublisher.publishEvent(Cip113RegistryChangedEvent.rolledBack(count));
         }
     }
 
@@ -73,7 +73,7 @@ public class Cip113EventListener {
             entities.forEach(entity -> log.info("Indexed CIP-113 registry node: key={}, slot={}, txHash={}",
                     entity.getKey(), entity.getSlot(), entity.getTxHash()));
             // a newly registered policy may have no CIP-26 or CIP-68 metadata yet (ADR-020)
-            eventPublisher.publishEvent(new Cip113RegistryChangedEvent());
+            eventPublisher.publishEvent(Cip113RegistryChangedEvent.indexed(entities.size()));
         }
     }
 

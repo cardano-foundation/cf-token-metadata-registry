@@ -95,12 +95,14 @@ public class Cip113CompanionReconciler {
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void onCip26SyncCompleted(Cip26SyncCompletedEvent event) {
+        log.debug("Reconciling the CIP-113 companions after {}", event);
         reconcile();
     }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void onCip113RegistryChanged(Cip113RegistryChangedEvent event) {
+        log.debug("Reconciling the CIP-113 companions after {}", event);
         reconcile();
     }
 
