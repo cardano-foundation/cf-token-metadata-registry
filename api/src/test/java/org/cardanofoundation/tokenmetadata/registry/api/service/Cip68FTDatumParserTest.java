@@ -209,8 +209,8 @@ class Cip68FTDatumParserTest {
             @SuppressWarnings("unchecked")
             java.util.Map<String, Object> additional =
                     (java.util.Map<String, Object>) result.get().properties().get("additional_properties");
-            assertThat(additional).containsEntry("rarity", "legendary");
-            assertThat(additional).containsEntry("level", java.math.BigInteger.valueOf(42));
+            assertThat(additional).containsEntry("rarity", "legendary")
+                    .containsEntry("level", java.math.BigInteger.valueOf(42));
         }
 
         @Test
