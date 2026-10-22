@@ -163,16 +163,8 @@ public class Cip68EventListener {
             return Optional.empty();
         }
 
-        // what is wrong with the datum itself does not depend on the label (the parser's errors, and the logo)
-        List<ValidationError> datumErrors = new ArrayList<>(parsed.validationErrors());
-        ValidationError logoError = Cip68Validator.validateLogo(parsed);
-        if (logoError != null) {
-            datumErrors.add(logoError);
-        }
-        List<ValidationError> errors = new ArrayList<>(datumErrors);
-        for (int label : labels) {
-            errors.addAll(Cip68Validator.validate(parsed, label));
-        }
+        List<ValidationError> datumErrors = datumErrors(parsed);
+        List<ValidationError> errors = errorsForLabels(parsed, labels);
 
         MetadataReferenceNft entity = buildMetadataReferenceNft(parsed, errors, referenceNft, output.getInlineDatum(), slot);
         requireSerializableProperties(entity);
@@ -375,7 +367,29 @@ public class Cip68EventListener {
         return unit.toLowerCase(Locale.ROOT);
     }
 
-    private static MetadataReferenceNft buildMetadataReferenceNft(ParsedCip68Datum parsed, List<ValidationError> errors,
+    /** What is wrong with the datum itself, whatever its label: the parser's errors, and the logo. */
+    static List<ValidationError> datumErrors(ParsedCip68Datum parsed) {
+        List<ValidationError> errors = new ArrayList<>(parsed.validationErrors());
+        ValidationError logoError = Cip68Validator.validateLogo(parsed);
+        if (logoError != null) {
+            errors.add(logoError);
+        }
+        return errors;
+    }
+
+    /**
+     * Every error of a datum checked against each of its labels: what the row stores (ADR-019). Shared with the
+     * validate endpoint, so that it reports exactly what indexing would.
+     */
+    static List<ValidationError> errorsForLabels(ParsedCip68Datum parsed, List<Integer> labels) {
+        List<ValidationError> errors = datumErrors(parsed);
+        for (int label : labels) {
+            errors.addAll(Cip68Validator.validate(parsed, label));
+        }
+        return errors;
+    }
+
+    static MetadataReferenceNft buildMetadataReferenceNft(ParsedCip68Datum parsed, List<ValidationError> errors,
                                                                   AssetType assetType, String datum, Long slot) {
         return MetadataReferenceNft.builder()
                 .policyId(assetType.policyId())
