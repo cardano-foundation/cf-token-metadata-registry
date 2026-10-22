@@ -14,6 +14,15 @@ PUBLIC_REGISTRY_API_URL=http://localhost:8080 npm run dev   # http://localhost:4
 npm run build                                               # → dist/
 ```
 
+## Branding
+
+The site follows the Cardano Foundation's style, as on [cardanofoundation.org](https://cardanofoundation.org): the
+Switzer typeface (loaded from Fontshare), a greyscale palette with one violet-blue accent (`#4221e2`), regular-weight
+headings with tight tracking, pill-shaped buttons, the soft orange-to-blue hero glow and a dark footer (`#131313`).
+The colours and font are set in `src/styles/starlight.css` (docs) and `src/styles/landing.css` (landing page). The
+Cardano Foundation logo is `public/images/cf-logo-text.svg`, with a white version for the dark theme; the header
+(`src/components/SiteTitle.astro`) shows it next to the product name.
+
 ## Where content lives
 
 - `src/pages/index.astro`: the landing page.

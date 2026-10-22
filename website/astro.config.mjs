@@ -14,8 +14,8 @@ export default defineConfig({
   base: BASE,
   integrations: [
     starlight({
-      title: 'Token Metadata Registry',
-      description: 'Cardano token metadata from CIP-26, CIP-68 and CIP-113 in one API, with a validator to check your token before you mint it.',
+      title: 'CF Token Metadata Registry',
+      description: 'The Cardano Foundation token metadata registry: Cardano token metadata from CIP-26, CIP-68 and CIP-113 in one API, with a validator to check your token before you mint it.',
       social: [
         { icon: 'github', label: 'GitHub', href: 'https://github.com/cardano-foundation/cf-token-metadata-registry' },
       ],
@@ -25,6 +25,7 @@ export default defineConfig({
       customCss: ['./src/styles/starlight.css'],
       components: {
         Footer: './src/components/Footer.astro',
+        SiteTitle: './src/components/SiteTitle.astro',
       },
       sidebar: [
         { label: 'Overview', slug: 'overview' },
