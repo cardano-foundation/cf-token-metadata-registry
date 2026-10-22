@@ -5,7 +5,7 @@
 const defaultApi = import.meta.env.PUBLIC_REGISTRY_API_URL ?? '';
 ---
 
-<div class="validator" data-default-api={defaultApi}>
+<div class="validator not-content" data-default-api={defaultApi}>
 	<label class="field api">
 		<span>Registry API</span>
 		<input id="api-url" type="url" placeholder="https://registry.example.org" />
@@ -28,10 +28,10 @@ const defaultApi = import.meta.env.PUBLIC_REGISTRY_API_URL ?? '';
 			<label class="field wide"><span>Description</span><input name="description" placeholder="What the token is for" /></label>
 			<label class="field"><span>Decimals</span><input name="decimals" type="number" min="0" placeholder="6" /></label>
 			<label class="field"><span>Version</span><input name="version" type="number" min="0" value="1" /></label>
-			<label class="field wide"><span>Logo (333)</span><input name="logo" placeholder="ipfs://…" /></label>
-			<label class="field wide"><span>Image (444)</span><input name="image" placeholder="ipfs://…" /></label>
-			<label class="field"><span>Media type (444)</span><input name="media_type" placeholder="image/png" /></label>
 			<label class="field wide"><span>URL</span><input name="url" placeholder="https://…" /></label>
+			<label class="field wide"><span>Logo (333)</span><input name="logo" placeholder="ipfs://…" /></label>
+			<label class="field"><span>Image (444)</span><input name="image" placeholder="ipfs://…" /></label>
+			<label class="field"><span>Media type (444)</span><input name="media_type" placeholder="image/png" /></label>
 		</div>
 		<label class="field datum-mode" hidden><span>Reference NFT datum (CBOR hex)</span><textarea name="datum" rows="4"></textarea></label>
 		<fieldset class="labels">
@@ -66,13 +66,18 @@ const defaultApi = import.meta.env.PUBLIC_REGISTRY_API_URL ?? '';
 	.validator { display: flex; flex-direction: column; gap: 1rem; }
 	/* `hidden` must win over the display of the panels and fields below */
 	.validator [hidden] { display: none !important; }
-	.field { display: flex; flex-direction: column; gap: 0.25rem; font-size: var(--sl-text-sm); }
+	.validator * { margin: 0; }
+	.field { display: flex; flex-direction: column; gap: 0.375rem; font-size: var(--sl-text-sm); min-width: 0; }
 	.field span { color: var(--sl-color-gray-2); }
 	.field input, .field textarea {
 		background: var(--sl-color-black); color: var(--sl-color-white); border: 1px solid var(--sl-color-gray-5);
 		border-radius: 0.375rem; padding: 0.5rem 0.625rem; font: inherit; font-family: var(--sl-font-mono, monospace);
 	}
-	.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem; }
+	.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem 1rem; align-items: end; }
+	.field input, .field textarea { width: 100%; box-sizing: border-box; }
+	.result :global(h3) { margin-top: 1.5rem; }
+	.result :global(table) { margin: 0.75rem 0; }
+	.result :global(p), .result :global(ul), .result :global(pre) { margin: 0.5rem 0; }
 	.wide { grid-column: span 2; }
 	.tabs { display: flex; gap: 0.5rem; border-bottom: 1px solid var(--sl-color-gray-5); }
 	.tabs button {
