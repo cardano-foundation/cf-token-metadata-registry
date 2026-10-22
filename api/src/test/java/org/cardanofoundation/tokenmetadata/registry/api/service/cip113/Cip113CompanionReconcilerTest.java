@@ -9,8 +9,10 @@ import org.cardanofoundation.tokenmetadata.registry.repository.Cip113RegistryNod
 import org.cardanofoundation.tokenmetadata.registry.repository.InvalidTokenRepository;
 import org.cardanofoundation.tokenmetadata.registry.repository.MetadataReferenceNftRepository;
 import org.cardanofoundation.tokenmetadata.registry.repository.TokenMetadataRepository;
+import org.cardanofoundation.tokenmetadata.registry.service.Cip26SyncCompletedEvent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -19,6 +21,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
@@ -53,6 +56,7 @@ class Cip113CompanionReconcilerTest {
     @Mock
     private InvalidTokenRecorder invalidTokenRecorder;
 
+    private Cip113Configuration configuration;
     private Cip113CompanionReconciler reconciler;
 
     @BeforeEach
@@ -60,15 +64,104 @@ class Cip113CompanionReconcilerTest {
         Cip113Configuration configuration = new Cip113Configuration();
         configuration.setRegistryNftPolicyIds(List.of(REGISTRY_POLICY));
         configuration.init();
-        reconciler = new Cip113CompanionReconciler(configuration, registryNodeRepository, tokenMetadataRepository,
-                metadataReferenceNftRepository, invalidTokenRepository, invalidTokenRecorder);
+        this.configuration = configuration;
+        reconciler = reconciler(true, false);
+    }
+
+    private Cip113CompanionReconciler reconciler(boolean cip26SyncInThisProcess, boolean readOnly) {
+        return new Cip113CompanionReconciler(configuration, registryNodeRepository, tokenMetadataRepository,
+                metadataReferenceNftRepository, invalidTokenRepository, invalidTokenRecorder, cip26SyncInThisProcess, readOnly);
+    }
+
+    /** It is recomputed when its inputs change, and on a schedule only when the CIP-26 sync runs in another process. */
+    @Nested
+    @DisplayName("When it runs")
+    class Triggers {
+
+        private void nothingRegistered() {
+            when(registryNodeRepository.findRegisteredPolicyIds()).thenReturn(List.of());
+            when(invalidTokenRepository.findByStandardAndReasonCode(InvalidTokenReason.CIP_113, InvalidTokenReason.NO_COMPANION_METADATA))
+                    .thenReturn(List.of());
+        }
+
+        @Test
+        void afterACip26SyncRunInThisProcess() {
+            nothingRegistered();
+
+            reconciler.reconcileAfterCip26Sync(new Cip26SyncCompletedEvent(3, 0));
+
+            verify(invalidTokenRepository).findByStandardAndReasonCode(InvalidTokenReason.CIP_113, InvalidTokenReason.NO_COMPANION_METADATA);
+        }
+
+        @Test
+        void onStartup() {
+            nothingRegistered();
+
+            reconciler.reconcileOnStartup();
+
+            verify(invalidTokenRepository).findByStandardAndReasonCode(InvalidTokenReason.CIP_113, InvalidTokenReason.NO_COMPANION_METADATA);
+        }
+
+        @Test
+        void notOnTheScheduleWhenTheCip26SyncRunsInThisProcess() {
+            reconciler.reconcileOnSchedule();
+
+            verifyNoInteractions(registryNodeRepository, invalidTokenRepository);
+        }
+
+        @Test
+        void onTheScheduleWhenTheCip26SyncRunsInAnotherProcess() {
+            nothingRegistered();
+
+            reconciler(false, false).reconcileOnSchedule();
+
+            verify(invalidTokenRepository).findByStandardAndReasonCode(InvalidTokenReason.CIP_113, InvalidTokenReason.NO_COMPANION_METADATA);
+        }
+
+        @Test
+        void whenTheCip68ListenerSeesMetadataOfARegisteredPolicy() {
+            when(registryNodeRepository.findRegisteredPolicyIds()).thenReturn(List.of(WITHOUT));
+            when(invalidTokenRepository.findByStandardAndReasonCode(InvalidTokenReason.CIP_113, InvalidTokenReason.NO_COMPANION_METADATA))
+                    .thenReturn(List.of());
+
+            reconciler.reconcileIfRegistered(Set.of(WITHOUT, WITH_CIP68));
+
+            verify(invalidTokenRepository).findByStandardAndReasonCode(InvalidTokenReason.CIP_113, InvalidTokenReason.NO_COMPANION_METADATA);
+        }
+
+        @Test
+        void notWhenTheCip68ListenerSeesMetadataOfPoliciesThatAreNotRegistered() {
+            when(registryNodeRepository.findRegisteredPolicyIds()).thenReturn(List.of(WITHOUT));
+
+            reconciler.reconcileIfRegistered(Set.of(WITH_CIP68));
+
+            verifyNoInteractions(invalidTokenRepository);
+        }
+
+        @Test
+        void notForABlockWithoutCip68Metadata() {
+            reconciler.reconcileIfRegistered(Set.of());
+
+            verifyNoInteractions(registryNodeRepository, invalidTokenRepository);
+        }
+
+        @Test
+        void neverOnAReadOnlyInstance() {
+            Cip113CompanionReconciler readOnly = reconciler(false, true);
+
+            readOnly.reconcile();
+            readOnly.reconcileOnSchedule();
+            readOnly.reconcileIfRegistered(Set.of(WITHOUT));
+
+            verifyNoInteractions(registryNodeRepository, invalidTokenRepository, invalidTokenRecorder);
+        }
     }
 
     @Test
     void recordsEveryRegisteredPolicyWithoutCip26OrCip68Metadata() {
         when(registryNodeRepository.findRegisteredPolicyIds()).thenReturn(List.of(WITH_CIP26, WITH_CIP68, WITHOUT));
         when(tokenMetadataRepository.findPolicyIdsWithMetadata(anyCollection())).thenReturn(List.of(WITH_CIP26));
-        when(metadataReferenceNftRepository.findPolicyIdsWithMetadata(anyCollection())).thenReturn(List.of(WITH_CIP68));
+        when(metadataReferenceNftRepository.findPolicyIdsWithServedMetadata(anyCollection())).thenReturn(List.of(WITH_CIP68));
         when(invalidTokenRepository.findByStandardAndReasonCode(InvalidTokenReason.CIP_113, InvalidTokenReason.NO_COMPANION_METADATA))
                 .thenReturn(List.of());
 
@@ -87,7 +180,7 @@ class Cip113CompanionReconcilerTest {
     void removesTheRowOfAPolicyThatNowHasMetadataAndKeepsTheOthers() {
         when(registryNodeRepository.findRegisteredPolicyIds()).thenReturn(List.of(WITH_CIP68, WITHOUT));
         when(tokenMetadataRepository.findPolicyIdsWithMetadata(anyCollection())).thenReturn(List.of());
-        when(metadataReferenceNftRepository.findPolicyIdsWithMetadata(anyCollection())).thenReturn(List.of(WITH_CIP68));
+        when(metadataReferenceNftRepository.findPolicyIdsWithServedMetadata(anyCollection())).thenReturn(List.of(WITH_CIP68));
         when(invalidTokenRepository.findByStandardAndReasonCode(InvalidTokenReason.CIP_113, InvalidTokenReason.NO_COMPANION_METADATA))
                 .thenReturn(List.of(row("id-cip68", WITH_CIP68), row("id-without", WITHOUT)));
 
@@ -120,7 +213,7 @@ class Cip113CompanionReconcilerTest {
         disabled.init();
 
         new Cip113CompanionReconciler(disabled, registryNodeRepository, tokenMetadataRepository, metadataReferenceNftRepository,
-                invalidTokenRepository, invalidTokenRecorder).reconcile();
+                invalidTokenRepository, invalidTokenRecorder, true, false).reconcile();
 
         verifyNoInteractions(registryNodeRepository, invalidTokenRepository, invalidTokenRecorder);
     }

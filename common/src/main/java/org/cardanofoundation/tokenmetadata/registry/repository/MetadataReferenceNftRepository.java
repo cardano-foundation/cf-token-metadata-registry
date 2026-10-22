@@ -36,8 +36,17 @@ public interface MetadataReferenceNftRepository extends JpaRepository<MetadataRe
 
     int deleteBySlotGreaterThan(Long slot);
 
-    /** The policies, among the given ones, that have CIP-68 metadata stored. */
-    @Query("SELECT DISTINCT m.policyId FROM MetadataReferenceNft m WHERE m.policyId IN :policyIds")
-    List<String> findPolicyIdsWithMetadata(@Param("policyIds") Collection<String> policyIds);
+    /**
+     * The policies, among the given ones, that have CIP-68 metadata which is served: a reference NFT whose 333 or 444
+     * user token was seen on chain (ADR-022). A reference NFT alone serves nothing.
+     */
+    @Query("""
+            SELECT DISTINCT m.policyId FROM MetadataReferenceNft m
+            WHERE m.policyId IN :policyIds
+              AND EXISTS (SELECT 1 FROM Cip68UserToken u
+                          WHERE u.unit = CONCAT(m.policyId, '0014df10', SUBSTRING(m.assetName, 9))
+                             OR u.unit = CONCAT(m.policyId, '001bc280', SUBSTRING(m.assetName, 9)))
+            """)
+    List<String> findPolicyIdsWithServedMetadata(@Param("policyIds") Collection<String> policyIds);
 
 }

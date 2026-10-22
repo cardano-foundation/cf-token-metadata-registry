@@ -61,13 +61,22 @@ The registry indexes registry nodes, not the mints or the programmable-token ("j
 **policy**, not per token, and a policy registered with nothing minted yet is reported the same way.
 
 The row describes a state, not an event, so it is recomputed by `Cip113CompanionReconciler`:
-- **What it computes:** the registered policies (node keys of a policy id's length) minus those with any CIP-26 entry
-  or CIP-68 row. Metadata with validation errors counts, since it is served.
-- **What it writes:** one row per policy without a companion. Rows of policies that now have metadata, or are no longer
+- **What it computes:** the registered policies (node keys of a policy id's length) minus those with a companion. A
+  companion is a CIP-26 entry, or **served** CIP-68 metadata: a reference NFT whose 333 or 444 user token was minted
+  (ADR-022). A reference NFT alone serves nothing, so it does not count. Metadata with validation errors counts, since
+  it is served.
+- **What it writes:** one row per policy without a companion. Rows of policies that now have one, or are no longer
   registered, are removed.
-- **When it runs:** after registry nodes are indexed, after a rollback that removed nodes, and on a schedule
-  (`cip113.companion.reconcile.interval-ms`, 10 minutes by default). The schedule picks up the CIP-26 sync and new
-  CIP-68 datums.
+- **When it runs:** when one of its inputs changes:
+  - registry nodes are indexed, or removed by a rollback;
+  - the CIP-68 listener stores a reference NFT, or sees a user token for the first time, of a registered policy;
+  - a CIP-26 sync run in the same process stores or removes entries (`Cip26SyncCompletedEvent`);
+  - the application starts.
+- **When the CIP-26 sync runs in a separate `job` process** (`TOKEN_METADATA_SYNC_JOB=false`, as on mainnet), its
+  changes reach the API only through the database. The reconciler then also runs on a schedule
+  (`cip113.companion.reconcile.interval-ms`, 10 minutes by default). When the API runs the sync itself, the schedule
+  does nothing.
+- **Read-only instances** never reconcile: they do not write.
 - **Rollbacks:** these rows have no slot, so a rollback does not remove them; the reconciliation does.
 
 The tokens of such a policy are a 404 in V1 and V2, as before.
@@ -102,7 +111,8 @@ The counter `token.metadata.invalid.tokens{standard,reason_code}` counts the row
 ### Negative
 
 - The table is complete only for a database synced after it existed, so a full resync is required (ADR-019).
-- `no_companion_metadata` is per policy, and lags a new CIP-26 entry by up to one schedule interval.
+- `no_companion_metadata` is per policy. With the CIP-26 sync in a separate process, it lags a new CIP-26 entry by up to
+  one schedule interval; otherwise it follows the data as it changes.
 
 ## Alternatives Considered
 

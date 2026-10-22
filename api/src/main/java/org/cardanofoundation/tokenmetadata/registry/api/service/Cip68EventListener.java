@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.cardanofoundation.tokenmetadata.registry.api.model.cip68.ParseOutcome;
 import org.cardanofoundation.tokenmetadata.registry.api.model.cip68.ParsedCip68Datum;
+import org.cardanofoundation.tokenmetadata.registry.api.service.cip113.Cip113CompanionReconciler;
 import org.cardanofoundation.tokenmetadata.registry.api.util.AssetType;
 import org.cardanofoundation.tokenmetadata.registry.entity.MetadataReferenceNft;
 import org.cardanofoundation.tokenmetadata.registry.invalidtoken.InvalidTokenReason;
@@ -25,6 +26,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -69,6 +71,7 @@ public class Cip68EventListener {
     private final InvalidTokenRecorder invalidTokenRecorder;
     private final Cip68UserTokenRecorder userTokenRecorder;
     private final Cip68UserTokenRepository userTokenRepository;
+    private final Cip113CompanionReconciler companionReconciler;
 
     @EventListener
     @Transactional
@@ -103,7 +106,13 @@ public class Cip68EventListener {
         }
         // the fungible and rich fungible tokens of the block, so that V2 serves a 333 or 444 subject only when its token
         // exists (ADR-022)
-        userTokenRecorder.recordSeen(userTokens, slot);
+        Set<String> newUserTokens = userTokenRecorder.recordSeen(userTokens, slot);
+
+        // a programmable token (CIP-113) may now have served CIP-68 metadata (ADR-020)
+        Set<String> policies = new HashSet<>();
+        entities.forEach(entity -> policies.add(entity.getPolicyId()));
+        newUserTokens.forEach(unit -> policies.add(AssetType.fromUnit(unit).policyId()));
+        companionReconciler.reconcileIfRegistered(policies);
     }
 
     /** The 333 and 444 user tokens in the outputs of a transaction, each with the first transaction of the block that showed it. */

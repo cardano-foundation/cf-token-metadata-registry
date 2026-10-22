@@ -44,7 +44,7 @@ class Cip68UserTokenRecorderTest {
         void writesTokensSeenForTheFirstTime() {
             when(repository.findAllById(Map.of(FT_A, "tx1").keySet())).thenReturn(List.of());
 
-            recorder.recordSeen(Map.of(FT_A, "tx1"), 100L);
+            assertThat(recorder.recordSeen(Map.of(FT_A, "tx1"), 100L)).containsExactly(FT_A);
 
             verify(writer).upsertFirstSeen(FT_A, "tx1", 100L);
         }
@@ -54,7 +54,7 @@ class Cip68UserTokenRecorderTest {
             when(repository.findAllById(Map.of(FT_A, "tx1", RFT_B, "tx1").keySet()))
                     .thenReturn(List.of(new Cip68UserToken(FT_A, 100L, "tx0"), new Cip68UserToken(RFT_B, 50L, "tx0")));
 
-            recorder.recordSeen(Map.of(FT_A, "tx1", RFT_B, "tx1"), 100L);
+            assertThat(recorder.recordSeen(Map.of(FT_A, "tx1", RFT_B, "tx1"), 100L)).isEmpty();
 
             verify(writer, never()).upsertFirstSeen(anyString(), anyString(), anyLong());
         }

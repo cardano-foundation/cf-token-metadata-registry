@@ -8,7 +8,9 @@ import org.cardanofoundation.tokenmetadata.registry.repository.Cip68UserTokenWri
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 
@@ -52,12 +54,14 @@ public class Cip68UserTokenRecorder {
     /**
      * @param txHashByUnit the user tokens seen in a block, each with the hash of the first transaction of the block that
      *                     showed it (units in lower case hex)
+     * @return the units written: seen for the first time, or earlier than recorded
      */
     @Transactional
-    public void recordSeen(Map<String, String> txHashByUnit, long slot) {
+    public Set<String> recordSeen(Map<String, String> txHashByUnit, long slot) {
         if (txHashByUnit.isEmpty()) {
-            return;
+            return Set.of();
         }
+        Set<String> written = new HashSet<>();
         try {
             Map<String, Long> recordedSlot = repository.findAllById(txHashByUnit.keySet()).stream()
                     .collect(Collectors.toMap(Cip68UserToken::getUnit, Cip68UserToken::getSlot));
@@ -68,11 +72,13 @@ public class Cip68UserTokenRecorder {
                 Long recorded = recordedSlot.get(unit);
                 if (recorded == null || recorded > slot) {
                     writer.upsertFirstSeen(unit, txHash, slot);
+                    written.add(unit);
                 }
             });
         } catch (RuntimeException e) {
             log.warn("Could not record {} CIP-68 user token(s) of slot {}: {}: {}", txHashByUnit.size(), slot,
                     e.getClass().getSimpleName(), e.getMessage());
         }
+        return written;
     }
 }

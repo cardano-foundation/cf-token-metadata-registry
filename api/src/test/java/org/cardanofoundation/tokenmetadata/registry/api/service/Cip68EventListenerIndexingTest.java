@@ -22,6 +22,7 @@ import org.cardanofoundation.tokenmetadata.registry.entity.MetadataReferenceNft;
 import org.cardanofoundation.tokenmetadata.registry.invalidtoken.InvalidTokenReason;
 import org.cardanofoundation.tokenmetadata.registry.invalidtoken.InvalidTokenRecorder;
 import org.cardanofoundation.tokenmetadata.registry.invalidtoken.InvalidTokenReport;
+import org.cardanofoundation.tokenmetadata.registry.api.service.cip113.Cip113CompanionReconciler;
 import org.cardanofoundation.tokenmetadata.registry.repository.Cip68UserTokenRepository;
 import org.cardanofoundation.tokenmetadata.registry.repository.MetadataReferenceNftRepository;
 import org.cardanofoundation.tokenmetadata.registry.validation.FieldCategory;
@@ -40,6 +41,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
@@ -73,9 +75,11 @@ class Cip68EventListenerIndexingTest {
     private final InvalidTokenRecorder recorder = mock(InvalidTokenRecorder.class);
     private final Cip68UserTokenRecorder userTokenRecorder = mock(Cip68UserTokenRecorder.class);
     private final Cip68UserTokenRepository userTokenRepository = mock(Cip68UserTokenRepository.class);
+    private final Cip113CompanionReconciler companionReconciler = mock(Cip113CompanionReconciler.class);
     private final Cip68FTDatumParser parser = new Cip68FTDatumParser();
     private final Cip68EventListener listener = new Cip68EventListener(
-            new Cip68FungibleTokenService(repository, parser), parser, repository, recorder, userTokenRecorder, userTokenRepository);
+            new Cip68FungibleTokenService(repository, parser), parser, repository, recorder, userTokenRecorder, userTokenRepository,
+            companionReconciler);
 
     private final Logger listenerLogger = (Logger) LoggerFactory.getLogger(Cip68EventListener.class);
     private final Logger parserLogger = (Logger) LoggerFactory.getLogger(Cip68FTDatumParser.class);
@@ -328,7 +332,7 @@ class Cip68EventListenerIndexingTest {
         private final Cip68FTDatumParser failingParser = spy(new Cip68FTDatumParser());
         private final Cip68EventListener failingListener = new Cip68EventListener(
                 new Cip68FungibleTokenService(repository, failingParser), failingParser, repository, recorder, userTokenRecorder,
-                userTokenRepository);
+                userTokenRepository, companionReconciler);
 
         @Test
         void skipsTheReferenceNftThatFailsRecordsItAndIndexesTheOthers() throws Exception {
@@ -411,6 +415,16 @@ class Cip68EventListenerIndexingTest {
             listener.processTransaction(event(AddressUtxo.builder().txHash(TX_HASH).amounts(List.of(amount(upperCaseFungible))).build()));
 
             verify(userTokenRecorder).recordSeen(Map.of(POLICY + FT + A, TX_HASH), 100L);
+        }
+
+        @Test
+        void asksTheCip113CompanionCheckAboutThePoliciesOfNewMetadataAndNewTokens() throws Exception {
+            String otherPolicy = "bb".repeat(28);
+            when(userTokenRecorder.recordSeen(any(), eq(100L))).thenReturn(Set.of(otherPolicy + FT + B));
+
+            listener.processTransaction(event(output(flatDatum("Token", "Desc", null), REF + A), userToken(FT + A)));
+
+            verify(companionReconciler).reconcileIfRegistered(Set.of(POLICY, otherPolicy));
         }
 
         @Test

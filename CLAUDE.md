@@ -88,7 +88,7 @@ Main configuration is in `api/src/main/resources/application.properties`. Key en
 | `GITHUB_ORGANIZATION` | Source GitHub org | `cardano-foundation` |
 | `GITHUB_PROJECT_NAME` | Source repo name | `cardano-token-registry` |
 | `CIP113_REGISTRY_NFT_POLICY_IDS` | Comma-separated monitored policy IDs (CIP-113 enabled when non-empty) | (empty) |
-| `cip113.companion.reconcile.interval-ms` | How often CIP-113 policies without CIP-26/CIP-68 metadata are recomputed in `invalid_token` (ADR-020) | `600000` |
+| `cip113.companion.reconcile.interval-ms` | When the CIP-26 sync runs in a separate job process (`TOKEN_METADATA_SYNC_JOB=false`), how often CIP-113 policies without served CIP-26/CIP-68 metadata are recomputed in `invalid_token`. Otherwise they are recomputed on events only (ADR-020) | `600000` |
 | `STORE_CARDANO_HOST` | Cardano node hostname | `backbone.mainnet.cardanofoundation.org` |
 | `STORE_CARDANO_PORT` | Cardano node port | `3001` |
 
