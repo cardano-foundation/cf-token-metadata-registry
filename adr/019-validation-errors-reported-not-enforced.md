@@ -73,12 +73,12 @@ before validation existed has `NULL` errors, meaning "never checked", which is d
   A token that is not accepted is a `404`, or is left out of a batch. The errors of a returned token are never
   filtered.
 
-  **The default is `ALL`**, as in yaci-store:
+  **The default is `ALL`:**
   - The registry describes what is indexed. A client that does not ask for a scope gets every token, with what is
     wrong with it, and decides for itself: a wallet that only wants tokens meeting their CIP asks for
     `MANDATORY_ONLY` or `STRICT`.
   - A stricter default would bring back, for every client that doesn't set the parameter, the invisible tokens this
-    ADR is about, and the registry and yaci-store would answer the same request differently.
+    ADR is about.
 
 ### 3a. `MANDATORY_ONLY` is close to the old view, not the same
 
@@ -165,8 +165,7 @@ is no backfill.
 
 - **Keep dropping.** Rejected for the reasons above.
 - **Default to `MANDATORY_ONLY` (or `STRICT`)**, so that clients that don't set the parameter keep roughly the old
-  behaviour. Rejected: the default would still hide the tokens this ADR is about, and the registry and yaci-store
-  would answer the same request differently. Clients that want it ask for it.
+  behaviour. Rejected: the default would still hide the tokens this ADR is about. Clients that want it ask for it.
 - **Keep V1 to the entries without `MANDATORY` errors**, so that V1 does not change. Rejected: V1 would then answer
   differently from V2's default for the same CIP-26 entry, and the registry would still be dropping entries for its
   oldest clients. V1 has no way to report why an entry is missing, which is the problem this ADR solves.

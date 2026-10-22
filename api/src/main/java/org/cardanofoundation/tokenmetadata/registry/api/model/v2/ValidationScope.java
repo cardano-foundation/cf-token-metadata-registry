@@ -7,9 +7,9 @@ import org.cardanofoundation.tokenmetadata.registry.validation.ValidationError;
 import java.util.List;
 
 /**
- * Which tokens a request accepts, by how well their metadata follows its CIP ({@code ?validation=}, ADR-019), as in
- * yaci-store. A token that is not accepted is left out as if it was not there: {@code 404} for a single subject, absent
- * from a batch. The {@code validation_errors} of an accepted token are never filtered.
+ * Which tokens a request accepts, by how well their metadata follows its CIP ({@code ?validation=}, ADR-019). A
+ * token that is not accepted is left out as if it was not there: {@code 404} for a single subject, absent from a
+ * batch. The {@code validation_errors} of an accepted token are never filtered.
  */
 public enum ValidationScope {
 
