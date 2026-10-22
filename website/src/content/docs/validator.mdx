@@ -1,0 +1,29 @@
+---
+title: Validator
+description: Check a CIP-26 entry, a CIP-68 datum or a CIP-113 registry node before you mint or submit it.
+---
+
+import Validator from '../../components/Validator.astro';
+
+Check your token **before** it exists. The validator sends what you enter to a registry's
+[validate endpoint](../reference/api/#validate), which runs the registry's own rules on it: the same code that indexes
+real tokens, so the answer is what the registry will do. Nothing is stored.
+
+<Validator />
+
+## Reading the answer
+
+- **Would the registry index it?** If not, the reason uses the same codes the registry records for what it drops.
+- **Served as**: how the V2 API will show the token, per label for CIP-68. A rich fungible token's `image` is shown as
+  its `logo`.
+- **Returned with `?validation=`**: which levels of strictness still return the token.
+  `STRICT` means no errors at all; `MANDATORY_ONLY` means only optional fields have problems.
+- **Validation errors**: the field, whether your standard requires it (`MANDATORY`) or not (`OPTIONAL`), and the rule.
+  See the [list of codes](../concepts/validation-errors/#error-codes).
+- **Datum** (CIP-68): the exact inline datum to put on the output that holds your reference NFT.
+
+## What it does not check
+
+- CIP-68: whether your user token is minted. The registry serves a 333 or 444 subject **only once that token exists**.
+- CIP-26: signatures and the policy script. The check covers the content of the entry.
+- CIP-113: the full registration flow. See the [CIP-113 guide](../guides/cip113/).

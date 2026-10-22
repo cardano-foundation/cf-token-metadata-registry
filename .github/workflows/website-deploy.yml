@@ -1,0 +1,44 @@
+name: Deploy Website to GitHub Pages
+
+on:
+  push:
+    # The live site tracks main: a promotion that touches the site redeploys it. Manual dispatch deploys any ref.
+    branches:
+      - main
+    paths:
+      - 'website/**'
+      - '.github/workflows/website-deploy.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  deploy:
+    name: Deploy to GitHub Pages
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: "./website/package-lock.json"
+
+      - name: Install dependencies
+        working-directory: website
+        run: npm ci
+
+      - name: Build website
+        working-directory: website
+        env:
+          # The registry the validator page calls; it must allow https://cardano-foundation.github.io (CORS)
+          PUBLIC_REGISTRY_API_URL: ${{ vars.REGISTRY_API_URL }}
+        run: npm run build
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./website/dist
