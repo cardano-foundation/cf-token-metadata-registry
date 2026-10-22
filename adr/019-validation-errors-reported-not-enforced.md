@@ -73,6 +73,28 @@ before validation existed has `NULL` errors, meaning "never checked", which is d
   A token that is not accepted is a `404`, or is left out of a batch. The errors of a returned token are never
   filtered.
 
+  **The default is `ALL`**, as in yaci-store:
+  - The registry describes what is indexed. A client that does not ask for a scope gets every token, with what is
+    wrong with it, and decides for itself: a wallet that only wants tokens meeting their CIP asks for
+    `MANDATORY_ONLY` or `STRICT`.
+  - A stricter default would bring back, for every client that doesn't set the parameter, the invisible tokens this
+    ADR is about, and the registry and yaci-store would answer the same request differently.
+
+### 3a. `MANDATORY_ONLY` is close to the old view, not the same
+
+A client that wants what V2 returned before can ask for `MANDATORY_ONLY`. It returns roughly the tokens the old rules
+kept, but differs in both directions:
+- **It returns more:**
+  - A CIP-26 entry whose only errors are on optional fields (`ticker`, `url`, `decimals`, `logo`). Before, any
+    cf-tokens-cip26 error dropped the whole entry; now only `name` and `description` errors are `MANDATORY`.
+  - A CIP-68 token with a `logo` that is not an allowed URI. It used to be served with the logo removed; it is now
+    served with the logo as written and an `OPTIONAL` error. The logo value a client receives therefore changes.
+- **It returns less:** a token is hidden by any `MANDATORY` error of a standard that has it, not only by a missing
+  merged `name` or `description`. For example, a token with a CIP-26 entry that has an error and a valid CIP-68 datum
+  used to be served from the datum; now it is hidden, because the CIP-26 error counts.
+
+`STRICT` hides every token with any error, so it is stricter than the old rules everywhere.
+
 ### 4. What is still dropped: only what has no row, or looks like an attack
 
 These are dropped, with a WARN, and recorded in `invalid_token` (ADR-020):
@@ -98,9 +120,12 @@ is stored. A CIP-26 logo over about 1 MiB is not stored in the logo table; the e
   - A subject is served the errors of its own label and those that do not depend on a label. An LP token minted with
     a pool NFT is therefore a clean 333 token, not one that "lacks an image".
   - yaci-store returns the row's errors as they are.
-- **V1 is unchanged.**
-  - V1 (`/metadata/**`) is the registry server's own format. It serves every stored CIP-26 entry, including those with
-    errors, and has no `validation_errors` field and no `?validation=`.
+- **V1 keeps its format, not its content.**
+  - V1 (`/metadata/**`) is the registry server's own format, so its responses have no `validation_errors` field and
+    it has no `?validation=`.
+  - It serves every stored CIP-26 entry, and the entries with errors are now stored. A V1 client therefore gets
+    entries it used to get a `204` for, such as one without a description or with a name over 50 characters. It
+    cannot see their errors, or hide them; it has to use V2 for that.
 - **No metrics of datums.**
   - The registry does not count indexed or skipped datums.
   - The recorder counts the rows it writes (`token.metadata.invalid.tokens{standard,reason_code}`).
@@ -129,14 +154,22 @@ is no backfill.
 ### Negative
 
 - **Breaking for V2 clients that relied on a 404 meaning "invalid", or on `name` and `description` always being
-  there.** They now get a 200 with errors and `valid: false`, and they can ask for the old view with
-  `validation=MANDATORY_ONLY`.
+  there.** They now get a 200 with errors and `valid: false`. `validation=MANDATORY_ONLY` is the closest to what they
+  got before, with the differences in decision 3a.
+- **Breaking for V1 clients**, with no opt-out: entries that break CIP-26 are now served, without their errors (decision
+  5). A V1 client that needs to tell them apart must move to V2.
 - The index is larger (the tokens that were dropped), and every row carries a small JSON list.
 - A change to a rule changes the errors of rows already stored; a resync recomputes them.
 
 ## Alternatives Considered
 
 - **Keep dropping.** Rejected for the reasons above.
+- **Default to `MANDATORY_ONLY` (or `STRICT`)**, so that clients that don't set the parameter keep roughly the old
+  behaviour. Rejected: the default would still hide the tokens this ADR is about, and the registry and yaci-store
+  would answer the same request differently. Clients that want it ask for it.
+- **Keep V1 to the entries without `MANDATORY` errors**, so that V1 does not change. Rejected: V1 would then answer
+  differently from V2's default for the same CIP-26 entry, and the registry would still be dropping entries for its
+  oldest clients. V1 has no way to report why an entry is missing, which is the problem this ADR solves.
 - **A strict/lenient switch for operators.** Rejected, as in yaci-store: it gives operators a decision they can't make,
   and two behaviours to test.
 - **Repair what is wrong** (e.g. a bare IPFS CID to `ipfs://...`). Rejected: the registry would then state something
