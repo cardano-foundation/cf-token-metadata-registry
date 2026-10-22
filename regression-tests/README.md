@@ -201,6 +201,14 @@ without any has no companion and is a 404. `WITH_MANDATORY_ERRORS` (preprod) lis
 These suites need a build with ADR-019 and a database **synced from scratch** with it: rows written before have no
 errors recorded. Against an older build, run `-m "not validation"`.
 
+## CIP-68 subjects that were never minted (ADR-022)
+
+V2 serves a 333 or 444 subject only when its user token was seen on chain. `mainnet/test_v2_cip68_never_minted.py`
+checks the 334 subjects that were in the CIP-68 baseline although their 333 token was never minted (324 NFTs, 5 rich
+fungible tokens, 5 with no user token; `mainnet/fixtures/cip68_never_minted_subjects.json`, checked on Koios): each is a
+404, and a batch leaves them out. They were removed from `cip68_tokens.json` on 2026-10-22, and `generate_fixtures.py`
+now takes only reference NFTs whose 333 token is in `cip68_user_token`.
+
 ## Viewing Results with Allure (Web UI)
 
 Allure provides an interactive web dashboard with charts, test history, categorization, and detailed failure reports.
@@ -303,6 +311,7 @@ regression-tests/
     │   ├── cip26_tokens.json                 # CIP-26 token snapshots (generated)
     │   ├── cip68_tokens.json                 # CIP-68 token snapshots (generated)
     │   ├── cip68_validation_errors_tokens.json  # CIP-68 tokens served with known validation errors
+    │   ├── cip68_never_minted_subjects.json  # 333 subjects never minted, a 404 (ADR-022)
     │   ├── cip68_rft_tokens.json             # CIP-68 RFT (444) snapshot from the chain (generated)
     │   └── cip113_tokens.json                # CIP-113 registry snapshot (generated)
     ├── test_v1_get_subject.py                # V1 GET /metadata/{subject}

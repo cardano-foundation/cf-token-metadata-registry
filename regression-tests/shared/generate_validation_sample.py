@@ -48,6 +48,12 @@ def spread(rows, n):
     return rows[::step][:n]
 
 
+def minted(cur, subject):
+    """Whether the 333 or 444 user token was seen on chain: V2 serves no other (ADR-022)."""
+    cur.execute("select 1 from cip68_user_token where unit = %s", (subject.lower(),))
+    return cur.fetchone() is not None
+
+
 def served_kind(subject):
     """The kind of result the API serves the subject with, or None when it is not served. A CIP-68 subject gets only the
     errors of its own label, so its kind can differ from that of its row."""
@@ -90,7 +96,7 @@ def cip68_sample(cur, per_kind):
             prefixes = (RFT_PREFIX, FT_PREFIX) if "444" in labels else (FT_PREFIX, RFT_PREFIX)
             for prefix in prefixes:
                 subject = row["policy_id"] + prefix + base
-                if served_kind(subject) == kind:
+                if minted(cur, subject) and served_kind(subject) == kind:
                     found.append({"subject": subject, "standard": "CIP-68", "kind": kind})
                     break
             if len(found) == per_kind:
@@ -115,6 +121,8 @@ def rft_sample(cur, per_kind):
     found = {"clean": [], "optional": [], "mandatory": []}
     for row in rows:
         subject = row["policy_id"] + RFT_PREFIX + row["asset_name"][len(REFERENCE_PREFIX):]
+        if not minted(cur, subject):
+            continue
         kind = served_kind(subject)
         if kind in found and len(found[kind]) < per_kind:
             found[kind].append({"subject": subject, "standard": "CIP-68 (444)", "kind": kind})

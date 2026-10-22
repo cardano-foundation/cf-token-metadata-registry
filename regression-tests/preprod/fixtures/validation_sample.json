@@ -139,11 +139,6 @@
       "kind": "clean"
     },
     {
-      "subject": "1ed08e235d028c3ea278ab0322475387a02ba94a3a2c42ace521ddeb0014df1044656d6f6e20546f6b656e",
-      "standard": "CIP-68",
-      "kind": "clean"
-    },
-    {
       "subject": "2a473bef4315ae3eda1a09071caf5a92fc0faed8d7210e0d223625da0014df1074657374",
       "standard": "CIP-68",
       "kind": "clean"
@@ -164,22 +159,12 @@
       "kind": "clean"
     },
     {
-      "subject": "5b1b3db7fc6dec9b3ff0427fdee30bf7ace5ec83d55c7738874f4d240014df10417267656e74696e61",
-      "standard": "CIP-68",
-      "kind": "clean"
-    },
-    {
       "subject": "000b2b2a67fbe10da8a0af3ed6513e18db3ef8f4abf8b05698179bf00014df1054455354",
       "standard": "CIP-68",
       "kind": "optional"
     },
     {
       "subject": "0c11e4bb50994afe59de2d3730105b918adfd90c94c665b93096f96a0014df105445535420424f54",
-      "standard": "CIP-68",
-      "kind": "optional"
-    },
-    {
-      "subject": "1797ac6277c0d570ba11300b75332c478ce8e9b59eaa68647a96fa180014df1053494c564552",
       "standard": "CIP-68",
       "kind": "optional"
     },
@@ -224,17 +209,7 @@
       "kind": "mandatory"
     },
     {
-      "subject": "29d9bd96229890fe9294eb507ccffdfaf9bd3d0189dd38ad3c4c4e560014df1001e5e13c0a70309473e7bc3f10388f4714e3fb16235264c9ec5bde16",
-      "standard": "CIP-68",
-      "kind": "mandatory"
-    },
-    {
       "subject": "3599a368bf715c9545709088c5aaa37744ecaf18b3c70f268d3a50030014df104672616374696f6e2045737461746520546f6b656e",
-      "standard": "CIP-68",
-      "kind": "mandatory"
-    },
-    {
-      "subject": "4c415b6bbe422960b6847c540be23e7ffea0aeb483e16b2778e4f59e0014df10cce260af73b2d92046232a8d97fe14574f4d660b8bccbdee7255791c",
       "standard": "CIP-68",
       "kind": "mandatory"
     },
@@ -247,36 +222,6 @@
       "subject": "6480819d80ec13b8bba4eec21497bb3a3f0c0ec7d984797c509ed7820014df104861743a52757374436170",
       "standard": "CIP-68",
       "kind": "mandatory"
-    },
-    {
-      "subject": "023c5d25cdf43e6497bc7805d133ec3b265553409556422310419da9001bc280945af3649c3d749d17ab19c264c1beebb66b6785f79bab997480aa87",
-      "standard": "CIP-68 (444)",
-      "kind": "clean"
-    },
-    {
-      "subject": "024fa432d823223630dcacadcc21f382aac9cf8630048fcc5bb8267f001bc280ee1d040b9ca54927619251897b475db7adb0733faaf85381ddb85778",
-      "standard": "CIP-68 (444)",
-      "kind": "clean"
-    },
-    {
-      "subject": "09a4c692be6ffd9c5a16d53a747a9ff2e784ed6a099727e0c745dd5b001bc2805354554646",
-      "standard": "CIP-68 (444)",
-      "kind": "clean"
-    },
-    {
-      "subject": "015654e0069de25328e5bb9346bede8083bc0ffdf5ee061ca9f842c3001bc2804841",
-      "standard": "CIP-68 (444)",
-      "kind": "optional"
-    },
-    {
-      "subject": "06346b986dce30c56c3f4e7a1131ec93a9f112afa61b094697287806001bc2808888",
-      "standard": "CIP-68 (444)",
-      "kind": "optional"
-    },
-    {
-      "subject": "0b23ec83a52644fe3b93279f420599f93d064ad0dab26ecb437087eb001bc28054657374696e67206672726565656565",
-      "standard": "CIP-68 (444)",
-      "kind": "optional"
     },
     {
       "subject": "13ee22b770bea448c5a8cf1a56efe1a6774a6349313079044a8f098f001bc280746573742031",
@@ -293,5 +238,6 @@
       "standard": "CIP-68 (444)",
       "kind": "mandatory"
     }
-  ]
+  ],
+  "note": "2026-10-22: 11 CIP-68 subjects whose user token was never minted were removed (ADR-022: V2 no longer serves them). The generator now picks only minted tokens; regenerate against a synced preprod stack to restore the 444 subjects without errors and with optional errors only."
 }
