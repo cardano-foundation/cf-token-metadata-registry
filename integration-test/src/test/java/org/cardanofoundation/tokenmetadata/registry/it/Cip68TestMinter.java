@@ -3,7 +3,6 @@ package org.cardanofoundation.tokenmetadata.registry.it;
 import com.bloxbean.cardano.client.account.Account;
 import com.bloxbean.cardano.client.address.AddressProvider;
 import com.bloxbean.cardano.client.api.model.Result;
-import com.bloxbean.cardano.client.api.model.Utxo;
 import com.bloxbean.cardano.client.backend.api.BackendService;
 import com.bloxbean.cardano.client.cip.cip68.CIP68FT;
 import com.bloxbean.cardano.client.cip.cip68.CIP68ReferenceToken;
@@ -20,21 +19,13 @@ import com.bloxbean.cardano.client.quicktx.ScriptTx;
 import com.bloxbean.cardano.client.transaction.spec.Asset;
 import com.bloxbean.cardano.client.util.HexUtil;
 import jakarta.annotation.Nullable;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
 
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
-import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 
-import static org.awaitility.Awaitility.await;
 
 /**
  * Utility to mint CIP-68 token pairs (reference NFT + user FT) on a yaci devnet.
@@ -45,7 +36,6 @@ import static org.awaitility.Awaitility.await;
 @RequiredArgsConstructor
 public class Cip68TestMinter {
 
-    private static final String DEVKIT_ADMIN_BASE_URL = "http://localhost:10000/";
 
     // Always-true PlutusV2 script — effectively no validation, just like a NativeScript
     private static final PlutusV2Script ALWAYS_TRUE_SCRIPT = PlutusV2Script.builder()
@@ -128,14 +118,7 @@ public class Cip68TestMinter {
 
     private String fundSender() {
         String senderAddress = senderAccount.baseAddress();
-        topUpFund(senderAddress, 50000);
-        await().atMost(Duration.ofSeconds(30))
-                .pollInterval(Duration.ofSeconds(2))
-                .ignoreExceptions()
-                .until(() -> {
-                    Result<List<Utxo>> utxos = backendService.getUtxoService().getUtxos(senderAddress, 1, 1);
-                    return utxos.isSuccessful() && !utxos.getValue().isEmpty();
-                });
+        DevKitFaucet.fund(backendService, restTemplate, senderAddress);
         return senderAddress;
     }
 
@@ -161,16 +144,7 @@ public class Cip68TestMinter {
         String senderAddress = senderAccount.baseAddress();
 
         // Fund the sender and wait for UTXOs to appear
-        topUpFund(senderAddress, 50000);
-        await().atMost(Duration.ofSeconds(30))
-                .pollInterval(Duration.ofSeconds(2))
-                .ignoreExceptions()
-                .until(() -> {
-                    Result<List<Utxo>> utxos = backendService.getUtxoService().getUtxos(senderAddress, 1, 1);
-                    boolean funded = utxos.isSuccessful() && !utxos.getValue().isEmpty();
-                    log.info("Waiting for topup UTXOs: funded={}", funded);
-                    return funded;
-                });
+        DevKitFaucet.fund(backendService, restTemplate, senderAddress);
 
         // Build CIP-68 FT metadata using the high-level API
         CIP68FT ft = CIP68FT.create()
@@ -213,24 +187,5 @@ public class Cip68TestMinter {
                 result.getValue(), policyId, ftAssetNameHex);
 
         return new MintResult(policyId, ftAssetNameHex, result.getValue());
-    }
-
-    private void topUpFund(String address, long adaAmount) {
-        try {
-            String url = DEVKIT_ADMIN_BASE_URL + "local-cluster/api/addresses/topup";
-            String json = String.format("{\"address\": \"%s\", \"adaAmount\": %d}", address, adaAmount);
-
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            ResponseEntity<String> response = restTemplate.postForEntity(url, new HttpEntity<>(json, headers), String.class);
-
-            if (response.getStatusCode().is2xxSuccessful()) {
-                log.info("Funds topped up successfully for {}", address);
-            } else {
-                log.warn("Failed to top up funds. Response code: {}", response.getStatusCode());
-            }
-        } catch (Exception e) {
-            log.warn("Could not topup address: {}", e.getMessage());
-        }
     }
 }
