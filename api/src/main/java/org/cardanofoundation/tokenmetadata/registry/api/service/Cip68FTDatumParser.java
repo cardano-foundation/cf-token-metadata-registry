@@ -322,16 +322,13 @@ public class Cip68FTDatumParser {
     private static final String ABSENT = "absent";
 
     private static String typeOf(PlutusData data) {
-        if (data instanceof BytesPlutusData) {
-            return "bytes";
-        } else if (data instanceof MapPlutusData) {
-            return "a map";
-        } else if (data instanceof ListPlutusData) {
-            return "a list";
-        } else if (data instanceof ConstrPlutusData) {
-            return "a constructor";
-        }
-        return "not an integer";
+        return switch (data) {
+            case BytesPlutusData _ -> "bytes";
+            case MapPlutusData _ -> "a map";
+            case ListPlutusData _ -> "a list";
+            case ConstrPlutusData _ -> "a constructor";
+            case null, default -> "not an integer";
+        };
     }
 
     /**
