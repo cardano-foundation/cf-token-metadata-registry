@@ -48,9 +48,10 @@ class InvalidTokenRecorderTest {
     void idIsDeterministic() {
         String id = InvalidTokenRecorder.idOf(report().build());
 
-        assertThat(id).hasSize(64).isEqualTo(InvalidTokenRecorder.idOf(report().reason("another text").slot(99L).build()));
-        assertThat(id).isNotEqualTo(InvalidTokenRecorder.idOf(report().outputIndex(1).build()));
-        assertThat(id).isNotEqualTo(InvalidTokenRecorder.idOf(report().reasonCode(InvalidTokenReason.PROCESSING_FAILURE).build()));
+        assertThat(id).hasSize(64)
+                .isEqualTo(InvalidTokenRecorder.idOf(report().reason("another text").slot(99L).build()))
+                .isNotEqualTo(InvalidTokenRecorder.idOf(report().outputIndex(1).build()))
+                .isNotEqualTo(InvalidTokenRecorder.idOf(report().reasonCode(InvalidTokenReason.PROCESSING_FAILURE).build()));
     }
 
     @Test

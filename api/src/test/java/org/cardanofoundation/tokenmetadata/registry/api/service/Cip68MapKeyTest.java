@@ -10,7 +10,6 @@ import com.bloxbean.cardano.client.plutus.spec.BytesPlutusData;
 import com.bloxbean.cardano.client.plutus.spec.ConstrPlutusData;
 import com.bloxbean.cardano.client.plutus.spec.ListPlutusData;
 import com.bloxbean.cardano.client.plutus.spec.MapPlutusData;
-import com.bloxbean.cardano.client.plutus.spec.PlutusData;
 import com.bloxbean.cardano.client.util.HexUtil;
 import org.cardanofoundation.tokenmetadata.registry.api.util.AssetType;
 import org.cardanofoundation.tokenmetadata.registry.api.model.cip68.ParsedCip68Datum;
@@ -70,8 +69,8 @@ class Cip68MapKeyTest {
         MapPlutusData props = name();
         props.put(BytesPlutusData.of("attributes"), inner);
 
-        assertThat(additional(parse(props)).get("attributes"))
-                .isEqualTo(Map.of("1", "one", "two", BigInteger.TWO));
+        assertThat(additional(parse(props)))
+                .containsEntry("attributes", Map.of("1", "one", "two", BigInteger.TWO));
     }
 
     @Test

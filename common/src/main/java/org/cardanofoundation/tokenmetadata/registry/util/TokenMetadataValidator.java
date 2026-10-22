@@ -116,7 +116,7 @@ public class TokenMetadataValidator {
         byte[] decoded;
         try {
             decoded = Base64.getDecoder().decode(logo);
-        } catch (IllegalArgumentException e) {
+        } catch (IllegalArgumentException _) {
             return Cip26Validation.of(List.of(ValidationError.optional(CIP_26, null, "logo", ValidationCode.INVALID_BASE64,
                     "logo is not valid base64")));
         }

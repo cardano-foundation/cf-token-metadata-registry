@@ -218,7 +218,7 @@ class Cip68FungibleTokenServiceTest {
         }
 
         @Test
-        void servesAFungibleTokenPairedWithAnNftWithoutTheNftRequirement() throws Exception {
+        void servesAFungibleTokenPairedWithAnNftWithoutTheNftRequirement() {
             MetadataReferenceNft row = MetadataReferenceNft.builder().policyId("aa".repeat(28)).assetName("000643b041").slot(1L)
                     .name("LP").description("Pool share").version(1L).datum("d87980")
                     .validationErrors(List.of(nftImage)).build();

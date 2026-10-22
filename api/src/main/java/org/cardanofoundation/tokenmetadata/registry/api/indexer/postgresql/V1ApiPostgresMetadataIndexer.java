@@ -26,6 +26,7 @@ import static java.util.Map.entry;
 @Slf4j
 public class V1ApiPostgresMetadataIndexer implements V1ApiMetadataIndexer {
 
+    private static final String SUBJECT = "subject";
     private static final TypeReference<List<ValidationError>> VALIDATION_ERRORS = new TypeReference<>() {
     };
 
@@ -105,7 +106,7 @@ public class V1ApiPostgresMetadataIndexer implements V1ApiMetadataIndexer {
 
     @Override
     public Optional<TokenMetadata> findSubject(String subject) {
-        final SqlParameterSource params = new MapSqlParameterSource(Map.ofEntries(entry("subject", subject)));
+        final SqlParameterSource params = new MapSqlParameterSource(Map.ofEntries(entry(SUBJECT, subject)));
         final List<MetadataQueryResult> queryResults = jdbcTemplate.query(String.format("%s WHERE subject = :subject", MetadataQueryResult.DEFAULT_QUERY_STRING),
                 params,
                 (rs, rowNum) -> MetadataQueryResult.fromSubjectAndPropertiesResultSet(rs));
@@ -114,7 +115,7 @@ public class V1ApiPostgresMetadataIndexer implements V1ApiMetadataIndexer {
 
     @Override
     public Optional<TokenMetadata> findSubjectSelectProperties(String subject, List<String> properties) {
-        final SqlParameterSource params = new MapSqlParameterSource(Map.ofEntries(entry("subject", subject)));
+        final SqlParameterSource params = new MapSqlParameterSource(Map.ofEntries(entry(SUBJECT, subject)));
         final String queryStatement = String.format("%s WHERE subject = :subject", MetadataQueryResult.DEFAULT_QUERY_STRING);
         final List<MetadataQueryResult> queryResults = jdbcTemplate.query(queryStatement,
                 params,
@@ -130,7 +131,7 @@ public class V1ApiPostgresMetadataIndexer implements V1ApiMetadataIndexer {
         final SqlParameterSource params = new MapSqlParameterSource(Map.ofEntries(entry("subjects", subjects)));
         final Map<String, List<ValidationError>> errors = new HashMap<>();
         jdbcTemplate.query("SELECT subject, validation_errors FROM metadata WHERE subject IN (:subjects)", params, rs -> {
-            errors.put(rs.getString("subject"), readValidationErrors(rs.getString("subject"), rs.getString("validation_errors")));
+            errors.put(rs.getString(SUBJECT), readValidationErrors(rs.getString(SUBJECT), rs.getString("validation_errors")));
         });
         return errors;
     }

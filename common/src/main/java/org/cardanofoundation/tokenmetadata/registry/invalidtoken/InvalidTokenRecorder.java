@@ -156,7 +156,7 @@ public class InvalidTokenRecorder {
             if (MAPPER.writeValueAsString(bounded).length() > MAX_DETAILS_CHARS) {
                 return Map.of("truncated", true);
             }
-        } catch (JsonProcessingException e) {
+        } catch (JsonProcessingException _) {
             return Map.of("truncated", true);
         }
         return bounded;

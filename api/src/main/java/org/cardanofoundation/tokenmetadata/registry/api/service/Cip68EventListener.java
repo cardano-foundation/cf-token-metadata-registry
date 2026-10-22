@@ -231,7 +231,7 @@ public class Cip68EventListener {
         List<Amt> referenceNfts;
         try {
             referenceNfts = cip68FungibleTokenService.extractReferenceNfts(output);
-        } catch (RuntimeException ignored) {
+        } catch (RuntimeException _) {
             referenceNfts = List.of();
         }
         if (referenceNfts.isEmpty()) {
@@ -292,13 +292,11 @@ public class Cip68EventListener {
      * against the labels stay per reference NFT, since each has its own row and its own user tokens.
      */
     private final class SharedDatum {
-        private final AddressUtxo output;
         private final int referenceNfts;
         private final ParseOutcome outcome;
         private boolean reported;
 
         private SharedDatum(AddressUtxo output, int referenceNfts) {
-            this.output = output;
             this.referenceNfts = referenceNfts;
             // Parsed here, once, without a reference NFT: the datum is not specific to one of them.
             this.outcome = cip68DatumParser.parseDetailed(output.getInlineDatum(), null);

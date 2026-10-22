@@ -66,7 +66,7 @@ class Cip68ConstructorPropertyTest {
         assertThat(additional(parsed)).containsOnlyKeys("owner", "tokens", "note");
         assertThat(additional(parsed)).containsEntry("tokens", BigInteger.valueOf(5)).containsEntry("note", "kept");
         // a constructor is stored as {constructor, fields}; the bytes that are not text stay hex
-        assertThat(additional(parsed).get("owner")).isEqualTo(Map.of("constructor", 0L, "fields", List.of("ff0102")));
+        assertThat(additional(parsed)).containsEntry("owner", Map.of("constructor", 0L, "fields", List.of("ff0102")));
         assertThat(parsed.validationErrors()).singleElement().satisfies(e -> {
             assertThat(e.cip()).isEqualTo("CIP-68");
             assertThat(e.fieldName()).isEqualTo("properties.owner");
@@ -82,8 +82,8 @@ class Cip68ConstructorPropertyTest {
                 text("name", "N"), entry("holders", ListPlutusData.of(BigIntPlutusData.of(1), constr(1))), text("kept", "yes")));
 
         assertThat(additional(parsed)).containsOnlyKeys("holders", "kept");
-        assertThat(additional(parsed).get("holders"))
-                .isEqualTo(List.of(BigInteger.ONE, Map.of("constructor", 1L, "fields", List.of())));
+        assertThat(additional(parsed))
+                .containsEntry("holders", List.of(BigInteger.ONE, Map.of("constructor", 1L, "fields", List.of())));
         assertThat(parsed.validationErrors()).singleElement().satisfies(e -> assertThat(e.fieldName()).isEqualTo("properties.holders"));
     }
 
@@ -141,7 +141,7 @@ class Cip68ConstructorPropertyTest {
                 text("bytes", "text")));
 
         assertThat(additional(parsed)).containsOnlyKeys("int", "list", "map", "bytes");
-        assertThat(additional(parsed).get("int")).isEqualTo(new BigInteger("123456789012345678901234567890"));
+        assertThat(additional(parsed)).containsEntry("int", new BigInteger("123456789012345678901234567890"));
         assertThat(parsed.validationErrors()).isEmpty();
         assertThat(warnings()).isEmpty();
     }

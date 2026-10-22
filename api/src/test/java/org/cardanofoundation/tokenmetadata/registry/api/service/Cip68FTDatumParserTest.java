@@ -4,11 +4,13 @@ import com.bloxbean.cardano.client.common.cbor.CborSerializationUtil;
 import com.bloxbean.cardano.client.plutus.spec.*;
 import com.bloxbean.cardano.client.util.HexUtil;
 import org.cardanofoundation.tokenmetadata.registry.api.util.AssetType;
-import org.cardanofoundation.tokenmetadata.registry.api.model.cip68.FungibleTokenMetadata;
 import org.cardanofoundation.tokenmetadata.registry.api.model.cip68.ParsedCip68Datum;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.params.provider.NullSource;
+import org.junit.jupiter.params.ParameterizedTest;
 
 import java.math.BigInteger;
 import java.util.List;
@@ -208,7 +210,7 @@ class Cip68FTDatumParserTest {
             java.util.Map<String, Object> additional =
                     (java.util.Map<String, Object>) result.get().properties().get("additional_properties");
             assertThat(additional).containsEntry("rarity", "legendary");
-            assertThat(additional.get("level")).isEqualTo(java.math.BigInteger.valueOf(42));
+            assertThat(additional).containsEntry("level", java.math.BigInteger.valueOf(42));
         }
 
         @Test
@@ -683,11 +685,11 @@ class Cip68FTDatumParserTest {
                 Map<String, Object> additional = additionalProperties(m);
                 assertThat(additional).containsKey("seed");
                 assertThat(m.validationErrors()).singleElement().satisfies(e -> assertThat(e.fieldName()).isEqualTo("properties.seed"));
-                assertThat(additional.get("oracles")).isEqualTo(List.of(
+                assertThat(additional).containsEntry("oracles", List.of(
                         "80edfa909a3d40a54fca4c3ee852c7ba2a79391738911dc363580dc2",
                         "ab25d3b9476a3e3343a2f353b08b40913c573de7d286ef37ac4013e0",
                         "7bd1ebc8230f961193fb772204542e85425af4f7a8f36acb5543da08"));
-                assertThat(additional.get("venue")).isEqualTo("Ethereum");
+                assertThat(additional).containsEntry("venue", "Ethereum");
             });
         }
 
@@ -714,8 +716,8 @@ class Cip68FTDatumParserTest {
 
             assertThat(parser.parse(HexUtil.encodeHexString(CborSerializationUtil.serialize(datum.serialize()))))
                     .hasValueSatisfying(m -> {
-                        assertThat(additionalProperties(m).get("label")).isEqualTo("caf\u00e9");
-                        assertThat(additionalProperties(m).get("hash")).isEqualTo("ff00c3");
+                        assertThat(additionalProperties(m)).containsEntry("label", "caf\u00e9");
+                        assertThat(additionalProperties(m)).containsEntry("hash", "ff00c3");
                     });
         }
     }
@@ -723,30 +725,11 @@ class Cip68FTDatumParserTest {
     @Nested
     class ParseInvalidDatum {
 
-        @Test
-        void shouldReturnEmptyForNullInput() {
-            Optional<ParsedCip68Datum> result = parser.parse(null);
-
-            assertThat(result).isEmpty();
-        }
-
-        @Test
-        void shouldReturnEmptyForEmptyString() {
-            Optional<ParsedCip68Datum> result = parser.parse("");
-
-            assertThat(result).isEmpty();
-        }
-
-        @Test
-        void shouldReturnEmptyForBlankString() {
-            Optional<ParsedCip68Datum> result = parser.parse("   ");
-
-            assertThat(result).isEmpty();
-        }
-
-        @Test
-        void shouldReturnEmptyForInvalidHex() {
-            Optional<ParsedCip68Datum> result = parser.parse("not-valid-hex");
+        @ParameterizedTest
+        @NullSource
+        @ValueSource(strings = {"", "   ", "not-valid-hex"})
+        void shouldReturnEmptyForMissingOrNonHexInput(String input) {
+            Optional<ParsedCip68Datum> result = parser.parse(input);
 
             assertThat(result).isEmpty();
         }
