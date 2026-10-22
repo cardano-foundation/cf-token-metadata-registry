@@ -172,11 +172,22 @@ instance at tip first, and remove a token with a reason, or treat the difference
 ## Validation errors (ADR-019)
 
 The registry serves tokens as indexed, with `validation_errors` saying how their metadata departs from its CIP, and
-`?validation=ALL|MANDATORY_ONLY|STRICT` choosing how strict a response is. Two suites cover it (marker `validation`):
+`?validation=ALL|MANDATORY_ONLY|STRICT` choosing how strict a response is. These suites cover it
+(marker `validation`):
 
-- `mainnet/test_v2_validation.py` checks the contract on samples of the CIP-26 and CIP-68 baselines: every token has a
-  `validation_errors` array, `metadata.valid` is true exactly when it is empty, `?validation=` returns a token exactly
-  when its errors allow it, and under `?property=` the errors are about the requested properties only.
+- `test_v2_validation.py` (on mainnet and preprod, from `shared/validation_suite.py`) checks the contract: every token
+  has a `validation_errors` array, `metadata.valid` is true exactly when it is empty, `?validation=` returns a token
+  exactly when its errors allow it, and under `?property=` the errors are about the requested properties only. It
+  asserts no expected values, only that each response agrees with its own errors.
+  - On mainnet it samples the CIP-26 and CIP-68 baselines.
+  - On preprod it uses `preprod/fixtures/validation_sample.json`: CIP-26 entries, and 333 and 444 tokens served with no
+    error, with optional errors only, and with a mandatory error. It is made by `shared/generate_validation_sample.py`
+    from a database synced with ADR-019 and the API serving it; a token's kind is what its subject is served with,
+    since a CIP-68 subject gets only the errors of its own label:
+
+    ```bash
+    DB_HOST=... DB_PORT=... DB_PASSWORD=... API_BASE_URL=... uv run python shared/generate_validation_sample.py preprod
+    ```
 - `mainnet/test_v2_cip68_validation_errors.py` checks tokens that break CIP-68 in a known way, from
   `mainnet/fixtures/cip68_validation_errors_tokens.json`, each with the reason: Greenland Reserve Coin (version 0, a
   MANDATORY error), tokens whose logo is a bare IPFS CID (kept as written, an OPTIONAL error), and the SundaeSwap
@@ -274,11 +285,16 @@ regression-tests/
 ├── README.md                                 # This file
 ├── shared/
 │   ├── cip113_suite.py                       # CIP-113 test class, built per network
+│   ├── validation_suite.py                   # ADR-019 validation contract test class, built per network
+│   ├── generate_validation_sample.py         # DB + API -> subjects for the validation contract suite
 │   ├── generate_cip113_fixtures.py           # Chain (Koios) -> CIP-113 fixture
 │   └── generate_cip68_rft_fixtures.py        # Chain (Koios) -> CIP-68 RFT (444) fixture
 ├── preprod/
 │   ├── test_v2_cip113.py                     # CIP-113 programmable tokens on preprod
-│   └── fixtures/cip113_tokens.json           # CIP-113 registry snapshot (generated)
+│   ├── test_v2_validation.py                 # ADR-019 validation contract on preprod
+│   └── fixtures/
+│       ├── cip113_tokens.json                # CIP-113 registry snapshot (generated)
+│       └── validation_sample.json            # subjects for the validation contract suite (generated)
 └── mainnet/
     ├── conftest.py                           # Shared pytest fixtures and helpers
     ├── pytest.ini                            # Test markers configuration
