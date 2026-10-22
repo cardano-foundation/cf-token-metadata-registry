@@ -53,6 +53,7 @@ The API exposes both a legacy V1 (CIP-26 only) and an enhanced V2 (CIP-26 + CIP-
 | [ADR-019](019-validation-errors-reported-not-enforced.md) | Validation Errors Are Reported, Not Enforced | Accepted |
 | [ADR-020](020-invalid-token-table.md) | A Table for What Is Dropped (`invalid_token`), CIP-113 Included | Accepted |
 | [ADR-022](022-cip68-serve-minted-user-tokens-only.md) | Serve a CIP-68 333 or 444 Subject Only When Its User Token Was Minted | Rejected |
+| [ADR-023](023-validate-endpoint.md) | A Stateless Endpoint to Validate a Token Before It Exists | Accepted |
 
 ### Data Ingestion
 

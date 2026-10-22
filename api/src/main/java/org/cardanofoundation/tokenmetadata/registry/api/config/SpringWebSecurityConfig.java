@@ -4,6 +4,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationServiceException;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.web.SecurityFilterChain;
@@ -17,6 +18,8 @@ public class SpringWebSecurityConfig {
         // with no session-based authentication, so CSRF attacks are not applicable.
         return http
                 .csrf(AbstractHttpConfigurer::disable) // codeql[java/spring-disabled-csrf-protection] - public read-only REST API, no session auth
+                // CORS only where a CorsConfigurationSource allows it: the validate endpoint (ValidateEndpointConfig)
+                .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(matcherRegistry -> matcherRegistry.anyRequest().permitAll())
                 .headers(headers -> headers
                         .contentSecurityPolicy(policy -> policy
