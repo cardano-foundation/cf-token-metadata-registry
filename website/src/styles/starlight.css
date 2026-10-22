@@ -1,0 +1,23 @@
+/* Starlight theme accents for the Token Metadata Registry. */
+:root {
+	--sl-color-accent-low: #11283a;
+	--sl-color-accent: #1f7a8c;
+	--sl-color-accent-high: #a6dde6;
+}
+
+:root[data-theme='light'] {
+	--sl-color-accent-low: #d4eef2;
+	--sl-color-accent: #146375;
+	--sl-color-accent-high: #0d3c47;
+}
+
+/* The docs are table-heavy. */
+.sl-markdown-content table {
+	font-size: var(--sl-text-sm);
+}
+
+.credit {
+	margin-top: 1.5rem;
+	font-size: var(--sl-text-xs);
+	color: var(--sl-color-gray-3);
+}
