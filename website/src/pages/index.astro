@@ -1,6 +1,8 @@
 ---
 import '../styles/landing.css';
 
+// Styled after cardanofoundation.org: Switzer, a greyscale palette, regular-weight headings with tight tracking,
+// pill buttons, the soft orange-to-blue hero glow and a dark footer.
 const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 const docs = (slug: string) => `${base}/${slug}/`;
 const repo = 'https://github.com/cardano-foundation/cf-token-metadata-registry';
@@ -26,11 +28,25 @@ const standards = [
 	},
 ];
 
-const example = `curl https://<registry>/api/v2/subjects/<policy id><asset name>
+const features = [
+	{
+		title: 'One subject, one answer',
+		text: 'Ask for a token by its policy id and asset name. Each property comes from the standard that has it, on-chain first by default, and says where it came from.',
+	},
+	{
+		title: 'Errors you can act on',
+		text: 'A token that breaks its standard is still served, with validation errors naming the field and the rule. Wallets choose how strict to be.',
+	},
+	{
+		title: 'Check before you mint',
+		text: 'The validator runs the registry’s own rules on metadata that does not exist yet, and for CIP-68 builds the datum for your reference NFT.',
+	},
+];
+
+const example = `GET /api/v2/subjects/<policy id><asset name>
 
 {
   "subject": {
-    "subject": "…0014df10…",
     "type": "NATIVE",
     "metadata": {
       "name":     { "value": "My Token", "source": "CIP_68" },
@@ -48,98 +64,113 @@ const example = `curl https://<registry>/api/v2/subjects/<policy id><asset name>
 	<head>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
-		<title>Cardano Token Metadata Registry</title>
+		<title>CF Token Metadata Registry</title>
 		<meta
 			name="description"
-			content="One API for Cardano token metadata from CIP-26, CIP-68 and CIP-113, and a validator to check your token before you mint it."
+			content="The Cardano Foundation token metadata registry: one API for Cardano token metadata from CIP-26, CIP-68 and CIP-113, and a validator to check your token before you mint it."
 		/>
 		<link rel="icon" type="image/svg+xml" href={`${base}/favicon.svg`} />
 	</head>
-	<body class="bg-slate-950 text-slate-100 antialiased">
-		<header class="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
-			<a href={`${base}/`} class="flex items-center gap-3 font-semibold">
-				<img src={`${base}/favicon.svg`} alt="" class="h-8 w-8" />
-				<span>Token Metadata Registry</span>
-			</a>
-			<nav class="flex items-center gap-6 text-sm text-slate-300">
-				<a href={docs('overview')} class="hover:text-white">Docs</a>
-				<a href={docs('validator')} class="hover:text-white">Validator</a>
-				<a href={docs('reference/api')} class="hover:text-white">API</a>
-				<a href={repo} class="hover:text-white">GitHub</a>
-			</nav>
-		</header>
+	<body class="bg-cf-paper font-sans text-cf-ink antialiased">
+		<div class="relative overflow-hidden">
+			<div class="cf-glow pointer-events-none absolute inset-0 -z-0" aria-hidden="true"></div>
 
-		<main>
-			<section class="mx-auto max-w-6xl px-6 pb-20 pt-16 md:pt-24">
-				<p class="mb-4 text-sm font-medium uppercase tracking-widest text-teal-300">Cardano token metadata</p>
-				<h1 class="max-w-3xl text-4xl font-bold leading-tight md:text-6xl">
-					Every token's name, ticker and logo, from every standard, in one API.
+			<header class="relative mx-auto flex max-w-7xl items-center justify-between px-6 py-6">
+				<a href={`${base}/`} class="flex items-center gap-4">
+					<img src={`${base}/images/cf-logo-text.svg`} alt="Cardano Foundation" class="h-10 w-auto" />
+					<span class="hidden h-7 w-px bg-cf-ink-soft/30 md:block" aria-hidden="true"></span>
+					<span class="hidden text-lg tracking-tight text-cf-ink-soft md:block">Token Metadata Registry</span>
+				</a>
+				<nav class="flex items-center gap-7 text-[15px] font-medium tracking-tight text-cf-ink-soft">
+					<a href={docs('overview')} class="hover:text-cf-ink">Docs</a>
+					<a href={docs('validator')} class="hover:text-cf-ink">Validator</a>
+					<a href={docs('reference/api')} class="hover:text-cf-ink">API</a>
+					<a href={repo} class="hidden hover:text-cf-ink sm:inline">GitHub</a>
+				</nav>
+			</header>
+
+			<section class="relative mx-auto max-w-7xl px-6 pb-28 pt-16 md:pt-28">
+				<h1 class="max-w-4xl text-5xl leading-[1.05] tracking-[-0.03em] text-cf-ink-soft md:text-7xl">
+					Every token, from every standard, in one answer
 				</h1>
-				<p class="mt-6 max-w-2xl text-lg text-slate-300">
-					The registry merges CIP-26, CIP-68 and CIP-113 metadata into one answer, and tells you exactly where a
-					token departs from its standard. Check your token before you mint it.
+				<p class="mt-8 max-w-2xl text-lg leading-relaxed tracking-tight text-cf-ink-soft">
+					The CF Token Metadata Registry merges CIP-26, CIP-68 and CIP-113 metadata for every Cardano native token,
+					and tells you exactly where a token departs from its standard. Check your token before you mint it.
 				</p>
-				<div class="mt-10 flex flex-wrap gap-4">
+				<div class="mt-10 flex flex-wrap gap-3">
 					<a
 						href={docs('validator')}
-						class="rounded-lg bg-teal-500 px-5 py-3 font-semibold text-slate-950 hover:bg-teal-400"
+						class="rounded-full bg-cf-ink-soft px-6 py-4 text-sm font-medium text-white transition hover:bg-cf-ink"
 					>
 						Validate a token
 					</a>
 					<a
 						href={docs('getting-started')}
-						class="rounded-lg border border-slate-700 px-5 py-3 font-semibold hover:border-slate-500"
+						class="rounded-full bg-neutral-100 px-6 py-4 text-sm font-semibold text-neutral-900 transition hover:bg-white"
 					>
 						Query the API
 					</a>
 				</div>
 			</section>
+		</div>
 
-			<section class="mx-auto grid max-w-6xl gap-6 px-6 pb-20 md:grid-cols-3">
-				{
-					standards.map((s) => (
-						<a href={s.href} class="rounded-xl border border-slate-800 bg-slate-900/60 p-6 hover:border-teal-700">
-							<p class="text-sm font-semibold text-teal-300">{s.cip}</p>
-							<h2 class="mt-2 text-xl font-semibold">{s.title}</h2>
-							<p class="mt-3 text-slate-300">{s.text}</p>
-						</a>
-					))
-				}
+		<main>
+			<section class="mx-auto max-w-7xl px-6 py-20">
+				<h2 class="max-w-3xl text-4xl leading-tight tracking-[-0.02em] text-cf-ink-soft md:text-5xl">
+					Three standards, one registry
+				</h2>
+				<div class="mt-12 grid gap-5 md:grid-cols-3">
+					{
+						standards.map((s) => (
+							<a href={s.href} class="group rounded-3xl bg-white/70 p-8 transition hover:bg-white">
+								<p class="text-sm font-medium text-cf-accent">{s.cip}</p>
+								<h3 class="mt-3 text-2xl tracking-tight text-cf-ink-soft">{s.title}</h3>
+								<p class="mt-3 leading-relaxed text-cf-ink-soft/80">{s.text}</p>
+								<p class="mt-6 text-sm font-medium text-cf-ink-soft group-hover:underline">Read the guide →</p>
+							</a>
+						))
+					}
+				</div>
 			</section>
 
-			<section class="mx-auto grid max-w-6xl items-start gap-10 px-6 pb-24 md:grid-cols-2">
-				<div>
-					<h2 class="text-2xl font-semibold">One subject, one answer</h2>
-					<p class="mt-4 text-slate-300">
-						Ask for a token by its subject (policy id and asset name). The registry picks each property from the
-						standards it finds, on-chain first by default, and says where every value came from.
-					</p>
-					<h2 class="mt-10 text-2xl font-semibold">Errors you can act on</h2>
-					<p class="mt-4 text-slate-300">
-						A token that breaks its standard is still served, with <code>validation_errors</code> naming the field,
-						the rule and whether it is mandatory. Wallets choose how strict to be with
-						<code>?validation=MANDATORY_ONLY</code> or <code>STRICT</code>.
-					</p>
-					<h2 class="mt-10 text-2xl font-semibold">Check before you mint</h2>
-					<p class="mt-4 text-slate-300">
-						The validator runs the registry's own rules on metadata that does not exist yet, and for CIP-68 builds
-						the datum to put on your reference NFT.
-					</p>
+			<section class="mx-auto grid max-w-7xl items-start gap-12 px-6 pb-28 md:grid-cols-2">
+				<div class="space-y-10">
+					{
+						features.map((f) => (
+							<div>
+								<h3 class="text-2xl tracking-tight text-cf-ink-soft">{f.title}</h3>
+								<p class="mt-3 leading-relaxed text-cf-ink-soft/80">{f.text}</p>
+							</div>
+						))
+					}
 				</div>
-				<pre class="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900 p-5 text-sm leading-relaxed text-slate-200"><code>{example}</code></pre>
+				<pre
+					class="overflow-x-auto rounded-3xl bg-cf-night p-7 text-sm leading-relaxed text-neutral-200"><code>{example}</code></pre>
 			</section>
 		</main>
 
-		<footer class="border-t border-slate-800">
-			<div class="mx-auto flex max-w-6xl flex-col gap-2 px-6 py-8 text-sm text-slate-400 md:flex-row md:justify-between">
-				<p>
-					Open source on <a href={repo} class="underline hover:text-slate-200">GitHub</a>, Apache 2.0.
-				</p>
-				<p>
-					Built on <a href="https://github.com/bloxbean/yaci-store" class="underline hover:text-slate-200">Yaci Store</a>
-					and <a href="https://github.com/bloxbean/cardano-client-lib" class="underline hover:text-slate-200">cardano-client-lib</a>
-					by BloxBean.
-				</p>
+		<footer class="bg-cf-night text-white">
+			<div class="mx-auto flex max-w-7xl flex-col gap-8 px-6 py-14 md:flex-row md:items-end md:justify-between">
+				<div>
+					<img src={`${base}/images/cf-logo-text-white.svg`} alt="Cardano Foundation" class="h-10 w-auto" />
+					<p class="mt-5 max-w-sm text-sm leading-relaxed text-white/60">
+						The CF Token Metadata Registry is developed by the Cardano Foundation, open source under Apache 2.0.
+					</p>
+				</div>
+				<div class="space-y-2 text-sm text-white/60 md:text-right">
+					<p>
+						<a href={repo} class="hover:text-white">GitHub</a>
+						<span class="mx-2">·</span>
+						<a href={docs('overview')} class="hover:text-white">Docs</a>
+						<span class="mx-2">·</span>
+						<a href="https://cardanofoundation.org" class="hover:text-white">cardanofoundation.org</a>
+					</p>
+					<p>
+						Built on <a href="https://github.com/bloxbean/yaci-store" class="underline hover:text-white">Yaci Store</a>
+						and <a href="https://github.com/bloxbean/cardano-client-lib" class="underline hover:text-white">cardano-client-lib</a>
+						by BloxBean.
+					</p>
+				</div>
 			</div>
 		</footer>
 	</body>
