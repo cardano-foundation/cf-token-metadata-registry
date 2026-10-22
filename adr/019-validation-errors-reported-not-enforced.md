@@ -61,6 +61,8 @@ before validation existed has `NULL` errors, meaning "never checked", which is d
 
 - **The `name`/`description` gate is gone:** a token with errors is a `200`. A subject is a `404` only when no
   standard has anything indexed for it.
+  *Amended by ADR-022:* a CIP-68 333 or 444 subject also counts as "nothing indexed" when its user token was never
+  minted.
 - **Property filters:** a filter (`?property=`) no longer has to include `name` and `description`. Under a filter,
   the errors, `valid` and the gate are about the requested properties only. An `image` error counts for `logo`, and
   `no_nested_entry` always counts.
