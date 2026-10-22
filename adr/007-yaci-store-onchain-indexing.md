@@ -23,6 +23,7 @@ We integrate Yaci Store 2.0.0 as an embedded blockchain indexer within the API m
 2. **Custom UTXO storage**: We extend `UtxoStorageImpl` with `CustomUtxoStorage` to filter and store only CIP-68 reference NFTs (identified by the `000643b0` asset name prefix with quantity = 1), reducing storage requirements.
 
 3. **CIP-68 datum parsing**: `Cip68FungibleTokenService` extracts structured metadata (name, description, ticker, url, decimals, logo, version) from reference NFT datums.
+   *Amended:* the parser is `Cip68FTDatumParser`; since ADR-018 it also reads the `image` of a rich fungible token (label 444), and since ADR-019 the `image`, `mediaType`, `files` and other properties, with validation errors. `CustomUtxoStorage` also keeps CIP-113 registry nodes (ADR-016), and the CIP-68 listener records the 333 and 444 user tokens it sees (ADR-022).
 
 4. **Auto-recovery**: Yaci Store's admin module provides automatic recovery from sync failures.
 

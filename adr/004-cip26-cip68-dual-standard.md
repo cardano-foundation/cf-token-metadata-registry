@@ -14,7 +14,7 @@ The Cardano ecosystem has two complementary standards for token metadata:
 
 - **CIP-26** (Cardano Offchain Metadata): Token metadata is submitted to a centralized GitHub repository (`cardano-foundation/cardano-token-registry`) and served via a REST API. This is the original standard, widely adopted but dependent on a manual submission process.
 
-- **CIP-68** (Datum Metadata Standard): Token metadata is stored on-chain as reference NFTs. Each fungible token can have an associated reference NFT (prefix `000643b0`) whose datum contains the metadata. This is a newer, fully decentralized approach.
+- **CIP-68** (Datum Metadata Standard): Token metadata is stored on-chain as reference NFTs. Each fungible token can have an associated reference NFT (prefix `000643b0`) whose datum contains the metadata. The registry serves fungible tokens (label 333) and, since ADR-018, rich fungible tokens (label 444); NFTs (label 222) are not served. This is a newer, fully decentralized approach.
 
 Many tokens have metadata registered under one or both standards, and consumers need a unified interface to query metadata regardless of its source. The registry must support both standards and allow consumers to express a preference for which source takes priority.
 
