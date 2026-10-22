@@ -36,3 +36,6 @@ wallet decides how strict to be:
 - `?validation=ALL` (the default): every token, with its errors.
 - `?validation=MANDATORY_ONLY`: only tokens with no error in a field their standard requires.
 - `?validation=STRICT`: only tokens with no error at all.
+
+Which fields are mandatory, how to choose a level, and why a token may not appear at all:
+[A permissive registry](../concepts/permissive/).
