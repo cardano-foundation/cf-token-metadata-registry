@@ -5,6 +5,7 @@ description: How the registry reports what departs from a token's standard, and 
 
 The registry serves tokens **as they are written**. When a token breaks its standard, it is still served, with a list of
 `validation_errors` saying what is wrong. Nothing is fixed or guessed for you, and nothing is hidden unless you ask.
+Why, which fields are mandatory, and when a token does not appear at all: [A permissive registry](../permissive/).
 
 ## An error
 

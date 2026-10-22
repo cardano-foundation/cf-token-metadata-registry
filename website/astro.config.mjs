@@ -42,6 +42,7 @@ export default defineConfig({
         {
           label: 'Concepts',
           items: [
+            { label: 'A permissive registry', slug: 'concepts/permissive' },
             { label: 'Validation errors', slug: 'concepts/validation-errors' },
             { label: 'Merging the standards', slug: 'concepts/merging' },
           ],
