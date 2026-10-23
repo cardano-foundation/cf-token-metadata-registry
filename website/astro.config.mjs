@@ -36,6 +36,7 @@ export default defineConfig({
       ],
       components: {
         Footer: './src/components/Footer.astro',
+        PageTitle: './src/components/PageTitle.astro',
         SiteTitle: './src/components/SiteTitle.astro',
       },
       sidebar: [
@@ -62,7 +63,7 @@ export default defineConfig({
           label: 'Reference',
           items: [
             { label: 'API', slug: 'reference/api' },
-            { label: 'API reference (Scalar)', link: '/cf-token-metadata-registry/api-reference/', attrs: { target: '_self' } },
+            { label: 'Try the API (Scalar)', link: '/api-reference/', attrs: { target: '_self' } },
             { label: 'Run your own registry', slug: 'reference/self-hosting' },
           ],
         },
