@@ -41,25 +41,17 @@ import org.springframework.web.context.WebApplicationContext;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
-import org.cardanofoundation.tokenmetadata.registry.api.service.Cip68UserTokenService;
-import org.cardanofoundation.tokenmetadata.registry.entity.Cip68UserToken;
-import org.cardanofoundation.tokenmetadata.registry.repository.Cip68UserTokenRepository;
-import java.util.ArrayList;
-import org.springframework.http.MediaType;
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.ArgumentMatchers.anyIterable;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(V2ApiController.class)
-@Import({SpringWebSecurityConfig.class, Cip68FungibleTokenService.class, Cip68UserTokenService.class, Cip68FTDatumParser.class,
-        AppConfig.CipPriorityConfiguration.class})
+@Import({SpringWebSecurityConfig.class, Cip68FungibleTokenService.class, Cip68FTDatumParser.class, AppConfig.CipPriorityConfiguration.class})
 @ActiveProfiles("test")
 @SuppressWarnings("java:S5738") // @MockBean deprecated — @MockitoBean cannot replace it here (EntityManager needs early registration)
 class MetadataApiV2ControllerTest {
@@ -85,20 +77,8 @@ class MetadataApiV2ControllerTest {
     @MockBean
     private RegistryMetricsService metricsService;
 
-    @MockBean
-    private Cip68UserTokenRepository cip68UserTokenRepository;
-
     @BeforeEach
     void setUp() {
-        // every CIP-68 user token asked for has been seen on chain, unless a test says otherwise (ADR-022)
-        when(cip68UserTokenRepository.existsById(anyString())).thenReturn(true);
-        when(cip68UserTokenRepository.findAllById(anyIterable())).thenAnswer(invocation -> {
-            List<Cip68UserToken> seen = new ArrayList<>();
-            for (Object unit : (Iterable<?>) invocation.getArgument(0)) {
-                seen.add(new Cip68UserToken((String) unit, 1L, "tx"));
-            }
-            return seen;
-        });
 
         AssetType unknownAssetType = AssetType.fromUnit("025146866af908340247fe4e9672d5ac7059f1e8534696b5f920c9e66362544843");
 
@@ -567,38 +547,6 @@ class MetadataApiV2ControllerTest {
                     .andExpect(status().isOk())
                     .andExpect(MockMvcResultMatchers.jsonPath("$.subject.metadata.valid").value(true))
                     .andExpect(MockMvcResultMatchers.jsonPath("$.subject.validation_errors").isEmpty());
-        }
-
-        @Test
-        void doesNotServeAFungibleSubjectWhoseTokenWasNeverSeen() throws Exception {
-            stored(List.of());
-            when(cip68UserTokenRepository.existsById(SUBJECT)).thenReturn(false);
-
-            mockMvc.perform(get("/api/v2/subjects/" + SUBJECT)).andExpect(status().isNotFound());
-        }
-
-        @Test
-        void doesNotServeTheRichFungibleSubjectOfAFungibleToken() throws Exception {
-            // the reference NFT holds the metadata of the 333 token; its 444 subject was never minted
-            stored(List.of());
-            String richFungibleSubject = POLICY + "001bc280" + BASE_NAME;
-            when(cip68UserTokenRepository.existsById(richFungibleSubject)).thenReturn(false);
-
-            mockMvc.perform(get("/api/v2/subjects/" + SUBJECT)).andExpect(status().isOk());
-            mockMvc.perform(get("/api/v2/subjects/" + richFungibleSubject)).andExpect(status().isNotFound());
-        }
-
-        @Test
-        void aBatchLeavesOutTheSubjectsWhoseTokenWasNeverSeen() throws Exception {
-            stored(List.of());
-            String richFungibleSubject = POLICY + "001bc280" + BASE_NAME;
-            when(cip68UserTokenRepository.findAllById(anyIterable())).thenReturn(List.of(new Cip68UserToken(SUBJECT, 1L, "tx")));
-
-            mockMvc.perform(post("/api/v2/subjects/query").contentType(MediaType.APPLICATION_JSON)
-                            .content("{\"subjects\": [\"" + SUBJECT + "\", \"" + richFungibleSubject + "\"]}"))
-                    .andExpect(status().isOk())
-                    .andExpect(MockMvcResultMatchers.jsonPath("$.subjects.length()").value(1))
-                    .andExpect(MockMvcResultMatchers.jsonPath("$.subjects[0].subject").value(SUBJECT));
         }
 
         @Test

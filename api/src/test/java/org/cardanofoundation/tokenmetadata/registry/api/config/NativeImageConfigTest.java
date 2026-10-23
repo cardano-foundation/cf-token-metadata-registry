@@ -4,7 +4,6 @@ import org.cardanofoundation.tokenmetadata.registry.api.model.cip113.Programmabl
 import org.cardanofoundation.tokenmetadata.registry.api.model.cip68.FungibleTokenMetadata;
 import org.cardanofoundation.tokenmetadata.registry.api.model.v2.Subject;
 import org.cardanofoundation.tokenmetadata.registry.entity.Cip113RegistryNode;
-import org.cardanofoundation.tokenmetadata.registry.entity.Cip68UserToken;
 import org.cardanofoundation.tokenmetadata.registry.entity.Cip113RegistryNodeId;
 import org.cardanofoundation.tokenmetadata.registry.entity.InvalidToken;
 import org.cardanofoundation.tokenmetadata.registry.entity.MetadataReferenceNft;
@@ -34,7 +33,6 @@ class NativeImageConfigTest {
     @ValueSource(classes = {
             MetadataReferenceNft.class,
             InvalidToken.class,
-            Cip68UserToken.class,
             Cip113RegistryNode.class,
             Cip113RegistryNodeId.class,
             ValidationError.class,

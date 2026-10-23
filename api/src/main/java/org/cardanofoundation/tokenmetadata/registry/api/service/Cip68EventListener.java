@@ -18,7 +18,6 @@ import org.cardanofoundation.tokenmetadata.registry.entity.MetadataReferenceNft;
 import org.cardanofoundation.tokenmetadata.registry.invalidtoken.InvalidTokenReason;
 import org.cardanofoundation.tokenmetadata.registry.invalidtoken.InvalidTokenRecorder;
 import org.cardanofoundation.tokenmetadata.registry.invalidtoken.InvalidTokenReport;
-import org.cardanofoundation.tokenmetadata.registry.repository.Cip68UserTokenRepository;
 import org.cardanofoundation.tokenmetadata.registry.repository.MetadataReferenceNftRepository;
 import org.cardanofoundation.tokenmetadata.registry.validation.ValidationError;
 import org.springframework.context.ApplicationEventPublisher;
@@ -70,8 +69,6 @@ public class Cip68EventListener {
     private final Cip68FTDatumParser cip68DatumParser;
     private final MetadataReferenceNftRepository metadataReferenceNftRepository;
     private final InvalidTokenRecorder invalidTokenRecorder;
-    private final Cip68UserTokenRecorder userTokenRecorder;
-    private final Cip68UserTokenRepository userTokenRepository;
     private final ApplicationEventPublisher eventPublisher;
 
     @EventListener
@@ -79,20 +76,17 @@ public class Cip68EventListener {
     public void handleRollback(RollbackEvent rollbackEvent) {
         long rollbackSlot = rollbackEvent.getRollbackTo().getSlot();
         int count = metadataReferenceNftRepository.deleteBySlotGreaterThan(rollbackSlot);
-        int userTokens = userTokenRepository.deleteBySlotGreaterThan(rollbackSlot);
-        log.info("CIP-68 rollback to slot {}: deleted {} reference NFT records and {} user tokens", rollbackSlot, count, userTokens);
+        log.info("CIP-68 rollback to slot {}: deleted {} reference NFT records", rollbackSlot, count);
     }
 
     @EventListener
     public void processTransaction(AddressUtxoEvent addressUtxoEvent) {
         Long slot = addressUtxoEvent.getMetadata().getSlot();
         List<MetadataReferenceNft> entities = new ArrayList<>();
-        Map<String, String> userTokens = new LinkedHashMap<>();
         // Per transaction: the labels of a reference NFT come from the user tokens paired with it, which are minted in
         // the same transaction
         for (TxInputOutput txInputOutput : addressUtxoEvent.getTxInputOutputs()) {
             Set<String> assetUnitsInTx = collectAssetUnits(txInputOutput);
-            collectUserTokens(txInputOutput, userTokens);
             for (AddressUtxo output : txInputOutput.getOutputs()) {
                 try {
                     indexOutput(output, assetUnitsInTx, slot, entities);
@@ -105,28 +99,11 @@ public class Cip68EventListener {
         if (!entities.isEmpty()) {
             metadataReferenceNftRepository.saveAll(entities);
         }
-        // the fungible and rich fungible tokens of the block, so that V2 serves a 333 or 444 subject only when its token
-        // exists (ADR-022)
-        Set<String> newUserTokens = userTokenRecorder.recordSeen(userTokens, slot);
-
         // what depends on CIP-68 metadata reacts after the block commits, e.g. the CIP-113 companion check (ADR-020)
         Set<String> policies = new HashSet<>();
         entities.forEach(entity -> policies.add(entity.getPolicyId()));
-        newUserTokens.forEach(unit -> policies.add(AssetType.fromUnit(unit).policyId()));
         if (!policies.isEmpty()) {
             eventPublisher.publishEvent(new Cip68MetadataIndexedEvent(policies));
-        }
-    }
-
-    /** The 333 and 444 user tokens in the outputs of a transaction, each with the first transaction of the block that showed it. */
-    private static void collectUserTokens(TxInputOutput txInputOutput, Map<String, String> into) {
-        for (AddressUtxo output : txInputOutput.getOutputs()) {
-            for (Amt amount : output.getAmounts()) {
-                String unit = normalize(AssetType.fromUnit(amount.getUnit()).toUnit());
-                if (Cip68UserTokenRecorder.isFungibleOrRichFungibleUnit(unit)) {
-                    into.putIfAbsent(unit, output.getTxHash());
-                }
-            }
         }
     }
 

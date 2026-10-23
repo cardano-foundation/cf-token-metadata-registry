@@ -32,9 +32,8 @@ import java.util.stream.Collectors;
 /**
  * Keeps the {@code no_companion_metadata} rows of {@code invalid_token} (ADR-020) in step with the data. A programmable
  * token (CIP-113) is served only with its CIP-26 or CIP-68 metadata, so a policy registered in the CIP-113 registry
- * whose tokens have none that is served cannot be served: it gets one row, and the row is removed as soon as one of its
- * tokens has a CIP-26 entry or served CIP-68 metadata (a reference NFT whose 333 or 444 token was minted, ADR-022), with
- * or without validation errors, or the policy is no longer registered.
+ * whose tokens have none cannot be served: it gets one row, and the row is removed as soon as one of its tokens has a
+ * CIP-26 entry or a CIP-68 reference NFT, with or without validation errors, or the policy is no longer registered.
  * <p>
  * The registry indexes the registry nodes, not the mints or the programmable-token ("jail") address, so this is known
  * per policy, not per token, and a policy registered with nothing minted yet is reported the same way.
@@ -44,8 +43,8 @@ import java.util.stream.Collectors;
  * here can never abort Yaci Store's block transaction and stop the sync.
  * <ul>
  *   <li>{@link Cip113RegistryChangedEvent}: registry nodes were indexed, or removed by a rollback;</li>
- *   <li>{@link Cip68MetadataIndexedEvent}: the CIP-68 listener stored a reference NFT, or saw a new user token, of some
- *       policies; it reconciles only if one of them is registered;</li>
+ *   <li>{@link Cip68MetadataIndexedEvent}: the CIP-68 listener stored reference NFTs of some policies; it reconciles
+ *       only if one of them is registered;</li>
  *   <li>{@link Cip26SyncCompletedEvent}: a CIP-26 sync run in this process changed entries;</li>
  *   <li>the application started.</li>
  * </ul>
@@ -147,7 +146,7 @@ public class Cip113CompanionReconciler {
             Set<String> withCompanion = new HashSet<>();
             if (!registered.isEmpty()) {
                 withCompanion.addAll(tokenMetadataRepository.findPolicyIdsWithMetadata(registered));
-                withCompanion.addAll(metadataReferenceNftRepository.findPolicyIdsWithServedMetadata(registered));
+                withCompanion.addAll(metadataReferenceNftRepository.findPolicyIdsWithMetadata(registered));
             }
             Set<String> withoutCompanion = registered.stream()
                     .filter(policyId -> !withCompanion.contains(policyId))

@@ -196,7 +196,7 @@ class Cip113CompanionReconcilerTest {
     void recordsEveryRegisteredPolicyWithoutCip26OrCip68Metadata() {
         when(registryNodeRepository.findRegisteredPolicyIds()).thenReturn(List.of(WITH_CIP26, WITH_CIP68, WITHOUT));
         when(tokenMetadataRepository.findPolicyIdsWithMetadata(anyCollection())).thenReturn(List.of(WITH_CIP26));
-        when(metadataReferenceNftRepository.findPolicyIdsWithServedMetadata(anyCollection())).thenReturn(List.of(WITH_CIP68));
+        when(metadataReferenceNftRepository.findPolicyIdsWithMetadata(anyCollection())).thenReturn(List.of(WITH_CIP68));
         when(invalidTokenRepository.findByStandardAndReasonCode(InvalidTokenReason.CIP_113, InvalidTokenReason.NO_COMPANION_METADATA))
                 .thenReturn(List.of());
 
@@ -215,7 +215,7 @@ class Cip113CompanionReconcilerTest {
     void removesTheRowOfAPolicyThatNowHasMetadataAndKeepsTheOthers() {
         when(registryNodeRepository.findRegisteredPolicyIds()).thenReturn(List.of(WITH_CIP68, WITHOUT));
         when(tokenMetadataRepository.findPolicyIdsWithMetadata(anyCollection())).thenReturn(List.of());
-        when(metadataReferenceNftRepository.findPolicyIdsWithServedMetadata(anyCollection())).thenReturn(List.of(WITH_CIP68));
+        when(metadataReferenceNftRepository.findPolicyIdsWithMetadata(anyCollection())).thenReturn(List.of(WITH_CIP68));
         when(invalidTokenRepository.findByStandardAndReasonCode(InvalidTokenReason.CIP_113, InvalidTokenReason.NO_COMPANION_METADATA))
                 .thenReturn(List.of(row("id-cip68", WITH_CIP68), row("id-without", WITHOUT)));
 

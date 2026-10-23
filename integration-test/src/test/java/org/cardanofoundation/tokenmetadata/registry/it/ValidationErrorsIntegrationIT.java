@@ -183,35 +183,12 @@ public class ValidationErrorsIntegrationIT extends BaseIntegrationIT {
             assertThat(errors(json)).isEmpty();
             assertThat(status(LP_WITH_POOL_NFT.subject(NFT_PREFIX), "")).isEqualTo(HttpStatus.NOT_FOUND);
         }
-    }
-
-    /** A 333 or 444 subject is served only when its user token was minted (ADR-022). */
-    @Nested
-    @DisplayName("Only minted user tokens are served")
-    class MintedUserTokensOnly {
 
         @Test
-        void theRichFungibleSubjectOfAFungibleTokenIsNotServed() {
+        void aReferenceNftAnswersUnderTheLabelItsTokenWasNotMintedWith() {
+            // a 200 says metadata is attached to the subject, not that the token exists (ADR-022, rejected)
             assertThat(status(VALID.subject(FT_PREFIX), "")).isEqualTo(HttpStatus.OK);
-            assertThat(status(VALID.subject(RFT_PREFIX), "")).isEqualTo(HttpStatus.NOT_FOUND);
-        }
-
-        @Test
-        void theFungibleSubjectOfARichFungibleTokenIsNotServed() {
-            assertThat(status(RICH_FT.subject(RFT_PREFIX), "")).isEqualTo(HttpStatus.OK);
-            assertThat(status(RICH_FT.subject(FT_PREFIX), "")).isEqualTo(HttpStatus.NOT_FOUND);
-        }
-
-        @Test
-        void aBatchLeavesOutSubjectsThatWereNeverMinted() {
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            String body = "{\"subjects\": [\"" + VALID.subject(FT_PREFIX) + "\", \"" + VALID.subject(RFT_PREFIX) + "\"], \"properties\": []}";
-            ResponseEntity<String> response = restTemplate.postForEntity(API_BASE_URL + "/api/v2/subjects/query",
-                    new HttpEntity<>(body, headers), String.class);
-
-            List<String> subjects = JsonPath.parse(response.getBody()).read("$.subjects[*].subject");
-            assertThat(subjects).containsExactly(VALID.subject(FT_PREFIX));
+            assertThat(status(VALID.subject(RFT_PREFIX), "")).isEqualTo(HttpStatus.OK);
         }
     }
 

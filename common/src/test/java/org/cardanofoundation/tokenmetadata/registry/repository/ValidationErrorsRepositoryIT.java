@@ -3,7 +3,6 @@ package org.cardanofoundation.tokenmetadata.registry.repository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import org.cardanofoundation.tokenmetadata.registry.config.RepositoryTestConfig;
-import org.cardanofoundation.tokenmetadata.registry.entity.Cip68UserToken;
 import org.cardanofoundation.tokenmetadata.registry.entity.InvalidToken;
 import org.cardanofoundation.tokenmetadata.registry.entity.MetadataReferenceNft;
 import org.cardanofoundation.tokenmetadata.registry.entity.TokenMetadata;
@@ -44,8 +43,6 @@ class ValidationErrorsRepositoryIT {
     private TokenMetadataRepository tokenMetadataRepository;
     @Autowired
     private InvalidTokenRepository invalidTokenRepository;
-    @Autowired
-    private Cip68UserTokenRepository cip68UserTokenRepository;
 
     @Test
     void storesTheValidationErrorsAndPropertiesOfACip68RowWithoutNameOrVersion() {
@@ -82,20 +79,15 @@ class ValidationErrorsRepositoryIT {
     }
 
     @Test
-    void findsThePoliciesThatHaveCip26OrServedCip68Metadata() {
+    void findsThePoliciesThatHaveCip26OrCip68Metadata() {
         tokenMetadataRepository.save(cip26(POLICY_A + "41", List.of()));
-        // B: a reference NFT whose 444 token was minted; C: a reference NFT alone, which serves nothing (ADR-022)
         metadataReferenceNftRepository.save(MetadataReferenceNft.builder().policyId(POLICY_B).assetName("000643b041").slot(1L)
                 .name("T").version(1L).datum("d87980").build());
-        metadataReferenceNftRepository.save(MetadataReferenceNft.builder().policyId(POLICY_C).assetName("000643b042").slot(1L)
-                .name("U").version(1L).datum("d87980").build());
-        cip68UserTokenRepository.save(new Cip68UserToken(POLICY_B + "001bc28041", 1L, "tx"));
-        cip68UserTokenRepository.save(new Cip68UserToken(POLICY_C + "0014df1041", 1L, "tx"));
         entityManager.flush();
 
         List<String> queried = List.of(POLICY_A, POLICY_B, POLICY_C);
         assertThat(tokenMetadataRepository.findPolicyIdsWithMetadata(queried)).containsExactly(POLICY_A);
-        assertThat(metadataReferenceNftRepository.findPolicyIdsWithServedMetadata(queried)).containsExactly(POLICY_B);
+        assertThat(metadataReferenceNftRepository.findPolicyIdsWithMetadata(queried)).containsExactly(POLICY_B);
     }
 
     @Test

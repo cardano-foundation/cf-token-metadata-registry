@@ -23,7 +23,6 @@ import org.cardanofoundation.tokenmetadata.registry.api.model.v2.Subject;
 import org.cardanofoundation.tokenmetadata.registry.api.model.v2.TokenType;
 import org.cardanofoundation.tokenmetadata.registry.entity.Cip113RegistryNode;
 import org.cardanofoundation.tokenmetadata.registry.entity.Cip113RegistryNodeId;
-import org.cardanofoundation.tokenmetadata.registry.entity.Cip68UserToken;
 import org.cardanofoundation.tokenmetadata.registry.entity.InvalidToken;
 import org.cardanofoundation.tokenmetadata.registry.entity.MetadataReferenceNft;
 import org.cardanofoundation.tokenmetadata.registry.entity.MetadataReferenceNftId;
@@ -64,7 +63,6 @@ public class NativeImageConfig {
                     MetadataReferenceNftId.class,
                     OffChainSyncState.class,
                     InvalidToken.class,
-                    Cip68UserToken.class,
                     Cip113RegistryNode.class,
                     Cip113RegistryNodeId.class
             }) {
