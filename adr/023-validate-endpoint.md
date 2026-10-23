@@ -38,7 +38,7 @@ The answer has the shape of what the registry would record and serve:
 - `datum`: for CIP-68, the datum as given, or as built from the fields (`Cip68DatumBuilder`), so an issuer can put
   exactly that datum on the reference NFT;
 - `cip113`: the extension V2 would add;
-- `notes`: what the answer assumes. A 333/444 subject is served only once its user token is minted (ADR-022); CIP-26
+- `notes`: what the answer assumes. The subjects V2 serves the CIP-68 metadata under, minted or not (ADR-022); CIP-26
   signatures are not verified; a programmable token is served only with its CIP-26 or CIP-68 metadata (ADR-020).
 
 **Nothing is stored or read from the index.** The endpoint is a function of its input.

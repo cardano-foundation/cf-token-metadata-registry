@@ -67,20 +67,26 @@ The registry serves the **newest** metadata. If a CIP-68 token is updated with a
 new datum is served, with its errors; the registry does not fall back to an older, valid one. Moving the reference NFT
 to an output **without** a datum is not an update: the last datum stays.
 
+## A 200 does not mean the token exists
+
+The registry answers what metadata is attached to a subject, not whether the token exists. A CIP-68 reference NFT holds
+the metadata of the 333 and the 444 token of the same name, and the registry serves it under both subjects, whether or
+not that token was minted, so the metadata of a token that was burned stays available for history. To know whether a
+token exists, ask the chain.
+
 ## Why a token may not appear
 
 A `404` for a token that exists on chain has one of these reasons, from the most to the least common:
 
 1. **Not indexed yet.** The registry indexes the chain as it goes, and syncs the CIP-26 registry every hour. A token
    minted a moment ago, or a CIP-26 entry merged a moment ago, may not be there yet.
-2. **No metadata.** The token has neither a CIP-26 entry nor a CIP-68 datum. There is nothing to serve.
-3. **The CIP-68 user token was never minted.** The registry serves a 333 or 444 subject only once that token exists; a
-   reference NFT alone is not a token anyone holds. NFTs (label 222) are not served.
-4. **A CIP-113 token without metadata.** A programmable token is served only with its CIP-26 or CIP-68 metadata: a
+2. **No metadata.** The token has neither a CIP-26 entry nor a CIP-68 datum. There is nothing to serve. NFTs (label
+   222) are not served.
+3. **A CIP-113 token without metadata.** A programmable token is served only with its CIP-26 or CIP-68 metadata: a
    registry node has no name to show.
-5. **Your `validation` level hides it.** With `MANDATORY_ONLY` or `STRICT`, a token with errors is a `404`. Ask with
+4. **Your `validation` level hides it.** With `MANDATORY_ONLY` or `STRICT`, a token with errors is a `404`. Ask with
    `ALL` to see it and its errors.
-6. **It is in a very bad state, or looks like an attack on the registry.** A few things are not indexed at all,
+5. **It is in a very bad state, or looks like an attack on the registry.** A few things are not indexed at all,
    because they cannot be read, or because their only plausible purpose is to harm the indexer:
 
 | What | Why it is not indexed |
@@ -110,5 +116,5 @@ The design is recorded in the project's architecture decision records, for those
 
 - [ADR-019](https://github.com/cardano-foundation/cf-token-metadata-registry/blob/develop/adr/019-validation-errors-reported-not-enforced.md): validation errors are reported, not enforced
 - [ADR-020](https://github.com/cardano-foundation/cf-token-metadata-registry/blob/develop/adr/020-invalid-token-table.md): what cannot be stored is recorded, CIP-113 included
-- [ADR-022](https://github.com/cardano-foundation/cf-token-metadata-registry/blob/develop/adr/022-cip68-serve-minted-user-tokens-only.md): a CIP-68 token is served only once its user token is minted
+- [ADR-022](https://github.com/cardano-foundation/cf-token-metadata-registry/blob/develop/adr/022-cip68-serve-minted-user-tokens-only.md): why a CIP-68 subject is served whether or not its user token was minted (rejected proposal)
 - [ADR-023](https://github.com/cardano-foundation/cf-token-metadata-registry/blob/develop/adr/023-validate-endpoint.md): the validate endpoint
