@@ -1,0 +1,52 @@
+---
+import Default from '@astrojs/starlight/components/PageTitle.astro';
+import spec from '../../openapi/registry.json';
+
+// The generated API reference pages (api/operations/<operation id>/) document only. Each links to the same operation
+// on the Scalar page, where it can be tried out.
+type Operation = { operationId?: string; tags?: string[] };
+
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+const operationId = Astro.url.pathname.match(/\/api\/operations\/([^/]+)\/?$/)?.[1];
+const slug = (text: string) =>
+	text
+		.toLowerCase()
+		.replace(/[^a-z0-9]+/g, '-')
+		.replace(/^-|-$/g, '');
+
+let tryIt: string | undefined;
+for (const [path, operations] of Object.entries(spec.paths as Record<string, Record<string, Operation>>)) {
+	for (const [method, operation] of Object.entries(operations)) {
+		if (operationId && operation.operationId === operationId) {
+			// Scalar's anchor for an operation: tag/<tag slug>/<METHOD><path>.
+			tryIt = `${base}/api-reference/#tag/${slug(operation.tags?.[0] ?? '')}/${method.toUpperCase()}${path}`;
+		}
+	}
+}
+---
+
+<Default />
+{
+	tryIt && (
+		<a class="try-it not-content" href={tryIt}>
+			Try it in Scalar →
+		</a>
+	)
+}
+
+<style>
+	.try-it {
+		display: inline-block;
+		margin-top: 1rem;
+		padding: 0.5rem 1.1rem;
+		border-radius: 9999px;
+		background: var(--sl-color-text);
+		color: var(--sl-color-bg);
+		font-size: var(--sl-text-sm);
+		font-weight: 500;
+		text-decoration: none;
+	}
+	.try-it:hover {
+		opacity: 0.85;
+	}
+</style>
