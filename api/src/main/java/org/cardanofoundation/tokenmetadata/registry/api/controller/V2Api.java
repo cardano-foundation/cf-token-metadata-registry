@@ -1,5 +1,6 @@
 package org.cardanofoundation.tokenmetadata.registry.api.controller;
 
+import org.cardanofoundation.tokenmetadata.registry.api.model.v2.ValidationScope;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -15,7 +16,9 @@ import java.util.List;
 
 public interface V2Api {
 
-    @Operation(operationId = "getSubject", summary = "Query either all or a subset of properties of a given subject")
+    @Operation(operationId = "getSubject", summary = "Query either all or a subset of properties of a given subject",
+            description = "Returns the subject as indexed, with validation_errors saying how its metadata departs from its CIP. "
+                    + "A subject is a 404 when nothing is indexed for it, or when the validation parameter does not accept it.")
     @GetMapping(path = "/subjects/{subject}", produces = {"application/json;charset=utf-8"})
     ResponseEntity<Response> getSubject(@Parameter(description = "the concatenation of policy id and asset name (if any) to query")
                                         @PathVariable("subject") final String subject,
@@ -24,7 +27,9 @@ public interface V2Api {
                                         @Parameter(description = "the CIP priority: if the same property is present in multiple standards, the one with highest priority is returned")
                                         @RequestParam(value = "query_priority", required = false) final List<QueryPriority> priorities,
                                         @Parameter(description = "whether all the CIP specific properties should be returned in the response. False by default")
-                                        @RequestParam(value = "show_cips_details", defaultValue = "false", required = false) final Boolean showCipsDetails);
+                                        @RequestParam(value = "show_cips_details", defaultValue = "false", required = false) final Boolean showCipsDetails,
+                                        @Parameter(description = "which tokens to return, by how well their metadata follows its CIP: ALL (default) returns every indexed token with its validation_errors; MANDATORY_ONLY only tokens with no MANDATORY error; STRICT only tokens with no error at all (metadata.valid true). A token that is not accepted is a 404")
+                                        @RequestParam(value = "validation", defaultValue = "ALL", required = false) final ValidationScope validation);
 
     @Operation(operationId = "getSubjects", summary = "Query either all or a subset of properties of the given subjects")
     @PostMapping(value = "/subjects/query", produces = {"application/json;charset=utf-8"}, consumes = {"application/json;charset=utf-8"})
@@ -32,6 +37,8 @@ public interface V2Api {
                                               @Parameter(description = "the CIP priority: if the same property is present in multiple standards, the one with highest priority is returned")
                                               @RequestParam(value = "query_priority", required = false) final List<QueryPriority> priorities,
                                               @Parameter(description = "whether all the CIP specific properties should be returned in the response. False by default")
-                                              @RequestParam(value = "show_cips_details", defaultValue = "false", required = false) final Boolean showCipsDetails);
+                                              @RequestParam(value = "show_cips_details", defaultValue = "false", required = false) final Boolean showCipsDetails,
+                                              @Parameter(description = "which tokens to return, by how well their metadata follows its CIP: ALL (default) returns every indexed token with its validation_errors; MANDATORY_ONLY only tokens with no MANDATORY error; STRICT only tokens with no error at all (metadata.valid true). A token that is not accepted is left out of the response")
+                                              @RequestParam(value = "validation", defaultValue = "ALL", required = false) final ValidationScope validation);
 
 }

@@ -2,11 +2,15 @@ package org.cardanofoundation.tokenmetadata.registry.api.model.v2;
 
 import org.cardanofoundation.tokenmetadata.registry.api.model.cip68.FungibleTokenMetadata;
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.TokenMetadata;
+import org.cardanofoundation.tokenmetadata.registry.api.model.rest.wellknownproperties.LogoProperty;
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.wellknownproperties.NameProperty;
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.wellknownproperties.TickerProperty;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+import java.util.Base64;
+
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.cardanofoundation.tokenmetadata.registry.api.model.QueryPriority.CIP_26;
 import static org.cardanofoundation.tokenmetadata.registry.api.model.QueryPriority.CIP_68;
 
@@ -57,5 +61,48 @@ class MetadataTest {
 
     }
 
+    @Test
+    void logoFromCip26IsBase64Encoded() {
+        // CIP-26 spec mandates base64 logos. Same shape as standards.cip26.logo (which is the
+        // raw byte[] property — Jackson default-serializes that as base64). The flat metadata
+        // block was historically hex-encoding the bytes here, which diverged from both the
+        // spec and the standards block in the same response. Lock in base64.
+        NameProperty nameProperty = new NameProperty();
+        nameProperty.setValue("name");
+
+        byte[] logoBytes = {(byte) 0x89, 'P', 'N', 'G', '\r', '\n', 0x1A, '\n'}; // PNG magic
+        LogoProperty logoProperty = new LogoProperty();
+        logoProperty.setValue(logoBytes);
+
+        Metadata actual = Metadata.from(TokenMetadata.builder()
+                .name(nameProperty)
+                .logo(logoProperty)
+                .build());
+
+        String expectedBase64 = Base64.getEncoder().encodeToString(logoBytes);
+        Assertions.assertEquals(new StringProperty(expectedBase64, CIP_26.name()), actual.logo());
+    }
+
+    @Test
+    void isNotValidUntilItIsSetFromTheErrors() {
+        Metadata named = Metadata.builder().name(new StringProperty("Token", CIP_68.name()))
+                .description(new StringProperty("Desc", CIP_68.name())).build();
+
+        assertThat(named.valid()).isFalse();
+        assertThat(named.toBuilder().valid(true).build().valid()).isTrue();
+    }
+
+    @Test
+    void keepsItsValidFlagWhenMerged() {
+        Metadata valid = Metadata.builder().name(new StringProperty("Token", CIP_68.name())).valid(true).build();
+
+        assertThat(valid.merge(Metadata.empty()).valid()).isTrue();
+    }
+
+    @Test
+    void isEmptyWhateverItsValidFlag() {
+        assertThat(Metadata.empty().toBuilder().valid(true).build().isEmpty()).isTrue();
+        assertThat(Metadata.builder().ticker(new StringProperty("T", CIP_68.name())).build().isEmpty()).isFalse();
+    }
 
 }

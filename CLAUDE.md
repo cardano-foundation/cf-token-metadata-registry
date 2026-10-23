@@ -4,35 +4,39 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Architecture Overview
 
-Multi-standard Cardano token metadata registry built with Spring Boot 3 and Java 25. Merges offchain (CIP-26) and on-chain (CIP-68) token metadata into a unified API with configurable query priority.
+Multi-standard Cardano token metadata registry built with Spring Boot 3 and Java 25. Merges offchain (CIP-26), on-chain (CIP-68), and programmable token (CIP-113) metadata into a unified API with configurable query priority.
 
 ### Modules
 
-- **api**: REST API server — serves V1 (CIP-26 only) and V2 (CIP-26 + CIP-68) endpoints. Embeds Yaci Store for real-time blockchain indexing of CIP-68 reference NFTs
+- **api**: REST API server — serves V1 (CIP-26 only) and V2 (CIP-26 + CIP-68 + CIP-113) endpoints. Embeds Yaci Store for real-time blockchain indexing of CIP-68 reference NFTs and CIP-113 registry nodes
 - **job**: Background job that syncs CIP-26 offchain metadata from the GitHub cardano-token-registry
-- **common**: Shared JPA entities (`Metadata`, `MetadataReferenceNft`), repositories, and domain models
+- **common**: Shared JPA entities (`Metadata`, `MetadataReferenceNft`, `Cip113RegistryNode`), repositories, and domain models
 - **cli**: Command-line tool for CIP-26 metadata operations (`init`, `entry`, `validate`)
 - **integration-test**: End-to-end integration tests run against a live API instance with `RestTemplate`
 
 ### Metadata Standards
 
-- **CIP-26** (offchain): JSON metadata files synced from GitHub, stored in `metadata` table
-- **CIP-68** (on-chain): Reference NFT datum parsed from blockchain UTxOs (prefix `000643b0`), stored in `metadata_reference_nft` table. Fungible tokens (prefix `0014df10`) are mapped to their reference NFT counterpart
+- **CIP-26** (offchain): JSON metadata files synced from GitHub, stored in `metadata` table as written, with their `validation_errors`
+- **CIP-68** (on-chain): Reference NFT datum parsed from blockchain UTxOs (prefix `000643b0`), stored in `metadata_reference_nft` table. Fungible tokens (label 333, prefix `0014df10`) and rich fungible tokens (label 444, prefix `001bc280`) are mapped to their reference NFT counterpart. An RFT's `image` is served as `logo`, and its description is optional (ADR-018). NFTs (label 222) are not served. Every decodable 333/444 datum is stored as written, with `validation_errors` per label (ADR-019)
+- **CIP-113** (programmable tokens): Registry node NFTs with minting, transfer, third-party and unfracking logic scripts, stored in `cip113_registry_node` table. Enabled when `CIP113_REGISTRY_NFT_POLICY_IDS` is non-empty. The parser reads the 7-field `RegistryNode` datum and skips any other shape with a WARN
 
 ### V2 Query Priority
 
 The V2 API merges metadata from CIP-26 and CIP-68 using a priority mechanism:
 - Default priority: `CIP_68,CIP_26` (on-chain preferred, configurable via `cip.query.priority`)
 - Per-request override via `query_priority` parameter
-- First source with valid data (name + description) wins; gaps filled by lower-priority sources
+- First source wins per property; gaps filled by lower-priority sources
+- Tokens are served as indexed (ADR-019): `validation_errors` on the subject (all standards, priority order) and on `standards.*`, `metadata.valid` true when there are none, 404 only when nothing is indexed. A CIP-68 333/444 subject is served from its reference NFT whether or not its user token was minted (ADR-022, rejected). `?validation=ALL|MANDATORY_ONLY|STRICT` (default `ALL`) chooses which tokens are returned; under `?property=` the errors are scoped to those properties
+- What cannot be stored (undecodable datums, unusable CIP-26 files, unparseable CIP-113 nodes, registered CIP-113 policies with no CIP-26/CIP-68 companion) is recorded in the `invalid_token` table (ADR-020); there is no API for it
+- CIP-113 extensions are appended when the token's policy ID is in the programmable token registry
 
 ### On-Chain Indexing (Yaci Store)
 
-Yaci Store 2.0.2.1 is embedded in the API module for real-time Cardano blockchain sync. The `yaci`
-mini-protocol library is pinned to 0.4.6 in the root `dependencyManagement`, overriding the 0.4.4
-that Yaci Store 2.0.2.1 brings transitively:
-- `CustomUtxoStorage` filters UTxOs — only persists CIP-68 reference NFTs
-- Event listener (`Cip68EventListener`) parses datums on new blocks
+Yaci Store 2.0.7 is embedded in the API module for real-time Cardano blockchain sync. The `yaci`
+mini-protocol library is pinned on its own (`version.yaci`, 0.4.7, in the root `pom.xml`), so a yaci fix can
+be taken without waiting for a yaci-store release:
+- `CustomUtxoStorage` filters UTxOs — only persists CIP-68 reference NFTs and CIP-113 registry nodes
+- Event listeners (`Cip68EventListener`, `Cip113EventListener`) parse datums on new blocks
 - Admin UI available at `/admin-ui/` for sync control
 
 ## Key Commands
@@ -83,6 +87,8 @@ Main configuration is in `api/src/main/resources/application.properties`. Key en
 | `TOKEN_METADATA_SYNC_JOB` | Enable CIP-26 GitHub sync | `false` |
 | `GITHUB_ORGANIZATION` | Source GitHub org | `cardano-foundation` |
 | `GITHUB_PROJECT_NAME` | Source repo name | `cardano-token-registry` |
+| `CIP113_REGISTRY_NFT_POLICY_IDS` | Comma-separated monitored policy IDs (CIP-113 enabled when non-empty) | (empty) |
+| `cip113.companion.reconcile.interval-ms` | When the CIP-26 sync runs in a separate job process (`TOKEN_METADATA_SYNC_JOB=false`), how often CIP-113 policies without served CIP-26/CIP-68 metadata are recomputed in `invalid_token`. Otherwise they are recomputed on events only (ADR-020) | `600000` |
 | `STORE_CARDANO_HOST` | Cardano node hostname | `backbone.mainnet.cardanofoundation.org` |
 | `STORE_CARDANO_PORT` | Cardano node port | `3001` |
 
@@ -96,11 +102,11 @@ Main configuration is in `api/src/main/resources/application.properties`. Key en
 | GET | `/metadata/{subject}/properties/{property}` | Single property for a subject |
 | POST | `/metadata/query` | Batch query multiple subjects |
 
-### V2 API (CIP-26 + CIP-68)
+### V2 API (CIP-26 + CIP-68 + CIP-113)
 
 | Method | Path | Description |
 |--------|------|-------------|
-| GET | `/api/v2/subjects/{subject}` | Subject with priority, optional `property`, `query_priority`, `show_cips_details` params |
+| GET | `/api/v2/subjects/{subject}` | Subject with priority, optional `property`, `query_priority`, `show_cips_details`, `validation` params |
 | POST | `/api/v2/subjects/query` | Batch query with same options |
 
 ### Operational Endpoints
@@ -108,9 +114,9 @@ Main configuration is in `api/src/main/resources/application.properties`. Key en
 | Path | Description |
 |------|-------------|
 | `/actuator/health` | Aggregated health status |
-| `/actuator/health/startup` | Startup probe — includes: `db`, `onchainConnection` |
-| `/actuator/health/liveness` | Liveness probe — includes: `livenessState`, `offchainSync`, `onchainConnection` |
-| `/actuator/health/readiness` | Readiness probe — includes: `readinessState`, `offchainSync`, `onchainReadiness`, `db` |
+| `/actuator/health/startup` | Startup probe — includes: `db`, `nodeHealth` |
+| `/actuator/health/liveness` | Liveness probe — includes: `livenessState`, `nodeHealth` |
+| `/actuator/health/readiness` | Readiness probe — includes: `readinessState`, `offchainSync`, `nodeSync`, `db` |
 | `/actuator/prometheus` | Prometheus metrics |
 | `/actuator/metrics` | Spring Boot metrics |
 | `/apidocs` | OpenAPI 3.0 specification (JSON) |

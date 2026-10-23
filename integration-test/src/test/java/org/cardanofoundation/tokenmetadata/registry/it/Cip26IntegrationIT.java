@@ -15,6 +15,7 @@ import org.springframework.web.client.HttpClientErrorException;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -32,6 +33,11 @@ public class Cip26IntegrationIT extends BaseIntegrationIT {
     private static final String FULL_TOKEN_SUBJECT = "a0b1c2d3e4f5a0b1c2d3e4f5a0b1c2d3e4f5a0b1c2d3e4f5a0b1c2d354455354544f4b454e";
     private static final String MINIMAL_TOKEN_SUBJECT = "b1c2d3e4f5a0b1c2d3e4f5a0b1c2d3e4f5a0b1c2d3e4f5a0b1c2d3e44d494e544f4b454e";
     private static final String UNKNOWN_SUBJECT = "ffffffffffffffffffffffffffffffffffffffffffffffffffffffff556e6b6e6f776e";
+    /** A registry entry whose name is longer than the 50 characters CIP-26 allows. */
+    private static final String LONG_NAME_SUBJECT = "c2d3e4f5a0b1c2d3e4f5a0b1c2d3e4f5a0b1c2d3e4f5a0b1c2d3e4f54c4f4e474e414d45";
+    /** A registry file named after this subject, whose inside is about {@link #MISMATCH_INNER_SUBJECT}. */
+    private static final String MISMATCH_FILE_SUBJECT = "d3e4f5a0b1c2d3e4f5a0b1c2d3e4f5a0b1c2d3e4f5a0b1c2d3e4f5a04d49534d41544348";
+    private static final String MISMATCH_INNER_SUBJECT = "e4f5a0b1c2d3e4f5a0b1c2d3e4f5a0b1c2d3e4f5a0b1c2d3e4f5a0b14d49534d41544348";
 
     @BeforeAll
     static void setUp() {
@@ -48,7 +54,9 @@ public class Cip26IntegrationIT extends BaseIntegrationIT {
                     ResponseEntity<String> response = restTemplate.getForEntity(
                             API_BASE_URL + "/metadata/" + FULL_TOKEN_SUBJECT, String.class);
                     log.info("CIP-26 sync poll: status={}", response.getStatusCode());
-                    return response.getStatusCode() == HttpStatus.OK;
+                    return response.getStatusCode() == HttpStatus.OK
+                            && restTemplate.getForEntity(API_BASE_URL + "/metadata/" + LONG_NAME_SUBJECT, String.class)
+                            .getStatusCode() == HttpStatus.OK;
                 });
         log.info("CIP-26 sync complete.");
     }
@@ -198,11 +206,15 @@ public class Cip26IntegrationIT extends BaseIntegrationIT {
         }
 
         @Test
-        void missingRequiredProperties_returnsBadRequest() {
-            assertThatThrownBy(() -> restTemplate.getForEntity(
-                    API_BASE_URL + "/api/v2/subjects/" + FULL_TOKEN_SUBJECT + "?property=ticker",
-                    String.class))
-                    .isInstanceOf(HttpClientErrorException.BadRequest.class);
+        void aFilterWithoutNameOrDescription_returnsTheRequestedPropertyWithItsErrors() {
+            // a property filter no longer has to include name and description (ADR-019)
+            ResponseEntity<String> response = restTemplate.getForEntity(
+                    API_BASE_URL + "/api/v2/subjects/" + FULL_TOKEN_SUBJECT + "?property=ticker", String.class);
+
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+            DocumentContext json = JsonPath.parse(response.getBody());
+            assertThat(json.read("$.subject.metadata.ticker.value", String.class)).isEqualTo("TSTF");
+            assertThat(json.read("$.subject.validation_errors", List.class)).isEmpty();
         }
     }
 
@@ -276,12 +288,14 @@ public class Cip26IntegrationIT extends BaseIntegrationIT {
         }
 
         @Test
-        void missingRequiredProperties_returnsBadRequest() {
+        void aFilterWithoutNameOrDescription_returnsTheRequestedProperty() {
             String body = String.format(
                     "{\"subjects\": [\"%s\"], \"properties\": [\"ticker\"]}", FULL_TOKEN_SUBJECT);
 
-            assertThatThrownBy(() -> postJson(API_BASE_URL + "/api/v2/subjects/query", body))
-                    .isInstanceOf(HttpClientErrorException.BadRequest.class);
+            ResponseEntity<String> response = postJson(API_BASE_URL + "/api/v2/subjects/query", body);
+
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+            assertThat(JsonPath.parse(response.getBody()).read("$.subjects[0].metadata.ticker.value", String.class)).isEqualTo("TSTF");
         }
 
         @Test
@@ -345,6 +359,76 @@ public class Cip26IntegrationIT extends BaseIntegrationIT {
             assertThat(json.read("$.subjects[0].metadata.description.value", String.class))
                     .isEqualTo("A test token with all properties for integration testing");
             assertThat(json.read("$.subjects[0].metadata.ticker.value", String.class)).isEqualTo("TSTF");
+        }
+    }
+
+    /** A registry entry that breaks CIP-26 is served with its errors (ADR-019); a file that cannot be one is not (ADR-020). */
+    @Nested
+    @DisplayName("Validation errors")
+    class ValidationErrors {
+
+        @Test
+        void aValidEntryHasNoErrorsAndIsValid() {
+            DocumentContext json = JsonPath.parse(restTemplate.getForEntity(
+                    API_BASE_URL + "/api/v2/subjects/" + FULL_TOKEN_SUBJECT, String.class).getBody());
+
+            assertThat(json.read("$.subject.validation_errors", List.class)).isEmpty();
+            assertThat(json.read("$.subject.metadata.valid", Boolean.class)).isTrue();
+        }
+
+        @Test
+        void anEntryThatBreaksCip26IsServedByV1AsWritten() {
+            ResponseEntity<String> response = restTemplate.getForEntity(API_BASE_URL + "/metadata/" + LONG_NAME_SUBJECT, String.class);
+
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+            assertThat(JsonPath.parse(response.getBody()).read("$.name.value", String.class))
+                    .isEqualTo("Test Token With A Name Longer Than The Fifty Characters CIP-26 Allows");
+            // V1 keeps its response shape: the errors are a V2 field
+            assertThat(response.getBody()).doesNotContain("validation_errors");
+        }
+
+        @Test
+        void anEntryThatBreaksCip26IsServedByV2WithAMandatoryError() {
+            DocumentContext json = JsonPath.parse(restTemplate.getForEntity(
+                    API_BASE_URL + "/api/v2/subjects/" + LONG_NAME_SUBJECT, String.class).getBody());
+
+            assertThat(json.read("$.subject.metadata.valid", Boolean.class)).isFalse();
+            List<Map<String, Object>> errors = json.read("$.subject.validation_errors");
+            assertThat(errors).anySatisfy(error -> assertThat(error)
+                    .containsEntry("cip", "CIP-26").containsEntry("field_name", "name")
+                    .containsEntry("field_category", "MANDATORY").containsEntry("code", "invalid_length"));
+        }
+
+        @Test
+        void anEntryWithAMandatoryErrorIsHiddenByMandatoryOnly() {
+            assertThatThrownBy(() -> restTemplate.getForEntity(
+                    API_BASE_URL + "/api/v2/subjects/" + LONG_NAME_SUBJECT + "?validation=MANDATORY_ONLY", String.class))
+                    .isInstanceOf(HttpClientErrorException.NotFound.class);
+        }
+
+        @Test
+        void aFileNamedAfterAnotherSubjectIsIndexedUnderNeither() {
+            // V1 answers an unknown subject with 204, V2 with 404
+            assertThat(restTemplate.getForEntity(API_BASE_URL + "/metadata/" + MISMATCH_FILE_SUBJECT, String.class).getStatusCode())
+                    .isEqualTo(HttpStatus.NO_CONTENT);
+            assertThat(restTemplate.getForEntity(API_BASE_URL + "/metadata/" + MISMATCH_INNER_SUBJECT, String.class).getStatusCode())
+                    .isEqualTo(HttpStatus.NO_CONTENT);
+            assertThatThrownBy(() -> restTemplate.getForEntity(API_BASE_URL + "/api/v2/subjects/" + MISMATCH_FILE_SUBJECT, String.class))
+                    .isInstanceOf(HttpClientErrorException.NotFound.class);
+            assertThatThrownBy(() -> restTemplate.getForEntity(API_BASE_URL + "/api/v2/subjects/" + MISMATCH_INNER_SUBJECT, String.class))
+                    .isInstanceOf(HttpClientErrorException.NotFound.class);
+        }
+
+        @Test
+        void aFileNamedAfterAnotherSubjectIsCountedAsAnInvalidToken() {
+            // the sync may still be on other files when the entries above are served
+            await().atMost(Duration.ofMinutes(1))
+                    .pollInterval(Duration.ofSeconds(2))
+                    .untilAsserted(() -> assertThat(restTemplate.getForEntity(API_BASE_URL + "/actuator/prometheus", String.class)
+                            .getBody().lines())
+                            .anyMatch(line -> line.startsWith("token_metadata_invalid_tokens_total{")
+                                    && line.contains("reason_code=\"filename_subject_mismatch\"")
+                                    && line.contains("standard=\"CIP-26\"")));
         }
     }
 }
