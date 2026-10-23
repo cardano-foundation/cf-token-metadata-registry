@@ -52,7 +52,7 @@ curl -X POST "$REGISTRY/api/v2/validate/cip68" -H 'Content-Type: application/jso
     }
   ],
   "datum": "d8799fa5…ff",
-  "notes": ["V2 serves a 333 or 444 subject only once its user token is minted …"]
+  "notes": ["V2 serves this metadata under policy id + 0014df10 (333) or 001bc280 (444) + the name of the reference NFT …"]
 }
 ```
 

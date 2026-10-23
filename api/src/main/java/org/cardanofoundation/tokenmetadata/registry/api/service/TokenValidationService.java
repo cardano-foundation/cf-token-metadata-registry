@@ -51,8 +51,8 @@ public class TokenValidationService {
 
     /** A placeholder policy for a datum that has none yet: it is only used to build the row the preview is served from. */
     private static final AssetType PREVIEW_REFERENCE_NFT = new AssetType("00".repeat(28), REFERENCE_TOKEN_PREFIX);
-    private static final String CIP_68_MINTED_NOTE = "V2 serves a 333 or 444 subject only once its user token is minted "
-            + "(policy id + 0014df10 or 001bc280 + the same name as the reference NFT)";
+    private static final String CIP_68_SUBJECT_NOTE = "V2 serves this metadata under policy id + 0014df10 (333) or "
+            + "001bc280 (444) + the name of the reference NFT, whether or not that user token is minted (ADR-022)";
 
     private final TokenMetadataValidator tokenMetadataValidator;
     private final Cip68FTDatumParser cip68DatumParser;
@@ -122,7 +122,7 @@ public class TokenValidationService {
                     return served(label, Metadata.from(metadata), metadata.validationErrors());
                 })
                 .toList();
-        return new ValidateResponse(InvalidTokenReason.CIP_68, true, null, errors, served, datum, null, List.of(CIP_68_MINTED_NOTE));
+        return new ValidateResponse(InvalidTokenReason.CIP_68, true, null, errors, served, datum, null, List.of(CIP_68_SUBJECT_NOTE));
     }
 
     public ValidateResponse validateCip113(Cip113ValidateRequest request) {
