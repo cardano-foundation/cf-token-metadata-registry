@@ -1,0 +1,225 @@
+---
+// The interactive validator: sends the input to a registry's POST /api/v2/validate/{cip26,cip68,cip113} and shows
+// what the registry would do with it. The registry address comes from the build (PUBLIC_REGISTRY_API_URL) and can be
+// changed on the page; the choice is kept in the browser.
+const defaultApi = import.meta.env.PUBLIC_REGISTRY_API_URL ?? '';
+---
+
+<div class="validator not-content" data-default-api={defaultApi}>
+	<label class="field api">
+		<span>Registry API</span>
+		<input id="api-url" type="url" placeholder="https://registry.example.org" />
+	</label>
+
+	<div class="tabs" role="tablist">
+		<button role="tab" data-tab="cip68" aria-selected="true">CIP-68</button>
+		<button role="tab" data-tab="cip26" aria-selected="false">CIP-26</button>
+		<button role="tab" data-tab="cip113" aria-selected="false">CIP-113</button>
+	</div>
+
+	<form id="form-cip68" data-standard="cip68" class="panel">
+		<fieldset class="mode">
+			<label><input type="radio" name="mode" value="fields" checked /> From token fields</label>
+			<label><input type="radio" name="mode" value="datum" /> From a datum (CBOR hex)</label>
+		</fieldset>
+		<div class="grid fields-mode">
+			<label class="field"><span>Name</span><input name="name" placeholder="My Token" /></label>
+			<label class="field"><span>Ticker</span><input name="ticker" placeholder="MTK" /></label>
+			<label class="field wide"><span>Description</span><input name="description" placeholder="What the token is for" /></label>
+			<label class="field"><span>Decimals</span><input name="decimals" type="number" min="0" placeholder="6" /></label>
+			<label class="field"><span>Version</span><input name="version" type="number" min="0" value="1" /></label>
+			<label class="field wide"><span>URL</span><input name="url" placeholder="https://…" /></label>
+			<label class="field wide"><span>Logo (333)</span><input name="logo" placeholder="ipfs://…" /></label>
+			<label class="field"><span>Image (444)</span><input name="image" placeholder="ipfs://…" /></label>
+			<label class="field"><span>Media type (444)</span><input name="media_type" placeholder="image/png" /></label>
+		</div>
+		<label class="field datum-mode" hidden><span>Reference NFT datum (CBOR hex)</span><textarea name="datum" rows="4"></textarea></label>
+		<fieldset class="labels">
+			<legend>Token labels</legend>
+			<label><input type="checkbox" name="labels" value="333" checked /> 333 fungible token</label>
+			<label><input type="checkbox" name="labels" value="444" /> 444 rich fungible token</label>
+		</fieldset>
+		<button type="submit" class="go">Validate</button>
+	</form>
+
+	<form id="form-cip26" data-standard="cip26" class="panel" hidden>
+		<label class="field"><span>Registry file (JSON)</span>
+			<textarea name="mapping" rows="12" spellcheck="false" placeholder='{"subject": "…", "name": {"value": "…", "sequenceNumber": 0, "signatures": []}, …}'></textarea>
+		</label>
+		<label class="field"><span>File name (optional)</span><input name="file_name" placeholder="<subject>.json" /></label>
+		<button type="submit" class="go">Validate</button>
+	</form>
+
+	<form id="form-cip113" data-standard="cip113" class="panel" hidden>
+		<label class="field"><span>Registry node datum (CBOR hex)</span><textarea name="datum" rows="4" spellcheck="false"></textarea></label>
+		<p class="hint">
+			A simplified check: can the registry read the node, and what would V2 show. To build and submit a registration,
+			use the <a href="https://github.com/cardano-foundation/cip113-programmable-tokens">CIP-113 tooling</a>.
+		</p>
+		<button type="submit" class="go">Validate</button>
+	</form>
+
+	<div id="result" class="result" aria-live="polite"></div>
+</div>
+
+<style>
+	.validator { display: flex; flex-direction: column; gap: 1rem; }
+	/* `hidden` must win over the display of the panels and fields below */
+	.validator [hidden] { display: none !important; }
+	.validator * { margin: 0; }
+	.field { display: flex; flex-direction: column; gap: 0.375rem; font-size: var(--sl-text-sm); min-width: 0; }
+	.field span { color: var(--sl-color-gray-2); }
+	.field input, .field textarea {
+		background: var(--sl-color-black); color: var(--sl-color-white); border: 1px solid var(--sl-color-gray-5);
+		border-radius: 0.75rem; padding: 0.625rem 0.875rem; font: inherit;
+	}
+	/* hex, CBOR and JSON in a monospace font; names and URLs in the page's */
+	.field textarea, #api-url { font-family: var(--__sl-font-mono, ui-monospace, monospace); }
+	.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem 1rem; align-items: end; }
+	.field input, .field textarea { width: 100%; box-sizing: border-box; }
+	.result :global(h3) { margin-top: 1.5rem; }
+	.result :global(table) { margin: 0.75rem 0; }
+	.result :global(p), .result :global(ul), .result :global(pre) { margin: 0.5rem 0; }
+	.wide { grid-column: span 2; }
+	.tabs { display: flex; gap: 0.5rem; border-bottom: 1px solid var(--sl-color-gray-5); }
+	.tabs button {
+		background: none; border: none; color: var(--sl-color-gray-2); padding: 0.5rem 0.75rem; cursor: pointer;
+		border-bottom: 2px solid transparent; font-weight: 600;
+	}
+	.tabs button[aria-selected='true'] { color: var(--sl-color-white); border-bottom-color: var(--sl-color-accent); }
+	.panel { display: flex; flex-direction: column; gap: 0.75rem; }
+	fieldset { border: none; padding: 0; margin: 0; display: flex; gap: 1.25rem; flex-wrap: wrap; font-size: var(--sl-text-sm); }
+	legend { color: var(--sl-color-gray-2); margin-bottom: 0.25rem; }
+	/* pill buttons, as on cardanofoundation.org */
+	.go {
+		align-self: flex-start; background: var(--sl-color-white); color: var(--sl-color-black); border: none;
+		border-radius: 999px; padding: 0.75rem 1.5rem; font-weight: 500; cursor: pointer;
+	}
+	.hint { font-size: var(--sl-text-sm); color: var(--sl-color-gray-3); margin: 0; }
+	.result :global(.badge) { display: inline-block; border-radius: 999px; padding: 0.125rem 0.625rem; font-weight: 700; font-size: var(--sl-text-sm); }
+	.result :global(.ok) { background: #134e3a; color: #a7f3d0; }
+	.result :global(.warn) { background: #4a3a10; color: #fde68a; }
+	.result :global(.bad) { background: #5a1d1d; color: #fecaca; }
+	.result :global(pre) { white-space: pre-wrap; word-break: break-all; }
+	@media (max-width: 640px) { .grid { grid-template-columns: 1fr; } .wide { grid-column: span 1; } }
+</style>
+
+<script>
+	type ValidationError = { cip: string; sub_standard?: string; field_name: string; field_category: string; code: string; error: string };
+	type Served = { label?: number; metadata: Record<string, { value: unknown } | boolean | null>; validation_errors: ValidationError[]; scopes: string[] };
+	type Response = {
+		standard: string; stored: boolean; dropped?: { code: string; message: string };
+		validation_errors: ValidationError[]; served: Served[]; datum?: string; cip113?: Record<string, string | null>; notes: string[];
+	};
+
+	const STORAGE_KEY = 'token-registry.validator.api';
+	const root = document.querySelector<HTMLElement>('.validator')!;
+	const apiInput = root.querySelector<HTMLInputElement>('#api-url')!;
+	const result = root.querySelector<HTMLElement>('#result')!;
+
+	const stored = (() => { try { return localStorage.getItem(STORAGE_KEY); } catch { return null; } })();
+	apiInput.value = stored ?? root.dataset.defaultApi ?? '';
+	apiInput.addEventListener('change', () => { try { localStorage.setItem(STORAGE_KEY, apiInput.value.trim()); } catch { /* private mode */ } });
+
+	root.querySelectorAll<HTMLButtonElement>('[role=tab]').forEach((tab) => {
+		tab.addEventListener('click', () => {
+			root.querySelectorAll<HTMLButtonElement>('[role=tab]').forEach((t) => t.setAttribute('aria-selected', String(t === tab)));
+			root.querySelectorAll<HTMLFormElement>('form.panel').forEach((f) => { f.hidden = f.dataset.standard !== tab.dataset.tab; });
+			result.innerHTML = '';
+		});
+	});
+
+	const cip68 = root.querySelector<HTMLFormElement>('#form-cip68')!;
+	cip68.querySelectorAll<HTMLInputElement>('input[name=mode]').forEach((radio) => radio.addEventListener('change', () => {
+		const datumMode = cip68.querySelector<HTMLInputElement>('input[name=mode]:checked')!.value === 'datum';
+		cip68.querySelector<HTMLElement>('.fields-mode')!.hidden = datumMode;
+		cip68.querySelector<HTMLElement>('.datum-mode')!.hidden = !datumMode;
+	}));
+
+	const escape = (value: unknown) => String(value ?? '').replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+	const text = (form: HTMLFormElement, name: string) => {
+		const value = (form.elements.namedItem(name) as HTMLInputElement | HTMLTextAreaElement | null)?.value.trim();
+		return value ? value : null;
+	};
+	const number = (form: HTMLFormElement, name: string) => { const v = text(form, name); return v === null ? null : Number(v); };
+
+	function body(form: HTMLFormElement): unknown {
+		switch (form.dataset.standard) {
+			case 'cip68': {
+				const labels = [...form.querySelectorAll<HTMLInputElement>('input[name=labels]:checked')].map((c) => Number(c.value));
+				if (form.querySelector<HTMLInputElement>('input[name=mode]:checked')!.value === 'datum') {
+					return { datum: text(form, 'datum'), labels };
+				}
+				return {
+					labels,
+					fields: {
+						name: text(form, 'name'), description: text(form, 'description'), ticker: text(form, 'ticker'),
+						url: text(form, 'url'), logo: text(form, 'logo'), image: text(form, 'image'),
+						media_type: text(form, 'media_type'), decimals: number(form, 'decimals'), version: number(form, 'version'),
+					},
+				};
+			}
+			case 'cip26':
+				return { mapping: JSON.parse(text(form, 'mapping') ?? 'null'), file_name: text(form, 'file_name') };
+			default:
+				return { datum: text(form, 'datum') };
+		}
+	}
+
+	function errorsTable(errors: ValidationError[]): string {
+		if (!errors.length) return '<p><span class="badge ok">No validation errors</span></p>';
+		const rows = errors.map((e) => `<tr><td>${escape(e.field_name)}</td><td>${escape(e.field_category)}</td><td><code>${escape(e.code)}</code></td><td>${escape(e.error)}</td></tr>`);
+		return `<table><thead><tr><th>Field</th><th>Category</th><th>Code</th><th>What is wrong</th></tr></thead><tbody>${rows.join('')}</tbody></table>`;
+	}
+
+	function render(response: Response): string {
+		const parts: string[] = [];
+		parts.push(response.stored
+			? '<p><span class="badge ok">The registry would index it</span></p>'
+			: `<p><span class="badge bad">The registry would not index it</span> <code>${escape(response.dropped?.code)}</code>: ${escape(response.dropped?.message)}</p>`);
+		for (const served of response.served) {
+			const title = served.label ? `Served as a ${served.label} token` : 'Served by V2';
+			const strict = served.scopes.includes('STRICT');
+			const scopeBadge = strict ? 'ok' : served.scopes.includes('MANDATORY_ONLY') ? 'warn' : 'bad';
+			const values = Object.entries(served.metadata)
+				.filter(([key, value]) => key !== 'valid' && value && typeof value === 'object')
+				.map(([key, value]) => `<tr><td>${escape(key)}</td><td>${escape((value as { value: unknown }).value)}</td></tr>`);
+			parts.push(`<h3>${title}</h3>`);
+			parts.push(`<p>Returned with <span class="badge ${scopeBadge}">?validation=${served.scopes.map(escape).join(', ')}</span></p>`);
+			if (values.length) parts.push(`<table><tbody>${values.join('')}</tbody></table>`);
+			parts.push(errorsTable(served.validation_errors));
+		}
+		if (response.cip113) {
+			const rows = Object.entries(response.cip113).map(([k, v]) => `<tr><td>${escape(k)}</td><td><code>${escape(v ?? '—')}</code></td></tr>`);
+			parts.push(`<h3>CIP-113 extension</h3><table><tbody>${rows.join('')}</tbody></table>`);
+		}
+		if (response.datum) {
+			parts.push(`<h3>Datum</h3><p>Put this inline datum on the output that holds your reference NFT:</p><pre><code>${escape(response.datum)}</code></pre>`);
+		}
+		if (response.notes?.length) {
+			parts.push(`<ul>${response.notes.map((n) => `<li>${escape(n)}</li>`).join('')}</ul>`);
+		}
+		return parts.join('');
+	}
+
+	root.querySelectorAll<HTMLFormElement>('form.panel').forEach((form) => form.addEventListener('submit', async (event) => {
+		event.preventDefault();
+		const api = apiInput.value.trim().replace(/\/$/, '');
+		if (!api) {
+			result.innerHTML = '<p><span class="badge warn">Set the registry API address first</span></p>';
+			return;
+		}
+		result.innerHTML = '<p>Checking…</p>';
+		try {
+			const response = await fetch(`${api}/api/v2/validate/${form.dataset.standard}`, {
+				method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body(form)),
+			});
+			const payload = await response.json().catch(() => ({}));
+			result.innerHTML = response.ok
+				? render(payload as Response)
+				: `<p><span class="badge bad">${response.status}</span> ${escape((payload as { detail?: string }).detail ?? response.statusText)}</p>`;
+		} catch (error) {
+			result.innerHTML = `<p><span class="badge bad">Could not reach the registry</span> ${escape((error as Error).message)}. Is the address right, and does that registry allow this site (CORS)?</p>`;
+		}
+	}));
+</script>

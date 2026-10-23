@@ -121,7 +121,7 @@ public class Cip68FungibleTokenService {
      *       NFT paired with a 222 and a 333 token is served as a 333 token without the 222 requirement (an image).</li>
      * </ul>
      */
-    private FungibleTokenMetadata toFungibleTokenMetadata(MetadataReferenceNft referenceNft, List<String> properties,
+    FungibleTokenMetadata toFungibleTokenMetadata(MetadataReferenceNft referenceNft, List<String> properties,
                                                           boolean richFungibleToken) {
         String logo = richFungibleToken ? imageOf(referenceNft) : referenceNft.getLogo();
         int label = richFungibleToken ? LABEL_RFT : LABEL_FT;
