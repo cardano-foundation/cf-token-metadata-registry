@@ -6,6 +6,10 @@ on:
       - main
     tags:
       - '[0-9]+.[0-9]+.[0-9]+*'
+  pull_request:
+    types:
+      - opened
+      - synchronize
   workflow_dispatch:
 
 jobs:
@@ -14,6 +18,8 @@ jobs:
 
   docker-api-jvm:
     needs: java-build
+    # dev builds on PRs: skip fork PRs (repo secrets are not available there) and release-please's own PRs
+    if: github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && !startsWith(github.event.pull_request.head.ref, 'release-please--branches--'))
     uses: ./.github/workflows/docker-build.yaml
     with:
       app: api
@@ -25,6 +31,7 @@ jobs:
 
   docker-api-native:
     needs: java-build
+    if: github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && !startsWith(github.event.pull_request.head.ref, 'release-please--branches--'))
     uses: ./.github/workflows/docker-build.yaml
     with:
       app: api
@@ -36,6 +43,7 @@ jobs:
 
   docker-job:
     needs: java-build
+    if: github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && !startsWith(github.event.pull_request.head.ref, 'release-please--branches--'))
     uses: ./.github/workflows/docker-build.yaml
     with:
       app: job
