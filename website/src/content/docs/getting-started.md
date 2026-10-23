@@ -4,7 +4,8 @@ description: Query a token's metadata with the V2 API, one token or many at a ti
 ---
 
 All you need is the **subject** of a token: its policy id followed by its asset name, in hex. The examples use
-`$REGISTRY` for the address of a registry instance.
+`$REGISTRY` for the address of a registry instance: `https://tokens.cardano.org` for mainnet,
+`https://preprod.tokens.cardano.org` for preprod.
 
 :::note[Which API]
 **V2** (`/api/v2/...`) is the current API: it serves CIP-26, CIP-68 and CIP-113, with validation errors. **V1**

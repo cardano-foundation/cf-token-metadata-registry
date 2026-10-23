@@ -1,8 +1,10 @@
 name: Deploy Website to GitHub Pages
 
+# The project's GitHub Pages site: the website (website/) at the root and the interactive API reference at
+# /api-reference/ (website/public/api-reference). One workflow deploys both, since a repository has one Pages site.
 on:
   push:
-    # The live site tracks main: a promotion that touches the site redeploys it. Manual dispatch deploys any ref.
+    # The live site tracks main: a promotion that touches the site redeploys it.
     branches:
       - main
     paths:
@@ -11,12 +13,20 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
 
 jobs:
   deploy:
-    name: Deploy to GitHub Pages
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v6
 
@@ -33,12 +43,16 @@ jobs:
       - name: Build website
         working-directory: website
         env:
-          # The registry the validator page calls; it must allow https://cardano-foundation.github.io (CORS)
-          PUBLIC_REGISTRY_API_URL: ${{ vars.REGISTRY_API_URL }}
+          # The registry the validator page calls; it must allow https://cardano-foundation.github.io (CORS).
+          # The repository variable REGISTRY_API_URL overrides the production registry.
+          PUBLIC_REGISTRY_API_URL: ${{ vars.REGISTRY_API_URL || 'https://tokens.cardano.org' }}
         run: npm run build
 
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v4
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v4
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./website/dist
+          path: website/dist
+
+      - id: deployment
+        uses: actions/deploy-pages@v4
