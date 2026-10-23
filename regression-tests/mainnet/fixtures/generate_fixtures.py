@@ -100,11 +100,7 @@ def fetch_cip68_tokens(conn, max_tokens=1000):
             decimals,
             logo,
             version
-        FROM metadata_reference_nft r
-        -- only reference NFTs whose 333 token was minted: V2 serves a 333 subject only then (ADR-022)
-        WHERE asset_name LIKE '000643b0%'
-          AND EXISTS (SELECT 1 FROM cip68_user_token u
-                      WHERE u.unit = r.policy_id || '0014df10' || substr(r.asset_name, 9))
+        FROM metadata_reference_nft
         ORDER BY policy_id, asset_name, slot DESC
     """
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
