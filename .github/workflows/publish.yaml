@@ -26,8 +26,11 @@ jobs:
       variant: jvm
       push: true
     secrets:
-      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+      DOCKER_REGISTRIES: ${{ secrets.DOCKER_REGISTRIES }}
+      HUB_DOCKER_COM_USER: ${{ secrets.HUB_DOCKER_COM_USER }}
+      HUB_DOCKER_COM_PASS: ${{ secrets.HUB_DOCKER_COM_PASS }}
+      GITLAB_DOCKER_REGISTRY_URL: ${{ secrets.GITLAB_DOCKER_REGISTRY_URL }}
+      GITLAB_PKG_REGISTRY_TOKEN: ${{ secrets.GITLAB_PKG_REGISTRY_TOKEN }}
 
   docker-api-native:
     needs: java-build
@@ -38,8 +41,11 @@ jobs:
       variant: native
       push: true
     secrets:
-      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+      DOCKER_REGISTRIES: ${{ secrets.DOCKER_REGISTRIES }}
+      HUB_DOCKER_COM_USER: ${{ secrets.HUB_DOCKER_COM_USER }}
+      HUB_DOCKER_COM_PASS: ${{ secrets.HUB_DOCKER_COM_PASS }}
+      GITLAB_DOCKER_REGISTRY_URL: ${{ secrets.GITLAB_DOCKER_REGISTRY_URL }}
+      GITLAB_PKG_REGISTRY_TOKEN: ${{ secrets.GITLAB_PKG_REGISTRY_TOKEN }}
 
   docker-job:
     needs: java-build
@@ -50,5 +56,8 @@ jobs:
       variant: jvm
       push: true
     secrets:
-      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+      DOCKER_REGISTRIES: ${{ secrets.DOCKER_REGISTRIES }}
+      HUB_DOCKER_COM_USER: ${{ secrets.HUB_DOCKER_COM_USER }}
+      HUB_DOCKER_COM_PASS: ${{ secrets.HUB_DOCKER_COM_PASS }}
+      GITLAB_DOCKER_REGISTRY_URL: ${{ secrets.GITLAB_DOCKER_REGISTRY_URL }}
+      GITLAB_PKG_REGISTRY_TOKEN: ${{ secrets.GITLAB_PKG_REGISTRY_TOKEN }}
