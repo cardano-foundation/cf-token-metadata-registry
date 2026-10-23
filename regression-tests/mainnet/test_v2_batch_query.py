@@ -2,7 +2,8 @@
 V2 API: POST /api/v2/subjects/query
 
 Tests batch query endpoint with CIP priority, property filtering, and CIP details.
-Note: V2 batch filters out entries where metadata is not valid (requires name AND description).
+Since ADR-019 the batch returns every indexed token with its validation_errors; ?validation= filters (see
+test_v2_validation.py). The tests below still pick tokens with a name and a description.
 """
 
 import allure
@@ -16,7 +17,7 @@ CIP26_BY_SUBJECT = {t["subject"]: t for t in _load_json("cip26_tokens.json")}
 CIP68_SUBJECTS = _cip68_token_ids()
 CIP68_BY_SUBJECT = {t["subject"]: t for t in _load_json("cip68_tokens.json")}
 
-# Filter to tokens that have both name and description (V2 validity requirement)
+# Tokens with both name and description, so the merged name/description assertions have values to compare
 VALID_CIP26_SUBJECTS = [
     s for s in CIP26_SUBJECTS
     if CIP26_BY_SUBJECT[s].get("name") and CIP26_BY_SUBJECT[s].get("description")
@@ -239,12 +240,14 @@ class TestV2BatchQuery:
         # Should return results since name+description are both present
         assert len(data["subjects"]) > 0
 
-    @allure.story("Batch query with partial properties filter may exclude results")
-    def test_batch_with_partial_properties_filter_missing_required(self):
-        """V2 requires name and description in property filter — omitting them returns 400."""
+    @allure.story("A batch property filter no longer needs name and description (ADR-019)")
+    def test_batch_with_properties_filter_without_description(self):
         batch = VALID_CIP26_SUBJECTS[:20]
         resp = requests.post(
             f"{API_BASE_URL}/api/v2/subjects/query",
             json={"subjects": batch, "properties": ["name", "ticker"]},
         )
-        assert resp.status_code == 400
+        assert resp.status_code == 200
+        returned = resp.json()["subjects"]
+        assert len(returned) == len(batch)
+        assert all(s["metadata"].get("description") is None for s in returned)

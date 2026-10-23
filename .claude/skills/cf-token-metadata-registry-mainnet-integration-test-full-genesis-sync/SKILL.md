@@ -127,9 +127,10 @@ From slot 65836843 to tip is ~12 h on a typical box; from true genesis it's days
 
 ### Step 8 — Run CIP-68 regression tests (fungible tokens and rich fungible tokens)
 
-When the indexer reaches tip, the `metadata_reference_nft` table is populated. Run `scripts/run-cip68-tests.sh`, which runs `uv run pytest -m cip68 -v --alluredir=../allure-results` against the committed snapshots. `-m cip68` covers:
+When the indexer reaches tip, the `metadata_reference_nft` table is populated. Run `scripts/run-cip68-tests.sh`, which runs `uv run pytest -m "cip68 or validation" -v --alluredir=../allure-results` against the committed snapshots. That covers:
 
-- **CIP-68 fungible tokens (333)**: `regression-tests/mainnet/fixtures/cip68_tokens.json` (a DB snapshot), plus `cip68_dropped_tokens.json` (tokens a stricter rule drops, which must be 404 from CIP-68).
+- **CIP-68 fungible tokens (333)**: `regression-tests/mainnet/fixtures/cip68_tokens.json` (a DB snapshot), plus `cip68_validation_errors_tokens.json` (tokens that break CIP-68 in a known way, served with the listed validation errors, ADR-019).
+- **Validation contract (marker `validation`, ADR-019)**: `test_v2_validation.py` and `test_v2_cip68_validation_errors.py`. Every token has a `validation_errors` array, `metadata.valid` matches it, and `?validation=MANDATORY_ONLY|STRICT` and `?property=` behave as specified. These need a build with ADR-019 **synced from scratch**: on an older build, or a database synced before it (no errors recorded), run `scripts/run-cip68-tests.sh "cip68 and not validation"` and say so in the report.
 - **CIP-68 rich fungible tokens (444, prefix `001bc280`)**: `regression-tests/mainnet/fixtures/cip68_rft_tokens.json` and `test_v2_cip68_rft.py` (marker `rft`, about 550 tests). The fixture comes from the **chain via Koios** (`shared/generate_cip68_rft_fixtures.py`), not from a DB. It holds every RFT whose current 444 datum has a name, a description and an image URI, read from a live reference NFT with an inline datum. For each one, V2 must serve the datum's name, description, ticker, decimals and version, and its **image as `metadata.logo`** (ADR-018). On a sample, the suite also checks the batch query, `show_cips_details`, that the 222 NFT and the reference NFT of the same base name are 404, and that V1 does not serve RFTs (V1 is CIP-26 only).
 
 To run one group only: `scripts/run-cip68-tests.sh rft`, or `scripts/run-cip68-tests.sh "cip68 and not rft"`.

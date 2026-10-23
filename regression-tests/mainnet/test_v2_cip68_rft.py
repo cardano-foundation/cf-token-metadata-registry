@@ -58,7 +58,11 @@ class TestV2Cip68Rft:
         assert value(metadata, "decimals") == token["decimals"]
         assert value(metadata, "logo") == token["image"]
         assert value(metadata, "version") == token["version"]
-        assert metadata["valid"] is True
+        # the fixture holds RFTs with everything CIP-68 requires: no MANDATORY error; an optional one (files, an extra
+        # property) is possible, and metadata.valid says whether there is any (ADR-019)
+        errors = subject["validation_errors"]
+        assert not [e for e in errors if e["field_category"] == "MANDATORY"], errors
+        assert metadata["valid"] is (len(errors) == 0)
 
     @allure.story("Every served field of an RFT comes from CIP-68")
     @pytest.mark.parametrize("token", RFT_SAMPLE, ids=token_id)

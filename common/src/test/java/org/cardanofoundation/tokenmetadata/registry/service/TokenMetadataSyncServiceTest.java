@@ -1,15 +1,20 @@
 package org.cardanofoundation.tokenmetadata.registry.service;
 
 import org.cardanofoundation.tokenmetadata.registry.entity.OffChainSyncState;
+import org.cardanofoundation.tokenmetadata.registry.invalidtoken.InvalidTokenReason;
+import org.cardanofoundation.tokenmetadata.registry.invalidtoken.InvalidTokenRecorder;
+import org.cardanofoundation.tokenmetadata.registry.invalidtoken.InvalidTokenReport;
 import org.cardanofoundation.tokenmetadata.registry.model.ChangedMappings;
 import org.cardanofoundation.tokenmetadata.registry.model.Mapping;
 import org.cardanofoundation.tokenmetadata.registry.model.MappingUpdateDetails;
 import org.cardanofoundation.tokenmetadata.registry.model.enums.SyncStatusEnum;
 import org.cardanofoundation.tokenmetadata.registry.repository.SyncStateRepository;
 import org.junit.jupiter.api.BeforeEach;
+import org.springframework.context.ApplicationEventPublisher;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -40,6 +45,12 @@ class TokenMetadataSyncServiceTest {
 
     @Mock
     private SyncStateRepository syncStateRepository;
+
+    @Mock
+    private InvalidTokenRecorder invalidTokenRecorder;
+
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private TokenMetadataSyncService tokenMetadataSyncService;
@@ -90,14 +101,16 @@ class TokenMetadataSyncServiceTest {
             when(tokenMappingService.parseMappings(mockFile)).thenReturn(Optional.of(mockMapping));
             when(gitService.getAllMappingDetails(any()))
                     .thenReturn(Map.of("test.json", new MappingUpdateDetails("author", LocalDateTime.now())));
-            when(tokenMetadataService.insertMapping(any(), any(), any())).thenReturn(true);
+            when(tokenMetadataService.insertMapping(any(), any(), any(), any())).thenReturn(true);
 
             tokenMetadataSyncService.synchronizeDatabase();
 
-            verify(tokenMetadataService).insertMapping(any(), any(), any());
+            verify(tokenMetadataService).insertMapping(any(), any(), any(), any());
             verify(tokenMetadataService, never()).deleteMapping(any());
             verify(syncStateRepository).save(any(OffChainSyncState.class));
             assertEquals(SyncStatusEnum.SYNC_DONE, tokenMetadataSyncService.getSyncStatus().getStatus());
+            // what depends on the CIP-26 entries (the CIP-113 companion check) is told
+            verify(eventPublisher).publishEvent(new Cip26SyncCompletedEvent(1, 0));
         }
 
         @Test
@@ -112,6 +125,7 @@ class TokenMetadataSyncServiceTest {
             verify(tokenMappingService, never()).parseMappings(any());
             verify(syncStateRepository, never()).save(any());
             assertEquals(SyncStatusEnum.SYNC_DONE, tokenMetadataSyncService.getSyncStatus().getStatus());
+            verifyNoInteractions(eventPublisher);
         }
 
         @Test
@@ -159,7 +173,7 @@ class TokenMetadataSyncServiceTest {
             when(tokenMappingService.parseMappings(mockFile)).thenReturn(Optional.of(mockMapping));
             when(gitService.getAllMappingDetails(any()))
                     .thenReturn(Map.of("test.json", new MappingUpdateDetails("author", LocalDateTime.now())));
-            when(tokenMetadataService.insertMapping(any(), any(), any()))
+            when(tokenMetadataService.insertMapping(any(), any(), any(), any()))
                     .thenThrow(new RuntimeException("DB error"));
 
             tokenMetadataSyncService.synchronizeDatabase();
@@ -208,12 +222,21 @@ class TokenMetadataSyncServiceTest {
                     .thenReturn(Optional.of(new Mapping("legit", null, null, null, null, null, null, null)));
             when(tokenMappingService.parseMappings(garbageFile))
                     .thenReturn(Optional.of(new Mapping("legit", null, null, null, null, null, null, null)));
-            when(tokenMetadataService.insertMapping(any(), any(), any())).thenReturn(true);
+            when(tokenMetadataService.insertMapping(any(), any(), any(), any())).thenReturn(true);
 
             tokenMetadataSyncService.synchronizeDatabase();
 
             // Only one insert: from legit.json. garbage.json is filtered before reaching insertMapping.
-            verify(tokenMetadataService, times(1)).insertMapping(any(), any(), any());
+            verify(tokenMetadataService, times(1)).insertMapping(any(), any(), any(), any());
+            // garbage.json is recorded in invalid_token under its file name, with the subject it claims (ADR-020)
+            ArgumentCaptor<InvalidTokenReport> report = ArgumentCaptor.forClass(InvalidTokenReport.class);
+            verify(invalidTokenRecorder).report(report.capture());
+            assertEquals(InvalidTokenReason.FILENAME_SUBJECT_MISMATCH, report.getValue().reasonCode());
+            assertEquals("garbage.json", report.getValue().origin());
+            assertEquals("legit", report.getValue().subject());
+            // each file processed is judged again: what it had wrong before is forgotten first
+            verify(invalidTokenRecorder).forgetOrigin(InvalidTokenReason.CIP_26, "legit.json");
+            verify(invalidTokenRecorder).forgetOrigin(InvalidTokenReason.CIP_26, "garbage.json");
             verify(syncStateRepository).save(any(OffChainSyncState.class));
             assertEquals(SyncStatusEnum.SYNC_DONE, tokenMetadataSyncService.getSyncStatus().getStatus());
         }
@@ -236,7 +259,8 @@ class TokenMetadataSyncServiceTest {
             tokenMetadataSyncService.synchronizeDatabase();
 
             verify(tokenMetadataService).deleteMapping("removedtoken");
-            verify(tokenMetadataService, never()).insertMapping(any(), any(), any());
+            verify(invalidTokenRecorder).forgetOrigin(InvalidTokenReason.CIP_26, "removedtoken.json");
+            verify(tokenMetadataService, never()).insertMapping(any(), any(), any(), any());
             verify(syncStateRepository).save(any(OffChainSyncState.class));
             assertEquals(SyncStatusEnum.SYNC_DONE, tokenMetadataSyncService.getSyncStatus().getStatus());
         }
@@ -275,7 +299,7 @@ class TokenMetadataSyncServiceTest {
                     .thenReturn(Optional.of(new Mapping("presenttoken", null, null, null, null, null, null, null)));
             when(gitService.getAllMappingDetails(any()))
                     .thenReturn(Map.of("presenttoken.json", new MappingUpdateDetails("author", LocalDateTime.now())));
-            when(tokenMetadataService.insertMapping(any(), any(), any())).thenReturn(true);
+            when(tokenMetadataService.insertMapping(any(), any(), any(), any())).thenReturn(true);
             when(tokenMetadataService.findAllSubjects()).thenReturn(List.of("presenttoken", "staletoken"));
             when(tokenMetadataService.deleteMapping("staletoken")).thenReturn(true);
 

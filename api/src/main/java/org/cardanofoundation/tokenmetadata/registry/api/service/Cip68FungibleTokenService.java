@@ -4,11 +4,11 @@ import com.bloxbean.cardano.yaci.store.common.domain.AddressUtxo;
 import com.bloxbean.cardano.yaci.store.common.domain.Amt;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.cardanofoundation.tokenmetadata.registry.api.model.cip68.Cip68Uri;
 import org.cardanofoundation.tokenmetadata.registry.api.model.cip68.FungibleTokenMetadata;
 import org.cardanofoundation.tokenmetadata.registry.api.model.cip68.ParsedCip68Datum;
 import org.cardanofoundation.tokenmetadata.registry.api.util.AssetType;
 import org.cardanofoundation.tokenmetadata.registry.repository.MetadataReferenceNftRepository;
+import org.cardanofoundation.tokenmetadata.registry.validation.ValidationError;
 import org.springframework.stereotype.Service;
 
 import jakarta.annotation.Nullable;
@@ -23,6 +23,7 @@ import java.util.stream.Collectors;
 
 import static org.cardanofoundation.tokenmetadata.registry.api.model.cip68.Cip68Constants.FUNGIBLE_TOKEN_PREFIX;
 import static org.cardanofoundation.tokenmetadata.registry.api.model.cip68.Cip68Constants.LABEL_FT;
+import static org.cardanofoundation.tokenmetadata.registry.api.model.cip68.Cip68Constants.LABEL_RFT;
 import static org.cardanofoundation.tokenmetadata.registry.api.model.cip68.Cip68Constants.REFERENCE_TOKEN_PREFIX;
 import static org.cardanofoundation.tokenmetadata.registry.api.model.cip68.Cip68Constants.RICH_FUNGIBLE_TOKEN_PREFIX;
 
@@ -35,70 +36,9 @@ public class Cip68FungibleTokenService {
     private static final String REFERENCE_NFT_PREFIX = "000643b0";
 
     private static final String VERSION = "version";
-    private static final int LOGGED_URI_MAX_LENGTH = 60;
 
     private final MetadataReferenceNftRepository metadataReferenceNftRepository;
     private final Cip68FTDatumParser cip68DatumParser;
-
-    /**
-     * Says why a CIP-68 datum is not valid for a user-token label, or an empty result when it is. The check is strict
-     * about what CIP-68 requires for the label:
-     * <ul>
-     *   <li>{@code name} for every label;</li>
-     *   <li>for the 333 fungible token, {@code description};</li>
-     *   <li>for the 222 NFT and the 444 RFT, {@code image} as a URI with the scheme {@code https}, {@code ipfs},
-     *       {@code ar} or {@code data} ({@code description} is optional for them).</li>
-     * </ul>
-     * The optional fields do not reject the datum: see {@link #invalidLogoReason}.
-     *
-     * @param datum the parsed datum
-     * @param label the user-token label the datum belongs to: {@code 222}, {@code 333} or {@code 444}
-     * @return the reason the datum is not valid for the label, empty if it is valid
-     */
-    public Optional<String> invalidReason(ParsedCip68Datum datum, int label) {
-        if (datum.name() == null) {
-            return Optional.of("it has no name");
-        }
-        if (label == LABEL_FT) {
-            if (datum.description() == null) {
-                return Optional.of("it has no description, which CIP-68 requires for a fungible token (label "
-                        + LABEL_FT + ")");
-            }
-            return Optional.empty();
-        }
-        String image = datum.image();
-        if (image == null || image.isBlank()) {
-            return Optional.of("it has no image, which CIP-68 requires for label " + label);
-        }
-        if (!Cip68Uri.hasAllowedScheme(image)) {
-            return Optional.of("its image '" + abbreviate(image) + "' is not a URI with one of the schemes CIP-68 "
-                    + "allows (" + Cip68Uri.ALLOWED_SCHEMES + ")");
-        }
-        return Optional.empty();
-    }
-
-    /**
-     * Says why the {@code logo} of a datum cannot be stored, or an empty result when there is no logo or it is fine.
-     * The logo is optional, so a bad one does not reject the datum: it is left out and the rest is indexed. CIP-68
-     * defines it as a URI whose scheme is one of {@code https}, {@code ipfs}, {@code ar} or {@code data}, so a bare
-     * IPFS hash, or any other scheme, is not accepted.
-     *
-     * @param datum the parsed datum
-     * @return the reason the logo is left out, empty if there is none or it is valid
-     */
-    public Optional<String> invalidLogoReason(ParsedCip68Datum datum) {
-        String logo = datum.logo();
-        if (logo == null || logo.isBlank() || Cip68Uri.hasAllowedScheme(logo)) {
-            return Optional.empty();
-        }
-        return Optional.of("its logo '" + abbreviate(logo) + "' is not a URI with one of the schemes CIP-68 allows ("
-                + Cip68Uri.ALLOWED_SCHEMES + ")");
-    }
-
-    private static String abbreviate(String value) {
-        String oneLine = value.replaceAll("\\s+", " ");
-        return oneLine.length() <= LOGGED_URI_MAX_LENGTH ? oneLine : oneLine.substring(0, LOGGED_URI_MAX_LENGTH) + "...";
-    }
 
     /**
      * Checks whether the utxo contains an NFT which matches Cip68 Reference NFT requirements
@@ -172,32 +112,49 @@ public class Cip68FungibleTokenService {
     }
 
     /**
-     * The served metadata of a reference NFT. A rich fungible token (444) has no {@code logo} in CIP-68; its picture is
-     * the required {@code image}, so it is served as the logo. The image is not stored in a column of its own: it is
-     * read from the stored datum, which also serves the rows indexed before rich fungible tokens were served.
+     * The served metadata of a reference NFT for a subject, as indexed (ADR-019).
+     * <ul>
+     *   <li>A rich fungible token (444) has no {@code logo} in CIP-68: its {@code image} is served as the logo, as written,
+     *       even when it is not a URI with an allowed scheme (its validation errors say so). A row indexed before the image
+     *       was stored has none, so it is read from the stored datum.</li>
+     *   <li>The validation errors are those of the subject's label and those that do not depend on a label: a reference
+     *       NFT paired with a 222 and a 333 token is served as a 333 token without the 222 requirement (an image).</li>
+     * </ul>
      */
     private FungibleTokenMetadata toFungibleTokenMetadata(MetadataReferenceNft referenceNft, List<String> properties,
                                                           boolean richFungibleToken) {
-        String logo = richFungibleToken ? findImage(referenceNft) : referenceNft.getLogo();
+        String logo = richFungibleToken ? imageOf(referenceNft) : referenceNft.getLogo();
+        int label = richFungibleToken ? LABEL_RFT : LABEL_FT;
         return new FungibleTokenMetadata(getPropertyIfRequired(Cip68FTDatumParser.DECIMALS, referenceNft.getDecimals(), properties),
                 getPropertyIfRequired(Cip68FTDatumParser.DESCRIPTION, referenceNft.getDescription(), properties),
                 getPropertyIfRequired(Cip68FTDatumParser.LOGO, logo, properties),
                 getPropertyIfRequired(Cip68FTDatumParser.NAME, referenceNft.getName(), properties),
                 getPropertyIfRequired(Cip68FTDatumParser.TICKER, referenceNft.getTicker(), properties),
                 getPropertyIfRequired(Cip68FTDatumParser.URL, referenceNft.getUrl(), properties),
-                getPropertyIfRequired(VERSION, referenceNft.getVersion(), properties));
+                getPropertyIfRequired(VERSION, referenceNft.getVersion(), properties),
+                errorsForLabel(referenceNft.getValidationErrors(), label));
     }
 
-    /**
-     * The {@code image} of the stored datum, if it is a URI with a scheme CIP-68 allows. A 444 datum is stored only with
-     * such an image, but the same reference NFT may also have been stored for another label, so it is checked here too.
-     */
+    /** The errors of one label and those that do not depend on a label; {@code null} (never checked) stays {@code null}. */
     @Nullable
-    private String findImage(MetadataReferenceNft referenceNft) {
+    static List<ValidationError> errorsForLabel(@Nullable List<ValidationError> errors, int label) {
+        if (errors == null) {
+            return null;
+        }
+        String subStandard = String.valueOf(label);
+        return errors.stream()
+                .filter(error -> error.subStandard() == null || subStandard.equals(error.subStandard()))
+                .toList();
+    }
+
+    @Nullable
+    private String imageOf(MetadataReferenceNft referenceNft) {
+        if (referenceNft.getImage() != null) {
+            return referenceNft.getImage();
+        }
         AssetType referenceNftAssetType = new AssetType(referenceNft.getPolicyId(), referenceNft.getAssetName());
         return cip68DatumParser.parse(referenceNft.getDatum(), referenceNftAssetType)
                 .map(ParsedCip68Datum::image)
-                .filter(Cip68Uri::hasAllowedScheme)
                 .orElse(null);
     }
 

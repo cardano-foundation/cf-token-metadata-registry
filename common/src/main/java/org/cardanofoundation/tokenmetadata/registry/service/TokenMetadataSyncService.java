@@ -1,5 +1,9 @@
 package org.cardanofoundation.tokenmetadata.registry.service;
 
+import jakarta.annotation.Nullable;
+import org.cardanofoundation.tokenmetadata.registry.invalidtoken.InvalidTokenReason;
+import org.cardanofoundation.tokenmetadata.registry.invalidtoken.InvalidTokenRecorder;
+import org.cardanofoundation.tokenmetadata.registry.invalidtoken.InvalidTokenReport;
 import jakarta.annotation.PostConstruct;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -11,6 +15,7 @@ import org.cardanofoundation.tokenmetadata.registry.model.MappingUpdateDetails;
 import org.cardanofoundation.tokenmetadata.registry.model.enums.SyncStatusEnum;
 import org.cardanofoundation.tokenmetadata.registry.repository.SyncStateRepository;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
@@ -23,10 +28,13 @@ import java.util.concurrent.atomic.AtomicBoolean;
 @RequiredArgsConstructor
 public class TokenMetadataSyncService {
 
+    private static final String JSON_EXTENSION = ".json";
     private final GitService gitService;
     private final TokenMetadataService tokenMetadataService;
     private final TokenMappingService tokenMappingService;
     private final SyncStateRepository syncStateRepository;
+    private final InvalidTokenRecorder invalidTokenRecorder;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Value("${token.metadata.job.enabled}")
     boolean isMetadataJobEnabled;
@@ -101,6 +109,9 @@ public class TokenMetadataSyncService {
             }
 
             log.info("Mapping processing took {} ms", System.currentTimeMillis() - processStart);
+            if (!filesToProcess.isEmpty() || !pendingChanges.subjectsToDelete().isEmpty()) {
+                eventPublisher.publishEvent(new Cip26SyncCompletedEvent(filesToProcess.size(), pendingChanges.subjectsToDelete().size()));
+            }
 
             syncStatus.setStatus(SyncStatusEnum.SYNC_DONE);
             syncStatus.setInitialSyncDone(true);
@@ -123,8 +134,13 @@ public class TokenMetadataSyncService {
 
         for (File mappingFile : filesToProcess) {
             processed++;
+            String origin = mappingFile.getName();
+            // the file is judged again: what it had wrong before is forgotten, so invalid_token says what is wrong now
+            invalidTokenRecorder.forgetOrigin(InvalidTokenReason.CIP_26, origin);
             Optional<Mapping> mapping = tokenMappingService.parseMappings(mappingFile);
             if (mapping.isEmpty()) {
+                recordDroppedFile(origin, InvalidTokenReason.UNPARSEABLE_MAPPING,
+                        "the file cannot be read as a CIP-26 mapping", null, null);
                 skipped++;
                 continue;
             }
@@ -151,12 +167,18 @@ public class TokenMetadataSyncService {
             if (!filenameSubject.equals(mapping.get().subject())) {
                 log.warn("Skipping '{}': filename does not match inner subject '{}'",
                         mappingFile.getName(), mapping.get().subject());
+                recordDroppedFile(origin, InvalidTokenReason.FILENAME_SUBJECT_MISMATCH,
+                        "the file name does not match the subject inside it, so it is indexed under neither",
+                        mapping.get().subject(), Map.of("inner_subject", String.valueOf(mapping.get().subject())));
                 skippedFilenameMismatch++;
                 continue;
             }
 
             MappingUpdateDetails updateDetails = mappingDetailsMap.get(mappingFile.getName());
             if (updateDetails == null) {
+                recordDroppedFile(origin, InvalidTokenReason.MISSING_GIT_HISTORY,
+                        "the file has no commit in the registry's history, so it has no update time or author",
+                        mapping.get().subject(), null);
                 skipped++;
                 continue;
             }
@@ -165,9 +187,9 @@ public class TokenMetadataSyncService {
                 boolean metadataInserted = tokenMetadataService.insertMapping(
                         mapping.get(),
                         updateDetails.updatedAt(),
-                        updateDetails.updatedBy());
+                        updateDetails.updatedBy(),
+                        origin);
                 if (metadataInserted) {
-                    tokenMetadataService.insertLogo(mapping.get());
                     inserted++;
                 }
             } catch (Exception e) {
@@ -187,9 +209,22 @@ public class TokenMetadataSyncService {
         return failures.get();
     }
 
+    /** A registry file that cannot become an entry is recorded under its name (ADR-020). Never throws. */
+    private void recordDroppedFile(String origin, String reasonCode, String reason, @Nullable String subject,
+                                   @Nullable Map<String, Object> details) {
+        invalidTokenRecorder.report(InvalidTokenReport.builder()
+                .standard(InvalidTokenReason.CIP_26)
+                .reasonCode(reasonCode)
+                .reason(reason)
+                .subject(subject)
+                .origin(origin)
+                .details(details)
+                .build());
+    }
+
     private static String stripJsonExtension(String fileName) {
-        return fileName.endsWith(".json")
-                ? fileName.substring(0, fileName.length() - ".json".length())
+        return fileName.endsWith(JSON_EXTENSION)
+                ? fileName.substring(0, fileName.length() - JSON_EXTENSION.length())
                 : fileName;
     }
 
@@ -245,6 +280,8 @@ public class TokenMetadataSyncService {
         boolean failures = false;
         int deleted = 0;
         for (String subject : subjectsToDelete) {
+            // the file is gone: what it had wrong is forgotten too
+            invalidTokenRecorder.forgetOrigin(InvalidTokenReason.CIP_26, subject + JSON_EXTENSION);
             if (tokenMetadataService.deleteMapping(subject)) {
                 deleted++;
                 log.info("Deleted metadata for subject '{}' removed from the registry", subject);

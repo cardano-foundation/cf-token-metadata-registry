@@ -11,10 +11,15 @@ import com.bloxbean.cardano.yaci.store.events.EventMetadata;
 import com.bloxbean.cardano.yaci.store.events.RollbackEvent;
 import com.bloxbean.cardano.yaci.store.utxo.domain.AddressUtxoEvent;
 import com.bloxbean.cardano.yaci.store.utxo.domain.TxInputOutput;
+import org.cardanofoundation.tokenmetadata.registry.invalidtoken.InvalidTokenReason;
+import org.cardanofoundation.tokenmetadata.registry.invalidtoken.InvalidTokenRecorder;
+import org.cardanofoundation.tokenmetadata.registry.invalidtoken.InvalidTokenReport;
 import org.cardanofoundation.tokenmetadata.registry.api.config.Cip113Configuration;
 import org.cardanofoundation.tokenmetadata.registry.entity.Cip113RegistryNode;
 import org.cardanofoundation.tokenmetadata.registry.repository.Cip113RegistryNodeRepository;
+import org.cardanofoundation.tokenmetadata.registry.api.event.Cip113RegistryChangedEvent;
 import org.junit.jupiter.api.BeforeEach;
+import org.springframework.context.ApplicationEventPublisher;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -45,6 +50,12 @@ class Cip113EventListenerTest {
     @Mock
     private Cip113RegistryNodeRepository repository;
 
+    @Mock
+    private InvalidTokenRecorder invalidTokenRecorder;
+
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
+
     private Cip113Configuration config;
     private Cip113EventListener listener;
 
@@ -56,7 +67,7 @@ class Cip113EventListenerTest {
 
         Cip113RegistryNodeParser parser = new Cip113RegistryNodeParser();
         Cip113RegistryService registryService = new Cip113RegistryService(repository, config);
-        listener = new Cip113EventListener(config, parser, repository, registryService);
+        listener = new Cip113EventListener(config, parser, repository, registryService, invalidTokenRecorder, eventPublisher);
     }
 
     @Nested
@@ -83,6 +94,8 @@ class Cip113EventListenerTest {
             assertThat(saved.getThirdPartyTransferLogicScript()).isEqualTo(THIRD_PARTY_LOGIC);
             assertThat(saved.getUnfrackingLogicScript()).isEqualTo(UNFRACKING_LOGIC);
             assertThat(saved.getDatum()).isEqualTo(datum);
+            // a newly registered policy may have no CIP-26 or CIP-68 metadata yet
+            verify(eventPublisher).publishEvent(Cip113RegistryChangedEvent.indexed(1));
         }
 
         @Test
@@ -167,6 +180,7 @@ class Cip113EventListenerTest {
 
             listener.processTransaction(event);
             verifyNoInteractions(repository);
+            assertRecordedUnparseable("no inline datum");
         }
 
         @Test
@@ -194,6 +208,19 @@ class Cip113EventListenerTest {
         void skipsInvalidDatum() {
             listener.processTransaction(buildEvent(100L, REGISTRY_NFT_POLICY_ID, REGISTERED_POLICY_ID, "deadbeef", TX_HASH));
             verifyNoInteractions(repository);
+            assertRecordedUnparseable("Failed to parse CIP-113 registry node datum");
+            verifyNoInteractions(eventPublisher);
+        }
+
+        private void assertRecordedUnparseable(String reasonFragment) {
+            ArgumentCaptor<InvalidTokenReport> report = ArgumentCaptor.forClass(InvalidTokenReport.class);
+            verify(invalidTokenRecorder).report(report.capture());
+            assertThat(report.getValue().standard()).isEqualTo(InvalidTokenReason.CIP_113);
+            assertThat(report.getValue().reasonCode()).isEqualTo(InvalidTokenReason.REGISTRY_NODE_UNPARSEABLE);
+            assertThat(report.getValue().reason()).contains(reasonFragment);
+            assertThat(report.getValue().policyId()).isEqualTo(REGISTRY_NFT_POLICY_ID);
+            assertThat(report.getValue().slot()).isEqualTo(100L);
+            assertThat(report.getValue().txHash()).isEqualTo(TX_HASH);
         }
 
     }
@@ -213,6 +240,8 @@ class Cip113EventListenerTest {
             listener.handleRollback(event);
 
             verify(repository).deleteBySlotGreaterThan(500L);
+            // a policy whose node was rolled back may no longer be registered
+            verify(eventPublisher).publishEvent(Cip113RegistryChangedEvent.rolledBack(3));
         }
 
         @Test
@@ -226,6 +255,7 @@ class Cip113EventListenerTest {
             listener.handleRollback(event);
 
             verify(repository).deleteBySlotGreaterThan(1000L);
+            verifyNoInteractions(eventPublisher);
         }
     }
 

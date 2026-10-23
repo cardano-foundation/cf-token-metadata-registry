@@ -25,6 +25,7 @@ import org.cardanofoundation.tokenmetadata.registry.api.service.cip113.Cip113Reg
 import org.cardanofoundation.tokenmetadata.registry.api.util.AssetType;
 import org.cardanofoundation.tokenmetadata.registry.entity.MetadataReferenceNft;
 import org.cardanofoundation.tokenmetadata.registry.repository.MetadataReferenceNftRepository;
+import org.cardanofoundation.tokenmetadata.registry.validation.ValidationError;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Nested;
@@ -261,10 +262,17 @@ class MetadataApiV2ControllerTest {
     }
 
     @Test
-    void subjectPropertyQueryShouldReturnBadRequest_whenMissingRequiredProperties() throws Exception {
-        mockMvc.perform(get("/api/v2/subjects/025146866af908340247fe4e9672d5ac7059f1e8534696b5f920c9e66362544848")
-                        .queryParam("property", "url"))
-                .andExpect(status().isBadRequest());
+    void subjectPropertyQueryNeedsNoNameOrDescription() throws Exception {
+        // a property filter no longer has to include name and description (ADR-019)
+        String subject = "025146866af908340247fe4e9672d5ac7059f1e8534696b5f920c9e66362544848";
+        UrlProperty url = new UrlProperty();
+        url.setValue("https://fivebinaries.com/nutcoin");
+        when(v1ApiMetadataIndexer.findSubjectSelectProperties(subject, List.of("url")))
+                .thenReturn(Optional.of(TokenMetadata.builder().subject(subject).url(url).build()));
+
+        mockMvc.perform(get("/api/v2/subjects/" + subject).queryParam("property", "url"))
+                .andExpect(status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.subject.metadata.url.value").value("https://fivebinaries.com/nutcoin"));
     }
 
     @Test
@@ -339,7 +347,7 @@ class MetadataApiV2ControllerTest {
     }
 
     @Test
-    void getSubjectsBatchShouldReturnBadRequest_whenMissingRequiredProperties() throws Exception {
+    void getSubjectsBatchNeedsNoNameOrDescription() throws Exception {
 
         ObjectMapper objectMapper = new ObjectMapper();
 
@@ -348,7 +356,7 @@ class MetadataApiV2ControllerTest {
         mockMvc.perform(post("/api/v2/subjects/query")
                         .contentType("application/json")
                         .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isOk());
     }
 
     @Test
@@ -484,9 +492,109 @@ class MetadataApiV2ControllerTest {
                     .assetName("000643b0" + BASE_NAME)
                     .slot(100L)
                     .name("PUZZLE")
+                    .image("ipfs://bafypuzzle")
                     .version(1L)
+                    .validationErrors(List.of())
                     .datum(HexUtil.encodeHexString(CborSerializationUtil.serialize(datum.serialize())))
                     .build();
+        }
+    }
+
+    /**
+     * A token is served as indexed with its validation errors (ADR-019): a 200 whatever is wrong with it, unless
+     * ?validation= asks for a stricter view.
+     */
+    @Nested
+    class ValidationErrorsAndScope {
+
+        private static final String POLICY = "9a9693a9a37912a5097918f97918d15240c92ab729a0b7c4aa144d77";
+        private static final String BASE_NAME = "53554e44";
+        private static final String SUBJECT = POLICY + "0014df10" + BASE_NAME;
+
+        private final ValidationError missingDescription = ValidationError.mandatory("CIP-68", "333", "description",
+                "missing_value", "description field is missing a mandatory value");
+        private final ValidationError badLogo = ValidationError.optional("CIP-68", null, "logo", "invalid_uri_scheme",
+                "logo 'QmX' is not a URI with one of the schemes CIP-68 allows");
+
+        private void stored(List<ValidationError> errors) {
+            MetadataReferenceNft row = MetadataReferenceNft.builder()
+                    .policyId(POLICY).assetName("000643b0" + BASE_NAME).slot(100L)
+                    .name("Sundae").ticker("SUNDAE").logo("QmX").version(1L).datum("d87980")
+                    .validationErrors(errors).build();
+            when(metadataReferenceNftRepository.findFirstByPolicyIdAndAssetNameOrderBySlotDesc(POLICY, "000643b0" + BASE_NAME))
+                    .thenReturn(Optional.of(row));
+            when(metadataReferenceNftRepository.findLatestByPolicyIds(anyCollection())).thenReturn(List.of(row));
+        }
+
+        @Test
+        void servesATokenWithAMandatoryErrorWithItsErrors() throws Exception {
+            stored(List.of(missingDescription));
+
+            mockMvc.perform(get("/api/v2/subjects/" + SUBJECT))
+                    .andExpect(status().isOk())
+                    .andExpect(MockMvcResultMatchers.jsonPath("$.subject.metadata.name.value").value("Sundae"))
+                    .andExpect(MockMvcResultMatchers.jsonPath("$.subject.metadata.valid").value(false))
+                    .andExpect(MockMvcResultMatchers.jsonPath("$.subject.validation_errors[0].code").value("missing_value"))
+                    .andExpect(MockMvcResultMatchers.jsonPath("$.subject.validation_errors[0].sub_standard").value("333"))
+                    .andExpect(MockMvcResultMatchers.jsonPath("$.subject.validation_errors[0].field_category").value("MANDATORY"));
+        }
+
+        @Test
+        void servesATokenWithNoErrorsAsValid() throws Exception {
+            stored(List.of());
+
+            mockMvc.perform(get("/api/v2/subjects/" + SUBJECT))
+                    .andExpect(status().isOk())
+                    .andExpect(MockMvcResultMatchers.jsonPath("$.subject.metadata.valid").value(true))
+                    .andExpect(MockMvcResultMatchers.jsonPath("$.subject.validation_errors").isEmpty());
+        }
+
+        @Test
+        void hidesATokenWithAMandatoryErrorFromMandatoryOnlyAndStrict() throws Exception {
+            stored(List.of(missingDescription));
+
+            mockMvc.perform(get("/api/v2/subjects/" + SUBJECT).queryParam("validation", "MANDATORY_ONLY"))
+                    .andExpect(status().isNotFound());
+            mockMvc.perform(get("/api/v2/subjects/" + SUBJECT).queryParam("validation", "STRICT"))
+                    .andExpect(status().isNotFound());
+        }
+
+        @Test
+        void servesATokenWithOnlyAnOptionalErrorToMandatoryOnlyButNotToStrict() throws Exception {
+            stored(List.of(badLogo));
+
+            mockMvc.perform(get("/api/v2/subjects/" + SUBJECT).queryParam("validation", "MANDATORY_ONLY"))
+                    .andExpect(status().isOk());
+            mockMvc.perform(get("/api/v2/subjects/" + SUBJECT).queryParam("validation", "STRICT"))
+                    .andExpect(status().isNotFound());
+        }
+
+        @Test
+        void limitsTheErrorsToTheRequestedProperties() throws Exception {
+            stored(List.of(missingDescription));
+
+            mockMvc.perform(get("/api/v2/subjects/" + SUBJECT).queryParam("property", "ticker").queryParam("validation", "STRICT"))
+                    .andExpect(status().isOk())
+                    .andExpect(MockMvcResultMatchers.jsonPath("$.subject.metadata.ticker.value").value("SUNDAE"))
+                    .andExpect(MockMvcResultMatchers.jsonPath("$.subject.metadata.valid").value(true))
+                    .andExpect(MockMvcResultMatchers.jsonPath("$.subject.validation_errors").isEmpty());
+        }
+
+        @Test
+        void leavesATokenTheScopeDoesNotAcceptOutOfABatch() throws Exception {
+            stored(List.of(missingDescription));
+            BatchRequest request = new BatchRequest(List.of(SUBJECT), List.of());
+
+            mockMvc.perform(post("/api/v2/subjects/query").queryParam("validation", "MANDATORY_ONLY")
+                            .contentType("application/json")
+                            .content(new ObjectMapper().writeValueAsString(request)))
+                    .andExpect(status().isOk())
+                    .andExpect(MockMvcResultMatchers.jsonPath("$.subjects.length()").value(0));
+            mockMvc.perform(post("/api/v2/subjects/query")
+                            .contentType("application/json")
+                            .content(new ObjectMapper().writeValueAsString(request)))
+                    .andExpect(status().isOk())
+                    .andExpect(MockMvcResultMatchers.jsonPath("$.subjects[0].validation_errors[0].code").value("missing_value"));
         }
     }
 

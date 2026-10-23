@@ -48,15 +48,18 @@ def _assert_programmable(entry, policy):
             f"{policy['registry_utxo']} has {policy['cip113'][field]}")
 
 
-def make_test_class(fixture, not_served=None, native_subjects=()):
+def make_test_class(fixture, with_mandatory_errors=None, native_subjects=()):
     """
-    The test class for one network. not_served maps a subject that has on-chain metadata but is not served to the
-    reason; native_subjects are subjects of unregistered policies the API serves, so they must be NATIVE.
+    The test class for one network. Every registered token with on-chain CIP-26 or CIP-68 metadata is served, with its
+    validation errors (ADR-019); one without any has no companion and is a 404 (ADR-020). with_mandatory_errors maps a
+    subject whose metadata misses something its CIP requires to the reason: it is served, but not with
+    validation=MANDATORY_ONLY. native_subjects are subjects of unregistered policies the API serves, so they must be NATIVE.
     """
-    not_served = not_served or {}
+    with_mandatory_errors = with_mandatory_errors or {}
     cases = _cases(fixture)
-    expected_served = [(s, p) for s, p in cases if _has_metadata(s) and s["subject"] not in not_served]
-    expected_404 = [(s, p) for s, p in cases if not _has_metadata(s) or s["subject"] in not_served]
+    expected_served = [(s, p) for s, p in cases if _has_metadata(s)]
+    expected_404 = [(s, p) for s, p in cases if not _has_metadata(s)]
+    with_errors = [(s, p) for s, p in expected_served if s["subject"] in with_mandatory_errors]
     policies_by_id = {p["policy_id"]: p for p in fixture["policies"]}
     case_id = lambda case: case[0]["subject"][:16] + "-" + case[0]["subject"][56:][-16:]
 
@@ -66,7 +69,7 @@ def make_test_class(fixture, not_served=None, native_subjects=()):
     @pytest.mark.cip113
     class TestV2Cip113:
 
-        @allure.story("A programmable token with valid metadata is PROGRAMMABLE, with the registry node's extension")
+        @allure.story("A programmable token with metadata is PROGRAMMABLE, with the registry node's extension")
         @pytest.mark.parametrize("case", expected_served, ids=case_id)
         def test_served_as_programmable(self, case):
             subject, policy = case
@@ -74,13 +77,27 @@ def make_test_class(fixture, not_served=None, native_subjects=()):
             assert resp.status_code == 200, f"{subject['subject']}: expected 200, got {resp.status_code}"
             _assert_programmable(resp.json()["subject"], policy)
 
-        @allure.story("A programmable token without valid metadata is not served")
+        @allure.story("A programmable token without CIP-26 or CIP-68 metadata (no companion) is not served")
         @pytest.mark.parametrize("case", expected_404, ids=case_id)
-        def test_not_served_without_valid_metadata(self, case):
+        def test_not_served_without_companion_metadata(self, case):
             subject, _ = case
             resp = requests.get(f"{API_BASE_URL}/api/v2/subjects/{subject['subject']}")
-            reason = not_served.get(subject["subject"], "no CIP-26 or CIP-68 metadata on chain")
-            assert resp.status_code == 404, f"{subject['subject']}: expected 404 ({reason}), got {resp.status_code}"
+            assert resp.status_code == 404, (f"{subject['subject']}: expected 404 (no CIP-26 or CIP-68 metadata on chain), "
+                                             f"got {resp.status_code}")
+
+        @allure.story("A programmable token whose metadata misses something its CIP requires is served with the error, "
+                      "but not with validation=MANDATORY_ONLY")
+        @pytest.mark.parametrize("case", with_errors, ids=case_id)
+        def test_served_with_mandatory_errors(self, case):
+            subject, policy = case
+            reason = with_mandatory_errors[subject["subject"]]
+            resp = requests.get(f"{API_BASE_URL}/api/v2/subjects/{subject['subject']}")
+            assert resp.status_code == 200, f"{subject['subject']} ({reason}): got {resp.status_code}"
+            entry = resp.json()["subject"]
+            _assert_programmable(entry, policy)
+            assert [e for e in entry["validation_errors"] if e["field_category"] == "MANDATORY"], reason
+            strict = requests.get(f"{API_BASE_URL}/api/v2/subjects/{subject['subject']}", params={"validation": "MANDATORY_ONLY"})
+            assert strict.status_code == 404
 
         @allure.story("The extension is also returned with show_cips_details")
         @pytest.mark.parametrize("case", expected_served, ids=case_id)

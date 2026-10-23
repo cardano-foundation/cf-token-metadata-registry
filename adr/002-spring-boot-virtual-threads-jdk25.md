@@ -16,7 +16,7 @@ Spring Boot 3.5.x provides first-class support for virtual threads through a sin
 
 ## Decision
 
-We run the application on JDK 25 with Spring Boot 3.5.12 and enable virtual threads via:
+We run the application on JDK 25 with Spring Boot 3.5.16 and enable virtual threads via:
 
 ```properties
 spring.threads.virtual.enabled=true
@@ -26,7 +26,7 @@ This causes Spring Boot to use virtual threads for request handling (Tomcat), sc
 
 Key version choices in the current stack:
 - Java 25
-- Spring Boot 3.5.12
+- Spring Boot 3.5.16
 - Yaci Store 2.0.0
 - Cardano Client Library 0.7.1
 - PostgreSQL 17

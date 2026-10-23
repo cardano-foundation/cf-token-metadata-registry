@@ -2,7 +2,9 @@
 
 ## Status
 
-Accepted
+Superseded by ADR-019 (2026-10-21). A datum that breaks CIP-68 is now stored and served with its validation errors, so
+the newest datum is the one served. An output that moves the reference NFT without any datum stores nothing, so the
+last stored datum is still served in that case.
 
 ## Date
 
