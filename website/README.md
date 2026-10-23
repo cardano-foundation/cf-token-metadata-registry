@@ -35,10 +35,11 @@ Cardano Foundation logo is `public/images/cf-logo-text.svg`, with a white versio
 
 ## Deployment
 
-`.github/workflows/website-deploy.yml` builds and publishes `website/dist` to the `gh-pages` branch on a push to `main`
-that touches `website/` (or by manual dispatch). The site is a GitHub Pages project site:
+`.github/workflows/website-deploy.yml` builds the site and deploys it with GitHub's Pages actions on a push to `main`
+that touches `website/` (or by manual dispatch). The site is the repository's GitHub Pages site,
 **https://cardano-foundation.github.io/cf-token-metadata-registry/**, so `astro.config.mjs` sets
-`base: '/cf-token-metadata-registry'`. GitHub Pages must be enabled once in the repository settings, serving from the
-`gh-pages` branch. The registry address the validator uses comes from the repository variable `REGISTRY_API_URL`.
+`base: '/cf-token-metadata-registry'`. The interactive API reference (Scalar, over `https://tokens.cardano.org/apidocs`)
+is `public/api-reference/index.html`, served at `/api-reference/`. The validator calls `https://tokens.cardano.org`
+unless the repository variable `REGISTRY_API_URL` says otherwise.
 
 For a custom domain later: add `public/CNAME`, set `SITE` to the domain and remove `BASE` in `astro.config.mjs`.

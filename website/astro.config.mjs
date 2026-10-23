@@ -51,6 +51,7 @@ export default defineConfig({
           label: 'Reference',
           items: [
             { label: 'API', slug: 'reference/api' },
+            { label: 'Interactive API reference', link: '/cf-token-metadata-registry/api-reference/', attrs: { target: '_self' } },
             { label: 'Run your own registry', slug: 'reference/self-hosting' },
           ],
         },
