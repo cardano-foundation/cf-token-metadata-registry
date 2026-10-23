@@ -78,9 +78,8 @@ The registry indexes registry nodes, not the mints or the programmable-token ("j
 **policy**, not per token, and a policy registered with nothing minted yet is reported the same way.
 
 - **What it computes:** the registered policies (node keys of a policy id's length) minus those with a companion. A
-  companion is a CIP-26 entry, or **served** CIP-68 metadata: a reference NFT whose 333 or 444 user token was minted
-  (ADR-022). A reference NFT alone serves nothing, so it does not count. Metadata with validation errors counts, since
-  it is served.
+  companion is a CIP-26 entry or a CIP-68 reference NFT, both of which V2 serves. Metadata with validation errors
+  counts, since it is served.
 - **What it writes:** one row per policy without a companion. Rows of policies that now have one, or are no longer
   registered, are removed.
 - **When it runs: on events.** Each input publishes a Spring application event when it changes, and the reconciler
@@ -89,7 +88,7 @@ The registry indexes registry nodes, not the mints or the programmable-token ("j
   | Event | Published by | When |
   |---|---|---|
   | `Cip113RegistryChangedEvent` | CIP-113 listener | registry nodes were indexed, or removed by a rollback |
-  | `Cip68MetadataIndexedEvent(policyIds)` | CIP-68 listener | a block stored a reference NFT, or saw a 333/444 user token for the first time; the reconciler runs only if one of the policies is registered |
+  | `Cip68MetadataIndexedEvent(policyIds)` | CIP-68 listener | a block stored a reference NFT; the reconciler runs only if one of the policies is registered |
   | `Cip26SyncCompletedEvent` | CIP-26 sync | a sync run in the same process stored or removed entries |
   | `ApplicationReadyEvent` | Spring | the application started |
 

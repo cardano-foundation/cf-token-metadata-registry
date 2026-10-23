@@ -52,7 +52,7 @@ The API exposes both a legacy V1 (CIP-26 only) and an enhanced V2 (CIP-26 + CIP-
 | [ADR-018](018-cip68-rich-fungible-tokens.md) | Serve CIP-68 Rich Fungible Tokens (444) | Accepted |
 | [ADR-019](019-validation-errors-reported-not-enforced.md) | Validation Errors Are Reported, Not Enforced | Accepted |
 | [ADR-020](020-invalid-token-table.md) | A Table for What Is Dropped (`invalid_token`), CIP-113 Included | Accepted |
-| [ADR-022](022-cip68-serve-minted-user-tokens-only.md) | Serve a CIP-68 333 or 444 Subject Only When Its User Token Was Minted | Accepted |
+| [ADR-022](022-cip68-serve-minted-user-tokens-only.md) | Serve a CIP-68 333 or 444 Subject Only When Its User Token Was Minted | Rejected |
 
 ### Data Ingestion
 

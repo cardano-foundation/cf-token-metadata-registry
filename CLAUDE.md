@@ -26,7 +26,7 @@ The V2 API merges metadata from CIP-26 and CIP-68 using a priority mechanism:
 - Default priority: `CIP_68,CIP_26` (on-chain preferred, configurable via `cip.query.priority`)
 - Per-request override via `query_priority` parameter
 - First source wins per property; gaps filled by lower-priority sources
-- Tokens are served as indexed (ADR-019): `validation_errors` on the subject (all standards, priority order) and on `standards.*`, `metadata.valid` true when there are none, 404 only when nothing is indexed. A CIP-68 333/444 subject is served only when its user token was seen on chain (`cip68_user_token`, ADR-022). `?validation=ALL|MANDATORY_ONLY|STRICT` (default `ALL`) chooses which tokens are returned; under `?property=` the errors are scoped to those properties
+- Tokens are served as indexed (ADR-019): `validation_errors` on the subject (all standards, priority order) and on `standards.*`, `metadata.valid` true when there are none, 404 only when nothing is indexed. A CIP-68 333/444 subject is served from its reference NFT whether or not its user token was minted (ADR-022, rejected). `?validation=ALL|MANDATORY_ONLY|STRICT` (default `ALL`) chooses which tokens are returned; under `?property=` the errors are scoped to those properties
 - What cannot be stored (undecodable datums, unusable CIP-26 files, unparseable CIP-113 nodes, registered CIP-113 policies with no CIP-26/CIP-68 companion) is recorded in the `invalid_token` table (ADR-020); there is no API for it
 - CIP-113 extensions are appended when the token's policy ID is in the programmable token registry
 
