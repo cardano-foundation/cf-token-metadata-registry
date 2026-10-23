@@ -70,7 +70,7 @@ class MetadataTest {
         NameProperty nameProperty = new NameProperty();
         nameProperty.setValue("name");
 
-        byte[] logoBytes = new byte[]{(byte) 0x89, 'P', 'N', 'G', '\r', '\n', 0x1A, '\n'}; // PNG magic
+        byte[] logoBytes = {(byte) 0x89, 'P', 'N', 'G', '\r', '\n', 0x1A, '\n'}; // PNG magic
         LogoProperty logoProperty = new LogoProperty();
         logoProperty.setValue(logoBytes);
 

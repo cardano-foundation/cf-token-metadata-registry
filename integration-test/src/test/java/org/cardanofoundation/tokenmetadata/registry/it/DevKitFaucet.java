@@ -44,7 +44,7 @@ final class DevKitFaucet {
                         .until(() -> isFunded(backendService, address));
                 log.info("Funds of {} available (attempt {})", address, attempt);
                 return;
-            } catch (ConditionTimeoutException e) {
+            } catch (ConditionTimeoutException _) {
                 log.warn("Funds of {} not available after {} s (attempt {} of {}), asking the faucet again", address,
                         WAIT_PER_ATTEMPT.toSeconds(), attempt, ATTEMPTS);
             }
