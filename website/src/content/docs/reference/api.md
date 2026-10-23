@@ -4,8 +4,9 @@ description: The endpoints of the registry, V2 and V1, and the validate endpoint
 ---
 
 Every instance publishes its OpenAPI description at **`/apidocs`**. The public registries are
-**`https://tokens.cardano.org`** (mainnet) and **`https://preprod.tokens.cardano.org`** (preprod); try their endpoints
-in the [interactive API reference](/cf-token-metadata-registry/api-reference/).
+**`https://tokens.cardano.org`** (mainnet) and **`https://preprod.tokens.cardano.org`** (preprod). Every endpoint,
+parameter and schema is in the [API reference](/cf-token-metadata-registry/api/); to send requests from the browser,
+use the [Scalar API reference](/cf-token-metadata-registry/api-reference/).
 
 ## V2: CIP-26, CIP-68 and CIP-113 (current)
 
