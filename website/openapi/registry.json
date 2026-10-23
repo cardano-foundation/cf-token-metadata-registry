@@ -1,0 +1,1189 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "CF Token Metadata Registry API",
+    "version": "v2",
+    "description": "Cardano token metadata from CIP-26, CIP-68 and CIP-113 in one API. Use the V2 endpoints; V1 serves CIP-26 only and is deprecated."
+  },
+  "servers": [
+    {
+      "url": "https://tokens.cardano.org",
+      "description": "Mainnet"
+    },
+    {
+      "url": "https://preprod.tokens.cardano.org",
+      "description": "Preprod"
+    }
+  ],
+  "tags": [
+    {
+      "name": "V2 subjects",
+      "description": "Token metadata merged from CIP-26, CIP-68 and CIP-113, with its validation errors."
+    },
+    {
+      "name": "V2 validate",
+      "description": "Check token metadata before you mint or submit it: what the registry would store, with which validation errors, and how the V2 API would serve it. Nothing is stored."
+    },
+    {
+      "name": "V1 (deprecated)",
+      "description": "CIP-26 metadata only, as served before V2. Use the V2 endpoints."
+    }
+  ],
+  "paths": {
+    "/metadata/query": {
+      "post": {
+        "tags": [
+          "V1 (deprecated)"
+        ],
+        "summary": "Query subjects",
+        "operationId": "v1-query-subjects",
+        "requestBody": {
+          "content": {
+            "application/json;charset=utf-8": {
+              "schema": {
+                "$ref": "#/components/schemas/BatchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BatchResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid `body`",
+            "content": {
+              "application/json;charset=utf-8": {
+                "schema": {
+                  "$ref": "#/components/schemas/BatchResponse"
+                }
+              }
+            }
+          }
+        },
+        "description": "Query multiple properties of multiple subjects.",
+        "deprecated": true
+      }
+    },
+    "/api/v2/validate/cip68": {
+      "post": {
+        "tags": [
+          "V2 validate"
+        ],
+        "summary": "Validate a CIP-68 datum",
+        "description": "Check a CIP-68 reference NFT datum.\n\nGive the datum as CBOR hex, or the token's fields to build it from (the built datum is returned). The labels say which user tokens it is for: 333 (fungible) and/or 444 (rich fungible).",
+        "operationId": "v2-validate-cip68",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Cip68ValidateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidateResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/validate/cip26": {
+      "post": {
+        "tags": [
+          "V2 validate"
+        ],
+        "summary": "Validate a CIP-26 entry",
+        "description": "Check a CIP-26 registry entry.\n\nThe JSON file you would submit to the token registry. Signatures are not verified.",
+        "operationId": "v2-validate-cip26",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Cip26ValidateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidateResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/validate/cip113": {
+      "post": {
+        "tags": [
+          "V2 validate"
+        ],
+        "summary": "Validate a CIP-113 node",
+        "description": "Check a CIP-113 registry node datum.\n\nWhether the registry can read the node, and the extension V2 would add to the programmable token.",
+        "operationId": "v2-validate-cip113",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Cip113ValidateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidateResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/subjects/query": {
+      "post": {
+        "tags": [
+          "V2 subjects"
+        ],
+        "summary": "Query subjects",
+        "operationId": "v2-query-subjects",
+        "parameters": [
+          {
+            "name": "query_priority",
+            "in": "query",
+            "description": "the CIP priority: if the same property is present in multiple standards, the one with highest priority is returned",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "CIP_26",
+                  "CIP_68"
+                ]
+              }
+            }
+          },
+          {
+            "name": "show_cips_details",
+            "in": "query",
+            "description": "whether all the CIP specific properties should be returned in the response. False by default",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          {
+            "name": "validation",
+            "in": "query",
+            "description": "which tokens to return, by how well their metadata follows its CIP: ALL (default) returns every indexed token with its validation_errors; MANDATORY_ONLY only tokens with no MANDATORY error; STRICT only tokens with no error at all (metadata.valid true). A token that is not accepted is left out of the response",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "ALL",
+              "enum": [
+                "ALL",
+                "MANDATORY_ONLY",
+                "STRICT"
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json;charset=utf-8": {
+              "schema": {
+                "$ref": "#/components/schemas/BatchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json;charset=utf-8": {
+                "schema": {
+                  "$ref": "#/components/schemas/BatchResponse"
+                }
+              }
+            }
+          }
+        },
+        "description": "Query either all or a subset of properties of the given subjects"
+      }
+    },
+    "/metadata/{subject}": {
+      "get": {
+        "tags": [
+          "V1 (deprecated)"
+        ],
+        "summary": "Get a subject",
+        "operationId": "v1-get-subject",
+        "parameters": [
+          {
+            "name": "subject",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenMetadata"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`subject` not found",
+            "content": {
+              "application/json;charset=utf-8": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenMetadata"
+                }
+              }
+            }
+          }
+        },
+        "description": "Query all properties of the single subject specified by the given subject id.",
+        "deprecated": true
+      }
+    },
+    "/metadata/{subject}/properties/{property}": {
+      "get": {
+        "tags": [
+          "V1 (deprecated)"
+        ],
+        "summary": "Get a property of a subject",
+        "operationId": "v1-get-property",
+        "parameters": [
+          {
+            "name": "subject",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "property",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenMetadata"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`subject` or `property` not found",
+            "content": {
+              "application/json;charset=utf-8": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenMetadata"
+                }
+              }
+            }
+          }
+        },
+        "description": "Query a specific property of a single subject specified by the given subject id.",
+        "deprecated": true
+      }
+    },
+    "/api/v2/subjects/{subject}": {
+      "get": {
+        "tags": [
+          "V2 subjects"
+        ],
+        "summary": "Get a subject",
+        "description": "Query either all or a subset of properties of a given subject.\n\nReturns the subject as indexed, with validation_errors saying how its metadata departs from its CIP. A subject is a 404 when nothing is indexed for it, or when the validation parameter does not accept it.",
+        "operationId": "v2-get-subject",
+        "parameters": [
+          {
+            "name": "subject",
+            "in": "path",
+            "description": "the concatenation of policy id and asset name (if any) to query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "property",
+            "in": "query",
+            "description": "the list of properties to be returned in the reponse, if none specified, all properties will be returned",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "query_priority",
+            "in": "query",
+            "description": "the CIP priority: if the same property is present in multiple standards, the one with highest priority is returned",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "CIP_26",
+                  "CIP_68"
+                ]
+              }
+            }
+          },
+          {
+            "name": "show_cips_details",
+            "in": "query",
+            "description": "whether all the CIP specific properties should be returned in the response. False by default",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          {
+            "name": "validation",
+            "in": "query",
+            "description": "which tokens to return, by how well their metadata follows its CIP: ALL (default) returns every indexed token with its validation_errors; MANDATORY_ONLY only tokens with no MANDATORY error; STRICT only tokens with no error at all (metadata.valid true). A token that is not accepted is a 404",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "ALL",
+              "enum": [
+                "ALL",
+                "MANDATORY_ONLY",
+                "STRICT"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json;charset=utf-8": {
+                "schema": {
+                  "$ref": "#/components/schemas/Response"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AnnotatedSignature": {
+        "type": "object",
+        "properties": {
+          "signature": {
+            "type": "string"
+          },
+          "publicKey": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "publicKey",
+          "signature"
+        ]
+      },
+      "BatchResponse": {
+        "type": "object",
+        "properties": {
+          "subjects": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TokenMetadata"
+            }
+          }
+        },
+        "required": [
+          "subjects"
+        ]
+      },
+      "DecimalsProperty": {
+        "type": "object",
+        "properties": {
+          "signatures": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AnnotatedSignature"
+            }
+          },
+          "sequenceNumber": {
+            "type": "number",
+            "minimum": 0
+          },
+          "value": {
+            "type": "number",
+            "example": 1,
+            "maximum": 255,
+            "minimum": 0
+          }
+        },
+        "required": [
+          "sequenceNumber",
+          "signatures",
+          "value"
+        ]
+      },
+      "DescriptionProperty": {
+        "type": "object",
+        "properties": {
+          "signatures": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AnnotatedSignature"
+            }
+          },
+          "sequenceNumber": {
+            "type": "number",
+            "minimum": 0
+          },
+          "value": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 0
+          }
+        },
+        "required": [
+          "sequenceNumber",
+          "signatures",
+          "value"
+        ]
+      },
+      "LogoProperty": {
+        "type": "object",
+        "properties": {
+          "signatures": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AnnotatedSignature"
+            }
+          },
+          "sequenceNumber": {
+            "type": "number",
+            "minimum": 0
+          },
+          "value": {
+            "type": "string",
+            "format": "byte"
+          }
+        },
+        "required": [
+          "sequenceNumber",
+          "signatures",
+          "value"
+        ]
+      },
+      "NameProperty": {
+        "type": "object",
+        "properties": {
+          "signatures": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AnnotatedSignature"
+            }
+          },
+          "sequenceNumber": {
+            "type": "number",
+            "minimum": 0
+          },
+          "value": {
+            "type": "string",
+            "maxLength": 50,
+            "minLength": 1
+          }
+        },
+        "required": [
+          "sequenceNumber",
+          "signatures",
+          "value"
+        ]
+      },
+      "TickerProperty": {
+        "type": "object",
+        "properties": {
+          "signatures": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AnnotatedSignature"
+            }
+          },
+          "sequenceNumber": {
+            "type": "number",
+            "minimum": 0
+          },
+          "value": {
+            "type": "string",
+            "example": "QUID",
+            "maxLength": 9,
+            "minLength": 2
+          }
+        },
+        "required": [
+          "sequenceNumber",
+          "signatures",
+          "value"
+        ]
+      },
+      "TokenMetadata": {
+        "type": "object",
+        "properties": {
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/TokenMetadataPropertyObject"
+            }
+          },
+          "subject": {
+            "type": "string",
+            "example": "b377d03a568dde663534e040fc32a57323ec00970df0e863eba3f098717569640a"
+          },
+          "policy": {
+            "type": "string",
+            "example": "82008200581ce62601e8eeec975f3f124a288cd0ecb2973f5fc225629f1401a79b16"
+          },
+          "name": {
+            "$ref": "#/components/schemas/NameProperty"
+          },
+          "description": {
+            "$ref": "#/components/schemas/DescriptionProperty"
+          },
+          "url": {
+            "$ref": "#/components/schemas/UrlProperty"
+          },
+          "ticker": {
+            "$ref": "#/components/schemas/TickerProperty"
+          },
+          "decimals": {
+            "$ref": "#/components/schemas/DecimalsProperty"
+          },
+          "logo": {
+            "$ref": "#/components/schemas/LogoProperty"
+          },
+          "validation_errors": {
+            "type": "array",
+            "description": "How the entry departs from CIP-26 (V2 only); empty when it follows it.",
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            }
+          },
+          "updated": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedBy": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "description",
+          "name",
+          "subject"
+        ]
+      },
+      "TokenMetadataPropertyObject": {
+        "type": "object",
+        "properties": {
+          "signatures": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AnnotatedSignature"
+            }
+          },
+          "sequenceNumber": {
+            "type": "number",
+            "minimum": 0
+          },
+          "value": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "sequenceNumber",
+          "signatures"
+        ]
+      },
+      "UrlProperty": {
+        "type": "object",
+        "properties": {
+          "signatures": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AnnotatedSignature"
+            }
+          },
+          "sequenceNumber": {
+            "type": "number",
+            "minimum": 0
+          },
+          "value": {
+            "type": "string",
+            "example": "https://www.iohk.io",
+            "maxLength": 250,
+            "minLength": 0,
+            "pattern": "^https://"
+          }
+        },
+        "required": [
+          "sequenceNumber",
+          "signatures",
+          "value"
+        ]
+      },
+      "ValidationError": {
+        "type": "object",
+        "properties": {
+          "cip": {
+            "type": "string"
+          },
+          "sub_standard": {
+            "type": "string"
+          },
+          "field_name": {
+            "type": "string"
+          },
+          "field_category": {
+            "type": "string",
+            "enum": [
+              "MANDATORY",
+              "OPTIONAL"
+            ]
+          },
+          "code": {
+            "type": "string"
+          },
+          "error": {
+            "type": "string"
+          }
+        }
+      },
+      "BatchRequest": {
+        "type": "object",
+        "properties": {
+          "subjects": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "properties": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "subjects"
+        ]
+      },
+      "Cip68Fields": {
+        "type": "object",
+        "description": "The metadata of a CIP-68 token. The validator builds the reference NFT datum from it and returns it",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "My Token"
+          },
+          "description": {
+            "type": "string",
+            "example": "A token that does something useful"
+          },
+          "ticker": {
+            "type": "string",
+            "example": "MTK"
+          },
+          "url": {
+            "type": "string",
+            "example": "https://example.com"
+          },
+          "logo": {
+            "type": "string",
+            "description": "333 tokens: a URI (ipfs://, https://, ar:// or data:)",
+            "example": "ipfs://bafy..."
+          },
+          "image": {
+            "type": "string",
+            "description": "444 tokens (required): a URI (ipfs://, https://, ar:// or data:)"
+          },
+          "media_type": {
+            "type": "string",
+            "description": "444 tokens: the MIME type of the image",
+            "example": "image/png"
+          },
+          "decimals": {
+            "type": "integer",
+            "format": "int64",
+            "example": 6
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64",
+            "description": "The CIP-68 version of the datum, 1 to 4",
+            "example": 1
+          }
+        }
+      },
+      "Cip68ValidateRequest": {
+        "type": "object",
+        "description": "A CIP-68 reference NFT datum to check: give either `datum` (CBOR hex) or `fields`",
+        "properties": {
+          "datum": {
+            "type": "string",
+            "description": "The inline datum of the reference NFT, as CBOR hex"
+          },
+          "fields": {
+            "$ref": "#/components/schemas/Cip68Fields",
+            "description": "The token metadata to build the datum from"
+          },
+          "labels": {
+            "type": "array",
+            "description": "The labels of the user tokens: 333 (fungible token) and/or 444 (rich fungible token). Default 333",
+            "example": [
+              333
+            ],
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        }
+      },
+      "DropReason": {
+        "type": "object",
+        "description": "Why the registry would not store it",
+        "properties": {
+          "code": {
+            "type": "string",
+            "example": "datum_undecodable"
+          },
+          "message": {
+            "type": "string",
+            "example": "the datum cannot be decoded"
+          }
+        }
+      },
+      "LongProperty": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "source": {
+            "type": "string"
+          }
+        }
+      },
+      "Metadata": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "$ref": "#/components/schemas/StringProperty"
+          },
+          "description": {
+            "$ref": "#/components/schemas/StringProperty"
+          },
+          "ticker": {
+            "$ref": "#/components/schemas/StringProperty"
+          },
+          "decimals": {
+            "$ref": "#/components/schemas/LongProperty"
+          },
+          "logo": {
+            "$ref": "#/components/schemas/StringProperty"
+          },
+          "url": {
+            "$ref": "#/components/schemas/StringProperty"
+          },
+          "version": {
+            "$ref": "#/components/schemas/LongProperty"
+          },
+          "valid": {
+            "type": "boolean"
+          },
+          "empty": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ProgrammableTokenCip113": {
+        "type": "object",
+        "description": "CIP-113 programmable token metadata. Present when the token's policy ID is registered in an on-chain CIP-113 programmable token registry. CIP-113 tokens are standard CIP-26/CIP-68 tokens with additional on-chain transfer validation logic — effectively tokens in a 'smart contract jail' for regulatory compliance, freeze/seize, or custom rules.",
+        "properties": {
+          "minting_logic_script": {
+            "type": "string",
+            "description": "Blake2b-224 hash of the minting logic credential (script or verification key) that authorises minting and burning of this token. Bound on-chain to the token's policy ID at registration. Null when the registry node does not specify one.",
+            "example": "f462a4e22e5b138c17d893d4e0811790f51f1231b8be4198313e08d0"
+          },
+          "transfer_logic_script": {
+            "type": "string",
+            "description": "Blake2b-224 hash of the Plutus script that validates every transfer of this token. This script runs on-chain via the withdraw-zero pattern whenever tokens move between addresses. Null when the registry node does not specify a transfer logic script.",
+            "example": "aaa513b0fcc01d635f8535d49f38acc33d4d6b62ee8732ca6e126102"
+          },
+          "third_party_transfer_logic_script": {
+            "type": "string",
+            "description": "Blake2b-224 hash of the Plutus script that validates issuer/admin operations such as freeze, seize, or burn. Allows a token issuer to perform privileged actions on tokens held by other addresses. Null when the substandard has no third-party operations.",
+            "example": "def513b0fcc01d635f8535d49f38acc33d4d6b62ee8732ca6e126103"
+          },
+          "unfracking_logic_script": {
+            "type": "string",
+            "description": "Blake2b-224 hash of the credential (script or verification key) that must approve any unfracking action touching this token. Null means unfracking is forbidden for this token.",
+            "example": "f91c65ec585a20176feeb2c4e5281e856d3b61e95d1980717da724fc"
+          },
+          "global_state_policy_id": {
+            "type": "string",
+            "description": "Policy ID of an optional global state NFT used by the transfer logic. For example, a freeze-and-seize substandard uses this to reference a denylist of blocked addresses. Null when the token's substandard has no global state.",
+            "example": "1234567890abcdef1234567890abcdef1234567890abcdef12345678"
+          }
+        }
+      },
+      "ServedAs": {
+        "type": "object",
+        "description": "How the V2 API would serve the token",
+        "properties": {
+          "label": {
+            "type": "integer",
+            "format": "int32",
+            "description": "The CIP-68 label of the subject (333 or 444); absent for CIP-26"
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/Metadata",
+            "description": "The metadata block of the V2 response"
+          },
+          "validation_errors": {
+            "type": "array",
+            "description": "The validation errors of the V2 response",
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            }
+          },
+          "scopes": {
+            "type": "array",
+            "description": "The ?validation= scopes under which V2 returns the token",
+            "items": {
+              "type": "string",
+              "enum": [
+                "ALL",
+                "MANDATORY_ONLY",
+                "STRICT"
+              ]
+            }
+          }
+        }
+      },
+      "StringProperty": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          }
+        }
+      },
+      "ValidateResponse": {
+        "type": "object",
+        "description": "What the registry would do with the input. Nothing is stored",
+        "properties": {
+          "standard": {
+            "type": "string",
+            "example": "CIP-68"
+          },
+          "stored": {
+            "type": "boolean",
+            "description": "Whether the registry would index it"
+          },
+          "dropped": {
+            "$ref": "#/components/schemas/DropReason"
+          },
+          "validation_errors": {
+            "type": "array",
+            "description": "What departs from the standard",
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            }
+          },
+          "served": {
+            "type": "array",
+            "description": "How the V2 API would serve it",
+            "items": {
+              "$ref": "#/components/schemas/ServedAs"
+            }
+          },
+          "datum": {
+            "type": "string",
+            "description": "CIP-68: the reference NFT datum as CBOR hex, as given or built from the fields"
+          },
+          "cip113": {
+            "$ref": "#/components/schemas/ProgrammableTokenCip113",
+            "description": "CIP-113: the extension V2 would add to the token"
+          },
+          "notes": {
+            "type": "array",
+            "description": "What the result assumes",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "Cip26ValidateRequest": {
+        "type": "object",
+        "description": "A CIP-26 registry entry, as the JSON file you would submit to the token registry",
+        "properties": {
+          "mapping": {
+            "$ref": "#/components/schemas/Mapping",
+            "description": "The registry file content: subject, policy, name, description, ticker, url, decimals, logo, each property as {\"value\": ..., \"sequenceNumber\": ..., \"signatures\": [...]}"
+          },
+          "file_name": {
+            "type": "string",
+            "description": "The file name the entry would have in the registry, e.g. <subject>.json"
+          }
+        }
+      },
+      "Item": {
+        "type": "object",
+        "properties": {
+          "sequenceNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "value": {
+            "type": "string"
+          },
+          "signatures": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Signature"
+            }
+          }
+        }
+      },
+      "Mapping": {
+        "type": "object",
+        "properties": {
+          "subject": {
+            "type": "string"
+          },
+          "url": {
+            "$ref": "#/components/schemas/Item"
+          },
+          "name": {
+            "$ref": "#/components/schemas/Item"
+          },
+          "ticker": {
+            "$ref": "#/components/schemas/Item"
+          },
+          "decimals": {
+            "$ref": "#/components/schemas/Item"
+          },
+          "logo": {
+            "$ref": "#/components/schemas/Item"
+          },
+          "policy": {
+            "type": "string"
+          },
+          "description": {
+            "$ref": "#/components/schemas/Item"
+          }
+        }
+      },
+      "Signature": {
+        "type": "object",
+        "properties": {
+          "signature": {
+            "type": "string"
+          },
+          "publicKey": {
+            "type": "string"
+          }
+        }
+      },
+      "Cip113ValidateRequest": {
+        "type": "object",
+        "description": "A CIP-113 registry node datum to check",
+        "properties": {
+          "datum": {
+            "type": "string",
+            "description": "The inline datum of the registry node, as CBOR hex"
+          }
+        }
+      },
+      "Extension": {
+        "type": "object",
+        "description": "Base type for CIP extensions.",
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/ProgrammableTokenCip113"
+          }
+        ]
+      },
+      "FungibleTokenMetadata": {
+        "type": "object",
+        "description": "CIP-68 fungible (label 333) or rich fungible (label 444) token metadata from a reference NFT inline datum. The token is served as indexed, whatever is wrong with it: validation_errors lists how it departs from CIP-68.",
+        "properties": {
+          "decimals": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "description": {
+            "type": "string"
+          },
+          "logo": {
+            "type": "string",
+            "description": "The logo as written, a URI with scheme https, ipfs, ar or data when it follows CIP-68. For a rich fungible token (444), which has no logo, this is its image."
+          },
+          "name": {
+            "type": "string"
+          },
+          "ticker": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "validation_errors": {
+            "type": "array",
+            "description": "How the datum departs from CIP-68 for this token's label; empty when it follows it, absent when the row was indexed before validation existed.",
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            }
+          }
+        }
+      },
+      "Standards": {
+        "type": "object",
+        "properties": {
+          "cip26": {
+            "$ref": "#/components/schemas/TokenMetadata"
+          },
+          "cip68": {
+            "$ref": "#/components/schemas/FungibleTokenMetadata"
+          }
+        }
+      },
+      "Subject": {
+        "type": "object",
+        "description": "A token subject with its metadata, standards details, and optional extensions from additional CIPs",
+        "properties": {
+          "subject": {
+            "type": "string",
+            "description": "The subject identifier — concatenation of policy ID and asset name (hex)"
+          },
+          "type": {
+            "type": "string",
+            "description": "Token type: NATIVE for standard tokens, PROGRAMMABLE for tokens with on-chain transfer logic (e.g. CIP-113)",
+            "enum": [
+              "NATIVE",
+              "PROGRAMMABLE"
+            ]
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/Metadata",
+            "description": "Merged display metadata from CIP-26/CIP-68 based on query priority"
+          },
+          "standards": {
+            "$ref": "#/components/schemas/Standards",
+            "description": "Raw per-standard metadata, only present when show_cips_details=true"
+          },
+          "extensions": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Extension"
+            },
+            "description": "Additional on-chain properties from CIP extensions. Each key is a CIP identifier (e.g. 'cip113'). Omitted when the token has no extensions."
+          },
+          "validation_errors": {
+            "type": "array",
+            "description": "How the metadata of the token departs from its CIP, from every standard that has it, in query priority order (each entry names its cip and, for CIP-68, its sub_standard, the label). The token is returned as indexed; a MANDATORY error means it lacks something its CIP requires, so a wallet that wants to be strict may reject it, or ask with validation=MANDATORY_ONLY. Absent when the token was indexed before validation existed; metadata.valid then falls back to name and description being present.\n\n| code | meaning |\n|---|---|\n| `missing_value` | a field the CIP requires is missing or empty: for CIP-68 the `version` and, as the label requires it, `name`, `description` (333) and `image` (222, 444); for CIP-26 `name` and `description` |\n| `wrong_type` | the value has a type the CIP does not allow (for example a number where text is expected, or a `version` that is not an integer); a value that cannot be kept is left out |\n| `invalid_uri_scheme` | an `image` or `logo` is not a URI with one of the schemes CIP-68 allows (`https`, `ipfs`, `ar`, `data`); the value is kept as written |\n| `invalid_length` | a CIP-26 text is shorter or longer than CIP-26 allows (for example a `name` over 50 characters) |\n| `invalid_value` | a CIP-26 value breaks a rule of the registry's validator that is not a type, a length or a range |\n| `out_of_range` | a number is outside the range allowed: `decimals`, or a `version` that does not fit a 64-bit integer (stored without a version) |\n| `undefined_version` | the CIP-68 `version` is not one CIP-68 defines (1 to 4); the datum is read by its structure and kept |\n| `plutus_constructor` | a property holds a Plutus constructor, which CIP-68 metadata does not allow; it is kept as `{constructor, fields}` |\n| `not_utf8` | a text is not valid UTF-8; it is kept as hex |\n| `invalid_files_entry` | an entry of `files` breaks the CIP-68 definition (for example no `mediaType` or `src`); the entry is kept |\n| `no_nested_entry` | a nested datum (`\"721\"`) has no usable entry for the token (field `721`); the token is indexed without metadata |\n| `too_deep` | a property is nested more than 100 levels and is dropped, the rest of the datum is kept |\n| `unsupported_key` | a key of a map has no text form (a list or a map) and is left out |\n| `key_collision` | two keys read the same (for example the text `1` and the integer `1`); one of them is kept |\n| `invalid_base64` | a CIP-26 `logo` is not valid base64 |\n| `too_large` | a CIP-26 `logo` is over 64 KiB once decoded (kept up to about 1 MiB; anything larger is dropped) |\n",
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            }
+          }
+        },
+        "required": [
+          "metadata",
+          "subject",
+          "type"
+        ]
+      },
+      "Response": {
+        "type": "object",
+        "properties": {
+          "subject": {
+            "$ref": "#/components/schemas/Subject"
+          },
+          "queryPriority": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  }
+}

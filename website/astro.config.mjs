@@ -1,6 +1,7 @@
 // @ts-check
 import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
+import starlightOpenAPI, { openAPISidebarGroups } from 'starlight-openapi';
 import tailwindcss from '@tailwindcss/vite';
 import llmsIntegration from './scripts/llms-integration.mjs';
 
@@ -23,6 +24,16 @@ export default defineConfig({
         baseUrl: 'https://github.com/cardano-foundation/cf-token-metadata-registry/edit/develop/website/',
       },
       customCss: ['./src/styles/starlight.css'],
+      plugins: [
+        // The API reference pages, generated from openapi/registry.json (refresh it with scripts/update-openapi.mjs).
+        starlightOpenAPI([
+          {
+            base: 'api',
+            schema: './openapi/registry.json',
+            sidebar: { label: 'API reference', collapsed: false, operations: { badges: true } },
+          },
+        ]),
+      ],
       components: {
         Footer: './src/components/Footer.astro',
         SiteTitle: './src/components/SiteTitle.astro',
@@ -51,10 +62,11 @@ export default defineConfig({
           label: 'Reference',
           items: [
             { label: 'API', slug: 'reference/api' },
-            { label: 'Interactive API reference', link: '/cf-token-metadata-registry/api-reference/', attrs: { target: '_self' } },
+            { label: 'API reference (Scalar)', link: '/cf-token-metadata-registry/api-reference/', attrs: { target: '_self' } },
             { label: 'Run your own registry', slug: 'reference/self-hosting' },
           ],
         },
+        ...openAPISidebarGroups,
       ],
     }),
     llmsIntegration(),
