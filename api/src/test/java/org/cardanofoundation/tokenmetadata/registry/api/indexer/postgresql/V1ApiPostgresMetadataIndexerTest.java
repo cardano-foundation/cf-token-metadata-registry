@@ -20,7 +20,7 @@ import static org.mockito.Mockito.when;
 
 class V1ApiPostgresMetadataIndexerTest {
 
-    /** Mainnet: a registry file named and written in upper case, stored under its lower-case subject (V8). */
+    /** Mainnet: a registry file named and written in upper case, stored under its lower-case subject. */
     private static final String STORED_SUBJECT = "0b9bedfbfb62b21a2a41f581c2811ee74ee062ce32b0eca43964cf796d6174726978";
     private static final String FILE_SUBJECT = "0b9bedfbfb62b21a2a41f581c2811ee74ee062ce32b0eca43964cf796D6174726978";
 
