@@ -145,17 +145,18 @@ public class TokenMetadataValidator {
         if (url == null || url.isEmpty()) {
             return null;
         }
+        String quoted = "url '" + abbreviate(url) + "'";
         URI uri;
         try {
             uri = new URI(url);
         } catch (URISyntaxException _) {
-            return "url '" + abbreviate(url) + "' is not a valid URI";
+            return quoted + " is not a valid URI";
         }
         if (!"https".equalsIgnoreCase(uri.getScheme())) {
-            return "url '" + abbreviate(url) + "' is not an https URL";
+            return quoted + " is not an https URL";
         }
         if (uri.getHost() == null || uri.getHost().isBlank()) {
-            return "url '" + abbreviate(url) + "' has no host";
+            return quoted + " has no host";
         }
         return null;
     }
