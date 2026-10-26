@@ -8,7 +8,9 @@ import com.bloxbean.cardano.client.common.cbor.CborSerializationUtil;
 import com.bloxbean.cardano.client.plutus.spec.BigIntPlutusData;
 import com.bloxbean.cardano.client.plutus.spec.BytesPlutusData;
 import com.bloxbean.cardano.client.plutus.spec.ConstrPlutusData;
+import com.bloxbean.cardano.client.plutus.spec.ListPlutusData;
 import com.bloxbean.cardano.client.plutus.spec.MapPlutusData;
+import com.bloxbean.cardano.client.plutus.spec.PlutusData;
 import com.bloxbean.cardano.client.util.HexUtil;
 import com.bloxbean.cardano.yaci.core.protocol.chainsync.messages.Point;
 import com.bloxbean.cardano.yaci.store.common.domain.AddressUtxo;
@@ -185,6 +187,24 @@ class Cip68EventListenerIndexingTest {
                     .containsExactly(tuple("222", "image")));
         }
 
+        /** Mainnet: 570 fungible tokens give their description as 64-byte chunks (Templar Protocol, ...). */
+        @Test
+        void servesAChunkedDescriptionWithOneMandatoryErrorFor333() throws Exception {
+            MapPlutusData metadata = map("name", BytesPlutusData.of("Templar Protocol"));
+            metadata.put(BytesPlutusData.of("description"), ListPlutusData.of(
+                    BytesPlutusData.of("Templar Protocol - Templar lets "), BytesPlutusData.of("you borrow")));
+
+            listener.processTransaction(event(output(serialize(metadata, 1), REF + A), userToken(FT + A)));
+
+            assertThat(saved()).singleElement().satisfies(row -> {
+                assertThat(row.getDescription()).isEqualTo("Templar Protocol - Templar lets you borrow");
+                assertThat(row.getValidationErrors())
+                        .extracting(ValidationError::subStandard, ValidationError::fieldName, ValidationError::fieldCategory,
+                                ValidationError::code)
+                        .containsExactly(tuple("333", "description", FieldCategory.MANDATORY, "chunked_text"));
+            });
+        }
+
         /** Mainnet: Greenland Reserve Coin, whose datum declares version 0. */
         @Test
         void storesARealVersion0FungibleTokenWithAnUndefinedVersionError() {
@@ -240,6 +260,47 @@ class Cip68EventListenerIndexingTest {
             listener.processTransaction(event(output(flatDatum("Token", "Desc", "TKN"), REF + A)));
 
             assertThat(saved()).hasSize(1);
+        }
+
+        /** Mainnet: Atrium profiles and HouseOfTitans' empty datums were indexed as 333 fungible tokens by default. */
+        @Test
+        void skipsAnUnpairedDatumWithNoneOfTheTokenFields() throws Exception {
+            listener.processTransaction(event(
+                    output(datum("mainnet-testing", "this is an updated testnet profile."), REF + A),
+                    output(datum(), REF + B),
+                    output(serialize(map("insert_fee", BigIntPlutusData.of(30_000_000)), 1), REF + C)));
+
+            verify(repository, never()).saveAll(any());
+            assertThat(warnings()).isEmpty();
+        }
+
+        @Test
+        void storesADatumWithNoneOfTheTokenFieldsWhenItsUserTokenIsInTheTransaction() throws Exception {
+            // the minting transaction says what the token is: a 333 without metadata is stored, with its errors
+            listener.processTransaction(event(output(datum("mainnet-testing", "profile"), REF + A), userToken(FT + A)));
+
+            assertThat(saved()).singleElement().satisfies(row -> assertThat(row.getValidationErrors())
+                    .extracting(ValidationError::fieldName).containsExactly("name", "description"));
+        }
+
+        @Test
+        void storesAnUnpairedDatumWithNoneOfTheTokenFieldsOfAReferenceNftThatIsAlreadyStored() throws Exception {
+            // an owner who clears the metadata must not be served the old one
+            when(repository.existsByPolicyIdAndAssetName(POLICY, REF + A)).thenReturn(true);
+
+            listener.processTransaction(event(output(datum(), REF + A)));
+
+            assertThat(saved()).singleElement().satisfies(row -> assertThat(row.getName()).isNull());
+        }
+
+        @Test
+        void storesAnUnpairedDatumWhoseOnlyTokenFieldHasTheWrongType() throws Exception {
+            // the field is there, so it is token metadata, broken
+            listener.processTransaction(event(output(serialize(map("name", BigIntPlutusData.of(7)), 1), REF + A)));
+
+            assertThat(saved()).singleElement().satisfies(row -> assertThat(row.getValidationErrors())
+                    .extracting(ValidationError::fieldName, ValidationError::code)
+                    .contains(tuple("name", "wrong_type")));
         }
     }
 
@@ -455,6 +516,13 @@ class Cip68EventListenerIndexingTest {
             metadata.put(BytesPlutusData.of(keyValues[i]), BytesPlutusData.of(keyValues[i + 1]));
         }
         return serialize(metadata, 1);
+    }
+
+    /** A metadata map with one entry. */
+    private static MapPlutusData map(String key, PlutusData value) {
+        MapPlutusData metadata = new MapPlutusData();
+        metadata.put(BytesPlutusData.of(key), value);
+        return metadata;
     }
 
     /** One entry of a nested datum: the base name (hex, without the label prefix) and the token name. */
