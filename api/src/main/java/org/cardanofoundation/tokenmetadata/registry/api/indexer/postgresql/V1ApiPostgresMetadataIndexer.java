@@ -56,6 +56,9 @@ public class V1ApiPostgresMetadataIndexer implements V1ApiMetadataIndexer {
         try {
             final TokenMetadata tokenMetadata =
                     objectMapper.readValue(metadataQueryResult.getProperties(), TokenMetadata.class);
+            // the registry file is kept as written, its subject too; the entry is served under the subject it is
+            // stored and looked up by, in lower case (V8)
+            tokenMetadata.setSubject(metadataQueryResult.getSubject());
             excludeProperties(tokenMetadata, propertiesToExclude);
             return Optional.of(tokenMetadata);
         } catch (final JsonProcessingException e) {
