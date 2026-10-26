@@ -3,6 +3,7 @@ package org.cardanofoundation.tokenmetadata.registry.api.service;
 import jakarta.annotation.Nullable;
 import org.cardanofoundation.tokenmetadata.registry.api.model.cip68.Cip68Uri;
 import org.cardanofoundation.tokenmetadata.registry.api.model.cip68.ParsedCip68Datum;
+import org.cardanofoundation.tokenmetadata.registry.validation.FieldCategory;
 import org.cardanofoundation.tokenmetadata.registry.validation.ValidationCode;
 import org.cardanofoundation.tokenmetadata.registry.validation.ValidationError;
 
@@ -18,7 +19,9 @@ import static org.cardanofoundation.tokenmetadata.registry.validation.Validation
  * (ADR-019), so that its owner can fix them and a wallet can decide whether to accept the token.
  * <ul>
  *   <li>{@code name} for every label;</li>
- *   <li>{@code description} for the 333 fungible token only (for 222 and 444 it is {@code ? description});</li>
+ *   <li>{@code description} for the 333 fungible token only (for 222 and 444 it is {@code ? description}). A
+ *       description of the wrong type, or given as chunks, is reported once per label, with the category of that
+ *       label;</li>
  *   <li>{@code image} for the 222 NFT and the 444 RFT, as a URI whose scheme is one of {@code https}, {@code ipfs},
  *       {@code ar} or {@code data}. A missing or empty image, or another scheme (for example {@code iagon://}, or free
  *       text), is an error: wallets and explorers follow the CIP and could not show such a token.</li>
@@ -28,6 +31,8 @@ import static org.cardanofoundation.tokenmetadata.registry.validation.Validation
 public final class Cip68Validator {
 
     private static final int ABBREVIATED_LENGTH = 60;
+    private static final String NAME = "name";
+    private static final String DESCRIPTION = "description";
 
     private Cip68Validator() {
     }
@@ -43,13 +48,21 @@ public final class Cip68Validator {
         String subStandard = String.valueOf(label);
         List<ValidationError> errors = new ArrayList<>();
         // a name of the wrong type is already reported by the parser as mandatory, so it is not reported as missing too
-        if (parsed.name() == null && !reportedByParser(parsed, "name")) {
-            errors.add(missing(subStandard, "name"));
+        if (parsed.name() == null && !reportedByParser(parsed, NAME)) {
+            errors.add(missing(subStandard, NAME));
+        }
+        // the form of a description (a wrong type, chunks) is reported here, once per label, with the category of the
+        // label, instead of by the parser: only the 333 fungible token requires a description
+        boolean descriptionRequired = label == LABEL_FT;
+        ValidationError descriptionForm = descriptionFormError(parsed);
+        if (descriptionForm != null) {
+            errors.add(new ValidationError(CIP_68, subStandard, DESCRIPTION,
+                    descriptionRequired ? FieldCategory.MANDATORY : FieldCategory.OPTIONAL,
+                    descriptionForm.code(), descriptionForm.error()));
+        } else if (descriptionRequired && parsed.description() == null) {
+            errors.add(missing(subStandard, DESCRIPTION));
         }
         if (label == LABEL_FT) {
-            if (parsed.description() == null) {
-                errors.add(missing(subStandard, "description"));
-            }
             return errors;
         }
         String image = parsed.image();
@@ -61,6 +74,14 @@ public final class Cip68Validator {
                             + Cip68Uri.ALLOWED_SCHEMES + ")"));
         }
         return errors;
+    }
+
+    /**
+     * The parser's errors that do not depend on the label. The form of the {@code description} is left out: whether
+     * it is mandatory depends on the label, so {@link #validate} reports it once per label.
+     */
+    public static List<ValidationError> labelIndependentErrors(ParsedCip68Datum parsed) {
+        return parsed.validationErrors().stream().filter(error -> !isDescriptionForm(error)).toList();
     }
 
     /**
@@ -79,6 +100,16 @@ public final class Cip68Validator {
 
     private static boolean reportedByParser(ParsedCip68Datum parsed, String field) {
         return parsed.validationErrors().stream().anyMatch(error -> field.equals(error.fieldName()));
+    }
+
+    @Nullable
+    private static ValidationError descriptionFormError(ParsedCip68Datum parsed) {
+        return parsed.validationErrors().stream().filter(Cip68Validator::isDescriptionForm).findFirst().orElse(null);
+    }
+
+    private static boolean isDescriptionForm(ValidationError error) {
+        return DESCRIPTION.equals(error.fieldName())
+                && (ValidationCode.WRONG_TYPE.equals(error.code()) || ValidationCode.CHUNKED_TEXT.equals(error.code()));
     }
 
     private static ValidationError missing(String subStandard, String field) {

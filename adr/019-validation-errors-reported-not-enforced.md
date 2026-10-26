@@ -34,7 +34,8 @@ A CIP-26 entry that can be read, and a CIP-68 datum that can be decoded, are **s
 departs from the CIP is neither repaired nor dropped: it is described in a list of **validation errors**, stored with
 the row (`validation_errors` JSON column, migration V7) and returned by the V2 API. Values are kept as written: a logo
 with a bad scheme, a version 0, a `decimals` of 300, a Plutus constructor in a property (kept as
-`{"constructor": n, "fields": [...]}`).
+`{"constructor": n, "fields": [...]}`). A CIP-68 text given as a list of byte-string chunks (`chunked_text`) is kept as
+the same bytes, joined, the way CIP-68 itself joins a chunked `uri`: that is a representation, not a repair.
 
 ### 2. The contract: `validation_errors`
 
@@ -46,7 +47,7 @@ Each error has the same fields and codes as yaci-store's:
 | `sub_standard` | for CIP-68, the label the rule was checked for (`222`, `333`, `444`); absent for CIP-26 and for a rule that does not depend on a label (a bad `logo`, a version) |
 | `field_name` | the field, e.g. `description`, `image`, `version`, `files`, `properties.owner` |
 | `field_category` | `MANDATORY` if the CIP requires the field, `OPTIONAL` otherwise |
-| `code` | a stable reason: `missing_value`, `wrong_type`, `invalid_uri_scheme`, `invalid_length`, `invalid_value`, `out_of_range`, `undefined_version`, `plutus_constructor`, `not_utf8`, `invalid_files_entry`, `no_nested_entry`, `too_deep`, `unsupported_key`, `key_collision`, `invalid_base64`, `too_large` |
+| `code` | a stable reason: `missing_value`, `wrong_type`, `invalid_uri_scheme`, `invalid_length`, `invalid_value`, `out_of_range`, `undefined_version`, `plutus_constructor`, `not_utf8`, `invalid_files_entry`, `no_nested_entry`, `too_deep`, `unsupported_key`, `key_collision`, `invalid_base64`, `too_large`, `chunked_text` |
 | `error` | a message for people |
 
 V2 returns `validation_errors` in two places:
@@ -114,9 +115,16 @@ is stored. A CIP-26 logo over about 1 MiB is not stored in the logo table; the e
     NFT only is skipped at DEBUG.
   - A datum that updates a reference NFT already stored is kept whatever its label reads as. This covers an RFT
     update without its user token, which reads as a 222.
+  - A datum without a user token in its transaction and with none of the CIP-68 token fields (`name`, `description`,
+    `ticker`, `decimals`, `url`, `logo`, `image`, `mediaType`, `files`, a nested `"721"`), usable or not, is skipped at
+    DEBUG unless its reference NFT is already stored. Such a datum would only read as a 333 by default; on mainnet
+    these were dApp state (Atrium profiles, an `insert_fee`) and empty maps.
   - yaci-store stores 222 datums too.
 - **Errors per label.**
   - A datum paired with several labels is checked against each, and the row keeps every error.
+  - What is wrong with the form of a `description` (`wrong_type`, `chunked_text`) is reported once per label: MANDATORY
+    for 333, which requires a description, OPTIONAL for 222 and 444. A 333 description of the wrong type is not also
+    reported as missing.
   - A subject is served the errors of its own label and those that do not depend on a label. An LP token minted with
     a pool NFT is therefore a clean 333 token, not one that "lacks an image".
   - yaci-store returns the row's errors as they are.

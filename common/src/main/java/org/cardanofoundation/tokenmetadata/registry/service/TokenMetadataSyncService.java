@@ -14,6 +14,7 @@ import org.cardanofoundation.tokenmetadata.registry.model.Mapping;
 import org.cardanofoundation.tokenmetadata.registry.model.MappingUpdateDetails;
 import org.cardanofoundation.tokenmetadata.registry.model.enums.SyncStatusEnum;
 import org.cardanofoundation.tokenmetadata.registry.repository.SyncStateRepository;
+import org.cardanofoundation.tokenmetadata.registry.util.MappingsUtil;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
@@ -261,7 +262,8 @@ public class TokenMetadataSyncService {
         }
         Set<String> presentSubjects = new HashSet<>();
         for (File presentFile : presentFiles) {
-            presentSubjects.add(stripJsonExtension(presentFile.getName()));
+            // stored subjects are in lower case, file names may not be
+            presentSubjects.add(MappingsUtil.normalizeSubject(stripJsonExtension(presentFile.getName())));
         }
         List<String> staleSubjects = tokenMetadataService.findAllSubjects().stream()
                 .filter(subject -> !presentSubjects.contains(subject))

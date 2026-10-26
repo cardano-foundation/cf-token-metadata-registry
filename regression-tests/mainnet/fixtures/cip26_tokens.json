@@ -4188,7 +4188,7 @@
     "has_logo": true
   },
   {
-    "subject": "0b9bedfbfb62b21a2a41f581c2811ee74ee062ce32b0eca43964cf796D6174726978",
+    "subject": "0b9bedfbfb62b21a2a41f581c2811ee74ee062ce32b0eca43964cf796d6174726978",
     "policy": "820182018282051a031d46ee8200581caf42351769d63aef1801bd1e971c39ea747b789888329110e48225cc",
     "name": "matrix",
     "ticker": null,
@@ -4764,7 +4764,7 @@
     "has_logo": true
   },
   {
-    "subject": "0e3bafea33081c3ac3773cd269bd26b141851d1323d1070c388f6cc04249544D454F57",
+    "subject": "0e3bafea33081c3ac3773cd269bd26b141851d1323d1070c388f6cc04249544d454f57",
     "policy": null,
     "name": "Bitmeow",
     "ticker": "BITMEOW",
@@ -7200,7 +7200,7 @@
     "has_logo": false
   },
   {
-    "subject": "18dc062d8241ddc02109c3354194ae9c41f623e84df8cddc64e1538b456C657068616E74496E546865526F6F6D",
+    "subject": "18dc062d8241ddc02109c3354194ae9c41f623e84df8cddc64e1538b456c657068616e74496e546865526f6f6d",
     "policy": "820182018282051a025794218200581cb4b6787389413277bc8fe1ebd1ccf414ac0769855080c3c43b86becc",
     "name": "Elephant in the Room",
     "ticker": null,
@@ -8448,7 +8448,7 @@
     "has_logo": true
   },
   {
-    "subject": "1da65cb3f3eec7b774f466bac1f60765987a61ae9e4bbcfd943b27764576696550656E6775696E",
+    "subject": "1da65cb3f3eec7b774f466bac1f60765987a61ae9e4bbcfd943b27764576696550656e6775696e",
     "policy": "820182018282051a01eb19178200581c7b55236ae1fd2f399b172cdea6e5d980e1fd9e795f9fc4f07e47ecf2",
     "name": "Evie Penguin",
     "ticker": null,
@@ -11496,7 +11496,7 @@
     "has_logo": true
   },
   {
-    "subject": "29f9534b6d0cd37636eae2468323cce4a53626146e240434e6ab934c6469616D6F6E6467656D",
+    "subject": "29f9534b6d0cd37636eae2468323cce4a53626146e240434e6ab934c6469616d6f6e6467656d",
     "policy": "820182018282051a020cb2a38200581c357280e012ea1e6afc7de8358072f3314daf2d602a3722c247dbba69",
     "name": "ADA Miners",
     "ticker": null,

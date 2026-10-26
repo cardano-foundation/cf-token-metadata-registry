@@ -86,8 +86,10 @@ public class TokenMetadataService {
      */
     public boolean deleteMapping(String subject) {
         try {
-            tokenLogoRepository.deleteById(subject);
-            tokenMetadataRepository.deleteById(subject);
+            // the subject comes from a file name, stored entries are in lower case
+            String storedSubject = MappingsUtil.normalizeSubject(subject);
+            tokenLogoRepository.deleteById(storedSubject);
+            tokenMetadataRepository.deleteById(storedSubject);
             return true;
         } catch (Exception e) {
             log.error("Failed to delete token metadata for subject '{}': {}", subject, e.getMessage());
