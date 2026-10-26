@@ -26,6 +26,7 @@ import java.io.File;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Locale;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
@@ -169,6 +170,14 @@ class TokenMetadataServiceTest {
             InOrder inOrder = inOrder(tokenLogoRepository, tokenMetadataRepository);
             inOrder.verify(tokenLogoRepository).deleteById(SUBJECT);
             inOrder.verify(tokenMetadataRepository).deleteById(SUBJECT);
+        }
+
+        @Test
+        void deletesAnEntryWhoseFileNameIsInUpperCaseByItsStoredLowerCaseSubject() {
+            assertThat(tokenMetadataService.deleteMapping(SUBJECT.toUpperCase(Locale.ROOT))).isTrue();
+
+            verify(tokenLogoRepository).deleteById(SUBJECT);
+            verify(tokenMetadataRepository).deleteById(SUBJECT);
         }
 
         @Test

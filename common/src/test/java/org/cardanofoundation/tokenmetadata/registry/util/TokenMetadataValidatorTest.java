@@ -134,6 +134,43 @@ class TokenMetadataValidatorTest {
         }
 
         @Test
+        void reportsAUrlWithoutAHostThatTheLibraryLetsThrough() {
+            // mainnet: ca769ee7...555345 has 'https:/rosen.tech', one slash, so 'rosen.tech' is a path and there is no host
+            TokenMetadata m = metadata(VALID_SUBJECT, "Token", "Description");
+            m.setUrl("https:/rosen.tech");
+
+            Cip26Validation validation = validate(m);
+
+            assertThat(summary(validation)).containsExactly("url:OPTIONAL:invalid_value");
+            assertThat(validation.errors().getFirst().error()).isEqualTo("url 'https:/rosen.tech' has no host");
+        }
+
+        @Test
+        void acceptsHttpsUrlsWithAHost() {
+            for (String url : new String[]{"https://rosen.tech", "https://example.com/path?q=1#top", "HTTPS://EXAMPLE.COM"}) {
+                TokenMetadata m = metadata(VALID_SUBJECT, "Token", "Description");
+                m.setUrl(url);
+                assertThat(validate(m).errors()).as(url).isEmpty();
+            }
+        }
+
+        @Test
+        void reportsAUrlThatIsNotAValidUriOrNotHttps() {
+            assertThat(TokenMetadataValidator.urlProblem("https://exa mple.com")).isEqualTo("url 'https://exa mple.com' is not a valid URI");
+            assertThat(TokenMetadataValidator.urlProblem("ftp://example.com")).isEqualTo("url 'ftp://example.com' is not an https URL");
+            assertThat(TokenMetadataValidator.urlProblem("example.com")).isEqualTo("url 'example.com' is not an https URL");
+            assertThat(TokenMetadataValidator.urlProblem(null)).isNull();
+            assertThat(TokenMetadataValidator.urlProblem("")).isNull();
+        }
+
+        @Test
+        void reportsAUrlTheLibraryRejectsOnlyOnce() {
+            TokenMetadata m = metadata(VALID_SUBJECT, "Token", "Description");
+            m.setUrl("https:/" + "a".repeat(300));
+            assertThat(summary(validate(m))).containsExactly("url:OPTIONAL:invalid_length");
+        }
+
+        @Test
         void reportsADescriptionOverTheLimit() {
             assertThat(summary(validate(metadata(VALID_SUBJECT, "Token", "d".repeat(501)))))
                     .containsExactly("description:MANDATORY:invalid_length");

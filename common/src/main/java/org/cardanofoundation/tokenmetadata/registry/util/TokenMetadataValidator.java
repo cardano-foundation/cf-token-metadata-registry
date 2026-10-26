@@ -14,6 +14,8 @@ import org.cardanofoundation.tokenmetadata.registry.validation.ValidationCode;
 import org.cardanofoundation.tokenmetadata.registry.validation.ValidationError;
 import org.springframework.stereotype.Component;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
@@ -92,6 +94,13 @@ public class TokenMetadataValidator {
             return Cip26Validation.dropped("validation failed unexpectedly: " + e.getMessage());
         }
 
+        // cf-tokens-cip26 checks the scheme of a url only: 'https:/rosen.tech' passes, but has no host to go to
+        boolean urlReported = errors.stream().anyMatch(error -> "url".equals(error.fieldName()));
+        String urlProblem = urlReported ? null : urlProblem(tokenMetadata.getUrl());
+        if (urlProblem != null) {
+            errors.add(ValidationError.optional(CIP_26, null, "url", ValidationCode.INVALID_VALUE, urlProblem));
+        }
+
         if (!errors.isEmpty()) {
             log.debug("CIP-26 entry '{}' is stored with {} validation errors: {}", tokenMetadata.getSubject(), errors.size(), errors);
         }
@@ -125,6 +134,30 @@ public class TokenMetadataValidator {
                     "logo is " + decoded.length + " bytes, CIP-26 allows at most " + LOGO_MAX_DECODED_BYTES)));
         }
         return Cip26Validation.of(List.of());
+    }
+
+    /**
+     * Why a url is not an HTTPS URL a browser can open (CIP-26: "A HTTPS URL"), or {@code null} when it is or there is
+     * none. The url is stored as written either way.
+     */
+    @Nullable
+    static String urlProblem(@Nullable String url) {
+        if (url == null || url.isEmpty()) {
+            return null;
+        }
+        URI uri;
+        try {
+            uri = new URI(url);
+        } catch (URISyntaxException _) {
+            return "url '" + abbreviate(url) + "' is not a valid URI";
+        }
+        if (!"https".equalsIgnoreCase(uri.getScheme())) {
+            return "url '" + abbreviate(url) + "' is not an https URL";
+        }
+        if (uri.getHost() == null || uri.getHost().isBlank()) {
+            return "url '" + abbreviate(url) + "' has no host";
+        }
+        return null;
     }
 
     /** Why a subject cannot be the key of an entry, or {@code null} when it can. */

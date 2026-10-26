@@ -5,9 +5,11 @@ import org.cardanofoundation.tokenmetadata.registry.entity.TokenMetadata;
 import org.cardanofoundation.tokenmetadata.registry.model.Item;
 import org.cardanofoundation.tokenmetadata.registry.model.Mapping;
 
+import jakarta.annotation.Nullable;
 import lombok.extern.slf4j.Slf4j;
 
 import java.time.LocalDateTime;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.function.Function;
 
@@ -19,7 +21,7 @@ public final class MappingsUtil {
 
     public static TokenMetadata toTokenMetadata(Mapping mapping, String updateBy, LocalDateTime updatedAt) {
         TokenMetadata tokenMetadata = new TokenMetadata();
-        tokenMetadata.setSubject(mapping.subject());
+        tokenMetadata.setSubject(normalizeSubject(mapping.subject()));
         tokenMetadata.setPolicy(mapping.policy());
         tokenMetadata.setName(getValue(mapping.name()));
         tokenMetadata.setTicker(getValue(mapping.ticker()));
@@ -39,9 +41,19 @@ public final class MappingsUtil {
         return tokenMetadata;
     }
 
+    /**
+     * A subject as it is stored and looked up: lower case. A subject is base16, so its case carries no meaning, and
+     * CIP-68 subjects and the asset units clients query with are lower case; a registry file named in upper case would
+     * otherwise only be found by a query in upper case.
+     */
+    @Nullable
+    public static String normalizeSubject(@Nullable String subject) {
+        return subject == null ? null : subject.toLowerCase(Locale.ROOT);
+    }
+
     public static TokenLogo toTokenLogo(Mapping mapping) {
         TokenLogo tokenLogo = new TokenLogo();
-        tokenLogo.setSubject(mapping.subject());
+        tokenLogo.setSubject(normalizeSubject(mapping.subject()));
         tokenLogo.setLogo(getValue(mapping.logo()));
         return tokenLogo;
     }

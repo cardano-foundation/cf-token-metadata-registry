@@ -312,6 +312,32 @@ class TokenMetadataSyncServiceTest {
         }
 
         @Test
+        void fullSync_keepsASubjectStoredInLowerCaseWhoseFileIsNamedInUpperCase() {
+            // the stored subject is lower case, the registry file is not: it is still present, not stale
+            when(syncStateRepository.findTopByOrderByIdDesc()).thenReturn(Optional.empty());
+            Path mockRepoPath = mock(Path.class);
+            File mockMappingsDir = mock(File.class);
+            when(mockRepoPath.toFile()).thenReturn(mockMappingsDir);
+            File presentFile = mock(File.class);
+            when(presentFile.getName()).thenReturn("ABCDEF.json");
+            when(mockMappingsDir.listFiles()).thenReturn(new File[] {presentFile});
+            when(gitService.cloneCardanoTokenRegistryGitRepository()).thenReturn(Optional.of(mockRepoPath));
+            when(gitService.getHeadCommitHash()).thenReturn(Optional.of(newHash));
+
+            when(tokenMappingService.parseMappings(presentFile))
+                    .thenReturn(Optional.of(new Mapping("ABCDEF", null, null, null, null, null, null, null)));
+            when(gitService.getAllMappingDetails(any()))
+                    .thenReturn(Map.of("ABCDEF.json", new MappingUpdateDetails("author", LocalDateTime.now())));
+            when(tokenMetadataService.insertMapping(any(), any(), any(), any())).thenReturn(true);
+            when(tokenMetadataService.findAllSubjects()).thenReturn(List.of("abcdef"));
+
+            tokenMetadataSyncService.synchronizeDatabase();
+
+            verify(tokenMetadataService, never()).deleteMapping(any());
+            assertEquals(SyncStatusEnum.SYNC_DONE, tokenMetadataSyncService.getSyncStatus().getStatus());
+        }
+
+        @Test
         void fullSync_skipsStaleCleanup_whenNoMappingFilesFound() {
             when(syncStateRepository.findTopByOrderByIdDesc()).thenReturn(Optional.empty());
             Path mockRepoPath = mock(Path.class);
