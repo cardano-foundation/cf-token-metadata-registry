@@ -9,11 +9,13 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.client.HttpClientErrorException;
 
 import java.time.Duration;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
 
 /**
@@ -209,21 +211,45 @@ public class Cip113IntegrationIT extends BaseIntegrationIT {
         }
     }
 
-    /** A programmable token is served only with CIP-26 or CIP-68 metadata: a policy without any is recorded (ADR-020). */
+    /**
+     * A token of a registered policy without CIP-26 or CIP-68 metadata is served, with a MANDATORY CIP-113 error that
+     * says so, and is not an invalid_token row (ADR-020 decision 3).
+     */
     @Nested
     @DisplayName("CIP-113 - Registered policy without companion metadata")
     class NoCompanionMetadata {
 
+        // a token of the policy registered in setUp, which has neither CIP-26 nor CIP-68 metadata
+        private static final String SUBJECT = REGISTERED_POLICY_ID + "4e4f4d455441";
+
         @Test
-        void aRegisteredPolicyWithoutMetadataIsCountedAsAnInvalidToken() {
-            // the node minted in setUp registers a policy that has neither CIP-26 nor CIP-68 metadata
-            await().atMost(Duration.ofMinutes(2))
-                    .pollInterval(Duration.ofSeconds(2))
-                    .untilAsserted(() -> assertThat(restTemplate.getForEntity(API_BASE_URL + "/actuator/prometheus", String.class)
-                            .getBody().lines())
-                            .anyMatch(line -> line.startsWith("token_metadata_invalid_tokens_total{")
-                                    && line.contains("reason_code=\"no_companion_metadata\"")
-                                    && line.contains("standard=\"CIP-113\"")));
+        void isServedWithAMandatoryErrorThatItHasNoCompanion() {
+            ResponseEntity<String> response = restTemplate.getForEntity(API_BASE_URL + "/api/v2/subjects/" + SUBJECT, String.class);
+
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+            DocumentContext json = JsonPath.parse(response.getBody());
+            assertThat(json.read("$.subject.type", String.class)).isEqualTo("PROGRAMMABLE");
+            assertThat(json.read("$.subject.extensions.cip113.transfer_logic_script", String.class)).isEqualTo(TRANSFER_LOGIC_SCRIPT);
+            assertThat(json.read("$.subject.metadata.valid", Boolean.class)).isFalse();
+            assertThat(json.read("$.subject.validation_errors[0].cip", String.class)).isEqualTo("CIP-113");
+            assertThat(json.read("$.subject.validation_errors[0].field_name", String.class)).isEqualTo("companion_metadata");
+            assertThat(json.read("$.subject.validation_errors[0].field_category", String.class)).isEqualTo("MANDATORY");
+            assertThat(json.read("$.subject.validation_errors[0].code", String.class)).isEqualTo("missing_value");
+        }
+
+        @Test
+        void isLeftOutByMandatoryOnly() {
+            assertThatThrownBy(() -> restTemplate.getForEntity(
+                    API_BASE_URL + "/api/v2/subjects/" + SUBJECT + "?validation=MANDATORY_ONLY", String.class))
+                    .isInstanceOf(HttpClientErrorException.NotFound.class);
+        }
+
+        @Test
+        void isNotCountedAsAnInvalidToken() {
+            String metrics = restTemplate.getForEntity(API_BASE_URL + "/actuator/prometheus", String.class).getBody();
+
+            assertThat(metrics.lines()).noneMatch(line -> line.startsWith("token_metadata_invalid_tokens_total{")
+                    && line.contains("reason_code=\"no_companion_metadata\""));
         }
     }
 }
