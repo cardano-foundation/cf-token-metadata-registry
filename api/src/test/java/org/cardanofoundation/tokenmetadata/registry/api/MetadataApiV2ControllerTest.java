@@ -477,6 +477,26 @@ class MetadataApiV2ControllerTest {
         }
 
         @Test
+        void servesThe333AndThe444TokenOfOneReferenceNftInOneBatchEachForItsLabel() throws Exception {
+            // both resolve to the same reference NFT: neither may be lost (bloxbean/yaci-store#1220, review point 2)
+            String ftSubject = RFT_POLICY + "0014df10" + BASE_NAME;
+            BatchRequest request = new BatchRequest(List.of(ftSubject, RFT_SUBJECT), List.of());
+
+            mockMvc.perform(post("/api/v2/subjects/query")
+                            .contentType("application/json")
+                            .content(new ObjectMapper().writeValueAsString(request)))
+                    .andExpect(status().isOk())
+                    .andExpect(MockMvcResultMatchers.jsonPath("$.subjects.length()").value(2))
+                    .andExpect(MockMvcResultMatchers.jsonPath("$.subjects[?(@.subject == '" + ftSubject + "')].metadata.logo").isEmpty())
+                    .andExpect(MockMvcResultMatchers.jsonPath("$.subjects[?(@.subject == '" + ftSubject + "')].validation_errors[0].sub_standard")
+                            .value("333"))
+                    .andExpect(MockMvcResultMatchers.jsonPath("$.subjects[?(@.subject == '" + RFT_SUBJECT + "')].metadata.logo.value")
+                            .value("ipfs://bafypuzzle"))
+                    .andExpect(MockMvcResultMatchers.jsonPath("$.subjects[?(@.subject == '" + RFT_SUBJECT + "')].validation_errors[*]")
+                            .isEmpty());
+        }
+
+        @Test
         void doesNotServeTheNftOfTheSameBaseName() throws Exception {
             mockMvc.perform(get("/api/v2/subjects/" + RFT_POLICY + "000de140" + BASE_NAME))
                     .andExpect(status().isNotFound());
