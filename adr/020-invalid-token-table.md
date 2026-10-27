@@ -128,9 +128,9 @@ The counter `token.metadata.invalid.tokens{standard,reason_code}` counts the row
 - **Log only:** not queryable, per node, lost with the logs.
 - **Record every token, errors included:** duplicates `validation_errors`, with tens of thousands of rows.
 - **A table per standard:** a migration for every standard, and awkward combinations such as CIP-68 with CIP-113.
-- **Index the CIP-113 jail and record each token without a companion (`jail_without_token`):** exact per token, but it
-  needs indexing mints and the programmable-token address, and a full resync. Moot since decision 3: such a token is
-  served with an error.
+- **Record a registered policy with nothing minted (`jail_without_token`, reserved in yaci-store):** rejected
+  (2026-10-27). CIP-113 allows a registration without a mint, for example for real-world assets, and there is no token
+  to store, serve or drop; it is a finding for a report, not a row here. yaci-store removed the reserved code.
 - **Record a registered policy without a companion in this table (`no_companion_metadata`):** what was done until
   2026-10-27. Replaced by decision 3: it hid tokens the registry indexed, and treated as unstorable what is a token
   breaking a rule.
