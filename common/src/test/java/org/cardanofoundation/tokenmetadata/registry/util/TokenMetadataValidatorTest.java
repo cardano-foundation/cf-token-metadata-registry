@@ -3,6 +3,7 @@ package org.cardanofoundation.tokenmetadata.registry.util;
 import org.cardanofoundation.tokenmetadata.registry.model.Item;
 import org.cardanofoundation.tokenmetadata.registry.model.Mapping;
 import org.cardanofoundation.tokenmetadata.registry.entity.TokenMetadata;
+import org.cardanofoundation.tokenmetadata.registry.invalidtoken.InvalidTokenReason;
 import org.cardanofoundation.tokenmetadata.registry.validation.FieldCategory;
 import org.cardanofoundation.tokenmetadata.registry.validation.ValidationError;
 import org.junit.jupiter.api.DisplayName;
@@ -226,6 +227,7 @@ class TokenMetadataValidatorTest {
             Cip26Validation result = validate(metadata(null, "Nutcoin", "A description"));
 
             assertThat(result.isDropped()).isTrue();
+            assertThat(result.droppedCode()).isEqualTo(InvalidTokenReason.UNUSABLE_SUBJECT);
             assertThat(result.droppedReason()).contains("missing");
         }
 
@@ -296,6 +298,7 @@ class TokenMetadataValidatorTest {
             Cip26Validation result = validator.validateLogo(VALID_SUBJECT, "A".repeat(TokenMetadataValidator.LOGO_HARD_CAP_CHARS + 4));
 
             assertThat(result.isDropped()).isTrue();
+            assertThat(result.droppedCode()).isEqualTo(InvalidTokenReason.LOGO_TOO_LARGE);
         }
 
         @Test

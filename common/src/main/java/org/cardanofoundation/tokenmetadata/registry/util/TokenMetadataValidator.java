@@ -8,6 +8,7 @@ import org.cardanofoundation.metadatatools.core.cip26.ValidationResult;
 import org.cardanofoundation.metadatatools.core.cip26.model.Metadata;
 import org.cardanofoundation.metadatatools.core.cip26.model.MetadataProperty;
 import org.cardanofoundation.tokenmetadata.registry.entity.TokenMetadata;
+import org.cardanofoundation.tokenmetadata.registry.invalidtoken.InvalidTokenReason;
 import org.cardanofoundation.tokenmetadata.registry.model.Mapping;
 import org.cardanofoundation.tokenmetadata.registry.validation.FieldCategory;
 import org.cardanofoundation.tokenmetadata.registry.validation.ValidationCode;
@@ -54,7 +55,7 @@ public class TokenMetadataValidator {
     public Cip26Validation validate(@Nullable Mapping mapping, TokenMetadata tokenMetadata) {
         String subjectProblem = subjectProblem(tokenMetadata.getSubject());
         if (subjectProblem != null) {
-            return Cip26Validation.dropped(subjectProblem);
+            return Cip26Validation.dropped(InvalidTokenReason.UNUSABLE_SUBJECT, subjectProblem);
         }
 
         List<ValidationError> errors = new ArrayList<>();
@@ -89,9 +90,10 @@ public class TokenMetadataValidator {
                         .forEach(error -> errors.add(fromLibrary(error.getField(), error.getMessage())));
             }
         } catch (Exception e) {
-            // not a way an entry departs from the CIP: something the validator did not foresee
+            // not a way an entry departs from the CIP, and not a subject that cannot be used: something the validator did not
+            // foresee, recorded as a processing failure, the one reason to look into
             log.error("Error during CIP-26 validation for subject '{}': {}", tokenMetadata.getSubject(), e.getMessage(), e);
-            return Cip26Validation.dropped("validation failed unexpectedly: " + e.getMessage());
+            return Cip26Validation.dropped(InvalidTokenReason.PROCESSING_FAILURE, "validation failed unexpectedly: " + e.getMessage());
         }
 
         // cf-tokens-cip26 checks the scheme of a url only: 'https:/rosen.tech' passes, but has no host to go to
@@ -119,7 +121,7 @@ public class TokenMetadataValidator {
         if (logo.length() > LOGO_HARD_CAP_CHARS) {
             log.warn("Dropping the logo of CIP-26 entry '{}': {} characters, far beyond the {} bytes CIP-26 allows, "
                     + "this looks like an attack", subject, logo.length(), LOGO_MAX_DECODED_BYTES);
-            return Cip26Validation.dropped("the logo has " + logo.length() + " characters");
+            return Cip26Validation.dropped(InvalidTokenReason.LOGO_TOO_LARGE, "the logo has " + logo.length() + " characters");
         }
 
         byte[] decoded;

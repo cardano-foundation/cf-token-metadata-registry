@@ -402,9 +402,9 @@ public class Cip68FTDatumParser {
     }
 
     private static String typedBytesToText(String propertyName, byte[] bytes, List<ValidationError> errors) {
+        // a name that is not text is mandatory, as a name of the wrong type is
         if (!StringUtil.isValidUTF8(bytes)) {
-            errors.add(ValidationError.optional(CIP_68, null, propertyName, NOT_UTF8,
-                    propertyName + " is not valid UTF-8, stored as hex"));
+            errors.add(textError(propertyName, NOT_UTF8, propertyName + " is not valid UTF-8, stored as hex"));
         }
         return bytesToText(bytes);
     }

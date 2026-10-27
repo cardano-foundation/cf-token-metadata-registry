@@ -48,6 +48,8 @@ written:
 | CIP-26 | `unusable_subject` | a subject that cannot be a key (not even-length hex, not 56 to 120 characters) |
 | CIP-26 | `unparseable_mapping` | a file that cannot be read as a mapping |
 | CIP-26 | `missing_git_history` | a file with no commit in the registry's history |
+| CIP-26 | `logo_too_large` | a logo far beyond any real size (over about 1 MiB): the entry is stored without it, so the item without a row is the logo |
+| CIP-26 | `processing_failure` | a file whose check throws something unexpected; the subject may be fine, so it is not `unusable_subject` |
 | CIP-68 | `datum_undecodable`, `datum_too_deep_to_decode` | a datum that cannot be decoded |
 | CIP-68 | `processing_failure` | a reference NFT whose indexing throws something unexpected (one row per reference NFT) |
 | CIP-113 | `registry_node_unparseable` | a registry node whose datum cannot be parsed, or has no inline datum |

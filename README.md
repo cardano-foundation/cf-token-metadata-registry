@@ -228,7 +228,7 @@ mvn clean package -pl api,common -am -DskipTests -Pnative
 
 - [x] CIP-26 compliant REST API
 - [x] CIP-68 fungible token (333) and rich fungible token (444) support (V2 API with priority-based querying)
-- [x] Validation errors reported, not enforced: tokens are served as indexed with `validation_errors`, `?validation=ALL|MANDATORY_ONLY|STRICT` chooses how strict a response is, and what cannot be stored is recorded in an `invalid_token` table (ADR-019, ADR-020)
+- [x] Validation errors reported, not enforced: tokens are served as indexed with `validation_errors`, `?validation=ALL|MANDATORY_ONLY|STRICT` chooses how strict a response is, and what cannot be stored is recorded in an `invalid_token` table (ADR-019, ADR-020). An update that cannot be stored writes nothing, so the previous metadata of the token stays in the API; the update is in `invalid_token`
 - [x] CIP-113 programmable token registry support (preview, preprod, mainnet — enabled via `CIP113_REGISTRY_NFT_POLICY_IDS`)
 - [x] Prometheus metrics (`/actuator/prometheus`)
 - [x] Kubernetes / Helm deployment support (`deploy/`)

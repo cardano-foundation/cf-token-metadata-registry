@@ -130,6 +130,13 @@ class TokenMetadataServiceTest {
 
             verify(tokenLogoRepository, never()).save(any());
             verify(tokenLogoRepository).deleteById(SUBJECT);
+            // review of yaci-store#1220: the dropped logo was not recorded anywhere
+            ArgumentCaptor<InvalidTokenReport> report = ArgumentCaptor.forClass(InvalidTokenReport.class);
+            verify(invalidTokenRecorder).report(report.capture());
+            assertThat(report.getValue().standard()).isEqualTo(InvalidTokenReason.CIP_26);
+            assertThat(report.getValue().reasonCode()).isEqualTo(InvalidTokenReason.LOGO_TOO_LARGE);
+            assertThat(report.getValue().subject()).isEqualTo(SUBJECT);
+            assertThat(report.getValue().origin()).isEqualTo(ORIGIN);
         }
     }
 

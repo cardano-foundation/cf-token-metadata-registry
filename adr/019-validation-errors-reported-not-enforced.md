@@ -152,6 +152,12 @@ A CIP-68 update that breaks the CIP is stored and served with its errors. The ea
 place, so ADR-017's "last valid datum" rule is superseded. An output that moves the reference NFT without any datum is
 not a datum and stores nothing: the last stored datum is still served.
 
+**A dropped update leaves the previous metadata in the API.** What cannot be stored (a CIP-68 datum that cannot be decoded,
+a CIP-26 file that cannot be parsed or whose check throws something unforeseen) writes no row, so the API keeps serving the
+metadata of the earlier row of that token, with its errors, and says nothing about the update. The update shows in
+`invalid_token` (ADR-020), with its subject and its transaction or file. A CIP-26 logo far beyond any real size is dropped on
+its own: the entry is stored without a logo, and the logo is an `invalid_token` row (`logo_too_large`).
+
 ### 7. A full resync is needed
 
 V7 is additive and rewrites no data, so a node upgrades in place and keeps working. But tokens dropped before exist
