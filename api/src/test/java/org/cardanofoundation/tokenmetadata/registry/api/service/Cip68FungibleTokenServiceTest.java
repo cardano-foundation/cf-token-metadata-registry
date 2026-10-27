@@ -10,7 +10,6 @@ import com.bloxbean.cardano.yaci.store.common.domain.AddressUtxo;
 import com.bloxbean.cardano.yaci.store.common.domain.Amt;
 import lombok.extern.slf4j.Slf4j;
 import org.cardanofoundation.tokenmetadata.registry.api.util.AssetType;
-import org.cardanofoundation.tokenmetadata.registry.api.model.cip68.FungibleTokenMetadata;
 import org.cardanofoundation.tokenmetadata.registry.validation.FieldCategory;
 import org.cardanofoundation.tokenmetadata.registry.validation.ValidationError;
 import org.cardanofoundation.tokenmetadata.registry.entity.MetadataReferenceNft;
