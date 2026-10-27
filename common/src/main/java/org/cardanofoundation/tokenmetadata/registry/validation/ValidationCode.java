@@ -29,7 +29,7 @@ public final class ValidationCode {
     public static final String DOCUMENTATION = """
             | code | meaning |
             |---|---|
-            | `missing_value` | a field the CIP requires is missing or empty: for CIP-68 the `version` and, as the label requires it, `name`, `description` (333) and `image` (222, 444); for CIP-26 `name` and `description` |
+            | `missing_value` | a field the CIP requires is missing or empty: for CIP-68 the `version` and, as the label requires it, `name`, `description` (333) and `image` (222, 444); for CIP-26 `name` and `description`; for CIP-113 the CIP-26 or CIP-68 metadata of a programmable token (`companion_metadata`) |
             | `wrong_type` | the value has a type the CIP does not allow (for example a number where text is expected, or a `version` that is not an integer); a value that cannot be kept is left out |
             | `invalid_uri_scheme` | an `image` or `logo` is not a URI with one of the schemes CIP-68 allows (`https`, `ipfs`, `ar`, `data`); the value is kept as written |
             | `invalid_length` | a CIP-26 text is shorter or longer than CIP-26 allows (for example a `name` over 50 characters) |
@@ -37,7 +37,7 @@ public final class ValidationCode {
             | `out_of_range` | a number is outside the range allowed: `decimals`, or a `version` that does not fit a 64-bit integer (stored without a version) |
             | `undefined_version` | the CIP-68 `version` is not one CIP-68 defines (1 to 4); the datum is read by its structure and kept |
             | `plutus_constructor` | a property holds a Plutus constructor, which CIP-68 metadata does not allow; it is kept as `{constructor, fields}` |
-            | `not_utf8` | a text is not valid UTF-8; it is kept as hex |
+            | `not_utf8` | a text is not valid UTF-8; it is kept as hex (mandatory for a `name`, and for the `description` of a 333) |
             | `invalid_files_entry` | an entry of `files` breaks the CIP-68 definition (for example no `mediaType` or `src`); the entry is kept |
             | `no_nested_entry` | a nested datum (`"721"`) has no usable entry for the token (field `721`); the token is indexed without metadata |
             | `too_deep` | a property is nested more than 100 levels and is dropped, the rest of the datum is kept |

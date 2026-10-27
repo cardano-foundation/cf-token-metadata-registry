@@ -11,6 +11,7 @@ import com.bloxbean.cardano.yaci.store.common.domain.Amt;
 import lombok.extern.slf4j.Slf4j;
 import org.cardanofoundation.tokenmetadata.registry.api.util.AssetType;
 import org.cardanofoundation.tokenmetadata.registry.api.model.cip68.FungibleTokenMetadata;
+import org.cardanofoundation.tokenmetadata.registry.validation.FieldCategory;
 import org.cardanofoundation.tokenmetadata.registry.validation.ValidationError;
 import org.cardanofoundation.tokenmetadata.registry.entity.MetadataReferenceNft;
 import org.cardanofoundation.tokenmetadata.registry.repository.MetadataReferenceNftRepository;
@@ -26,6 +27,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -196,39 +198,82 @@ class Cip68FungibleTokenServiceTest {
         }
     }
 
-    /** A subject gets the errors of its own label and those that do not depend on a label (ADR-019). */
+    /**
+     * A subject is served with what is wrong with the datum itself, stored when it was indexed, and what its own label
+     * requires, checked when it is served: the label is often guessed when a datum is indexed without its user token,
+     * and one reference NFT can serve a 333 and a 444 token (ADR-019).
+     */
     @Nested
-    class ErrorsForLabel {
+    class ErrorsOfTheSubjectsLabel {
 
-        private final ValidationError version = ValidationError.mandatory("CIP-68", null, "version", "undefined_version", "v0");
-        private final ValidationError nftImage = ValidationError.mandatory("CIP-68", "222", "image", "missing_value", "no image");
-        private final ValidationError ftDescription = ValidationError.mandatory("CIP-68", "333", "description", "missing_value", "no description");
+        private static final String POLICY = "aa".repeat(28);
+        private static final String REFERENCE_NFT = "000643b041";
+        private final MetadataReferenceNftRepository repository = mock(MetadataReferenceNftRepository.class);
+        private final Cip68FungibleTokenService service = new Cip68FungibleTokenService(repository, new Cip68FTDatumParser());
 
-        @Test
-        void keepsTheErrorsOfTheLabelAndThoseOfNoLabel() {
-            List<ValidationError> errors = List.of(version, nftImage, ftDescription);
+        private static MetadataReferenceNft.MetadataReferenceNftBuilder row() {
+            return MetadataReferenceNft.builder().policyId(POLICY).assetName(REFERENCE_NFT).slot(1L).version(1L).datum("d87980");
+        }
 
-            assertThat(Cip68FungibleTokenService.errorsForLabel(errors, 333)).containsExactly(version, ftDescription);
-            assertThat(Cip68FungibleTokenService.errorsForLabel(errors, 444)).containsExactly(version);
+        private void stored(MetadataReferenceNft row) {
+            when(repository.findFirstByPolicyIdAndAssetNameOrderBySlotDesc(POLICY, REFERENCE_NFT)).thenReturn(Optional.of(row));
         }
 
         @Test
-        void leavesARowThatWasNeverCheckedUnchecked() {
-            assertThat(Cip68FungibleTokenService.errorsForLabel(null, 333)).isNull();
+        void checksAFungibleTokenUpdatedWithoutItsUserTokenAsAFungibleToken() {
+            // name and image, no description, ticker, logo or decimals: an update without the user token was guessed as
+            // an NFT, and the description a 333 requires was never checked
+            stored(row().name("Coin").image("ipfs://QmCoin").validationErrors(List.of()).build());
+
+            assertThat(service.findSubject(POLICY, REFERENCE_NFT, List.of(), false)).hasValueSatisfying(metadata -> {
+                assertThat(metadata.logo()).isNull();
+                assertThat(metadata.validationErrors())
+                        .extracting(ValidationError::subStandard, ValidationError::fieldName, ValidationError::fieldCategory,
+                                ValidationError::code)
+                        .containsExactly(tuple("333", "description", FieldCategory.MANDATORY, "missing_value"));
+            });
+        }
+
+        @Test
+        void checksTheFungibleAndTheRichFungibleTokenOfOneReferenceNftEachForItsLabel() {
+            MetadataReferenceNft both = row().name("Both").image("ipfs://QmBoth").validationErrors(List.of()).build();
+            Map<String, MetadataReferenceNft> prefetched = Map.of(POLICY + ":" + REFERENCE_NFT, both);
+
+            assertThat(service.findSubject(POLICY, REFERENCE_NFT, List.of(), prefetched, false)).hasValueSatisfying(metadata ->
+                    assertThat(metadata.validationErrors()).extracting(ValidationError::subStandard).containsExactly("333"));
+            assertThat(service.findSubject(POLICY, REFERENCE_NFT, List.of(), prefetched, true)).hasValueSatisfying(metadata -> {
+                assertThat(metadata.logo()).isEqualTo("ipfs://QmBoth");
+                assertThat(metadata.validationErrors()).isEmpty();
+            });
+        }
+
+        @Test
+        void servesTheStoredErrorsToEveryLabelWithTheErrorsOfTheLabelAfter() {
+            ValidationError version = ValidationError.mandatory("CIP-68", null, "version", "invalid_version", "version 0");
+            stored(row().name("Token").validationErrors(List.of(version)).build());
+
+            assertThat(service.findSubject(POLICY, REFERENCE_NFT, List.of(), false)).hasValueSatisfying(metadata ->
+                    assertThat(metadata.validationErrors()).extracting(ValidationError::subStandard, ValidationError::fieldName)
+                            .containsExactly(tuple(null, "version"), tuple("333", "description")));
+            assertThat(service.findSubject(POLICY, REFERENCE_NFT, List.of(), true)).hasValueSatisfying(metadata ->
+                    assertThat(metadata.validationErrors()).extracting(ValidationError::subStandard, ValidationError::fieldName)
+                            .containsExactly(tuple(null, "version"), tuple("444", "image")));
         }
 
         @Test
         void servesAFungibleTokenPairedWithAnNftWithoutTheNftRequirement() {
-            MetadataReferenceNft row = MetadataReferenceNft.builder().policyId("aa".repeat(28)).assetName("000643b041").slot(1L)
-                    .name("LP").description("Pool share").version(1L).datum("d87980")
-                    .validationErrors(List.of(nftImage)).build();
-            MetadataReferenceNftRepository repository = mock(MetadataReferenceNftRepository.class);
-            when(repository.findFirstByPolicyIdAndAssetNameOrderBySlotDesc("aa".repeat(28), "000643b041")).thenReturn(Optional.of(row));
+            stored(row().name("LP").description("Pool share").validationErrors(List.of()).build());
 
-            Optional<FungibleTokenMetadata> served = new Cip68FungibleTokenService(repository, new Cip68FTDatumParser())
-                    .findSubject("aa".repeat(28), "000643b041", List.of(), false);
+            assertThat(service.findSubject(POLICY, REFERENCE_NFT, List.of(), false))
+                    .hasValueSatisfying(metadata -> assertThat(metadata.validationErrors()).isEmpty());
+        }
 
-            assertThat(served).hasValueSatisfying(metadata -> assertThat(metadata.validationErrors()).isEmpty());
+        @Test
+        void leavesARowThatWasNeverCheckedUnchecked() {
+            stored(row().name("Old").build());
+
+            assertThat(service.findSubject(POLICY, REFERENCE_NFT, List.of(), false))
+                    .hasValueSatisfying(metadata -> assertThat(metadata.validationErrors()).isNull());
         }
     }
 

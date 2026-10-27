@@ -79,30 +79,14 @@ class ValidationErrorsRepositoryIT {
     }
 
     @Test
-    void findsThePoliciesThatHaveCip26OrCip68Metadata() {
-        tokenMetadataRepository.save(cip26(POLICY_A + "41", List.of()));
-        metadataReferenceNftRepository.save(MetadataReferenceNft.builder().policyId(POLICY_B).assetName("000643b041").slot(1L)
-                .name("T").version(1L).datum("d87980").build());
-        entityManager.flush();
-
-        List<String> queried = List.of(POLICY_A, POLICY_B, POLICY_C);
-        assertThat(tokenMetadataRepository.findPolicyIdsWithMetadata(queried)).containsExactly(POLICY_A);
-        assertThat(metadataReferenceNftRepository.findPolicyIdsWithMetadata(queried)).containsExactly(POLICY_B);
-    }
-
-    @Test
     void keepsInvalidTokensUntilARollbackOrTheirFileIsJudgedAgain() {
         invalidTokenRepository.save(invalid("onchain-1", "CIP-68", "datum_undecodable", 100L, null));
         invalidTokenRepository.save(invalid("onchain-2", "CIP-68", "datum_undecodable", 200L, null));
         invalidTokenRepository.save(invalid("file-1", "CIP-26", "filename_subject_mismatch", null, "garbage.json"));
-        invalidTokenRepository.save(invalid("cip113-1", "CIP-113", "no_companion_metadata", null, null));
         entityManager.flush();
 
         assertThat(invalidTokenRepository.deleteBySlotGreaterThan(150L)).isEqualTo(1);
         assertThat(invalidTokenRepository.deleteByStandardAndOrigin("CIP-26", "garbage.json")).isEqualTo(1);
-        assertThat(invalidTokenRepository.findByStandardAndReasonCode("CIP-113", "no_companion_metadata"))
-                .extracting(InvalidToken::getId).containsExactly("cip113-1");
-        assertThat(invalidTokenRepository.deleteByIdIn(List.of("cip113-1"))).isEqualTo(1);
         entityManager.clear();
         assertThat(invalidTokenRepository.findAll()).extracting(InvalidToken::getId).containsExactly("onchain-1");
         assertThat(invalidTokenRepository.findById("onchain-1").orElseThrow().getDetails()).containsEntry("datum_prefix", "dead");

@@ -16,7 +16,6 @@ import org.cardanofoundation.tokenmetadata.registry.model.enums.SyncStatusEnum;
 import org.cardanofoundation.tokenmetadata.registry.repository.SyncStateRepository;
 import org.cardanofoundation.tokenmetadata.registry.util.MappingsUtil;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
@@ -35,7 +34,6 @@ public class TokenMetadataSyncService {
     private final TokenMappingService tokenMappingService;
     private final SyncStateRepository syncStateRepository;
     private final InvalidTokenRecorder invalidTokenRecorder;
-    private final ApplicationEventPublisher eventPublisher;
 
     @Value("${token.metadata.job.enabled}")
     boolean isMetadataJobEnabled;
@@ -110,9 +108,6 @@ public class TokenMetadataSyncService {
             }
 
             log.info("Mapping processing took {} ms", System.currentTimeMillis() - processStart);
-            if (!filesToProcess.isEmpty() || !pendingChanges.subjectsToDelete().isEmpty()) {
-                eventPublisher.publishEvent(new Cip26SyncCompletedEvent(filesToProcess.size(), pendingChanges.subjectsToDelete().size()));
-            }
 
             syncStatus.setStatus(SyncStatusEnum.SYNC_DONE);
             syncStatus.setInitialSyncDone(true);

@@ -34,9 +34,9 @@ public class TokenMetadataService {
 
     /**
      * Stores one registry entry and its logo. An entry that breaks CIP-26 is stored as written, with its validation errors
-     * (the logo's included), and served (ADR-019). Only an entry whose subject cannot be a key is dropped: it is recorded
-     * in {@code invalid_token} under its registry file. A logo far beyond any real size is not stored in the logo table, with
-     * a warning; the entry is.
+     * (the logo's included), and served (ADR-019). Only an entry whose subject cannot be a key, or whose check throws
+     * something unforeseen, is dropped: it is recorded in {@code invalid_token} under its registry file. A logo far beyond
+     * any real size is not stored in the logo table, with a warning and an {@code invalid_token} row; the entry is.
      *
      * @param origin the registry file the entry comes from
      * @return true if the entry was stored, false if it was dropped or saving it failed
@@ -49,7 +49,7 @@ public class TokenMetadataService {
             log.warn("Dropping CIP-26 entry '{}' of '{}': {}", tokenMetadata.getSubject(), origin, validation.droppedReason());
             invalidTokenRecorder.report(InvalidTokenReport.builder()
                     .standard(InvalidTokenReason.CIP_26)
-                    .reasonCode(InvalidTokenReason.UNUSABLE_SUBJECT)
+                    .reasonCode(validation.droppedCode())
                     .reason(validation.droppedReason())
                     .subject(mapping.subject())
                     .origin(origin)
@@ -59,6 +59,15 @@ public class TokenMetadataService {
 
         TokenLogo tokenLogo = toTokenLogo(mapping);
         Cip26Validation logoValidation = tokenMetadataValidator.validateLogo(tokenMetadata.getSubject(), tokenLogo.getLogo());
+        if (logoValidation.isDropped()) {
+            invalidTokenRecorder.report(InvalidTokenReport.builder()
+                    .standard(InvalidTokenReason.CIP_26)
+                    .reasonCode(logoValidation.droppedCode())
+                    .reason(logoValidation.droppedReason())
+                    .subject(tokenMetadata.getSubject())
+                    .origin(origin)
+                    .build());
+        }
         List<ValidationError> errors = new ArrayList<>(validation.errors());
         errors.addAll(logoValidation.errors());
         tokenMetadata.setValidationErrors(errors);

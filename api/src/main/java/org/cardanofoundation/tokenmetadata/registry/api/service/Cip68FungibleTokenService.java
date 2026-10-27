@@ -8,7 +8,6 @@ import org.cardanofoundation.tokenmetadata.registry.api.model.cip68.FungibleToke
 import org.cardanofoundation.tokenmetadata.registry.api.model.cip68.ParsedCip68Datum;
 import org.cardanofoundation.tokenmetadata.registry.api.util.AssetType;
 import org.cardanofoundation.tokenmetadata.registry.repository.MetadataReferenceNftRepository;
-import org.cardanofoundation.tokenmetadata.registry.validation.ValidationError;
 import org.springframework.stereotype.Service;
 
 import jakarta.annotation.Nullable;
@@ -117,8 +116,10 @@ public class Cip68FungibleTokenService {
      *   <li>A rich fungible token (444) has no {@code logo} in CIP-68: its {@code image} is served as the logo, as written,
      *       even when it is not a URI with an allowed scheme (its validation errors say so). A row indexed before the image
      *       was stored has none, so it is read from the stored datum.</li>
-     *   <li>The validation errors are those of the subject's label and those that do not depend on a label: a reference
-     *       NFT paired with a 222 and a 333 token is served as a 333 token without the 222 requirement (an image).</li>
+     *   <li>The validation errors are what is wrong with the datum itself, stored when it was indexed, and what the
+     *       subject's label requires of it, checked here ({@link Cip68Validator#validate}): the label is often guessed
+     *       when a datum is indexed without its user token, and one reference NFT can serve a 333 and a 444 token. A row
+     *       indexed before validation existed keeps {@code null}: it was never checked.</li>
      * </ul>
      */
     private FungibleTokenMetadata toFungibleTokenMetadata(MetadataReferenceNft referenceNft, List<String> properties,
@@ -132,19 +133,7 @@ public class Cip68FungibleTokenService {
                 getPropertyIfRequired(Cip68FTDatumParser.TICKER, referenceNft.getTicker(), properties),
                 getPropertyIfRequired(Cip68FTDatumParser.URL, referenceNft.getUrl(), properties),
                 getPropertyIfRequired(VERSION, referenceNft.getVersion(), properties),
-                errorsForLabel(referenceNft.getValidationErrors(), label));
-    }
-
-    /** The errors of one label and those that do not depend on a label; {@code null} (never checked) stays {@code null}. */
-    @Nullable
-    static List<ValidationError> errorsForLabel(@Nullable List<ValidationError> errors, int label) {
-        if (errors == null) {
-            return null;
-        }
-        String subStandard = String.valueOf(label);
-        return errors.stream()
-                .filter(error -> error.subStandard() == null || subStandard.equals(error.subStandard()))
-                .toList();
+                referenceNft.getValidationErrors() == null ? null : Cip68Validator.validate(referenceNft, label));
     }
 
     @Nullable

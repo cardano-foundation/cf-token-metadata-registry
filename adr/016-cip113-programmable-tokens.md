@@ -138,7 +138,7 @@ The type is derived from the presence of extensions: if any extension is present
 
 CIP-113 is a layer on top of existing metadata standards — it defines how to constrain CIP-26/CIP-68 tokens inside smart contracts with transfer validation logic. It does not provide display metadata (name, description, ticker). Display metadata for programmable tokens comes from CIP-26 or CIP-68, same as for any other Cardano token. Therefore, CIP-113 is not part of the `QueryPriority` enum and does not participate in the metadata merge.
 
-A programmable token is served only with a companion: CIP-26 or CIP-68 metadata. A registered policy none of whose tokens has any is recorded in `invalid_token` as `no_companion_metadata`, and the record is kept in step with the metadata by an event-driven reconciler (ADR-020 §3 explains why it exists and how it runs). Companion metadata with validation errors is a companion: the token is served with its errors (ADR-019).
+A programmable token's display metadata comes from a companion: CIP-26 or CIP-68 metadata. A token of a registered policy is served whether it has one or not (ADR-020 §3): without one it has no metadata and a `CIP-113` validation error on `companion_metadata` (`MANDATORY`: the token does not meet a mandatory requirement, so `?validation=MANDATORY_ONLY` and `STRICT` leave it out). It used to be a 404 with a `no_companion_metadata` row in `invalid_token`. Companion metadata with validation errors is a companion: the token is served with its errors (ADR-019).
 
 ### 6. Implicit enablement
 

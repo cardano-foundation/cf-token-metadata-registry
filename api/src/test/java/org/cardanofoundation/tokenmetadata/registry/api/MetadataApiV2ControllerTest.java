@@ -22,9 +22,11 @@ import org.cardanofoundation.tokenmetadata.registry.api.service.Cip68FTDatumPars
 import org.cardanofoundation.tokenmetadata.registry.api.service.Cip68FungibleTokenService;
 import org.cardanofoundation.tokenmetadata.registry.api.service.RegistryMetricsService;
 import org.cardanofoundation.tokenmetadata.registry.api.service.cip113.Cip113RegistryService;
+import org.cardanofoundation.tokenmetadata.registry.api.service.cip113.Cip113Validation;
 import org.cardanofoundation.tokenmetadata.registry.api.util.AssetType;
 import org.cardanofoundation.tokenmetadata.registry.entity.MetadataReferenceNft;
 import org.cardanofoundation.tokenmetadata.registry.repository.MetadataReferenceNftRepository;
+import org.cardanofoundation.tokenmetadata.registry.validation.FieldCategory;
 import org.cardanofoundation.tokenmetadata.registry.validation.ValidationError;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -43,6 +45,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.when;
@@ -477,6 +480,26 @@ class MetadataApiV2ControllerTest {
         }
 
         @Test
+        void servesThe333AndThe444TokenOfOneReferenceNftInOneBatchEachForItsLabel() throws Exception {
+            // both resolve to the same reference NFT: neither may be lost (bloxbean/yaci-store#1220, review point 2)
+            String ftSubject = RFT_POLICY + "0014df10" + BASE_NAME;
+            BatchRequest request = new BatchRequest(List.of(ftSubject, RFT_SUBJECT), List.of());
+
+            mockMvc.perform(post("/api/v2/subjects/query")
+                            .contentType("application/json")
+                            .content(new ObjectMapper().writeValueAsString(request)))
+                    .andExpect(status().isOk())
+                    .andExpect(MockMvcResultMatchers.jsonPath("$.subjects.length()").value(2))
+                    .andExpect(MockMvcResultMatchers.jsonPath("$.subjects[?(@.subject == '" + ftSubject + "')].metadata.logo").isEmpty())
+                    .andExpect(MockMvcResultMatchers.jsonPath("$.subjects[?(@.subject == '" + ftSubject + "')].validation_errors[0].sub_standard")
+                            .value("333"))
+                    .andExpect(MockMvcResultMatchers.jsonPath("$.subjects[?(@.subject == '" + RFT_SUBJECT + "')].metadata.logo.value")
+                            .value("ipfs://bafypuzzle"))
+                    .andExpect(MockMvcResultMatchers.jsonPath("$.subjects[?(@.subject == '" + RFT_SUBJECT + "')].validation_errors[*]")
+                            .isEmpty());
+        }
+
+        @Test
         void doesNotServeTheNftOfTheSameBaseName() throws Exception {
             mockMvc.perform(get("/api/v2/subjects/" + RFT_POLICY + "000de140" + BASE_NAME))
                     .andExpect(status().isNotFound());
@@ -511,15 +534,23 @@ class MetadataApiV2ControllerTest {
         private static final String BASE_NAME = "53554e44";
         private static final String SUBJECT = POLICY + "0014df10" + BASE_NAME;
 
-        private final ValidationError missingDescription = ValidationError.mandatory("CIP-68", "333", "description",
-                "missing_value", "description field is missing a mandatory value");
         private final ValidationError badLogo = ValidationError.optional("CIP-68", null, "logo", "invalid_uri_scheme",
                 "logo 'QmX' is not a URI with one of the schemes CIP-68 allows");
 
+        /** A 333 token that has a description, stored with what is wrong with its datum. */
         private void stored(List<ValidationError> errors) {
+            stored("The Sundae token", errors);
+        }
+
+        /** A 333 token without the description CIP-68 requires: its datum is fine, the error comes with its label. */
+        private void storedWithoutDescription() {
+            stored(null, List.of());
+        }
+
+        private void stored(String description, List<ValidationError> errors) {
             MetadataReferenceNft row = MetadataReferenceNft.builder()
                     .policyId(POLICY).assetName("000643b0" + BASE_NAME).slot(100L)
-                    .name("Sundae").ticker("SUNDAE").logo("QmX").version(1L).datum("d87980")
+                    .name("Sundae").description(description).ticker("SUNDAE").logo("QmX").version(1L).datum("d87980")
                     .validationErrors(errors).build();
             when(metadataReferenceNftRepository.findFirstByPolicyIdAndAssetNameOrderBySlotDesc(POLICY, "000643b0" + BASE_NAME))
                     .thenReturn(Optional.of(row));
@@ -528,7 +559,7 @@ class MetadataApiV2ControllerTest {
 
         @Test
         void servesATokenWithAMandatoryErrorWithItsErrors() throws Exception {
-            stored(List.of(missingDescription));
+            storedWithoutDescription();
 
             mockMvc.perform(get("/api/v2/subjects/" + SUBJECT))
                     .andExpect(status().isOk())
@@ -551,7 +582,7 @@ class MetadataApiV2ControllerTest {
 
         @Test
         void hidesATokenWithAMandatoryErrorFromMandatoryOnlyAndStrict() throws Exception {
-            stored(List.of(missingDescription));
+            storedWithoutDescription();
 
             mockMvc.perform(get("/api/v2/subjects/" + SUBJECT).queryParam("validation", "MANDATORY_ONLY"))
                     .andExpect(status().isNotFound());
@@ -571,7 +602,7 @@ class MetadataApiV2ControllerTest {
 
         @Test
         void limitsTheErrorsToTheRequestedProperties() throws Exception {
-            stored(List.of(missingDescription));
+            storedWithoutDescription();
 
             mockMvc.perform(get("/api/v2/subjects/" + SUBJECT).queryParam("property", "ticker").queryParam("validation", "STRICT"))
                     .andExpect(status().isOk())
@@ -582,7 +613,7 @@ class MetadataApiV2ControllerTest {
 
         @Test
         void leavesATokenTheScopeDoesNotAcceptOutOfABatch() throws Exception {
-            stored(List.of(missingDescription));
+            storedWithoutDescription();
             BatchRequest request = new BatchRequest(List.of(SUBJECT), List.of());
 
             mockMvc.perform(post("/api/v2/subjects/query").queryParam("validation", "MANDATORY_ONLY")
@@ -598,4 +629,81 @@ class MetadataApiV2ControllerTest {
         }
     }
 
+    /**
+     * A token of a policy registered in CIP-113 is served even without CIP-26 or CIP-68 metadata, with an error that says
+     * so; it is not an {@code invalid_token} row any more (ADR-020).
+     */
+    @Nested
+    class ProgrammableTokenWithoutCompanion {
+
+        private static final String POLICY = "01c24df7941f8b5856762fcc8aa0bb61a8c24f0911ed6aef474034d0";
+        private static final String SUBJECT = POLICY + "50524f47";
+        private static final String UNREGISTERED = "bb".repeat(28) + "50524f47";
+        private final ProgrammableTokenCip113 node = new ProgrammableTokenCip113(
+                null, "aabbccdd11223344aabbccdd11223344aabbccdd11223344aabbccdd", null, null, null);
+
+        @BeforeEach
+        void registered() {
+            when(cip113RegistryService.findByPolicyId(POLICY)).thenReturn(Optional.of(node));
+            when(cip113RegistryService.findByPolicyIds(anyCollection())).thenReturn(Map.of(POLICY, node));
+        }
+
+        @Test
+        void isServedWithTheErrorThatItHasNoCompanion() throws Exception {
+            ValidationError expected = Cip113Validation.missingCompanion();
+
+            mockMvc.perform(get("/api/v2/subjects/" + SUBJECT))
+                    .andExpect(status().isOk())
+                    .andExpect(MockMvcResultMatchers.jsonPath("$.subject.subject").value(SUBJECT))
+                    .andExpect(MockMvcResultMatchers.jsonPath("$.subject.type").value("PROGRAMMABLE"))
+                    .andExpect(MockMvcResultMatchers.jsonPath("$.subject.extensions.cip113.transfer_logic_script")
+                            .value("aabbccdd11223344aabbccdd11223344aabbccdd11223344aabbccdd"))
+                    .andExpect(MockMvcResultMatchers.jsonPath("$.subject.metadata.name").doesNotExist())
+                    .andExpect(MockMvcResultMatchers.jsonPath("$.subject.metadata.valid").value(false))
+                    .andExpect(MockMvcResultMatchers.jsonPath("$.subject.validation_errors.length()").value(1))
+                    .andExpect(MockMvcResultMatchers.jsonPath("$.subject.validation_errors[0].cip").value("CIP-113"))
+                    .andExpect(MockMvcResultMatchers.jsonPath("$.subject.validation_errors[0].field_name").value("companion_metadata"))
+                    .andExpect(MockMvcResultMatchers.jsonPath("$.subject.validation_errors[0].code").value("missing_value"))
+                    .andExpect(MockMvcResultMatchers.jsonPath("$.subject.validation_errors[0].field_category")
+                            .value(expected.fieldCategory().name()));
+        }
+
+        @Test
+        void isAMandatoryErrorSoMandatoryOnlyAndStrictLeaveItOut() throws Exception {
+            // decided 2026-10-27: a programmable token without CIP-26 or CIP-68 metadata misses a mandatory requirement
+            assertThat(Cip113Validation.missingCompanion().fieldCategory()).isEqualTo(FieldCategory.MANDATORY);
+
+            mockMvc.perform(get("/api/v2/subjects/" + SUBJECT).queryParam("validation", "MANDATORY_ONLY"))
+                    .andExpect(status().isNotFound());
+            mockMvc.perform(get("/api/v2/subjects/" + SUBJECT).queryParam("validation", "STRICT"))
+                    .andExpect(status().isNotFound());
+        }
+
+        @Test
+        void keepsTheErrorUnderAPropertyFilter() throws Exception {
+            // it concerns every property: a client that asks for the ticker has no ticker either
+            mockMvc.perform(get("/api/v2/subjects/" + SUBJECT).queryParam("property", "ticker"))
+                    .andExpect(status().isOk())
+                    .andExpect(MockMvcResultMatchers.jsonPath("$.subject.validation_errors[0].field_name").value("companion_metadata"));
+        }
+
+        @Test
+        void isServedInABatch() throws Exception {
+            BatchRequest request = new BatchRequest(List.of(SUBJECT, UNREGISTERED), List.of());
+
+            mockMvc.perform(post("/api/v2/subjects/query")
+                            .contentType("application/json")
+                            .content(new ObjectMapper().writeValueAsString(request)))
+                    .andExpect(status().isOk())
+                    .andExpect(MockMvcResultMatchers.jsonPath("$.subjects.length()").value(1))
+                    .andExpect(MockMvcResultMatchers.jsonPath("$.subjects[0].subject").value(SUBJECT))
+                    .andExpect(MockMvcResultMatchers.jsonPath("$.subjects[0].type").value("PROGRAMMABLE"))
+                    .andExpect(MockMvcResultMatchers.jsonPath("$.subjects[0].validation_errors[0].cip").value("CIP-113"));
+        }
+
+        @Test
+        void aTokenOfAPolicyThatIsNotRegisteredWithNoMetadataIsStillA404() throws Exception {
+            mockMvc.perform(get("/api/v2/subjects/" + UNREGISTERED)).andExpect(status().isNotFound());
+        }
+    }
 }

@@ -36,8 +36,4 @@ public interface MetadataReferenceNftRepository extends JpaRepository<MetadataRe
 
     int deleteBySlotGreaterThan(Long slot);
 
-    /** The policies, among the given ones, that have CIP-68 metadata stored. */
-    @Query("SELECT DISTINCT m.policyId FROM MetadataReferenceNft m WHERE m.policyId IN :policyIds")
-    List<String> findPolicyIdsWithMetadata(@Param("policyIds") Collection<String> policyIds);
-
 }

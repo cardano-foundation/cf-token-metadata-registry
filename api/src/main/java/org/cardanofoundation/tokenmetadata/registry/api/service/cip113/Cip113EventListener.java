@@ -7,14 +7,12 @@ import com.bloxbean.cardano.yaci.store.utxo.domain.TxInputOutput;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.cardanofoundation.tokenmetadata.registry.api.config.Cip113Configuration;
-import org.cardanofoundation.tokenmetadata.registry.api.event.Cip113RegistryChangedEvent;
 import org.cardanofoundation.tokenmetadata.registry.api.util.AssetType;
 import org.cardanofoundation.tokenmetadata.registry.entity.Cip113RegistryNode;
 import org.cardanofoundation.tokenmetadata.registry.invalidtoken.InvalidTokenReason;
 import org.cardanofoundation.tokenmetadata.registry.invalidtoken.InvalidTokenRecorder;
 import org.cardanofoundation.tokenmetadata.registry.invalidtoken.InvalidTokenReport;
 import org.cardanofoundation.tokenmetadata.registry.repository.Cip113RegistryNodeRepository;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,7 +34,6 @@ public class Cip113EventListener {
     private final Cip113RegistryNodeRepository cip113RegistryNodeRepository;
     private final Cip113RegistryService cip113RegistryService;
     private final InvalidTokenRecorder invalidTokenRecorder;
-    private final ApplicationEventPublisher eventPublisher;
 
     @EventListener
     @Transactional
@@ -44,9 +41,6 @@ public class Cip113EventListener {
         long rollbackSlot = rollbackEvent.getRollbackTo().getSlot();
         int count = cip113RegistryNodeRepository.deleteBySlotGreaterThan(rollbackSlot);
         log.info("CIP-113 rollback to slot {}: deleted {} registry node records", rollbackSlot, count);
-        if (count > 0) {
-            eventPublisher.publishEvent(Cip113RegistryChangedEvent.rolledBack(count));
-        }
     }
 
     @Transactional
@@ -72,8 +66,6 @@ public class Cip113EventListener {
             cip113RegistryNodeRepository.saveAll(entities);
             entities.forEach(entity -> log.info("Indexed CIP-113 registry node: key={}, slot={}, txHash={}",
                     entity.getKey(), entity.getSlot(), entity.getTxHash()));
-            // a newly registered policy may have no CIP-26 or CIP-68 metadata yet (ADR-020)
-            eventPublisher.publishEvent(Cip113RegistryChangedEvent.indexed(entities.size()));
         }
     }
 

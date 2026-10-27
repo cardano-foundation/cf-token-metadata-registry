@@ -34,7 +34,8 @@ The V2 API serves 444 subjects next to 333 subjects. NFTs (222) are still not se
 1. **Mapping**: a `001bc280` subject maps to its reference NFT, like a `0014df10` subject
    (`Cip68FungibleTokenService.getReferenceNftSubject`). It does so whether or not that user token was minted, so a
    reference NFT answers under both its 333 and its 444 subject (ADR-022 records why this is kept).
-2. **Image as logo**: CIP-68 gives an RFT no `logo`. Its picture is the required `image`, which is served as
+2. **Image as logo**: CIP-68 gives an RFT no `logo`. Its picture is the required `image`, which is served, for a
+   `001bc280` subject whatever label its datum was stored or guessed as (ADR-019), as
    `metadata.logo` (source `CIP_68`), so wallets show it with no change on their side. For CIP-68 FTs, `logo` is
    already a URI, so the format matches. Since ADR-019 the image is stored (`image`, with `media_type`, migration V7)
    and served as written, even when it is not a URI with a scheme CIP-68 allows; a validation error says so. A row

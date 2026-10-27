@@ -195,8 +195,8 @@ The registry serves tokens as indexed, with `validation_errors` saying how their
   ADR-019 these were a 404 or lost their logo. The listed errors must be among the token's errors; others are allowed.
 
 The CIP-113 suite follows the same rule: a programmable token with on-chain metadata is served with its errors, one
-without any has no companion and is a 404. `WITH_MANDATORY_ERRORS` (preprod) lists those hidden with
-`validation=MANDATORY_ONLY`.
+without any is served with a CIP-113 `companion_metadata` error (ADR-020; it was a 404). `WITH_MANDATORY_ERRORS`
+(preprod) lists those hidden with `validation=MANDATORY_ONLY`.
 
 These suites need a build with ADR-019 and a database **synced from scratch** with it: rows written before have no
 errors recorded. Against an older build, run `-m "not validation"`.
