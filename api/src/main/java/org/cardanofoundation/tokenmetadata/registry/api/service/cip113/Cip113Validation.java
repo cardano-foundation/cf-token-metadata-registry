@@ -16,11 +16,11 @@ public final class Cip113Validation {
     public static final String COMPANION_METADATA = "companion_metadata";
 
     /**
-     * Whether a programmable token needs a companion. Open: some programmable tokens may be valid without CIP-26 or CIP-68
-     * metadata, so it is {@code OPTIONAL} until the team decides; {@code MANDATORY} would leave such a token out of
-     * {@code ?validation=MANDATORY_ONLY}.
+     * A programmable token needs a companion: without CIP-26 or CIP-68 metadata it does not meet a mandatory requirement
+     * (decided 2026-10-27), so it is served under {@code ?validation=ALL} and left out by {@code MANDATORY_ONLY} and
+     * {@code STRICT}.
      */
-    static final FieldCategory MISSING_COMPANION_CATEGORY = FieldCategory.OPTIONAL;
+    static final FieldCategory MISSING_COMPANION_CATEGORY = FieldCategory.MANDATORY;
 
     private Cip113Validation() {
     }

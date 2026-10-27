@@ -90,8 +90,6 @@ kept, but differs in both directions:
     cf-tokens-cip26 error dropped the whole entry; now only `name` and `description` errors are `MANDATORY`.
   - A CIP-68 token with a `logo` that is not an allowed URI. It used to be served with the logo removed; it is now
     served with the logo as written and an `OPTIONAL` error. The logo value a client receives therefore changes.
-  - A programmable token (CIP-113) without CIP-26 or CIP-68 metadata. It used to be a 404; it is served with an error
-    that is `OPTIONAL` for now (ADR-020 decision 3; the category is open).
 - **It returns less:** a token is hidden by any `MANDATORY` error of a standard that has it, not only by a missing
   merged `name` or `description`. For example, a token with a CIP-26 entry that has an error and a valid CIP-68 datum
   used to be served from the datum; now it is hidden, because the CIP-26 error counts.

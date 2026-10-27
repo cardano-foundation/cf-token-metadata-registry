@@ -45,6 +45,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.when;
@@ -668,11 +669,12 @@ class MetadataApiV2ControllerTest {
         }
 
         @Test
-        void isAcceptedByMandatoryOnlyOnlyWhenTheCompanionIsOptionalAndNeverByStrict() throws Exception {
-            boolean optional = Cip113Validation.missingCompanion().fieldCategory() == FieldCategory.OPTIONAL;
+        void isAMandatoryErrorSoMandatoryOnlyAndStrictLeaveItOut() throws Exception {
+            // decided 2026-10-27: a programmable token without CIP-26 or CIP-68 metadata misses a mandatory requirement
+            assertThat(Cip113Validation.missingCompanion().fieldCategory()).isEqualTo(FieldCategory.MANDATORY);
 
             mockMvc.perform(get("/api/v2/subjects/" + SUBJECT).queryParam("validation", "MANDATORY_ONLY"))
-                    .andExpect(optional ? status().isOk() : status().isNotFound());
+                    .andExpect(status().isNotFound());
             mockMvc.perform(get("/api/v2/subjects/" + SUBJECT).queryParam("validation", "STRICT"))
                     .andExpect(status().isNotFound());
         }

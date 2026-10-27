@@ -8,7 +8,7 @@ registry node (ADR-016, ADR-020). CIP-113 adds an extension to a token, it does 
 
 - with CIP-26 or CIP-68 metadata: the metadata, with its own validation errors (ADR-019);
 - without any (no companion): no metadata, and a CIP-113 validation error on companion_metadata. It used to be a 404,
-  with an invalid_token row; whether the error is MANDATORY or OPTIONAL is still open, so it is not pinned here.
+  with an invalid_token row. The error is MANDATORY: such a token is left out by validation=MANDATORY_ONLY.
 
 Each network's test module builds its test class with make_test_class.
 """
@@ -89,10 +89,12 @@ def make_test_class(fixture, with_mandatory_errors=None, native_subjects=()):
             _assert_programmable(entry, policy)
             assert entry["metadata"]["valid"] is False
             assert [e for e in entry["validation_errors"]
-                    if (e["cip"], e["field_name"], e["code"]) == ("CIP-113", "companion_metadata", "missing_value")], (
-                f"{subject['subject']}: no CIP-113 companion_metadata error in {entry['validation_errors']}")
-            strict = requests.get(f"{API_BASE_URL}/api/v2/subjects/{subject['subject']}", params={"validation": "STRICT"})
-            assert strict.status_code == 404
+                    if (e["cip"], e["field_name"], e["field_category"], e["code"])
+                    == ("CIP-113", "companion_metadata", "MANDATORY", "missing_value")], (
+                f"{subject['subject']}: no MANDATORY CIP-113 companion_metadata error in {entry['validation_errors']}")
+            mandatory_only = requests.get(f"{API_BASE_URL}/api/v2/subjects/{subject['subject']}",
+                                          params={"validation": "MANDATORY_ONLY"})
+            assert mandatory_only.status_code == 404
 
         @allure.story("A programmable token whose metadata misses something its CIP requires is served with the error, "
                       "but not with validation=MANDATORY_ONLY")

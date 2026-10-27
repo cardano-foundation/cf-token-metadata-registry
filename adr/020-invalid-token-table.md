@@ -68,18 +68,20 @@ whether it has a companion or not, and a token without one is **not** an `invali
 `type: PROGRAMMABLE`, the registry node under `extensions.cip113`, no metadata, and one validation error:
 
 ```json
-{"cip": "CIP-113", "field_name": "companion_metadata", "field_category": "OPTIONAL", "code": "missing_value",
+{"cip": "CIP-113", "field_name": "companion_metadata", "field_category": "MANDATORY", "code": "missing_value",
  "error": "the policy is registered in the CIP-113 registry, but the token has no CIP-26 or CIP-68 metadata (name, ticker, decimals, logo)"}
 ```
 
 *Why:* this table holds what cannot be stored, and a registry node without a companion is stored and served like any
 other: it is a programmable token that breaks a rule, the case ADR-019 decided for CIP-26 and CIP-68, where a token
 that departs from its CIP is served with its errors so that its owner sees what to fix and a wallet decides. CIP-113 had
-not been relaxed with them. Some programmable tokens may be valid without CIP-26 or CIP-68 metadata.
+not been relaxed with them.
 
-- **The category is open.** It is `OPTIONAL` for now (`Cip113Validation.MISSING_COMPANION_CATEGORY`), so the token is
-  returned by `?validation=ALL` and `MANDATORY_ONLY` and left out by `STRICT`. `MANDATORY` would also leave it out of
-  `MANDATORY_ONLY`. The team decides; the change is one constant.
+- **The error is `MANDATORY`** (decided 2026-10-27): a programmable token without CIP-26 or CIP-68 metadata does not
+  meet a mandatory requirement, since nothing gives it a name. It is returned by `?validation=ALL`, the default, and
+  left out by `MANDATORY_ONLY` and `STRICT`, as a CIP-26 or CIP-68 token with a mandatory error is
+  (`Cip113Validation.MISSING_COMPANION_CATEGORY`). `OPTIONAL` was considered, for programmable tokens that might be
+  valid without such metadata, and rejected.
 - **Per subject, not per policy.** The check is made when a subject is served, on the rows the request reads: a subject
   of a registered policy with no CIP-26 or CIP-68 metadata for **that** subject has the error, whatever the other tokens
   of the policy have. The registry indexes nodes, not mints, so any asset name under a registered policy answers `200`,
