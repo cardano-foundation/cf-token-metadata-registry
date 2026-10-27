@@ -60,6 +60,8 @@ This allows consumers to quickly determine whether a token has on-chain constrai
 
 Extensions are appended to the response *after* the priority-based metadata merge. They do not participate in the merge/fill logic for display metadata (name, description, etc.) and are not part of the `QueryPriority` enum. CIP-113 is a layer on top of existing metadata standards (CIP-26/CIP-68), not a metadata source itself.
 
+An extension alone is enough to serve a subject: a token of a registered CIP-113 policy with no CIP-26 or CIP-68 metadata is returned with its extension, `type: PROGRAMMABLE`, no metadata, and a validation error that says it has none (ADR-020 decision 3, 2026-10-27; it used to be a 404).
+
 ### 5. OpenAPI documentation
 
 The `Extension` interface uses `@Schema(oneOf = {...})` to enumerate all known extension types in the OpenAPI spec, making the possible extension shapes discoverable via `/apidocs`.
