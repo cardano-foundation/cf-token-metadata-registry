@@ -94,6 +94,24 @@ public class ValidationErrorsIntegrationIT extends BaseIntegrationIT {
         }
     }
 
+    /**
+     * The registry serves no CIP-68 NFT (222). The subject is a 404, unless the policy is registered in CIP-113: the test
+     * tokens share one policy, which Cip113IntegrationIT registers, and a subject of a registered policy without CIP-26 or
+     * CIP-68 metadata is served as a programmable token with only the error that it has none (ADR-020 decision 3).
+     */
+    private static void assertNotServedFromCip68(String subject) {
+        HttpStatusCode status = status(subject, "");
+        if (status.value() == HttpStatus.NOT_FOUND.value()) {
+            return;
+        }
+        assertThat(status).isEqualTo(HttpStatus.OK);
+        DocumentContext json = get(subject, "");
+        assertThat(json.read("$.subject.type", String.class)).isEqualTo("PROGRAMMABLE");
+        Map<String, Object> metadata = json.read("$.subject.metadata");
+        assertThat(metadata.get("name")).isNull();
+        assertThat(errors(json)).extracting(error -> error.get("field_name")).containsExactly("companion_metadata");
+    }
+
     private static List<Map<String, Object>> errors(DocumentContext json) {
         return json.read("$.subject.validation_errors");
     }
@@ -181,7 +199,7 @@ public class ValidationErrorsIntegrationIT extends BaseIntegrationIT {
 
             assertThat(json.read("$.subject.metadata.name.value", String.class)).isEqualTo("Pool LP");
             assertThat(errors(json)).isEmpty();
-            assertThat(status(LP_WITH_POOL_NFT.subject(NFT_PREFIX), "")).isEqualTo(HttpStatus.NOT_FOUND);
+            assertNotServedFromCip68(LP_WITH_POOL_NFT.subject(NFT_PREFIX));
         }
 
         @Test
