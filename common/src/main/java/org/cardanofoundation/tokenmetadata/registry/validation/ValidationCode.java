@@ -29,7 +29,7 @@ public final class ValidationCode {
     public static final String DOCUMENTATION = """
             | code | meaning |
             |---|---|
-            | `missing_value` | a field the CIP requires is missing or empty: for CIP-68 the `version` and, as the label requires it, `name`, `description` (333) and `image` (222, 444); for CIP-26 `name` and `description` |
+            | `missing_value` | a field the CIP requires is missing or empty: for CIP-68 the `version` and, as the label requires it, `name`, `description` (333) and `image` (222, 444); for CIP-26 `name` and `description`; for CIP-113 the CIP-26 or CIP-68 metadata of a programmable token (`companion_metadata`) |
             | `wrong_type` | the value has a type the CIP does not allow (for example a number where text is expected, or a `version` that is not an integer); a value that cannot be kept is left out |
             | `invalid_uri_scheme` | an `image` or `logo` is not a URI with one of the schemes CIP-68 allows (`https`, `ipfs`, `ar`, `data`); the value is kept as written |
             | `invalid_length` | a CIP-26 text is shorter or longer than CIP-26 allows (for example a `name` over 50 characters) |

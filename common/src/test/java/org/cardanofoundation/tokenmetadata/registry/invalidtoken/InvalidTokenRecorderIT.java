@@ -54,14 +54,12 @@ class InvalidTokenRecorderIT {
     }
 
     @Test
-    void forgetsARollbackAndStaleReconciliationRowsOutsideATransaction() {
+    void forgetsARollbackOutsideATransaction() {
         repository.saveAll(List.of(
                 invalid("before-rollback", 100L),
-                invalid("after-rollback", 200L),
-                invalid("stale", null)));
+                invalid("after-rollback", 200L)));
 
         assertThat(repository.deleteBySlotGreaterThan(150L)).isEqualTo(1);
-        assertThat(repository.deleteByIdIn(List.of("stale"))).isEqualTo(1);
 
         assertThat(repository.findAll()).extracting(InvalidToken::getId).containsExactly("before-rollback");
     }

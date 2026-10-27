@@ -25,12 +25,11 @@ public final class InvalidTokenReason {
     /** CIP-68 and CIP-26: something nobody foresaw threw while an item was indexed or checked. The one reason to look into. */
     public static final String PROCESSING_FAILURE = "processing_failure";
 
-    // CIP-113: a registry node that cannot be used, and a registered policy that cannot be served
+    // CIP-113: a registry node that cannot be used
     public static final String REGISTRY_NODE_UNPARSEABLE = "registry_node_unparseable";
     /**
-     * A policy registered in the CIP-113 registry whose tokens have no CIP-26 or CIP-68 metadata: a programmable token
-     * is served only with a companion standard, so none of them can be. The row is kept in step with the metadata
-     * (written while there is none, removed when some appears).
+     * Retired, not written any more and not to be reused: a registered policy whose tokens had no CIP-26 or CIP-68
+     * metadata. Such a token is now served, with a validation error (ADR-020).
      */
     public static final String NO_COMPANION_METADATA = "no_companion_metadata";
 

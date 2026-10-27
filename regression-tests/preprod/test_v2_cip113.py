@@ -1,8 +1,8 @@
 """
 V2 API: CIP-113 programmable tokens on preprod. See shared/cip113_suite.py.
 
-Most of the tokens registered on preprod are tests without metadata; they have no companion and are a 404. A token
-with on-chain metadata is served with its validation errors (ADR-019); WITH_MANDATORY_ERRORS lists those whose metadata
+Most of the tokens registered on preprod are tests without metadata; they have no companion and are served with a CIP-113
+error that says so (ADR-020). A token with on-chain metadata is served with its validation errors (ADR-019); WITH_MANDATORY_ERRORS lists those whose metadata
 misses something its CIP requires, with the reason, so they are hidden with validation=MANDATORY_ONLY.
 """
 

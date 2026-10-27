@@ -53,62 +53,44 @@ written:
 | CIP-68 | `datum_undecodable`, `datum_too_deep_to_decode` | a datum that cannot be decoded |
 | CIP-68 | `processing_failure` | a reference NFT whose indexing throws something unexpected (one row per reference NFT) |
 | CIP-113 | `registry_node_unparseable` | a registry node whose datum cannot be parsed, or has no inline datum |
-| CIP-113 | `no_companion_metadata` | a registered policy none of whose tokens has CIP-26 or CIP-68 metadata |
+| CIP-113 | `no_companion_metadata` | **retired** (decision 3): a token without CIP-26 or CIP-68 metadata is served with a validation error |
 
 A datum that is not CIP-68 at all is ignored, not recorded, since a reference NFT output can carry any datum.
 
-### 3. CIP-113: a registered policy without a companion
+### 3. CIP-113: a registered policy without a companion is served, not recorded
 
-**Why this check exists.** A CIP-113 registry node says only that a policy is *programmable*: which scripts govern its
-minting and transfers. It carries no name, ticker, decimals or logo. Those come from the token's ordinary metadata, in
-CIP-26 or CIP-68, which we call its **companion**. The V2 API serves a programmable token only with its companion
-(ADR-016): it returns the metadata with `type: PROGRAMMABLE` and the node under `extensions.cip113`. A token with only
-a registry node is a 404, because there is nothing a wallet could show.
+A CIP-113 registry node says only that a policy is *programmable*: which scripts govern its minting and transfers. It
+carries no name, ticker, decimals or logo. Those come from the token's ordinary metadata, in CIP-26 or CIP-68, which we
+call its **companion**.
 
-So a policy can be registered in the CIP-113 registry and still be invisible in the API, with no error anywhere: the
-indexer did its job, and V2 correctly has nothing to serve. The check makes that state visible to operators. One
-`invalid_token` row per such policy, and the `token_metadata_invalid_tokens_total` counter, answer "which programmable
-tokens can we not serve, and why", for example to tell an issuer that their token needs CIP-26 or CIP-68 metadata.
-**It changes no API response;** it is a diagnostic.
+**Decision (2026-10-27, after the review of bloxbean/yaci-store#1220).** A token of a registered policy is **served**
+whether it has a companion or not, and a token without one is **not** an `invalid_token` row. V2 returns it with
+`type: PROGRAMMABLE`, the registry node under `extensions.cip113`, no metadata, and one validation error:
 
-**Why a reconciler.** Whether a policy has a companion is a *state*, made of three inputs that change independently:
-the registry nodes (on chain), the CIP-26 entries (the GitHub registry, synced off chain) and the CIP-68 metadata (on
-chain). No single moment knows all three. So the rows are not written once by one listener; they are recomputed from
-the three inputs by `Cip113CompanionReconciler` whenever one of them changes.
+```json
+{"cip": "CIP-113", "field_name": "companion_metadata", "field_category": "OPTIONAL", "code": "missing_value",
+ "error": "the policy is registered in the CIP-113 registry, but the token has no CIP-26 or CIP-68 metadata (name, ticker, decimals, logo)"}
+```
 
-The registry indexes registry nodes, not the mints or the programmable-token ("jail") address. So the gap is known per
-**policy**, not per token, and a policy registered with nothing minted yet is reported the same way.
+*Why:* this table holds what cannot be stored, and a registry node without a companion is stored and served like any
+other: it is a programmable token that breaks a rule, the case ADR-019 decided for CIP-26 and CIP-68, where a token
+that departs from its CIP is served with its errors so that its owner sees what to fix and a wallet decides. CIP-113 had
+not been relaxed with them. Some programmable tokens may be valid without CIP-26 or CIP-68 metadata.
 
-- **What it computes:** the registered policies (node keys of a policy id's length) minus those with a companion. A
-  companion is a CIP-26 entry or a CIP-68 reference NFT, both of which V2 serves. Metadata with validation errors
-  counts, since it is served.
-- **What it writes:** one row per policy without a companion. Rows of policies that now have one, or are no longer
-  registered, are removed.
-- **When it runs: on events.** Each input publishes a Spring application event when it changes, and the reconciler
-  listens to them:
-
-  | Event | Published by | When |
-  |---|---|---|
-  | `Cip113RegistryChangedEvent` | CIP-113 listener | registry nodes were indexed, or removed by a rollback |
-  | `Cip68MetadataIndexedEvent(policyIds)` | CIP-68 listener | a block stored a reference NFT; the reconciler runs only if one of the policies is registered |
-  | `Cip26SyncCompletedEvent` | CIP-26 sync | a sync run in the same process stored or removed entries |
-  | `ApplicationReadyEvent` | Spring | the application started |
-
-  The listeners do not call the reconciler; they publish facts, and anything that depends on them can listen.
-- **After the commit, in its own transaction.** The CIP-68 and CIP-113 events are published inside Yaci Store's block
-  transaction. The reconciler reacts with `@TransactionalEventListener(phase = AFTER_COMMIT)` and
-  `@Transactional(REQUIRES_NEW)`: it runs once the block is committed, in a transaction of its own. A database error in
-  the reconciler, which on PostgreSQL would abort the transaction it runs in, can therefore never stop the sync. If the
-  process stops between the commit and the reconciliation, nothing is lost for long: the next event, or the next
-  start, recomputes everything. An event published outside a transaction, as by the CIP-26 sync, is delivered at once.
-- **When the CIP-26 sync runs in a separate `job` process** (`TOKEN_METADATA_SYNC_JOB=false`, as on mainnet), its
-  events never reach the API, whose only view of the changes is the database. The reconciler then also runs on a
-  schedule (`cip113.companion.reconcile.interval-ms`, 10 minutes by default). When the API runs the sync itself, the
-  schedule does nothing.
-- **Read-only instances** never reconcile: they do not write.
-- **Rollbacks:** these rows have no slot, so a rollback does not remove them; the reconciliation does.
-
-The tokens of such a policy are a 404 in V1 and V2, as before.
+- **The category is open.** It is `OPTIONAL` for now (`Cip113Validation.MISSING_COMPANION_CATEGORY`), so the token is
+  returned by `?validation=ALL` and `MANDATORY_ONLY` and left out by `STRICT`. `MANDATORY` would also leave it out of
+  `MANDATORY_ONLY`. The team decides; the change is one constant.
+- **Per subject, not per policy.** The check is made when a subject is served, on the rows the request reads: a subject
+  of a registered policy with no CIP-26 or CIP-68 metadata for **that** subject has the error, whatever the other tokens
+  of the policy have. The registry indexes nodes, not mints, so any asset name under a registered policy answers `200`,
+  including names never minted; this is the trade-off accepted for 333 and 444 subjects (ADR-022, rejected).
+- **A property filter keeps the error:** it concerns every property.
+- **Not a 404 any more, and no reconciler.** Before, such a token was a 404, and `Cip113CompanionReconciler` kept a
+  `no_companion_metadata` row per policy in step with three event streams and a schedule. The reconciler, its events
+  (`Cip113RegistryChangedEvent`, `Cip68MetadataIndexedEvent`, `Cip26SyncCompletedEvent`) and the
+  `cip113.companion.reconcile.*` settings are removed. `no_companion_metadata` is retired: not written, and not reused.
+  A database that has such rows keeps them until it is resynced from an empty one, which this release requires anyway.
+- **V1 is unchanged:** it is CIP-26 only.
 
 ### 4. Written safely
 
@@ -140,8 +122,6 @@ The counter `token.metadata.invalid.tokens{standard,reason_code}` counts the row
 ### Negative
 
 - The table is complete only for a database synced after it existed, so a full resync is required (ADR-019).
-- `no_companion_metadata` is per policy. With the CIP-26 sync in a separate process, it lags a new CIP-26 entry by up to
-  one schedule interval; otherwise it follows the data as it changes.
 
 ## Alternatives Considered
 
@@ -149,5 +129,8 @@ The counter `token.metadata.invalid.tokens{standard,reason_code}` counts the row
 - **Record every token, errors included:** duplicates `validation_errors`, with tens of thousands of rows.
 - **A table per standard:** a migration for every standard, and awkward combinations such as CIP-68 with CIP-113.
 - **Index the CIP-113 jail and record each token without a companion (`jail_without_token`):** exact per token, but it
-  needs indexing mints and the programmable-token address, and a full resync. Kept for later, if per-token detail is
-  needed.
+  needs indexing mints and the programmable-token address, and a full resync. Moot since decision 3: such a token is
+  served with an error.
+- **Record a registered policy without a companion in this table (`no_companion_metadata`):** what was done until
+  2026-10-27. Replaced by decision 3: it hid tokens the registry indexed, and treated as unstorable what is a token
+  breaking a rule.

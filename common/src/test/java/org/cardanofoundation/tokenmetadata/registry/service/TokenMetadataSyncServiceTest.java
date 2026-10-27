@@ -10,7 +10,6 @@ import org.cardanofoundation.tokenmetadata.registry.model.MappingUpdateDetails;
 import org.cardanofoundation.tokenmetadata.registry.model.enums.SyncStatusEnum;
 import org.cardanofoundation.tokenmetadata.registry.repository.SyncStateRepository;
 import org.junit.jupiter.api.BeforeEach;
-import org.springframework.context.ApplicationEventPublisher;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -25,7 +24,6 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -48,9 +46,6 @@ class TokenMetadataSyncServiceTest {
 
     @Mock
     private InvalidTokenRecorder invalidTokenRecorder;
-
-    @Mock
-    private ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private TokenMetadataSyncService tokenMetadataSyncService;
@@ -109,8 +104,6 @@ class TokenMetadataSyncServiceTest {
             verify(tokenMetadataService, never()).deleteMapping(any());
             verify(syncStateRepository).save(any(OffChainSyncState.class));
             assertEquals(SyncStatusEnum.SYNC_DONE, tokenMetadataSyncService.getSyncStatus().getStatus());
-            // what depends on the CIP-26 entries (the CIP-113 companion check) is told
-            verify(eventPublisher).publishEvent(new Cip26SyncCompletedEvent(1, 0));
         }
 
         @Test
@@ -125,7 +118,6 @@ class TokenMetadataSyncServiceTest {
             verify(tokenMappingService, never()).parseMappings(any());
             verify(syncStateRepository, never()).save(any());
             assertEquals(SyncStatusEnum.SYNC_DONE, tokenMetadataSyncService.getSyncStatus().getStatus());
-            verifyNoInteractions(eventPublisher);
         }
 
         @Test

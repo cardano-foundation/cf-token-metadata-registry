@@ -33,10 +33,6 @@ public interface Cip113RegistryNodeRepository extends JpaRepository<Cip113Regist
      */
     Optional<Cip113RegistryNode> findFirstByKeyOrderBySlotDesc(String key);
 
-    /** The policy ids registered in the registry: every node key of a policy id's length (the sentinels have other lengths). */
-    @Query("SELECT DISTINCT n.key FROM Cip113RegistryNode n WHERE LENGTH(n.key) = 56")
-    List<String> findRegisteredPolicyIds();
-
     /**
      * Returns the latest registry node state per key using ROW_NUMBER() window function.
      * Only returns one row per key (the one with the highest slot).

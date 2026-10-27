@@ -9,8 +9,6 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Collection;
-import java.util.List;
 
 /**
  * The {@code invalid_token} table (ADR-020). Its delete queries are {@code @Transactional}: they join the caller's
@@ -32,12 +30,4 @@ public interface InvalidTokenRepository extends JpaRepository<InvalidToken, Stri
     @Transactional
     @Query("DELETE FROM InvalidToken t WHERE t.standard = :standard AND t.origin = :origin")
     int deleteByStandardAndOrigin(@Param("standard") String standard, @Param("origin") String origin);
-
-    /** The rows of one reason, for a reconciliation that keeps them in step with the data they describe. */
-    List<InvalidToken> findByStandardAndReasonCode(String standard, String reasonCode);
-
-    @Modifying
-    @Transactional
-    @Query("DELETE FROM InvalidToken t WHERE t.id IN :ids")
-    int deleteByIdIn(@Param("ids") Collection<String> ids);
 }

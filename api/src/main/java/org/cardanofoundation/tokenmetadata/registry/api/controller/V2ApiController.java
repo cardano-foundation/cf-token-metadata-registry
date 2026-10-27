@@ -23,6 +23,7 @@ import org.cardanofoundation.tokenmetadata.registry.entity.MetadataReferenceNft;
 import org.cardanofoundation.tokenmetadata.registry.api.service.Cip68FungibleTokenService;
 import org.cardanofoundation.tokenmetadata.registry.api.service.RegistryMetricsService;
 import org.cardanofoundation.tokenmetadata.registry.api.service.cip113.Cip113RegistryService;
+import org.cardanofoundation.tokenmetadata.registry.api.service.cip113.Cip113Validation;
 import org.cardanofoundation.tokenmetadata.registry.api.util.AssetType;
 import org.cardanofoundation.tokenmetadata.registry.api.util.LogSanitizer;
 import org.cardanofoundation.tokenmetadata.registry.validation.ValidationError;
@@ -58,7 +59,8 @@ public class V2ApiController implements V2Api {
     /**
      * A subject as indexed, with its validation errors (ADR-019). It is a 404 only when no standard has anything indexed
      * for it, or when {@code validation} does not accept it; a token with errors, even without a name or a description,
-     * is a 200 under the default {@code ALL}.
+     * is a 200 under the default {@code ALL}. A token of a policy registered in CIP-113 is served even without CIP-26 or
+     * CIP-68 metadata, with an error that says so (ADR-020).
      */
     @Override
     public ResponseEntity<Response> getSubject(final String subject,
@@ -79,14 +81,14 @@ public class V2ApiController implements V2Api {
         List<QueryPriority> queryPriority = priorities != null ? priorities : priorityConfiguration.getDefaultPriority();
         ValidationScope scope = validation != null ? validation : ValidationScope.ALL;
 
-        ResolvedMetadata resolved = queryPriority.stream()
-                .reduce(IDENTITY, combineStandards(subject, queryProperties), aggregateResults());
-        if (resolved.standards().isEmpty()) {
+        Map<String, Extension> extensions = buildExtensions(subject);
+        ResolvedMetadata resolved = withoutCompanion(queryPriority.stream()
+                .reduce(IDENTITY, combineStandards(subject, queryProperties), aggregateResults()), !extensions.isEmpty());
+        if (resolved.standards().isEmpty() && extensions.isEmpty()) {
             metricsService.recordNotFound();
             return ResponseEntity.notFound().build();
         }
 
-        Map<String, Extension> extensions = buildExtensions(subject);
         Subject resolvedSubject = toSubject(subject, resolved, extensions, Boolean.TRUE.equals(showCipsDetails));
         if (!scope.accepts(resolvedSubject)) {
             metricsService.recordNotFound();
@@ -141,6 +143,17 @@ public class V2ApiController implements V2Api {
         TokenType type = extensions.isEmpty() ? TokenType.NATIVE : TokenType.PROGRAMMABLE;
         return new Subject(subject, type, metadata, includeCipsDetails ? resolved.standards() : null,
                 extensions.isEmpty() ? null : extensions, errors);
+    }
+
+    /**
+     * A programmable token (its policy is registered in CIP-113) with no CIP-26 or CIP-68 metadata is served as it is, with
+     * the error that it has none (ADR-020). The error concerns every property, so a property filter keeps it.
+     */
+    private static ResolvedMetadata withoutCompanion(ResolvedMetadata resolved, boolean programmable) {
+        if (!programmable || !resolved.standards().isEmpty()) {
+            return resolved;
+        }
+        return new ResolvedMetadata(resolved.metadata(), resolved.standards(), List.of(Cip113Validation.missingCompanion()));
     }
 
     private void recordCipHits(Standards standards) {
@@ -239,18 +252,18 @@ public class V2ApiController implements V2Api {
                                            BatchPrefetchData prefetch,
                                            boolean includeCipsDetails,
                                            ValidationScope scope) {
-        ResolvedMetadata resolved = queryPriority.stream()
-                .reduce(IDENTITY, combineStandardsBatch(subject, queryProperties, prefetch), aggregateResults());
-        if (resolved.standards().isEmpty()) {
-            metricsService.recordNotFound();
-            return Optional.empty();
-        }
-
         Map<String, Extension> extensions = new LinkedHashMap<>();
         ProgrammableTokenCip113 cip113 = prefetch.cip113Map().get(AssetType.fromUnit(subject).policyId());
         if (cip113 != null) {
             extensions.put(ProgrammableTokenCip113.EXTENSION_KEY, cip113);
         }
+        ResolvedMetadata resolved = withoutCompanion(queryPriority.stream()
+                .reduce(IDENTITY, combineStandardsBatch(subject, queryProperties, prefetch), aggregateResults()), cip113 != null);
+        if (resolved.standards().isEmpty() && cip113 == null) {
+            metricsService.recordNotFound();
+            return Optional.empty();
+        }
+
         Subject resolvedSubject = toSubject(subject, resolved, extensions, includeCipsDetails);
         if (!scope.accepts(resolvedSubject)) {
             return Optional.empty();
