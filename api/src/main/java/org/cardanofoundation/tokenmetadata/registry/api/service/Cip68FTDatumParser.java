@@ -127,8 +127,8 @@ public class Cip68FTDatumParser {
                     .<ParseOutcome>map(parts -> new ParseOutcome.Parsed(buildParsedDatum(parts, referenceNft)))
                     .orElseGet(ParseOutcome.NotCip68::new);
         } catch (StackOverflowError _) {
-            // TODO: temporary workaround. Remove once cardano-client-lib decodes CBOR without
-            //  recursion (bloxbean/cardano-client-lib#681).
+            // Workaround for bloxbean/cardano-client-lib#681, to be removed once cardano-client-lib decodes CBOR
+            // without recursion.
             // The CBOR decoder recurses once per nesting level, and the ledger bounds a datum only by
             // transaction size, so a valid on-chain datum can be nested deeper than the stack allows.
             // StackOverflowError is an Error, not an Exception, so it needs its own catch. A datum nested this
