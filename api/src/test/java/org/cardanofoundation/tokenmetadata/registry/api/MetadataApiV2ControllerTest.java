@@ -511,15 +511,23 @@ class MetadataApiV2ControllerTest {
         private static final String BASE_NAME = "53554e44";
         private static final String SUBJECT = POLICY + "0014df10" + BASE_NAME;
 
-        private final ValidationError missingDescription = ValidationError.mandatory("CIP-68", "333", "description",
-                "missing_value", "description field is missing a mandatory value");
         private final ValidationError badLogo = ValidationError.optional("CIP-68", null, "logo", "invalid_uri_scheme",
                 "logo 'QmX' is not a URI with one of the schemes CIP-68 allows");
 
+        /** A 333 token that has a description, stored with what is wrong with its datum. */
         private void stored(List<ValidationError> errors) {
+            stored("The Sundae token", errors);
+        }
+
+        /** A 333 token without the description CIP-68 requires: its datum is fine, the error comes with its label. */
+        private void storedWithoutDescription() {
+            stored(null, List.of());
+        }
+
+        private void stored(String description, List<ValidationError> errors) {
             MetadataReferenceNft row = MetadataReferenceNft.builder()
                     .policyId(POLICY).assetName("000643b0" + BASE_NAME).slot(100L)
-                    .name("Sundae").ticker("SUNDAE").logo("QmX").version(1L).datum("d87980")
+                    .name("Sundae").description(description).ticker("SUNDAE").logo("QmX").version(1L).datum("d87980")
                     .validationErrors(errors).build();
             when(metadataReferenceNftRepository.findFirstByPolicyIdAndAssetNameOrderBySlotDesc(POLICY, "000643b0" + BASE_NAME))
                     .thenReturn(Optional.of(row));
@@ -528,7 +536,7 @@ class MetadataApiV2ControllerTest {
 
         @Test
         void servesATokenWithAMandatoryErrorWithItsErrors() throws Exception {
-            stored(List.of(missingDescription));
+            storedWithoutDescription();
 
             mockMvc.perform(get("/api/v2/subjects/" + SUBJECT))
                     .andExpect(status().isOk())
@@ -551,7 +559,7 @@ class MetadataApiV2ControllerTest {
 
         @Test
         void hidesATokenWithAMandatoryErrorFromMandatoryOnlyAndStrict() throws Exception {
-            stored(List.of(missingDescription));
+            storedWithoutDescription();
 
             mockMvc.perform(get("/api/v2/subjects/" + SUBJECT).queryParam("validation", "MANDATORY_ONLY"))
                     .andExpect(status().isNotFound());
@@ -571,7 +579,7 @@ class MetadataApiV2ControllerTest {
 
         @Test
         void limitsTheErrorsToTheRequestedProperties() throws Exception {
-            stored(List.of(missingDescription));
+            storedWithoutDescription();
 
             mockMvc.perform(get("/api/v2/subjects/" + SUBJECT).queryParam("property", "ticker").queryParam("validation", "STRICT"))
                     .andExpect(status().isOk())
@@ -582,7 +590,7 @@ class MetadataApiV2ControllerTest {
 
         @Test
         void leavesATokenTheScopeDoesNotAcceptOutOfABatch() throws Exception {
-            stored(List.of(missingDescription));
+            storedWithoutDescription();
             BatchRequest request = new BatchRequest(List.of(SUBJECT), List.of());
 
             mockMvc.perform(post("/api/v2/subjects/query").queryParam("validation", "MANDATORY_ONLY")

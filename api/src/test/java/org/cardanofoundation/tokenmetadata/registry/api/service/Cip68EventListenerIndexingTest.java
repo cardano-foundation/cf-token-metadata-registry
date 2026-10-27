@@ -43,6 +43,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
+import static org.cardanofoundation.tokenmetadata.registry.api.model.cip68.Cip68Constants.LABEL_FT;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
@@ -136,14 +137,16 @@ class Cip68EventListenerIndexingTest {
     }
 
     @Nested
-    @DisplayName("A datum that breaks CIP-68 is stored with its errors")
+    @DisplayName("A datum that breaks CIP-68 is stored, and served with its errors")
     class DatumsWithErrors {
 
         @Test
-        void storesAFungibleTokenWithoutDescriptionWithAMandatoryError() throws Exception {
+        void storesAFungibleTokenWithoutDescriptionAndServesItWithAMandatoryError() throws Exception {
             listener.processTransaction(event(output(flatDatum("Token", null, "TKN"), REF + A), userToken(FT + A)));
 
-            assertThat(saved()).singleElement().satisfies(row -> assertThat(row.getValidationErrors())
+            // nothing is wrong with the datum itself; what a 333 requires is checked when it is served
+            assertThat(saved()).singleElement().satisfies(row -> assertThat(row.getValidationErrors()).isEmpty());
+            assertThat(saved()).singleElement().satisfies(row -> assertThat(Cip68Validator.validate(row, LABEL_FT))
                     .extracting(ValidationError::subStandard, ValidationError::fieldName, ValidationError::fieldCategory,
                             ValidationError::code)
                     .containsExactly(tuple("333", "description", FieldCategory.MANDATORY, "missing_value")));
@@ -152,12 +155,12 @@ class Cip68EventListenerIndexingTest {
         }
 
         @Test
-        void storesADatumWithoutNameWithAMandatoryError() throws Exception {
+        void storesADatumWithoutNameAndServesItWithAMandatoryError() throws Exception {
             listener.processTransaction(event(output(flatDatum(null, "Desc", "TKN"), REF + A), userToken(FT + A)));
 
             assertThat(saved()).singleElement().satisfies(row -> {
                 assertThat(row.getName()).isNull();
-                assertThat(row.getValidationErrors()).extracting(ValidationError::fieldName).containsExactly("name");
+                assertThat(Cip68Validator.validate(row, LABEL_FT)).extracting(ValidationError::fieldName).containsExactly("name");
             });
         }
 
@@ -177,14 +180,16 @@ class Cip68EventListenerIndexingTest {
         }
 
         @Test
-        void checksADatumAgainstEveryLabelItsReferenceNftIsPairedWith() throws Exception {
-            // the SundaeSwap LP case: a pool NFT (222) and the LP token (333) share one reference NFT
+        void servesTheFungibleTokenOfAReferenceNftPairedWithAnNftWithoutTheNftRequirement() throws Exception {
+            // the SundaeSwap LP case: a pool NFT (222) and the LP token (333) share one reference NFT; the NFT, which
+            // needs an image, is not served, and the LP token has what a 333 needs
             listener.processTransaction(event(output(flatDatum("LP", "Pool share", "LP"), REF + A),
                     userToken(NFT + A), userToken(FT + A)));
 
-            assertThat(saved()).singleElement().satisfies(row -> assertThat(row.getValidationErrors())
-                    .extracting(ValidationError::subStandard, ValidationError::fieldName)
-                    .containsExactly(tuple("222", "image")));
+            assertThat(saved()).singleElement().satisfies(row -> {
+                assertThat(row.getValidationErrors()).isEmpty();
+                assertThat(Cip68Validator.validate(row, LABEL_FT)).isEmpty();
+            });
         }
 
         /** Mainnet: 570 fungible tokens give their description as 64-byte chunks (Templar Protocol, ...). */
@@ -198,7 +203,10 @@ class Cip68EventListenerIndexingTest {
 
             assertThat(saved()).singleElement().satisfies(row -> {
                 assertThat(row.getDescription()).isEqualTo("Templar Protocol - Templar lets you borrow");
-                assertThat(row.getValidationErrors())
+                // stored without a label, served with the category of the label: only a 333 requires a description
+                assertThat(row.getValidationErrors()).extracting(ValidationError::subStandard, ValidationError::code)
+                        .containsExactly(tuple(null, "chunked_text"));
+                assertThat(Cip68Validator.validate(row, LABEL_FT))
                         .extracting(ValidationError::subStandard, ValidationError::fieldName, ValidationError::fieldCategory,
                                 ValidationError::code)
                         .containsExactly(tuple("333", "description", FieldCategory.MANDATORY, "chunked_text"));
@@ -276,10 +284,10 @@ class Cip68EventListenerIndexingTest {
 
         @Test
         void storesADatumWithNoneOfTheTokenFieldsWhenItsUserTokenIsInTheTransaction() throws Exception {
-            // the minting transaction says what the token is: a 333 without metadata is stored, with its errors
+            // the minting transaction says what the token is: a 333 without metadata is stored, and served with its errors
             listener.processTransaction(event(output(datum("mainnet-testing", "profile"), REF + A), userToken(FT + A)));
 
-            assertThat(saved()).singleElement().satisfies(row -> assertThat(row.getValidationErrors())
+            assertThat(saved()).singleElement().satisfies(row -> assertThat(Cip68Validator.validate(row, LABEL_FT))
                     .extracting(ValidationError::fieldName).containsExactly("name", "description"));
         }
 

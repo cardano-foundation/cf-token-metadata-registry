@@ -17,7 +17,7 @@ Multi-standard Cardano token metadata registry built with Spring Boot 3 and Java
 ### Metadata Standards
 
 - **CIP-26** (offchain): JSON metadata files synced from GitHub, stored in `metadata` table as written, with their `validation_errors`
-- **CIP-68** (on-chain): Reference NFT datum parsed from blockchain UTxOs (prefix `000643b0`), stored in `metadata_reference_nft` table. Fungible tokens (label 333, prefix `0014df10`) and rich fungible tokens (label 444, prefix `001bc280`) are mapped to their reference NFT counterpart. An RFT's `image` is served as `logo`, and its description is optional (ADR-018). NFTs (label 222) are not served. Every decodable 333/444 datum is stored as written, with `validation_errors` per label (ADR-019)
+- **CIP-68** (on-chain): Reference NFT datum parsed from blockchain UTxOs (prefix `000643b0`), stored in `metadata_reference_nft` table. Fungible tokens (label 333, prefix `0014df10`) and rich fungible tokens (label 444, prefix `001bc280`) are mapped to their reference NFT counterpart. An RFT's `image` is served as `logo`, and its description is optional (ADR-018). NFTs (label 222) are not served. Every decodable 333/444 datum is stored as written, with the `validation_errors` of the datum itself; what the label requires is checked when a subject is served, for its own label (ADR-019)
 - **CIP-113** (programmable tokens): Registry node NFTs with minting, transfer, third-party and unfracking logic scripts, stored in `cip113_registry_node` table. Enabled when `CIP113_REGISTRY_NFT_POLICY_IDS` is non-empty. The parser reads the 7-field `RegistryNode` datum and skips any other shape with a WARN
 
 ### V2 Query Priority

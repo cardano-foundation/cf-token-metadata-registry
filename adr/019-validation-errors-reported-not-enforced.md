@@ -44,7 +44,7 @@ Each error has the same fields and codes as yaci-store's:
 | Field | Meaning |
 |---|---|
 | `cip` | `CIP-26` or `CIP-68` |
-| `sub_standard` | for CIP-68, the label the rule was checked for (`222`, `333`, `444`); absent for CIP-26 and for a rule that does not depend on a label (a bad `logo`, a version) |
+| `sub_standard` | for CIP-68, the label the rule was checked for: the label of the subject asked for (`333`, `444`); absent for CIP-26 and for a rule that does not depend on a label (a bad `logo`, a version) |
 | `field_name` | the field, e.g. `description`, `image`, `version`, `files`, `properties.owner` |
 | `field_category` | `MANDATORY` if the CIP requires the field, `OPTIONAL` otherwise |
 | `code` | a stable reason: `missing_value`, `wrong_type`, `invalid_uri_scheme`, `invalid_length`, `invalid_value`, `out_of_range`, `undefined_version`, `plutus_constructor`, `not_utf8`, `invalid_files_entry`, `no_nested_entry`, `too_deep`, `unsupported_key`, `key_collision`, `invalid_base64`, `too_large`, `chunked_text` |
@@ -120,14 +120,22 @@ is stored. A CIP-26 logo over about 1 MiB is not stored in the logo table; the e
     DEBUG unless its reference NFT is already stored. Such a datum would only read as a 333 by default; on mainnet
     these were dApp state (Atrium profiles, an `insert_fee`) and empty maps.
   - yaci-store stores 222 datums too.
-- **Errors per label.**
-  - A datum paired with several labels is checked against each, and the row keeps every error.
-  - What is wrong with the form of a `description` (`wrong_type`, `chunked_text`) is reported once per label: MANDATORY
-    for 333, which requires a description, OPTIONAL for 222 and 444. A 333 description of the wrong type is not also
-    reported as missing.
-  - A subject is served the errors of its own label and those that do not depend on a label. An LP token minted with
-    a pool NFT is therefore a clean 333 token, not one that "lacks an image".
-  - yaci-store returns the row's errors as they are.
+- **Errors of the label asked for, checked when the token is served.**
+  - The row stores what is wrong with the datum itself: the parser's errors and a bad `logo`. They have no
+    `sub_standard`.
+  - What the label requires (`name`; `description` for 333; `image` for 444) is checked when a subject is served, for
+    the label of that subject, and reported with that label as `sub_standard`. The label of a datum is often guessed:
+    an owner updates the reference NFT without moving the user tokens, and the transaction then holds no user token.
+    One reference NFT can also serve a 333 and a 444 token. A label stored with the row would be wrong in both cases:
+    a 333 updated with a name and an image but no description read as a 222, and was served without the error its
+    missing description is.
+  - What is wrong with the form of a `description` (`wrong_type`, `chunked_text`) is stored without a label and
+    reported for the label asked for: MANDATORY for 333, which requires a description, OPTIONAL for 444. A 333
+    description of the wrong type is not also reported as missing.
+  - An LP token minted with a pool NFT is a clean 333 token, not one that "lacks an image".
+  - A report made with SQL on `validation_errors` sees the errors of the datum only; it has to apply the label rules
+    itself.
+  - yaci-store does the same (bloxbean/yaci-store#1220, after review).
 - **V1 keeps its format, not its content.**
   - V1 (`/metadata/**`) is the registry server's own format, so its responses have no `validation_errors` field and
     it has no `?validation=`.

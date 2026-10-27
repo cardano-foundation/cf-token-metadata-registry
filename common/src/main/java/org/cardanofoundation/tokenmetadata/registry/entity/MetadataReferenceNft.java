@@ -74,9 +74,10 @@ public class MetadataReferenceNft {
     private Map<String, Object> properties;
 
     /**
-     * How the datum departs from CIP-68, for every label it was checked against (each error names its label in
-     * {@code sub_standard}). The datum is stored and served anyway (ADR-019). Null on rows written before validation
-     * existed.
+     * How the datum itself departs from CIP-68, whatever the label of the token. What the label requires is checked when
+     * the token is served, for the label asked for: the label is often guessed when the datum is indexed, and one
+     * reference NFT can serve a 333 and a 444 token. The datum is stored and served anyway (ADR-019). Null on rows
+     * written before validation existed.
      */
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "validation_errors")
