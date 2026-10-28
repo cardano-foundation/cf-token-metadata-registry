@@ -43,9 +43,9 @@ The V2 API serves 444 subjects next to 333 subjects. NFTs (222) are still not se
 3. **Description optional**: CIP-68 requires only `name` and `image` for a 444 datum.
    - V6 makes `metadata_reference_nft.description` nullable.
    - The listener stores a valid datum without a description when a 444 user token is paired with it in the
-     transaction. It does the same when the datum updates a reference NFT that already has a stored version: an
-     update without the user token has its label inferred from the datum, and an RFT without `decimals` reads as a
-     222 NFT. Any other valid datum without a description is a 222 NFT and is still skipped.
+     transaction, when the datum updates a reference NFT that already has a stored version, and, since 2026-10-28,
+     when no user token is in the transaction at all (ADR-019 §5). A datum minted with a 222 NFT only is still
+     skipped.
    - Since ADR-019, validity comes from the validation errors: a 444 datum without a description has no error (the
      description is optional for it), so it is `valid`. A 333 datum without one has a `MANDATORY` error.
 4. **V1 is unchanged**: V1 serves CIP-26 only. An RFT appears there only if it is registered in CIP-26, and none is on

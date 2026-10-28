@@ -124,11 +124,18 @@ Found on the mainnet validation run of 2026-10-26, and done the same way in yaci
 
 ### 5. Where the registry differs from yaci-store
 
-- **Only 333 and 444 datums are stored.**
-  - The registry serves fungible and rich fungible tokens only (ADR-018), so a datum paired with, or inferred as, a 222
-    NFT only is skipped at DEBUG.
-  - A datum that updates a reference NFT already stored is kept whatever its label reads as. This covers an RFT
-    update without its user token, which reads as a 222.
+- **222-only datums are not stored.**
+  - The registry serves fungible and rich fungible tokens only (ADR-018), so a datum whose transaction mints its
+    reference NFT with a 222 NFT and no 333 or 444 token is skipped at DEBUG.
+  - A datum without a user token in its transaction is stored, whatever it looks like (decided 2026-10-28). Its 333
+    or 444 token can be minted in another transaction, before or after the reference NFT: on mainnet the GOAT RFTs
+    (`e987e459…`) minted their reference NFTs first, BushWifPlanesTier1 (`cc816014…`) its 444 token first. Their
+    datums have an image and no `decimals`, so a label guessed from the datum read them as 222 NFTs, and they were
+    never served. Only the transaction can be relied on: yaci-store processes the blocks of a batch in parallel during
+    sync, so the order of a mint and a datum in other transactions is not known. An NFT whose reference NFT was minted
+    without its 222 token is stored too, and answers under its 333 and 444 subjects, as any reference NFT does
+    (ADR-022, rejected).
+  - A datum that updates a reference NFT already stored is kept whatever its transaction holds.
   - A datum without a user token in its transaction and with none of the CIP-68 token fields (`name`, `description`,
     `ticker`, `decimals`, `url`, `logo`, `image`, `mediaType`, `files`, a nested `"721"`), usable or not, is skipped at
     DEBUG unless its reference NFT is already stored. Such a datum would only read as a 333 by default; on mainnet

@@ -45,9 +45,10 @@ import static org.cardanofoundation.tokenmetadata.registry.api.model.cip68.Cip68
  * decoded is stored as written, with what departs from CIP-68 in its {@code validation_errors} (ADR-019), and only what
  * cannot be decoded, or fails unexpectedly, is dropped and recorded in {@code invalid_token} (ADR-020).
  * <p>
- * The registry serves fungible tokens (333) and rich fungible tokens (444) only, so only their datums are stored: a
- * datum whose reference NFT is paired with (or, without a user token in the transaction, inferred as) a 333 or 444
- * token, or that updates a reference NFT already stored. A 222-only datum is skipped at debug.
+ * The registry serves fungible tokens (333) and rich fungible tokens (444) only, so a datum whose reference NFT is
+ * minted with a 222 NFT and no 333 or 444 token is skipped at debug, unless it updates a reference NFT already stored.
+ * A datum without a user token in its transaction is stored: its 333 or 444 token can be minted in another transaction,
+ * before or after it, and only the transaction itself can be relied on (blocks are processed in parallel during sync).
  */
 @Service
 @RequiredArgsConstructor
@@ -160,11 +161,12 @@ public class Cip68EventListener {
                     referenceNft.policyId(), referenceNft.assetName());
             return Optional.empty();
         }
-        List<Integer> labels = pairedLabels.isEmpty() ? List.of(inferLabelFromDatum(parsed)) : pairedLabels;
-        if (!labels.contains(LABEL_FT) && !labels.contains(LABEL_RFT)
+        // Only the user tokens of the transaction tell what a datum is: one without them is stored, since its 333 or 444
+        // token can be minted in another transaction (an RFT datum without decimals looks like an NFT's)
+        if (!pairedLabels.isEmpty() && !pairedLabels.contains(LABEL_FT) && !pairedLabels.contains(LABEL_RFT)
                 && !metadataReferenceNftRepository.existsByPolicyIdAndAssetName(referenceNft.policyId(), referenceNft.assetName())) {
             log.debug("Skipping CIP-68 datum of {}/{} (labels {}): not a fungible or rich fungible token",
-                    referenceNft.policyId(), referenceNft.assetName(), labels);
+                    referenceNft.policyId(), referenceNft.assetName(), pairedLabels);
             return Optional.empty();
         }
 
@@ -183,12 +185,12 @@ public class Cip68EventListener {
         }
         if (!errors.isEmpty()) {
             log.debug("CIP-68 datum of {}/{} (labels {}) is indexed with {} validation errors: {}",
-                    referenceNft.policyId(), referenceNft.assetName(), labels, errors.size(), errors);
+                    referenceNft.policyId(), referenceNft.assetName(), pairedLabels, errors.size(), errors);
         }
-        if (labels.size() > 1) {
+        if (pairedLabels.size() > 1) {
             log.info("CIP-68 reference NFT {}/{} has user tokens for labels {}; each token is checked for its own label when "
                             + "it is served",
-                    referenceNft.policyId(), referenceNft.assetName(), labels);
+                    referenceNft.policyId(), referenceNft.assetName(), pairedLabels);
         }
         return Optional.of(entity);
     }
@@ -327,8 +329,7 @@ public class Cip68EventListener {
      * and base name ({@code 000643b0 + base} and {@code <label> + base}), so only a user token of the same policy and
      * base name in the same transaction counts. CIP-68 allows one reference NFT to have user tokens of several labels;
      * they are returned in the order 222, 333, 444. Empty without a paired
-     * user token (it was minted in another transaction): the label is then inferred from the datum, see
-     * {@link #inferLabelFromDatum}.
+     * user token (it was minted in another transaction).
      */
     private static List<Integer> pairedLabels(AssetType referenceNft, Set<String> assetUnitsInTx) {
         String baseName = referenceNft.assetName().substring(REFERENCE_TOKEN_PREFIX.length());
@@ -343,23 +344,6 @@ public class Cip68EventListener {
             labels.add(LABEL_RFT);
         }
         return labels;
-    }
-
-    /**
-     * The label of a reference NFT whose user token is not in the transaction. {@code ticker} and {@code logo} are
-     * defined only for the 333 fungible token; {@code image}, {@code mediaType} and {@code files} only for the 222 NFT
-     * and the 444 RFT, which {@code decimals} tells apart. A datum with none of them is treated as a fungible token.
-     * The guess only decides whether a reference NFT that is not stored yet is indexed (an NFT is not): what is served
-     * is checked for the label of the subject asked for.
-     */
-    private static int inferLabelFromDatum(ParsedCip68Datum datum) {
-        if (datum.ticker() != null || datum.logo() != null) {
-            return LABEL_FT;
-        }
-        if (datum.image() != null || datum.mediaType() != null || datum.hasFiles()) {
-            return datum.decimals() != null ? LABEL_RFT : LABEL_NFT;
-        }
-        return LABEL_FT;
     }
 
     private static boolean hasPairedUserToken(Set<String> assetUnitsInTx, AssetType referenceNft,
