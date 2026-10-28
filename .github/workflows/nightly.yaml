@@ -6,10 +6,13 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   java-build:
+    # pushes the JaCoCo coverage badges
+    permissions:
+      contents: write
     uses: ./.github/workflows/build.yaml
 
   # JVM Docker build
