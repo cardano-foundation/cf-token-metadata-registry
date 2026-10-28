@@ -6,8 +6,11 @@ from the registry's database. It holds the RFTs whose current 444 datum has a na
 read from a live reference NFT with an inline datum. An RFT has no logo in CIP-68: the registry serves its image as
 `metadata.logo`.
 
-RFTs without a description are not in the fixture: builds before RFT support skipped their datums, so they are served
-only by a database re-indexed since (ADR-018).
+RFTs without a description are not generated into the fixture: builds before RFT support skipped their datums, so they
+are served only by a database re-indexed since (ADR-018). 13 were added by hand on 2026-10-28 (description null): RFTs
+whose 444 token and reference NFT were minted in different transactions, whose datums builds before #121 skipped
+(Hydra DOOM Stats, five of 9bdf437b..., three JEET BUSH, four Omen's handle). Each holds the current 444 datum from
+Koios, read by generate_cip68_rft_fixtures.parse_rft_datum, from a live reference NFT with an inline datum.
 
 This fixture is a frozen baseline like the others: do not regenerate it during a test run. A token whose datum changes
 on chain is corrected deliberately.

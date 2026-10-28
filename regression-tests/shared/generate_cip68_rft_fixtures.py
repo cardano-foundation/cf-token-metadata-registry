@@ -15,7 +15,8 @@ and keeps the RFTs the registry serves with the same values on any build that se
   burned reference NFT, so both are checked here.
 
 RFTs without a description are left out: builds before RFT support skipped their datums, so a database that has not
-been re-indexed since does not have them. The image is the expected `logo`: an RFT has no logo in CIP-68, and the
+been re-indexed since does not have them. The committed fixture also holds 13 RFTs without a description added by hand
+(see test_v2_cip68_rft.py): regenerating it drops them, so add them back. The image is the expected `logo`: an RFT has no logo in CIP-68, and the
 registry serves its image as one.
 
 Usage:
