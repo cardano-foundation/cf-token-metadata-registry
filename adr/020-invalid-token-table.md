@@ -69,7 +69,7 @@ whether it has a companion or not, and a token without one is **not** an `invali
 
 ```json
 {"cip": "CIP-113", "field_name": "companion_metadata", "field_category": "MANDATORY", "code": "missing_value",
- "error": "the policy is registered in the CIP-113 registry, but the token has no CIP-26 or CIP-68 metadata (name, ticker, decimals, logo)"}
+ "error": "the policy is registered in the CIP-113 registry, but the token has no CIP-26 or CIP-68 metadata: no name or description (mandatory in both), and no ticker, decimals or logo"}
 ```
 
 *Why:* this table holds what cannot be stored, and a registry node without a companion is stored and served like any

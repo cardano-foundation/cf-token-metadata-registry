@@ -29,7 +29,7 @@ public final class Cip113Validation {
     public static ValidationError missingCompanion() {
         return new ValidationError(ValidationError.CIP_113, null, COMPANION_METADATA, MISSING_COMPANION_CATEGORY,
                 ValidationCode.MISSING_VALUE,
-                "the policy is registered in the CIP-113 registry, but the token has no CIP-26 or CIP-68 metadata "
-                        + "(name, ticker, decimals, logo)");
+                "the policy is registered in the CIP-113 registry, but the token has no CIP-26 or CIP-68 metadata: "
+                        + "no name or description (mandatory in both), and no ticker, decimals or logo");
     }
 }
