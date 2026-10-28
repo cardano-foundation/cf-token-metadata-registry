@@ -3,36 +3,51 @@ package org.cardanofoundation.tokenmetadata.registry.service;
 import org.cardanofoundation.tokenmetadata.registry.config.JsonConfiguration;
 import org.cardanofoundation.tokenmetadata.registry.entity.TokenLogo;
 import org.cardanofoundation.tokenmetadata.registry.entity.TokenMetadata;
+import org.cardanofoundation.tokenmetadata.registry.invalidtoken.InvalidTokenReason;
+import org.cardanofoundation.tokenmetadata.registry.invalidtoken.InvalidTokenRecorder;
+import org.cardanofoundation.tokenmetadata.registry.invalidtoken.InvalidTokenReport;
+import org.cardanofoundation.tokenmetadata.registry.model.Item;
+import org.cardanofoundation.tokenmetadata.registry.model.Mapping;
 import org.cardanofoundation.tokenmetadata.registry.repository.TokenLogoRepository;
 import org.cardanofoundation.tokenmetadata.registry.repository.TokenMetadataRepository;
 import org.cardanofoundation.tokenmetadata.registry.util.TokenMetadataValidator;
-import org.junit.jupiter.api.Assertions;
+import org.cardanofoundation.tokenmetadata.registry.validation.FieldCategory;
+import org.cardanofoundation.tokenmetadata.registry.validation.ValidationError;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.util.ResourceUtils;
 
-import org.cardanofoundation.tokenmetadata.registry.model.Mapping;
-
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
 import java.time.LocalDateTime;
-import java.util.Optional;
+import java.util.List;
+import java.util.Locale;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+/**
+ * A CIP-26 entry is stored as written, with its validation errors, whatever it breaks; only an entry whose subject cannot
+ * be a key is dropped, and recorded in {@code invalid_token} under its registry file (ADR-019, ADR-020).
+ */
 @SpringBootTest(classes = {TokenMappingService.class, TokenMetadataService.class, TokenMetadataValidator.class, JsonConfiguration.class})
 class TokenMetadataServiceTest {
+
+    private static final String SUBJECT = "ff7cad970d3a755a1ff0335ccb3f3c1cabf31aacf3f23dd13db61b0630313030";
+    private static final String ORIGIN = SUBJECT + ".json";
+    private static final LocalDateTime NOW = LocalDateTime.of(2026, 10, 21, 12, 0);
 
     @Autowired
     private TokenMappingService tokenMappingService;
@@ -43,245 +58,163 @@ class TokenMetadataServiceTest {
     private TokenMetadataRepository tokenMetadataRepository;
     @MockitoBean
     private TokenLogoRepository tokenLogoRepository;
+    @MockitoBean
+    private InvalidTokenRecorder invalidTokenRecorder;
 
-    @Test
-    void insertMappingTest() throws IOException {
+    @Nested
+    class EntriesThatFollowCip26 {
 
-        File mappingFile = ResourceUtils.getFile("classpath:mappings/ff7cad970d3a755a1ff0335ccb3f3c1cabf31aacf3f23dd13db61b0630313030.json");
-        Optional<Mapping> mappingsOpt = tokenMappingService.parseMappings(mappingFile);
+        @Test
+        void storesTheEntryWithNoErrorsAndItsLogo() throws IOException {
+            Mapping mapping = registryFile();
 
-        Assertions.assertTrue(mappingsOpt.isPresent());
+            assertThat(tokenMetadataService.insertMapping(mapping, NOW, "test-user", ORIGIN)).isTrue();
 
-        mappingsOpt.ifPresent(mappings -> {
-            LocalDateTime now = LocalDateTime.now();
-            String testUser = "test-user";
-
-            TokenMetadata tokenMetadata = new TokenMetadata();
-            tokenMetadata.setSubject("ff7cad970d3a755a1ff0335ccb3f3c1cabf31aacf3f23dd13db61b0630313030");
-            tokenMetadata.setPolicy("820182018282051a02f893828200581cdc1ac66efbf0f27457cd646d80fbeee08eafcacce42fb631ca1a0254");
-            tokenMetadata.setName("Spirit Of The Bone Forest");
-            tokenMetadata.setTicker("0100");
-            tokenMetadata.setUrl("https://adage.app/nft-giveaway");
-            tokenMetadata.setDescription("Part of the ADAGE NFT giveaway and Veritree donation");
-            tokenMetadata.setUpdated(now);
-            tokenMetadata.setUpdatedBy(testUser);
-            tokenMetadata.setProperties(mappings);
-
-            // Verify that insertMapping returns true for valid token
-            boolean result = tokenMetadataService.insertMapping(mappings, now, testUser);
-            Assertions.assertTrue(result, "insertMapping should return true for valid token");
-
-            // Verify repository save was called
-            verify(tokenMetadataRepository, times(1)).save(tokenMetadata);
-
-        });
+            TokenMetadata stored = savedMetadata();
+            assertThat(stored.getSubject()).isEqualTo(SUBJECT);
+            assertThat(stored.getName()).isEqualTo("Spirit Of The Bone Forest");
+            assertThat(stored.getValidationErrors()).isEmpty();
+            ArgumentCaptor<TokenLogo> logo = ArgumentCaptor.forClass(TokenLogo.class);
+            verify(tokenLogoRepository).save(logo.capture());
+            assertThat(logo.getValue().getLogo()).isEqualTo(logoOf(mapping));
+            verifyNoInteractions(invalidTokenRecorder);
+        }
     }
 
-    @Test
-    void insertLogoTest() throws IOException {
+    @Nested
+    class EntriesThatBreakCip26 {
 
-        File mappingFile = ResourceUtils.getFile("classpath:mappings/ff7cad970d3a755a1ff0335ccb3f3c1cabf31aacf3f23dd13db61b0630313030.json");
-        File logoFile = ResourceUtils.getFile("classpath:mappings/ff7cad970d3a755a1ff0335ccb3f3c1cabf31aacf3f23dd13db61b0630313030-logo.txt");
-        Optional<Mapping> mappingsOpt = tokenMappingService.parseMappings(mappingFile);
+        @Test
+        void storesANameOverTheLimitWithAMandatoryError() {
+            assertThat(tokenMetadataService.insertMapping(mapping("A".repeat(51), "NUT", "Description", null), NOW, "u", ORIGIN)).isTrue();
 
-        Assertions.assertTrue(mappingsOpt.isPresent());
-
-        String logo;
-        try (BufferedReader reader = new BufferedReader(new FileReader(logoFile))) {
-            logo = reader.readLine();
+            assertThat(savedMetadata().getName()).hasSize(51);
+            assertThat(savedMetadata().getValidationErrors()).singleElement().satisfies(error -> {
+                assertThat(error.fieldName()).isEqualTo("name");
+                assertThat(error.fieldCategory()).isEqualTo(FieldCategory.MANDATORY);
+                assertThat(error.code()).isEqualTo("invalid_length");
+            });
         }
 
-        mappingsOpt.ifPresent(mappings -> {
+        @Test
+        void storesATickerOverTheLimitWithAnOptionalError() {
+            assertThat(tokenMetadataService.insertMapping(mapping("Nutcoin", "TOOLONGTICKER", "Description", null), NOW, "u", ORIGIN)).isTrue();
 
-            TokenLogo tokenLogo = new TokenLogo();
-            tokenLogo.setSubject("ff7cad970d3a755a1ff0335ccb3f3c1cabf31aacf3f23dd13db61b0630313030");
-            tokenLogo.setLogo(logo);
+            assertThat(savedMetadata().getValidationErrors()).extracting(ValidationError::fieldName, ValidationError::fieldCategory)
+                    .containsExactly(tuple("ticker", FieldCategory.OPTIONAL));
+        }
 
-            // Verify that insertLogo returns true for valid logo
-            boolean result = tokenMetadataService.insertLogo(mappings);
-            Assertions.assertTrue(result, "insertLogo should return true for valid logo");
+        @Test
+        void storesAnEntryWithoutNameOrDescriptionWithBothMissing() {
+            assertThat(tokenMetadataService.insertMapping(mapping(null, "NUT", null, null), NOW, "u", ORIGIN)).isTrue();
 
-            // Verify repository save was called
-            verify(tokenLogoRepository, times(1)).save(tokenLogo);
+            assertThat(savedMetadata().getValidationErrors()).extracting(ValidationError::fieldName, ValidationError::code)
+                    .containsExactly(tuple("name", "missing_value"),
+                            tuple("description", "missing_value"));
+        }
 
-        });
+        @Test
+        void keepsALogoThatIsNotBase64WithAnError() {
+            assertThat(tokenMetadataService.insertMapping(mapping("Nutcoin", "NUT", "Description", "not base64!"), NOW, "u", ORIGIN)).isTrue();
 
+            assertThat(savedMetadata().getValidationErrors()).extracting(ValidationError::fieldName, ValidationError::code)
+                    .containsExactly(tuple("logo", "invalid_base64"));
+            verify(tokenLogoRepository).save(any(TokenLogo.class));
+        }
 
+        @Test
+        void doesNotStoreALogoFarBeyondAnyRealSizeButStoresTheEntry() {
+            String huge = "A".repeat(1_400_004);
+
+            assertThat(tokenMetadataService.insertMapping(mapping("Nutcoin", "NUT", "Description", huge), NOW, "u", ORIGIN)).isTrue();
+
+            verify(tokenLogoRepository, never()).save(any());
+            verify(tokenLogoRepository).deleteById(SUBJECT);
+            // review of yaci-store#1220: the dropped logo was not recorded anywhere
+            ArgumentCaptor<InvalidTokenReport> report = ArgumentCaptor.forClass(InvalidTokenReport.class);
+            verify(invalidTokenRecorder).report(report.capture());
+            assertThat(report.getValue().standard()).isEqualTo(InvalidTokenReason.CIP_26);
+            assertThat(report.getValue().reasonCode()).isEqualTo(InvalidTokenReason.LOGO_TOO_LARGE);
+            assertThat(report.getValue().subject()).isEqualTo(SUBJECT);
+            assertThat(report.getValue().origin()).isEqualTo(ORIGIN);
+        }
     }
 
-    @Test
-    void insertMappingTest_ShouldReturnFalseOnSaveException() throws IOException {
-        File mappingFile = ResourceUtils.getFile("classpath:mappings/ff7cad970d3a755a1ff0335ccb3f3c1cabf31aacf3f23dd13db61b0630313030.json");
-        Optional<Mapping> mappingsOpt = tokenMappingService.parseMappings(mappingFile);
-        Assertions.assertTrue(mappingsOpt.isPresent());
+    @Nested
+    class DroppedEntries {
 
-        when(tokenMetadataRepository.save(any())).thenThrow(new RuntimeException("DB error"));
+        @Test
+        void dropsAnEntryWhoseSubjectCannotBeAKeyAndRecordsItUnderItsFile() {
+            Mapping mapping = new Mapping("not-hex", null, item("Nutcoin"), null, null, null, null, item("Description"));
 
-        boolean result = tokenMetadataService.insertMapping(mappingsOpt.get(), LocalDateTime.now(), "test-user");
-        Assertions.assertFalse(result, "insertMapping should return false when save throws");
+            assertThat(tokenMetadataService.insertMapping(mapping, NOW, "u", "not-hex.json")).isFalse();
+
+            verify(tokenMetadataRepository, never()).save(any());
+            ArgumentCaptor<InvalidTokenReport> report = ArgumentCaptor.forClass(InvalidTokenReport.class);
+            verify(invalidTokenRecorder).report(report.capture());
+            assertThat(report.getValue().standard()).isEqualTo(InvalidTokenReason.CIP_26);
+            assertThat(report.getValue().reasonCode()).isEqualTo(InvalidTokenReason.UNUSABLE_SUBJECT);
+            assertThat(report.getValue().origin()).isEqualTo("not-hex.json");
+            assertThat(report.getValue().subject()).isEqualTo("not-hex");
+        }
+
+        @Test
+        void returnsFalseWhenSavingFails() throws IOException {
+            when(tokenMetadataRepository.save(any())).thenThrow(new RuntimeException("DB error"));
+
+            assertThat(tokenMetadataService.insertMapping(registryFile(), NOW, "u", ORIGIN)).isFalse();
+        }
     }
 
-    @Test
-    void insertLogoTest_ShouldReturnFalseOnSaveException() throws IOException {
-        File mappingFile = ResourceUtils.getFile("classpath:mappings/ff7cad970d3a755a1ff0335ccb3f3c1cabf31aacf3f23dd13db61b0630313030.json");
-        Optional<Mapping> mappingsOpt = tokenMappingService.parseMappings(mappingFile);
-        Assertions.assertTrue(mappingsOpt.isPresent());
+    @Nested
+    class Deletion {
 
-        when(tokenLogoRepository.save(any())).thenThrow(new RuntimeException("DB error"));
+        @Test
+        void deletesTheLogoBeforeTheMetadata() {
+            assertThat(tokenMetadataService.deleteMapping(SUBJECT)).isTrue();
 
-        boolean result = tokenMetadataService.insertLogo(mappingsOpt.get());
-        Assertions.assertFalse(result, "insertLogo should return false when save throws");
+            // The logo table has a foreign key on metadata.subject, so the logo row must go first.
+            InOrder inOrder = inOrder(tokenLogoRepository, tokenMetadataRepository);
+            inOrder.verify(tokenLogoRepository).deleteById(SUBJECT);
+            inOrder.verify(tokenMetadataRepository).deleteById(SUBJECT);
+        }
+
+        @Test
+        void deletesAnEntryWhoseFileNameIsInUpperCaseByItsStoredLowerCaseSubject() {
+            assertThat(tokenMetadataService.deleteMapping(SUBJECT.toUpperCase(Locale.ROOT))).isTrue();
+
+            verify(tokenLogoRepository).deleteById(SUBJECT);
+            verify(tokenMetadataRepository).deleteById(SUBJECT);
+        }
+
+        @Test
+        void returnsFalseWhenDeletingFails() {
+            doThrow(new RuntimeException("DB error")).when(tokenMetadataRepository).deleteById(SUBJECT);
+
+            assertThat(tokenMetadataService.deleteMapping(SUBJECT)).isFalse();
+        }
     }
 
-    @Test
-    void deleteMappingTest_ShouldDeleteLogoBeforeMetadata() {
-        String subject = "ff7cad970d3a755a1ff0335ccb3f3c1cabf31aacf3f23dd13db61b0630313030";
-
-        boolean result = tokenMetadataService.deleteMapping(subject);
-
-        Assertions.assertTrue(result, "deleteMapping should return true when deletes succeed");
-        // The logo table has a foreign key on metadata.subject, so the logo row must go first.
-        InOrder inOrder = inOrder(tokenLogoRepository, tokenMetadataRepository);
-        inOrder.verify(tokenLogoRepository).deleteById(subject);
-        inOrder.verify(tokenMetadataRepository).deleteById(subject);
+    private Mapping registryFile() throws IOException {
+        File mappingFile = ResourceUtils.getFile("classpath:mappings/" + ORIGIN);
+        return tokenMappingService.parseMappings(mappingFile).orElseThrow();
     }
 
-    @Test
-    void deleteMappingTest_ShouldReturnFalseOnDeleteException() {
-        String subject = "ff7cad970d3a755a1ff0335ccb3f3c1cabf31aacf3f23dd13db61b0630313030";
-        doThrow(new RuntimeException("DB error")).when(tokenMetadataRepository).deleteById(subject);
-
-        boolean result = tokenMetadataService.deleteMapping(subject);
-
-        Assertions.assertFalse(result, "deleteMapping should return false when delete throws");
+    private static String logoOf(Mapping mapping) {
+        return mapping.logo().value();
     }
 
-    @Test
-    void insertMappingTest_ShouldRejectTokenWithNameExceedingMaxLength() {
-        LocalDateTime now = LocalDateTime.now();
-        String testUser = "test-user";
-
-        // Create a mapping with a name that exceeds 50 characters (CIP-26 limit)
-        String longName = "a".repeat(51);
-        Mapping mapping = new org.cardanofoundation.tokenmetadata.registry.model.Mapping(
-                "1234567890abcdef1234567890abcdef1234567890abcdef12345678", // Valid 56 hex char subject
-                new org.cardanofoundation.tokenmetadata.registry.model.Item(null, "https://example.com", null), // url
-                new org.cardanofoundation.tokenmetadata.registry.model.Item(null, longName, null), // name
-                new org.cardanofoundation.tokenmetadata.registry.model.Item(null, "TICK", null), // ticker
-                new org.cardanofoundation.tokenmetadata.registry.model.Item(null, "6", null), // decimals
-                new org.cardanofoundation.tokenmetadata.registry.model.Item(null, "data:image/png;base64,abc", null), // logo
-                "testPolicy",
-                new org.cardanofoundation.tokenmetadata.registry.model.Item(null, "description", null) // description
-        );
-
-        // Verify that insertMapping returns false for invalid token
-        boolean result = tokenMetadataService.insertMapping(mapping, now, testUser);
-        Assertions.assertFalse(result, "insertMapping should return false when name exceeds 50 characters (CIP-26 limit)");
-
-        // Verify repository save was NOT called
-        verify(tokenMetadataRepository, never()).save(any());
+    private TokenMetadata savedMetadata() {
+        ArgumentCaptor<TokenMetadata> saved = ArgumentCaptor.forClass(TokenMetadata.class);
+        verify(tokenMetadataRepository).save(saved.capture());
+        return saved.getValue();
     }
 
-    @Test
-    void insertMappingTest_ShouldRejectTokenWithTickerExceedingMaxLength() {
-        LocalDateTime now = LocalDateTime.now();
-        String testUser = "test-user";
-
-        // Create a mapping with a ticker that exceeds 9 characters (CIP-26 limit)
-        String longTicker = "a".repeat(10);
-        Mapping mapping = new org.cardanofoundation.tokenmetadata.registry.model.Mapping(
-                "1234567890abcdef1234567890abcdef1234567890abcdef12345678", // Valid 56 hex char subject
-                new org.cardanofoundation.tokenmetadata.registry.model.Item(null, "https://example.com", null), // url
-                new org.cardanofoundation.tokenmetadata.registry.model.Item(null, "TestToken", null), // name
-                new org.cardanofoundation.tokenmetadata.registry.model.Item(null, longTicker, null), // ticker
-                new org.cardanofoundation.tokenmetadata.registry.model.Item(null, "6", null), // decimals
-                new org.cardanofoundation.tokenmetadata.registry.model.Item(null, "data:image/png;base64,abc", null), // logo
-                "testPolicy",
-                new org.cardanofoundation.tokenmetadata.registry.model.Item(null, "description", null) // description
-        );
-
-        // Verify that insertMapping returns false for invalid token
-        boolean result = tokenMetadataService.insertMapping(mapping, now, testUser);
-        Assertions.assertFalse(result, "insertMapping should return false when ticker exceeds 9 characters (CIP-26 limit)");
-
-        // Verify repository save was NOT called
-        verify(tokenMetadataRepository, never()).save(any());
+    private static Mapping mapping(String name, String ticker, String description, String logo) {
+        return new Mapping(SUBJECT, null, item(name), item(ticker), null, item(logo), null, item(description));
     }
 
-    @Test
-    void insertMappingTest_ShouldRejectTokenWithDescriptionExceedingMaxLength() {
-        LocalDateTime now = LocalDateTime.now();
-        String testUser = "test-user";
-
-        // Create a mapping with a description that exceeds 500 characters (CIP-26 limit)
-        String longDescription = "a".repeat(501);
-        Mapping mapping = new org.cardanofoundation.tokenmetadata.registry.model.Mapping(
-                "1234567890abcdef1234567890abcdef1234567890abcdef12345678", // Valid 56 hex char subject
-                new org.cardanofoundation.tokenmetadata.registry.model.Item(null, "https://example.com", null), // url
-                new org.cardanofoundation.tokenmetadata.registry.model.Item(null, "TestToken", null), // name
-                new org.cardanofoundation.tokenmetadata.registry.model.Item(null, "TICK", null), // ticker
-                new org.cardanofoundation.tokenmetadata.registry.model.Item(null, "6", null), // decimals
-                new org.cardanofoundation.tokenmetadata.registry.model.Item(null, "data:image/png;base64,abc", null), // logo
-                "testPolicy",
-                new org.cardanofoundation.tokenmetadata.registry.model.Item(null, longDescription, null) // description
-        );
-
-        // Verify that insertMapping returns false for invalid token
-        boolean result = tokenMetadataService.insertMapping(mapping, now, testUser);
-        Assertions.assertFalse(result, "insertMapping should return false when description exceeds 500 characters (CIP-26 limit)");
-
-        // Verify repository save was NOT called
-        verify(tokenMetadataRepository, never()).save(any());
+    private static Item item(String value) {
+        return value == null ? null : new Item(0, value, List.of());
     }
-
-    @Test
-    void insertLogoTest_ShouldRejectLogoWithInvalidSubject() {
-        // Create a mapping with a subject that exceeds CIP-26 specification (max 120 hex characters)
-        // This tests that subject validation is also performed when inserting logos
-        // Validation is performed by cf-metadata-core library
-        String longSubject = "a".repeat(122); // 122 hex chars (exceeds CIP-26 max of 120)
-        Mapping mapping = new org.cardanofoundation.tokenmetadata.registry.model.Mapping(
-                longSubject, // subject exceeds CIP-26 limit
-                new org.cardanofoundation.tokenmetadata.registry.model.Item(null, "https://example.com", null), // url
-                new org.cardanofoundation.tokenmetadata.registry.model.Item(null, "TestToken", null), // name
-                new org.cardanofoundation.tokenmetadata.registry.model.Item(null, "TICK", null), // ticker
-                new org.cardanofoundation.tokenmetadata.registry.model.Item(null, "6", null), // decimals
-                new org.cardanofoundation.tokenmetadata.registry.model.Item(null, "data:image/png;base64,abc", null), // logo
-                "testPolicy",
-                new org.cardanofoundation.tokenmetadata.registry.model.Item(null, "description", null) // description
-        );
-
-        // Verify that insertLogo returns false for invalid subject (validated by cf-metadata-core library)
-        boolean result = tokenMetadataService.insertLogo(mapping);
-        Assertions.assertFalse(result, "insertLogo should return false when subject exceeds CIP-26 specification limit");
-
-        // Verify repository save was NOT called
-        verify(tokenLogoRepository, never()).save(any());
-    }
-
-    @Test
-    void insertLogoTest_ShouldRejectLogoExceedingMaxLength() {
-        // Create a mapping with a logo that exceeds the CIP-26 specification limit (87,400 characters)
-        // This limit is defined in cf-metadata-core library, not hardcoded in our service
-        String longLogo = "a".repeat(87401);
-        Mapping mapping = new org.cardanofoundation.tokenmetadata.registry.model.Mapping(
-                "1234567890abcdef1234567890abcdef1234567890abcdef12345678", // Valid 56 hex char subject
-                new org.cardanofoundation.tokenmetadata.registry.model.Item(null, "https://example.com", null), // url
-                new org.cardanofoundation.tokenmetadata.registry.model.Item(null, "TestToken", null), // name
-                new org.cardanofoundation.tokenmetadata.registry.model.Item(null, "TICK", null), // ticker
-                new org.cardanofoundation.tokenmetadata.registry.model.Item(null, "6", null), // decimals
-                new org.cardanofoundation.tokenmetadata.registry.model.Item(null, longLogo, null), // logo exceeds CIP-26 limit
-                "testPolicy",
-                new org.cardanofoundation.tokenmetadata.registry.model.Item(null, "description", null) // description
-        );
-
-        // Verify that insertLogo returns false for invalid logo (validated by cf-metadata-core library)
-        boolean result = tokenMetadataService.insertLogo(mapping);
-        Assertions.assertFalse(result, "insertLogo should return false when logo exceeds CIP-26 specification limit (validated by cf-metadata-core)");
-
-        // Verify repository save was NOT called
-        verify(tokenLogoRepository, never()).save(any());
-    }
-
-
 }

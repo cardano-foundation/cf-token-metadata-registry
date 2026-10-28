@@ -149,15 +149,15 @@ the role:
 
 | Role | JVM image | Native image |
 |---|---|---|
-| Indexer | `<version>` | `<version>-native` |
-| Read-only API | `<version>` | **`<version>-native-readonly`** |
+| Indexer | `cardanofoundation/cf-token-metadata-registry-api:<version>` | `cardanofoundation/cf-token-metadata-registry-api-native:<version>` |
+| Read-only API | `cardanofoundation/cf-token-metadata-registry-api:<version>` | **`cardanofoundation/cf-token-metadata-registry-api-native-readonly:<version>`** |
 
-Starting `<version>-native` in read-only mode **still indexes** (#90). This separate image is a **workaround** until
+Starting the `-native` image in read-only mode **still indexes** (#90). This separate image is a **workaround** until
 Yaci Store checks read-only mode at runtime ([bloxbean/yaci-store#1293](https://github.com/bloxbean/yaci-store/issues/1293));
 see [ADR-021](adr/021-native-image-read-only-mode.md). To build it yourself:
 
 ```console
-docker build --build-arg READ_ONLY_MODE=true -t cardanofoundation/cf-token-metadata-registry-api:latest-native-readonly -f api/Dockerfile.native .
+docker build --build-arg READ_ONLY_MODE=true -t cardanofoundation/cf-token-metadata-registry-api-native-readonly:latest -f api/Dockerfile.native .
 ```
 
 The read-only settings above must still be set when it runs: they configure the rest of the app, such as the health
@@ -261,6 +261,7 @@ mvn clean package -pl api,common -am -DskipTests -Pnative -Dnative.read-only-mod
 
 - [x] CIP-26 compliant REST API
 - [x] CIP-68 fungible token (333) and rich fungible token (444) support (V2 API with priority-based querying)
+- [x] Validation errors reported, not enforced: tokens are served as indexed with `validation_errors`, `?validation=ALL|MANDATORY_ONLY|STRICT` chooses how strict a response is, and what cannot be stored is recorded in an `invalid_token` table (ADR-019, ADR-020). An update that cannot be stored writes nothing, so the previous metadata of the token stays in the API; the update is in `invalid_token`
 - [x] CIP-113 programmable token registry support (preview, preprod, mainnet — enabled via `CIP113_REGISTRY_NFT_POLICY_IDS`)
 - [x] Prometheus metrics (`/actuator/prometheus`)
 - [x] Kubernetes / Helm deployment support (`deploy/`)

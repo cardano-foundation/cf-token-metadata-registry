@@ -16,8 +16,8 @@ Multi-standard Cardano token metadata registry built with Spring Boot 3 and Java
 
 ### Metadata Standards
 
-- **CIP-26** (offchain): JSON metadata files synced from GitHub, stored in `metadata` table
-- **CIP-68** (on-chain): Reference NFT datum parsed from blockchain UTxOs (prefix `000643b0`), stored in `metadata_reference_nft` table. Fungible tokens (label 333, prefix `0014df10`) and rich fungible tokens (label 444, prefix `001bc280`) are mapped to their reference NFT counterpart. An RFT's `image` is served as `logo`, and its description is optional (ADR-018). NFTs (label 222) are not served
+- **CIP-26** (offchain): JSON metadata files synced from GitHub, stored in `metadata` table as written (the subject in lower case), with their `validation_errors`
+- **CIP-68** (on-chain): Reference NFT datum parsed from blockchain UTxOs (prefix `000643b0`), stored in `metadata_reference_nft` table. Fungible tokens (label 333, prefix `0014df10`) and rich fungible tokens (label 444, prefix `001bc280`) are mapped to their reference NFT counterpart. An RFT's `image` is served as `logo`, and its description is optional (ADR-018). NFTs (label 222) are not served. Every decodable datum is stored as written, except one whose transaction mints a 222 NFT and no 333 or 444 token (a datum without a user token in its transaction is stored, since its 333/444 token can be minted in another transaction), with the `validation_errors` of the datum itself; what the label requires is checked when a subject is served, for its own label (ADR-019)
 - **CIP-113** (programmable tokens): Registry node NFTs with minting, transfer, third-party and unfracking logic scripts, stored in `cip113_registry_node` table. Enabled when `CIP113_REGISTRY_NFT_POLICY_IDS` is non-empty. The parser reads the 7-field `RegistryNode` datum and skips any other shape with a WARN
 
 ### V2 Query Priority
@@ -25,7 +25,10 @@ Multi-standard Cardano token metadata registry built with Spring Boot 3 and Java
 The V2 API merges metadata from CIP-26 and CIP-68 using a priority mechanism:
 - Default priority: `CIP_68,CIP_26` (on-chain preferred, configurable via `cip.query.priority`)
 - Per-request override via `query_priority` parameter
-- First source with valid data (name + description; name alone for a 444 RFT) wins; gaps filled by lower-priority sources
+- First source wins per property; gaps filled by lower-priority sources
+- Tokens are served as indexed (ADR-019): `validation_errors` on the subject (all standards, priority order) and on `standards.*`, `metadata.valid` true when there are none, 404 only when nothing is indexed. A CIP-68 333/444 subject is served from its reference NFT whether or not its user token was minted (ADR-022, rejected). `?validation=ALL|MANDATORY_ONLY|STRICT` (default `ALL`) chooses which tokens are returned; under `?property=` the errors are scoped to those properties
+- What cannot be stored (undecodable datums, unusable CIP-26 files, unparseable CIP-113 nodes) is recorded in the `invalid_token` table (ADR-020); there is no API for it
+- A token of a registered CIP-113 policy is served even without CIP-26/CIP-68 metadata: `type: PROGRAMMABLE`, no metadata, and a `CIP-113` validation error on `companion_metadata` (`MANDATORY`, so `?validation=MANDATORY_ONLY` and `STRICT` leave it out) (ADR-020 §3)
 - CIP-113 extensions are appended when the token's policy ID is in the programmable token registry
 
 ### On-Chain Indexing (Yaci Store)
@@ -36,7 +39,7 @@ be taken without waiting for a yaci-store release:
 - `CustomUtxoStorage` filters UTxOs — only persists CIP-68 reference NFTs and CIP-113 registry nodes
 - Event listeners (`Cip68EventListener`, `Cip113EventListener`) parse datums on new blocks
 - Admin UI available at `/admin-ui/` for sync control
-- Read-only mode (`STORE_READONLYMODE=true`) is a bean condition in Yaci Store, so in a **native image** it is fixed at build time (Spring AOT): read-only instances need the `<version>-native-readonly` image, built with `-Dnative.read-only-mode=true` / `READ_ONLY_MODE=true`. A workaround until bloxbean/yaci-store#1293 (ADR-021)
+- Read-only mode (`STORE_READONLYMODE=true`) is a bean condition in Yaci Store, so in a **native image** it is fixed at build time (Spring AOT): read-only instances need the `cf-token-metadata-registry-api-native-readonly` image, built with `-Dnative.read-only-mode=true` / `READ_ONLY_MODE=true`. A workaround until bloxbean/yaci-store#1293 (ADR-021)
 
 ## Key Commands
 
@@ -104,7 +107,7 @@ Main configuration is in `api/src/main/resources/application.properties`. Key en
 
 | Method | Path | Description |
 |--------|------|-------------|
-| GET | `/api/v2/subjects/{subject}` | Subject with priority, optional `property`, `query_priority`, `show_cips_details` params |
+| GET | `/api/v2/subjects/{subject}` | Subject with priority, optional `property`, `query_priority`, `show_cips_details`, `validation` params |
 | POST | `/api/v2/subjects/query` | Batch query with same options |
 
 ### Operational Endpoints

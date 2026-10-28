@@ -70,7 +70,7 @@ class MetadataTest {
         NameProperty nameProperty = new NameProperty();
         nameProperty.setValue("name");
 
-        byte[] logoBytes = new byte[]{(byte) 0x89, 'P', 'N', 'G', '\r', '\n', 0x1A, '\n'}; // PNG magic
+        byte[] logoBytes = {(byte) 0x89, 'P', 'N', 'G', '\r', '\n', 0x1A, '\n'}; // PNG magic
         LogoProperty logoProperty = new LogoProperty();
         logoProperty.setValue(logoBytes);
 
@@ -84,33 +84,25 @@ class MetadataTest {
     }
 
     @Test
-    void isValidOnlyWithNameAndDescription() {
-        Metadata nameOnly = Metadata.builder().name(new StringProperty("Token", CIP_68.name())).build();
+    void isNotValidUntilItIsSetFromTheErrors() {
+        Metadata named = Metadata.builder().name(new StringProperty("Token", CIP_68.name()))
+                .description(new StringProperty("Desc", CIP_68.name())).build();
 
-        assertThat(nameOnly.isValid()).isFalse();
-        assertThat(nameOnly.toBuilder().description(new StringProperty("Desc", CIP_68.name())).build().isValid()).isTrue();
+        assertThat(named.valid()).isFalse();
+        assertThat(named.toBuilder().valid(true).build().valid()).isTrue();
     }
 
     @Test
-    void isValidWithANameAloneWhenTheDescriptionIsOptional() {
-        Metadata nameOnly = Metadata.builder().name(new StringProperty("Token", CIP_68.name())).build();
+    void keepsItsValidFlagWhenMerged() {
+        Metadata valid = Metadata.builder().name(new StringProperty("Token", CIP_68.name())).valid(true).build();
 
-        assertThat(nameOnly.withDescriptionOptional(true).isValid()).isTrue();
-        assertThat(Metadata.empty().withDescriptionOptional(true).isValid()).isFalse();
+        assertThat(valid.merge(Metadata.empty()).valid()).isTrue();
     }
 
     @Test
-    void staysEmptyWhenTheDescriptionIsOptional() {
-        assertThat(Metadata.empty().withDescriptionOptional(true).isEmpty()).isTrue();
-    }
-
-    @Test
-    void keepsTheOptionalDescriptionWhenMerged() {
-        Metadata rft = Metadata.builder().name(new StringProperty("Token", CIP_68.name())).build().withDescriptionOptional(true);
-
-        assertThat(rft.merge(Metadata.empty()).isValid()).isTrue();
-        assertThat(Metadata.empty().merge(rft).isValid()).isTrue();
+    void isEmptyWhateverItsValidFlag() {
+        assertThat(Metadata.empty().toBuilder().valid(true).build().isEmpty()).isTrue();
+        assertThat(Metadata.builder().ticker(new StringProperty("T", CIP_68.name())).build().isEmpty()).isFalse();
     }
 
 }
-

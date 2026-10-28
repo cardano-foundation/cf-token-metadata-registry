@@ -57,6 +57,19 @@ class MappingsUtilTest {
     }
 
     @Test
+    void storesASubjectInLowerCaseWhateverTheCaseOfTheRegistryFile() {
+        // mainnet: 39 registry files have an upper-case subject; a subject is base16, its case carries no meaning
+        Mapping mapping = new Mapping("F106CF30E10297C20D96EC76770B4BAB585DDB8A92CBE0E9DC3931A34269746D616E6961",
+                null, null, null, null, null, null, null);
+
+        org.assertj.core.api.Assertions.assertThat(MappingsUtil.toTokenMetadata(mapping, "test-user", LocalDateTime.now()).getSubject())
+                .isEqualTo("f106cf30e10297c20d96ec76770b4bab585ddb8a92cbe0e9dc3931a34269746d616e6961");
+        org.assertj.core.api.Assertions.assertThat(MappingsUtil.toTokenLogo(mapping).getSubject())
+                .isEqualTo("f106cf30e10297c20d96ec76770b4bab585ddb8a92cbe0e9dc3931a34269746d616e6961");
+        org.assertj.core.api.Assertions.assertThat(MappingsUtil.normalizeSubject(null)).isNull();
+    }
+
+    @Test
     void testTokenLogo() throws IOException {
 
         File mappingFile = ResourceUtils.getFile("classpath:mappings/ff7cad970d3a755a1ff0335ccb3f3c1cabf31aacf3f23dd13db61b0630313030.json");

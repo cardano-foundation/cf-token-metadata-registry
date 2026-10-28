@@ -2,7 +2,8 @@
 
 ## Status
 
-Accepted
+Accepted. Amended by ADR-019 (2026-10-21): what a 444 datum lacks is now a validation error, not a reason to skip it,
+and its image is stored and served as written.
 
 ## Date
 
@@ -31,20 +32,22 @@ serve them.
 The V2 API serves 444 subjects next to 333 subjects. NFTs (222) are still not served.
 
 1. **Mapping**: a `001bc280` subject maps to its reference NFT, like a `0014df10` subject
-   (`Cip68FungibleTokenService.getReferenceNftSubject`).
-2. **Image as logo**: CIP-68 gives an RFT no `logo`. Its picture is the required `image`, which is served as
+   (`Cip68FungibleTokenService.getReferenceNftSubject`). It does so whether or not that user token was minted, so a
+   reference NFT answers under both its 333 and its 444 subject (ADR-022 records why this is kept).
+2. **Image as logo**: CIP-68 gives an RFT no `logo`. Its picture is the required `image`, which is served, for a
+   `001bc280` subject whatever label its datum was stored or guessed as (ADR-019), as
    `metadata.logo` (source `CIP_68`), so wallets show it with no change on their side. For CIP-68 FTs, `logo` is
-   already a URI, so the format matches. The image is read from the stored datum when the subject is requested, not
-   from a column of its own, so RFTs indexed before this change are served with their image too. An image that isn't
-   a URI with a scheme CIP-68 allows (https, ipfs, ar, data) is not served.
+   already a URI, so the format matches. Since ADR-019 the image is stored (`image`, with `media_type`, migration V7)
+   and served as written, even when it is not a URI with a scheme CIP-68 allows; a validation error says so. A row
+   stored before V7 has no image column, so it is read from the stored datum.
 3. **Description optional**: CIP-68 requires only `name` and `image` for a 444 datum.
    - V6 makes `metadata_reference_nft.description` nullable.
    - The listener stores a valid datum without a description when a 444 user token is paired with it in the
-     transaction. It does the same when the datum updates a reference NFT that already has a stored version: an
-     update without the user token has its label inferred from the datum, and an RFT without `decimals` reads as a
-     222 NFT. Any other valid datum without a description is a 222 NFT and is still skipped.
-   - In V2, metadata for a 444 subject is valid with a name alone (`Metadata.descriptionOptional`, which is not
-     serialized). A 333 subject still needs a name and a description.
+     transaction, when the datum updates a reference NFT that already has a stored version, and, since 2026-10-28,
+     when no user token is in the transaction at all (ADR-019 §5). A datum minted with a 222 NFT only is still
+     skipped.
+   - Since ADR-019, validity comes from the validation errors: a 444 datum without a description has no error (the
+     description is optional for it), so it is `valid`. A 333 datum without one has a `MANDATORY` error.
 4. **V1 is unchanged**: V1 serves CIP-26 only. An RFT appears there only if it is registered in CIP-26, and none is on
    mainnet today.
 

@@ -7,7 +7,11 @@ import com.bloxbean.cardano.yaci.store.utxo.domain.TxInputOutput;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.cardanofoundation.tokenmetadata.registry.api.config.Cip113Configuration;
+import org.cardanofoundation.tokenmetadata.registry.api.util.AssetType;
 import org.cardanofoundation.tokenmetadata.registry.entity.Cip113RegistryNode;
+import org.cardanofoundation.tokenmetadata.registry.invalidtoken.InvalidTokenReason;
+import org.cardanofoundation.tokenmetadata.registry.invalidtoken.InvalidTokenRecorder;
+import org.cardanofoundation.tokenmetadata.registry.invalidtoken.InvalidTokenReport;
 import org.cardanofoundation.tokenmetadata.registry.repository.Cip113RegistryNodeRepository;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
@@ -15,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -22,10 +27,13 @@ import java.util.Optional;
 @Slf4j
 public class Cip113EventListener {
 
+    private static final int DATUM_PREFIX_CHARS = 256;
+
     private final Cip113Configuration cip113Configuration;
     private final Cip113RegistryNodeParser registryNodeParser;
     private final Cip113RegistryNodeRepository cip113RegistryNodeRepository;
     private final Cip113RegistryService cip113RegistryService;
+    private final InvalidTokenRecorder invalidTokenRecorder;
 
     @EventListener
     @Transactional
@@ -48,7 +56,7 @@ public class Cip113EventListener {
 
         for (TxInputOutput txInputOutput : addressUtxoEvent.getTxInputOutputs()) {
             for (AddressUtxo utxo : txInputOutput.getOutputs()) {
-                if (utxo.getInlineDatum() != null && cip113RegistryService.containsRegistryNode(utxo)) {
+                if (cip113RegistryService.containsRegistryNode(utxo)) {
                     parseEntity(utxo, slot).ifPresent(entities::add);
                 }
             }
@@ -61,8 +69,17 @@ public class Cip113EventListener {
         }
     }
 
+    /**
+     * The row for a registry node output. A node that cannot be parsed (the parser logs why) is recorded in
+     * {@code invalid_token} as {@code registry_node_unparseable} (ADR-020), with the policy of its registry NFT.
+     */
     private Optional<Cip113RegistryNode> parseEntity(AddressUtxo utxo, Long slot) {
-        return registryNodeParser.parse(utxo.getInlineDatum())
+        Cip113RegistryNodeParser.ParseResult result = registryNodeParser.parseDetailed(utxo.getInlineDatum());
+        if (result.node() == null) {
+            recordUnparseable(utxo, slot, result.rejection());
+            return Optional.empty();
+        }
+        return Optional.of(result.node())
                 .map(parsedRegistryNode -> Cip113RegistryNode.builder()
                         .key(parsedRegistryNode.key())
                         .slot(slot)
@@ -75,6 +92,22 @@ public class Cip113EventListener {
                         .next(parsedRegistryNode.next())
                         .datum(utxo.getInlineDatum())
                         .build());
+    }
+
+    private void recordUnparseable(AddressUtxo utxo, Long slot, String rejection) {
+        Optional<AssetType> registryNft = cip113RegistryService.findRegistryNft(utxo);
+        String datum = utxo.getInlineDatum();
+        invalidTokenRecorder.report(InvalidTokenReport.builder()
+                .standard(InvalidTokenReason.CIP_113)
+                .reasonCode(InvalidTokenReason.REGISTRY_NODE_UNPARSEABLE)
+                .reason(rejection)
+                .policyId(registryNft.map(AssetType::policyId).orElse(null))
+                .assetName(registryNft.map(AssetType::assetName).orElse(null))
+                .slot(slot)
+                .txHash(utxo.getTxHash())
+                .outputIndex(utxo.getOutputIndex())
+                .details(Map.of("datum_prefix", datum == null ? "" : datum.substring(0, Math.min(datum.length(), DATUM_PREFIX_CHARS))))
+                .build());
     }
 
 }

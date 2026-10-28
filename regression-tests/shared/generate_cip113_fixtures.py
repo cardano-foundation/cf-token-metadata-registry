@@ -110,8 +110,11 @@ def main():
     base, registry_policy = NETWORKS[network]
 
     nodes = [a for a in koios(base, f"policy_asset_info?_asset_policy={registry_policy}") if int(a["total_supply"]) > 0]
-    utxos = koios(base, "asset_utxos", {"_asset_list": [[registry_policy, n["asset_name"]] for n in nodes],
-                                        "_extended": True})
+    # in chunks: Koios answers a long _asset_list with 413 Request Entity Too Large
+    utxos = []
+    for i in range(0, len(nodes), 25):
+        utxos += koios(base, "asset_utxos", {"_asset_list": [[registry_policy, n["asset_name"]] for n in nodes[i:i + 25]],
+                                             "_extended": True})
     policies, skipped = [], []
     for utxo in sorted(utxos, key=lambda u: (u["tx_hash"], u["tx_index"])):
         datum = (utxo.get("inline_datum") or {}).get("value")

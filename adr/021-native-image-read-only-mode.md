@@ -46,8 +46,9 @@ Build and publish **a second native image for read-only mode**, with read-only m
    `process-aot`.
 2. **Docker:** `api/Dockerfile.native` takes a `READ_ONLY_MODE` build argument (default `false`) and passes it to
    Maven.
-3. **Images:** `docker-build.yaml` has a `native-readonly` variant, published as `<version>-native-readonly` next to
-   `<version>` (JVM) and `<version>-native`.
+3. **Images:** the `Earthfile` has an `api-native-readonly` target and `docker-build.yaml` a `native-readonly`
+   variant. The image is published as `cf-token-metadata-registry-api-native-readonly:<version>`, next to
+   `cf-token-metadata-registry-api:<version>` (JVM) and `cf-token-metadata-registry-api-native:<version>`.
 4. **Compose:** the `api-ro` service passes `READ_ONLY_MODE=true`, so `API_DOCKERFILE=api/Dockerfile.native` builds
    the right image for it. The JVM Dockerfile ignores the argument.
 5. **Nightly:** builds the read-only native image and runs a smoke test. It starts the image against an empty
@@ -57,8 +58,8 @@ Build and publish **a second native image for read-only mode**, with read-only m
 
 | Role | JVM | Native |
 |---|---|---|
-| Indexer | `<version>` | `<version>-native` |
-| Read-only API | `<version>`, started in read-only mode | **`<version>-native-readonly`**, started in read-only mode |
+| Indexer | `cf-token-metadata-registry-api:<version>` | `cf-token-metadata-registry-api-native:<version>` |
+| Read-only API | `cf-token-metadata-registry-api:<version>`, started in read-only mode | **`cf-token-metadata-registry-api-native-readonly:<version>`**, started in read-only mode |
 
 The read-only settings (`STORE_READONLYMODE=true`, `STORE_SYNCAUTOSTART=false`, `TOKEN_METADATA_SYNC_JOB=false`,
 `SPRING_PROFILES_ACTIVE=readonly`) are still set when it runs: they configure the rest of the app, such as the health
@@ -76,9 +77,9 @@ groups and the CIP-26 job.
 ### Negative
 
 - **One more image:** a second native build in the publish and nightly workflows, which adds about 10–15 minutes of CI
-  time each, and one more tag to document.
-- **The role is part of the image.** Starting `<version>-native` in read-only mode still indexes, and starting
-  `<version>-native-readonly` without the read-only settings does not index. Operators must pick the tag for the role.
+  time each, and one more image to document.
+- **The role is part of the image.** Starting the `-native` image in read-only mode still indexes, and starting the
+  `-native-readonly` image without the read-only settings does not index. Operators must pick the image for the role.
 - A temporary divergence from "one artifact per release", to be undone when Yaci Store is fixed.
 
 ## Alternatives Considered

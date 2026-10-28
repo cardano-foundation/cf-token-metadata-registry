@@ -26,7 +26,7 @@ We provide GraalVM native image support as an alternative build target alongside
 
 5. **CI pipeline**: The `docker-build.yaml` workflow supports a `variant` parameter (`jvm` or `native`) for building either distribution.
 
-> **Amended by ADR-021 (2026-10-22):** Spring AOT fixes Yaci Store's read-only mode when the image is built, so read-only API instances need their own native image, the `native-readonly` variant (`<version>-native-readonly`). This is a workaround until [bloxbean/yaci-store#1293](https://github.com/bloxbean/yaci-store/issues/1293) is fixed.
+> **Amended by ADR-021 (2026-10-22):** Spring AOT fixes Yaci Store's read-only mode when the image is built, so read-only API instances need their own native image, the `native-readonly` variant (`cf-token-metadata-registry-api-native-readonly:<version>`). This is a workaround until [bloxbean/yaci-store#1293](https://github.com/bloxbean/yaci-store/issues/1293) is fixed.
 
 ## Consequences
 

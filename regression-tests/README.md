@@ -82,6 +82,18 @@ DB_HOST=mydb.example.com DB_PASSWORD=secret MAX_TOKENS=500 \
 - After switching to a different database or network
 - When you want a fresh baseline for regression testing
 
+#### Correcting a fixture instead of regenerating it
+
+A failure is first checked against the chain. When the API is right and the fixture is not, only that entry is
+corrected, never the whole file:
+
+- **A value that changed on chain** (a renamed token, a new description) is updated in place, after checking that the
+  chain and the API agree on it.
+- **An entry that should not be there** is deleted, and the commit says why. On 2026-10-28 that was 324 entries of
+  `cip68_tokens.json` that are NFTs: on chain only their 222 token and their reference NFT exist, and no 333 or 444 was
+  minted. The registry does not serve NFTs (ADR-018); the entries came from a database of a build that labelled such
+  datums 333.
+
 ## Running Tests
 
 ### Run all tests
@@ -105,6 +117,7 @@ uv run pytest -m v2           # V2 endpoints only
 uv run pytest -m cip26        # CIP-26 token tests
 uv run pytest -m cip68        # CIP-68 token tests (includes the RFT tests)
 uv run pytest -m rft          # CIP-68 rich fungible token (444) tests
+uv run pytest -m validation   # validation_errors and ?validation= tests (ADR-019)
 uv run pytest -m cip113       # CIP-113 programmable token tests
 uv run pytest -m batch        # Batch query tests
 ```
@@ -168,11 +181,37 @@ them, and that neither the 222 NFT nor the reference NFT of the same base name i
 must not serve an RFT. Regenerate the fixture on purpose, never as part of a test run. Run the suite against an
 instance at tip first, and remove a token with a reason, or treat the difference as a bug.
 
-## Tokens dropped by stricter rules
+## Validation errors (ADR-019)
 
-`mainnet/fixtures/cip68_dropped_tokens.json` holds CIP-68 tokens taken out of `cip68_tokens.json` because a stricter
-CIP-68 rule no longer indexes their datum, each with the reason. `test_v2_cip68_dropped.py` asserts they are not served
-from CIP-68.
+The registry serves tokens as indexed, with `validation_errors` saying how their metadata departs from its CIP, and
+`?validation=ALL|MANDATORY_ONLY|STRICT` choosing how strict a response is. These suites cover it
+(marker `validation`):
+
+- `test_v2_validation.py` (on mainnet and preprod, from `shared/validation_suite.py`) checks the contract: every token
+  has a `validation_errors` array, `metadata.valid` is true exactly when it is empty, `?validation=` returns a token
+  exactly when its errors allow it, and under `?property=` the errors are about the requested properties only. It
+  asserts no expected values, only that each response agrees with its own errors.
+  - On mainnet it samples the CIP-26 and CIP-68 baselines.
+  - On preprod it uses `preprod/fixtures/validation_sample.json`: CIP-26 entries, and 333 and 444 tokens served with no
+    error, with optional errors only, and with a mandatory error. It is made by `shared/generate_validation_sample.py`
+    from a database synced with ADR-019 and the API serving it; a token's kind is what its subject is served with,
+    since a CIP-68 subject gets only the errors of its own label:
+
+    ```bash
+    DB_HOST=... DB_PORT=... DB_PASSWORD=... API_BASE_URL=... uv run python shared/generate_validation_sample.py preprod
+    ```
+- `mainnet/test_v2_cip68_validation_errors.py` checks tokens that break CIP-68 in a known way, from
+  `mainnet/fixtures/cip68_validation_errors_tokens.json`, each with the reason: Greenland Reserve Coin (version 0, a
+  MANDATORY error), tokens whose logo is a bare IPFS CID (kept as written, an OPTIONAL error), and the SundaeSwap
+  USDrf/sUSDrf LP token (served as a clean 333 token, though its reference NFT is paired with a pool NFT). Before
+  ADR-019 these were a 404 or lost their logo. The listed errors must be among the token's errors; others are allowed.
+
+The CIP-113 suite follows the same rule: a programmable token with on-chain metadata is served with its errors, one
+without any is served with a CIP-113 `companion_metadata` error (ADR-020; it was a 404). `WITH_MANDATORY_ERRORS`
+(preprod) lists those hidden with `validation=MANDATORY_ONLY`.
+
+These suites need a build with ADR-019 and a database **synced from scratch** with it: rows written before have no
+errors recorded. Against an older build, run `-m "not validation"`.
 
 ## Viewing Results with Allure (Web UI)
 
@@ -258,11 +297,16 @@ regression-tests/
 ├── README.md                                 # This file
 ├── shared/
 │   ├── cip113_suite.py                       # CIP-113 test class, built per network
+│   ├── validation_suite.py                   # ADR-019 validation contract test class, built per network
+│   ├── generate_validation_sample.py         # DB + API -> subjects for the validation contract suite
 │   ├── generate_cip113_fixtures.py           # Chain (Koios) -> CIP-113 fixture
 │   └── generate_cip68_rft_fixtures.py        # Chain (Koios) -> CIP-68 RFT (444) fixture
 ├── preprod/
 │   ├── test_v2_cip113.py                     # CIP-113 programmable tokens on preprod
-│   └── fixtures/cip113_tokens.json           # CIP-113 registry snapshot (generated)
+│   ├── test_v2_validation.py                 # ADR-019 validation contract on preprod
+│   └── fixtures/
+│       ├── cip113_tokens.json                # CIP-113 registry snapshot (generated)
+│       └── validation_sample.json            # subjects for the validation contract suite (generated)
 └── mainnet/
     ├── conftest.py                           # Shared pytest fixtures and helpers
     ├── pytest.ini                            # Test markers configuration
@@ -270,7 +314,7 @@ regression-tests/
     │   ├── generate_fixtures.py              # DB -> JSON snapshot script
     │   ├── cip26_tokens.json                 # CIP-26 token snapshots (generated)
     │   ├── cip68_tokens.json                 # CIP-68 token snapshots (generated)
-    │   ├── cip68_dropped_tokens.json         # CIP-68 tokens a stricter rule drops, with the reason
+    │   ├── cip68_validation_errors_tokens.json  # CIP-68 tokens served with known validation errors
     │   ├── cip68_rft_tokens.json             # CIP-68 RFT (444) snapshot from the chain (generated)
     │   └── cip113_tokens.json                # CIP-113 registry snapshot (generated)
     ├── test_v1_get_subject.py                # V1 GET /metadata/{subject}
@@ -278,7 +322,8 @@ regression-tests/
     ├── test_v1_batch_query.py                # V1 POST /metadata/query
     ├── test_v2_get_subject.py                # V2 GET /api/v2/subjects/{subject}
     ├── test_v2_batch_query.py                # V2 POST /api/v2/subjects/query
-    ├── test_v2_cip68_dropped.py              # CIP-68 tokens a stricter rule drops
+    ├── test_v2_cip68_validation_errors.py    # CIP-68 tokens served with known validation errors
+    ├── test_v2_validation.py                 # validation_errors / ?validation= contract (ADR-019)
     ├── test_v2_cip68_rft.py                  # CIP-68 rich fungible tokens (444)
     └── test_v2_cip113.py                     # CIP-113 programmable tokens
 ```

@@ -14,7 +14,7 @@ The Cardano ecosystem has two complementary standards for token metadata:
 
 - **CIP-26** (Cardano Offchain Metadata): Token metadata is submitted to a centralized GitHub repository (`cardano-foundation/cardano-token-registry`) and served via a REST API. This is the original standard, widely adopted but dependent on a manual submission process.
 
-- **CIP-68** (Datum Metadata Standard): Token metadata is stored on-chain as reference NFTs. Each fungible token can have an associated reference NFT (prefix `000643b0`) whose datum contains the metadata. This is a newer, fully decentralized approach.
+- **CIP-68** (Datum Metadata Standard): Token metadata is stored on-chain as reference NFTs. Each fungible token can have an associated reference NFT (prefix `000643b0`) whose datum contains the metadata. The registry serves fungible tokens (label 333) and, since ADR-018, rich fungible tokens (label 444); NFTs (label 222) are not served. This is a newer, fully decentralized approach.
 
 Many tokens have metadata registered under one or both standards, and consumers need a unified interface to query metadata regardless of its source. The registry must support both standards and allow consumers to express a preference for which source takes priority.
 
@@ -30,7 +30,7 @@ We support both CIP-26 and CIP-68 as first-class metadata sources with the follo
 
 4. **CIP-68 reference NFT identification**: Reference NFTs are identified by the `000643b0` prefix in their asset name and must have a quantity of exactly 1. The `CustomUtxoStorage` filters UTXOs to store only matching reference NFTs.
 
-5. **Validation**: CIP-26 tokens are validated against the spec using the `cf-tokens-cip26` library. CIP-68 tokens are validated structurally during datum parsing.
+5. **Validation**: CIP-26 tokens are validated against the spec using the `cf-tokens-cip26` library, and CIP-68 datums against the rules of their label. Since ADR-019, what breaks a rule is reported as `validation_errors` and the token is stored and served; only what cannot be stored is dropped and recorded (ADR-020).
 
 ## Consequences
 

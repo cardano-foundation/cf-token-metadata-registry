@@ -73,13 +73,20 @@ public class Cip113RegistryService {
      * Used by CustomUtxoStorage to decide which UTxOs to persist.
      */
     public boolean containsRegistryNode(AddressUtxo utxo) {
+        return findRegistryNft(utxo).isPresent();
+    }
+
+    /** The registry node NFT the output holds: a single unit of a monitored registry policy. */
+    public Optional<AssetType> findRegistryNft(AddressUtxo utxo) {
         if (!cip113Configuration.isEnabled()) {
-            return false;
+            return Optional.empty();
         }
 
         return utxo.getAmounts().stream()
-                .anyMatch(amt -> amt.getQuantity().equals(BigInteger.ONE)
-                        && cip113Configuration.isMonitoredPolicyId(AssetType.fromUnit(amt.getUnit()).policyId()));
+                .filter(amt -> amt.getQuantity().equals(BigInteger.ONE)
+                        && cip113Configuration.isMonitoredPolicyId(AssetType.fromUnit(amt.getUnit()).policyId()))
+                .map(amt -> AssetType.fromUnit(amt.getUnit()))
+                .findFirst();
     }
 
     private static ProgrammableTokenCip113 toDto(Cip113RegistryNode entity) {

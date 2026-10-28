@@ -15,7 +15,7 @@ on:
       push:
         type: boolean
         default: false
-        description: 'Push image to Docker Hub'
+        description: 'Push image to the registries resolved by cf-gha-baseline'
       version:
         type: string
         required: false
@@ -26,9 +26,15 @@ on:
         description: 'Primary Docker image tag that was built'
         value: ${{ jobs.build.outputs.image-tag }}
     secrets:
-      DOCKERHUB_USERNAME:
+      DOCKER_REGISTRIES:
         required: false
-      DOCKERHUB_TOKEN:
+      HUB_DOCKER_COM_USER:
+        required: false
+      HUB_DOCKER_COM_PASS:
+        required: false
+      GITLAB_DOCKER_REGISTRY_URL:
+        required: false
+      GITLAB_PKG_REGISTRY_TOKEN:
         required: false
 
 jobs:
@@ -45,101 +51,27 @@ jobs:
         id: cf-gha-baseline
         with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PRIVATE_DOCKER_REGISTRY_URL: ${{ env.PRIVATE_DOCKER_REGISTRY_URL }}
-          PRIVATE_DOCKER_REGISTRY_USER: ${{ env.PRIVATE_DOCKER_REGISTRY_USER }}
-          PRIVATE_DOCKER_REGISTRY_PASS: ${{ env.PRIVATE_DOCKER_REGISTRY_PASS }}
+          PRIVATE_DOCKER_REGISTRY_URL: ${{ secrets.GITLAB_DOCKER_REGISTRY_URL }}
+          PRIVATE_DOCKER_REGISTRY_USER: Deploy-Token
+          PRIVATE_DOCKER_REGISTRY_PASS: ${{ secrets.GITLAB_PKG_REGISTRY_TOKEN }}
           HUB_DOCKER_COM_USER: ${{ secrets.HUB_DOCKER_COM_USER }}
           HUB_DOCKER_COM_PASS: ${{ secrets.HUB_DOCKER_COM_PASS }}
           DOCKER_REGISTRIES: "${{ secrets.DOCKER_REGISTRIES }}"
 
+      # image names come from the Earthfile targets; only the local tag needed
+      # by the nightly workflow's integration tests is derived here
       - name: Set image metadata
         id: meta
         env:
           INPUT_APP: ${{ inputs.app }}
           INPUT_VARIANT: ${{ inputs.variant }}
-          INPUT_PUSH: ${{ inputs.push }}
-          EXTRA_TAGS_FROM_OUTPUT: ${{ steps.cf-gha-baseline.outputs.EARTHLY_DOCKER_IMAGES_EXTRA_TAGS }}
         run: |
-          REPO="cardanofoundation/cf-token-metadata-registry-${INPUT_APP}"
-
-          EXTRA_TAGS="${EXTRA_TAGS_FROM_OUTPUT}"
-          EXTRA_TAGS="${EXTRA_TAGS//$'\n'/ }"
-          EXTRA_TAGS="${EXTRA_TAGS//,/ }"
-          EXTRA_TAGS="${EXTRA_TAGS//$'\t'/ }"
-
-          # Fallback for contexts where cf-gha-baseline cannot derive a
-          # BRANCH_NAME and therefore emits an empty
-          # EARTHLY_DOCKER_IMAGES_EXTRA_TAGS. This has been observed 100% of
-          # the time on `schedule`-triggered runs (the Nightly workflow),
-          # which caused every nightly docker-build job to fail at this
-          # step. Synthesise a tag from the GitHub-provided context so the
-          # build still produces a usable image.
-          if [[ -z "${EXTRA_TAGS// /}" ]]; then
-            short_sha="${GITHUB_SHA:0:7}"
-            if [[ "${GITHUB_EVENT_NAME}" == "schedule" ]]; then
-              fallback="nightly-$(date -u +%Y%m%d)-${short_sha}"
-            else
-              sanitized_ref="${GITHUB_REF_NAME:-unknown}"
-              sanitized_ref="${sanitized_ref//\//-}"
-              fallback="${sanitized_ref}-${short_sha}"
-            fi
-            echo "cf-gha-baseline returned no tags (event=${GITHUB_EVENT_NAME}); using fallback tag '${fallback}'" >&2
-            EXTRA_TAGS="${fallback}"
-          fi
-
-          read -r -a parsed_extra_tags <<< "${EXTRA_TAGS}"
-
-          declare -a resolved_tags
-          for extra_tag in "${parsed_extra_tags[@]}"; do
-            extra_tag="${extra_tag#"${extra_tag%%[![:space:]]*}"}"
-            extra_tag="${extra_tag%"${extra_tag##*[![:space:]]}"}"
-
-            if [ -z "${extra_tag}" ]; then
-              continue
-            fi
-
-            if [[ "${extra_tag}" == */*:* ]]; then
-              resolved_tags+=("${extra_tag}")
-            else
-              resolved_tags+=("${REPO}:${extra_tag}")
-            fi
-          done
-
-          # Native variants are tagged <tag>-native and <tag>-native-readonly. The read-only image is a separate build
-          # because read-only mode is fixed when a native image is built (ADR-021, bloxbean/yaci-store#1293).
-          if [ "${INPUT_VARIANT}" != "jvm" ]; then
-            for i in "${!resolved_tags[@]}"; do
-              image_ref="${resolved_tags[$i]}"
-              image_repo="${image_ref%:*}"
-              image_tag="${image_ref##*:}"
-
-              if [[ "${image_tag}" != *-${INPUT_VARIANT} ]]; then
-                resolved_tags[$i]="${image_repo}:${image_tag}-${INPUT_VARIANT}"
-              fi
-            done
-          fi
-
-          if [ ${#resolved_tags[@]} -eq 0 ]; then
-            # Defence-in-depth: the fallback above should guarantee at
-            # least one resolved tag. If we still reach this point
-            # something is deeply wrong (GITHUB_SHA also unset, etc.).
-            echo "No tags could be resolved, including fallback from GitHub context" >&2
-            exit 1
-          fi
-
-          PRIMARY_TAG="${resolved_tags[0]}"
-          echo "image-tag=${PRIMARY_TAG}" >> "$GITHUB_OUTPUT"
-          echo "repo=${REPO}" >> "$GITHUB_OUTPUT"
-
-          echo "tags<<EOF" >> "$GITHUB_OUTPUT"
-          if [ "${INPUT_PUSH}" == "true" ]; then
-            for tag in "${resolved_tags[@]}"; do
-              echo "${tag}" >> "$GITHUB_OUTPUT"
-            done
+          if [ "${INPUT_VARIANT}" = "jvm" ]; then
+            IMAGE="cf-token-metadata-registry-${INPUT_APP}"
           else
-            echo "${PRIMARY_TAG}" >> "$GITHUB_OUTPUT"
+            IMAGE="cf-token-metadata-registry-${INPUT_APP}-${INPUT_VARIANT}"
           fi
-          echo "EOF" >> "$GITHUB_OUTPUT"
+          echo "image-tag=${IMAGE}:latest" | tee -a "$GITHUB_OUTPUT"
 
       - name: Download JAR artifact
         if: inputs.variant == 'jvm'
@@ -148,30 +80,46 @@ jobs:
           name: ${{ inputs.app }}-jar
           path: ${{ inputs.app }}/target
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+      # earthly builds the matching Earthfile target and functions+DOCKER_TAG_N_PUSH
+      # does the tagging/pushing. cf-gha-baseline decided both inputs:
+      #   DOCKER_REGISTRIES_FILTERED      - public registries (hub.docker.com, ghcr.io,
+      #                                       docker.io) survive release-tag pushes only,
+      #                                       so PR and branch builds stay on private
+      #                                       registries
+      #   EARTHLY_DOCKER_IMAGES_EXTRA_TAGS - PR<N>, branch and tag specific tags
+      - name: 🌍 earthly (docker build and push)
+        env:
+          INPUT_APP: ${{ inputs.app }}
+          INPUT_VARIANT: ${{ inputs.variant }}
+          INPUT_PUSH: ${{ inputs.push }}
+        run: |
+          if [ "${INPUT_PUSH}" = "true" ] && [ -z "${DOCKER_REGISTRIES_FILTERED// /}" ]; then
+            echo "[!] PUSH requested but cf-gha-baseline resolved no registry, nothing would be published."
+            echo "    Set the DOCKER_REGISTRIES repo secret: space separated registries,"
+            echo "    e.g. 'hub.docker.com <gitlab docker registry url>'."
+            echo "    Public registries are dropped for PR and branch builds, so a private one is needed for dev builds."
+            exit 1
+          fi
 
-      - name: Docker Hub Login
-        if: inputs.push
-        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          EXTRA_TAGS="${EARTHLY_DOCKER_IMAGES_EXTRA_TAGS}"
 
-      - name: Build Docker image
-        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
-        with:
-          context: ${{ startsWith(inputs.variant, 'native') && '.' || inputs.app }}
-          file: ${{ startsWith(inputs.variant, 'native') && format('{0}/Dockerfile.native', inputs.app) || format('{0}/Dockerfile', inputs.app) }}
-          build-args: |
-            READ_ONLY_MODE=${{ inputs.variant == 'native-readonly' }}
-          push: ${{ inputs.push }}
-          load: ${{ !inputs.push }}
-          tags: ${{ steps.meta.outputs.tags }}
+          # release tags define hub's latest, branch builds do not (cf-gha-baseline only
+          # appends 'latest' for main/master branch pushes, which no longer reach public
+          # registries)
+          if [ "${TRIGGERING_REF}" = "tag" ]; then
+            EXTRA_TAGS="${EXTRA_TAGS} latest"
+          fi
+
+          earthly +"${INPUT_APP}-${INPUT_VARIANT}" \
+            --PUSH="${INPUT_PUSH}" \
+            --DOCKER_REGISTRIES="${DOCKER_REGISTRIES_FILTERED}" \
+            --DOCKER_IMAGES_EXTRA_TAGS="${EXTRA_TAGS}"
 
       - name: Save Docker image as artifact
         if: ${{ !inputs.push }}
-        run: docker save ${{ steps.meta.outputs.image-tag }} -o /tmp/docker-image.tar
+        env:
+          IMAGE_TAG: ${{ steps.meta.outputs.image-tag }}
+        run: docker save "$IMAGE_TAG" -o /tmp/docker-image.tar
 
       - name: Upload Docker image artifact
         if: ${{ !inputs.push }}
