@@ -210,7 +210,7 @@ class Cip68EventListenerIndexingTest {
 
         /** Mainnet: Greenland Reserve Coin, whose datum declares version 0. */
         @Test
-        void storesARealVersion0FungibleTokenWithAnUndefinedVersionError() {
+        void storesARealVersion0FungibleTokenWithAnInvalidVersionError() {
             String gnrcPolicy = "67cee89d59ab5354ee22c8af0638224126aecc6210f9372a61f13a64";
             String gnrcReferenceNft = "000643b0474e5243";
             String gnrcDatum = "d8799fa6446e616d6556477265656e6c616e64205265736572766520436f696e4b6465736372697074696f6e583c4173"
@@ -227,7 +227,7 @@ class Cip68EventListenerIndexingTest {
                 assertThat(row.getName()).isEqualTo("Greenland Reserve Coin");
                 assertThat(row.getVersion()).isZero();
                 assertThat(row.getValidationErrors()).extracting(ValidationError::fieldName, ValidationError::code)
-                        .contains(tuple("version", "undefined_version"));
+                        .contains(tuple("version", "invalid_version"));
             });
         }
     }
