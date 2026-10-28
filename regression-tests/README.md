@@ -82,6 +82,18 @@ DB_HOST=mydb.example.com DB_PASSWORD=secret MAX_TOKENS=500 \
 - After switching to a different database or network
 - When you want a fresh baseline for regression testing
 
+#### Correcting a fixture instead of regenerating it
+
+A failure is first checked against the chain. When the API is right and the fixture is not, only that entry is
+corrected, never the whole file:
+
+- **A value that changed on chain** (a renamed token, a new description) is updated in place, after checking that the
+  chain and the API agree on it.
+- **An entry that should not be there** is deleted, and the commit says why. On 2026-10-28 that was 324 entries of
+  `cip68_tokens.json` that are NFTs: on chain only their 222 token and their reference NFT exist, and no 333 or 444 was
+  minted. The registry does not serve NFTs (ADR-018); the entries came from a database of a build that labelled such
+  datums 333.
+
 ## Running Tests
 
 ### Run all tests
