@@ -233,8 +233,9 @@ class Cip68EventListenerIndexingTest {
     }
 
     /**
-     * The registry serves fungible (333) and rich fungible (444) tokens only: a datum paired with, or inferred as, a 222
-     * NFT only is skipped, unless it updates a reference NFT that is already stored.
+     * The registry serves fungible (333) and rich fungible (444) tokens only: a datum minted with a 222 NFT only is
+     * skipped, unless it updates a reference NFT that is already stored. A datum without a user token in its transaction
+     * is stored, whatever it looks like: its 333 or 444 token can be minted in another transaction.
      */
     @Nested
     @DisplayName("Which datums are stored")
@@ -259,8 +260,28 @@ class Cip68EventListenerIndexingTest {
         }
 
         @Test
-        void storesAnUnpairedDatumInferredAsAFungibleToken() throws Exception {
+        void storesAnUnpairedFungibleTokenDatum() throws Exception {
             listener.processTransaction(event(output(flatDatum("Token", "Desc", "TKN"), REF + A)));
+
+            assertThat(saved()).hasSize(1);
+        }
+
+        /**
+         * Mainnet: the GOAT RFTs (e987e459…) minted their reference NFTs before their 444 tokens, and BushWifPlanesTier1
+         * (cc816014…) its 444 token before its reference NFT. Their datums have an image and no decimals, so they read
+         * as an NFT's: the datum is stored, and served under its 444 subject.
+         */
+        @Test
+        void storesAnUnpairedDatumThatReadsAsAnNft() throws Exception {
+            listener.processTransaction(event(output(datum("name", "GOATah", "description", "GOAT", "image", "ipfs://bafy"), REF + A)));
+
+            assertThat(saved()).singleElement().satisfies(row -> assertThat(row.getName()).isEqualTo("GOATah"));
+        }
+
+        @Test
+        void storesADatumPairedWithAnRftAndAnNft() throws Exception {
+            listener.processTransaction(event(output(datum("name", "Token", "image", "ipfs://bafy"), REF + A),
+                    userToken(NFT + A), userToken(RFT + A)));
 
             assertThat(saved()).hasSize(1);
         }
