@@ -173,7 +173,7 @@ public class ValidationErrorsIntegrationIT extends BaseIntegrationIT {
 
             assertThat(json.read("$.subject.metadata.version.value", Integer.class)).isZero();
             assertThat(errors(json)).anySatisfy(error -> assertThat(error)
-                    .containsEntry("field_name", "version").containsEntry("code", "undefined_version")
+                    .containsEntry("field_name", "version").containsEntry("code", "invalid_version")
                     .containsEntry("field_category", "MANDATORY"));
         }
     }
