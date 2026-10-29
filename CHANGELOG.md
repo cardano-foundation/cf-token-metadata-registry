@@ -1,5 +1,43 @@
 # Changelog
 
+## [2.0.0](https://github.com/cardano-foundation/cf-token-metadata-registry/compare/1.7.0...2.0.0) (2026-10-29)
+
+
+### ⚠ BREAKING CHANGES
+
+* V2 returns tokens it used to answer 404 for (no name, no description, a version 0, ...), with validation_errors and metadata.valid false; a client that wants the old view asks with validation=MANDATORY_ONLY. A full resync is needed: tokens dropped before exist nowhere, and rows written before have no errors recorded.
+
+### Features
+
+* add CIP-113 programmable token support ([#68](https://github.com/cardano-foundation/cf-token-metadata-registry/issues/68)) ([246052f](https://github.com/cardano-foundation/cf-token-metadata-registry/commit/246052f5b8ae3ffd5bed9b3390bc0a602a622076))
+* **cip68:** serve rich fungible tokens (label 444) from the V2 API ([#110](https://github.com/cardano-foundation/cf-token-metadata-registry/issues/110)) ([c94703c](https://github.com/cardano-foundation/cf-token-metadata-registry/commit/c94703c93046433b1aa59d8187020d5923635c1b))
+* report validation errors instead of dropping tokens, as yaci-store does; invalid_token table, CIP-113 included ([#111](https://github.com/cardano-foundation/cf-token-metadata-registry/issues/111)) ([90bdd91](https://github.com/cardano-foundation/cf-token-metadata-registry/commit/90bdd913260083632e5302485fab9a63d1c5c5a0))
+
+
+### Bug Fixes
+
+* CIP-68 label checked when served, review fixes from yaci-store[#1220](https://github.com/cardano-foundation/cf-token-metadata-registry/issues/1220), CIP-113 without companion served with a MANDATORY error ([#118](https://github.com/cardano-foundation/cf-token-metadata-registry/issues/118)) ([149e43d](https://github.com/cardano-foundation/cf-token-metadata-registry/commit/149e43d3ece33801e82719123a6fb800e438c7c6))
+* **cip68:** backport token metadata hardening from yaci-store ([#105](https://github.com/cardano-foundation/cf-token-metadata-registry/issues/105)) ([aa2d999](https://github.com/cardano-foundation/cf-token-metadata-registry/commit/aa2d99999f6fdb626a59776e87b5043e35e5ec6d))
+* **cip68:** skip an output whose indexing fails instead of stopping the sync, as yaci-store does ([#109](https://github.com/cardano-foundation/cf-token-metadata-registry/issues/109)) ([49bd25b](https://github.com/cardano-foundation/cf-token-metadata-registry/commit/49bd25bd0be0fac3aeff1aefd35ed9a4f5a3ef5c))
+* **cip68:** validate CIP-68 datums per label as yaci-store does, drop invalid logos, reject undefined versions ([#107](https://github.com/cardano-foundation/cf-token-metadata-registry/issues/107)) ([3a51bc5](https://github.com/cardano-foundation/cf-token-metadata-registry/commit/3a51bc54b6d212328958e3ee647967e9f2f33d54))
+* delete stale invalid_token rows outside a transaction, restart the database after a reboot ([#116](https://github.com/cardano-foundation/cf-token-metadata-registry/issues/116)) ([f5dbf06](https://github.com/cardano-foundation/cf-token-metadata-registry/commit/f5dbf0683e5586775745b276acd69801a71ea959))
+* every problem with a present CIP-68 version is one code, invalid_version ([#123](https://github.com/cardano-foundation/cf-token-metadata-registry/issues/123)) ([6feb500](https://github.com/cardano-foundation/cf-token-metadata-registry/commit/6feb500598d7b5916707b3c50cd4a2a2cacd7da7))
+* **metadata:** base64-encode logo in V2 metadata block (was hex) ([#88](https://github.com/cardano-foundation/cf-token-metadata-registry/issues/88)) ([fa72e81](https://github.com/cardano-foundation/cf-token-metadata-registry/commit/fa72e81ec8ba51e27ea9962623cd48cde8bd1fe0))
+* serve chunked CIP-68 texts, one description error per label, skip non-metadata datums, CIP-26 url host and lower-case subjects ([#117](https://github.com/cardano-foundation/cf-token-metadata-registry/issues/117)) ([134c709](https://github.com/cardano-foundation/cf-token-metadata-registry/commit/134c709d7959182f41c56f7b9bfee314907fb095))
+* store a CIP-68 datum without a user token in its transaction, whatever it looks like ([#121](https://github.com/cardano-foundation/cf-token-metadata-registry/issues/121)) ([82d046f](https://github.com/cardano-foundation/cf-token-metadata-registry/commit/82d046fc340363a68102d18a5527ef60e22dad51))
+* the CIP-113 companion_metadata error says that name and description, mandatory in both CIP-26 and CIP-68, are missing ([#122](https://github.com/cardano-foundation/cf-token-metadata-registry/issues/122)) ([6b65d5b](https://github.com/cardano-foundation/cf-token-metadata-registry/commit/6b65d5b71e0e7dadd0a0520e2afaed29a0638c74))
+
+
+### Documentation
+
+* **adr:** ADR-017 serve the last valid CIP-68 datum ([e16d37a](https://github.com/cardano-foundation/cf-token-metadata-registry/commit/e16d37a18b2206fcab298243ebd772a61d893ab7))
+
+
+### Miscellaneous Chores
+
+* release 1.8.0 ([d68f5f8](https://github.com/cardano-foundation/cf-token-metadata-registry/commit/d68f5f8148c379fc14caacb2225073df0f5a7935))
+* release 2.0.0 ([fc59553](https://github.com/cardano-foundation/cf-token-metadata-registry/commit/fc59553961325103184561c3ee05143955a33da7))
+
 ## [1.7.0](https://github.com/cardano-foundation/cf-token-metadata-registry/compare/1.6.0...1.7.0) (2026-09-21)
 
 
