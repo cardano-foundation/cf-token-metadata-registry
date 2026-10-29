@@ -12,7 +12,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.cardanofoundation.tokenmetadata.registry.api.model.cip68.ParseOutcome;
 import org.cardanofoundation.tokenmetadata.registry.api.model.cip68.ParsedCip68Datum;
-import org.cardanofoundation.tokenmetadata.registry.api.event.Cip68MetadataIndexedEvent;
 import org.cardanofoundation.tokenmetadata.registry.api.util.AssetType;
 import org.cardanofoundation.tokenmetadata.registry.entity.MetadataReferenceNft;
 import org.cardanofoundation.tokenmetadata.registry.invalidtoken.InvalidTokenReason;
@@ -20,13 +19,11 @@ import org.cardanofoundation.tokenmetadata.registry.invalidtoken.InvalidTokenRec
 import org.cardanofoundation.tokenmetadata.registry.invalidtoken.InvalidTokenReport;
 import org.cardanofoundation.tokenmetadata.registry.repository.MetadataReferenceNftRepository;
 import org.cardanofoundation.tokenmetadata.registry.validation.ValidationError;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -69,7 +66,6 @@ public class Cip68EventListener {
     private final Cip68FTDatumParser cip68DatumParser;
     private final MetadataReferenceNftRepository metadataReferenceNftRepository;
     private final InvalidTokenRecorder invalidTokenRecorder;
-    private final ApplicationEventPublisher eventPublisher;
 
     @EventListener
     @Transactional
@@ -98,12 +94,6 @@ public class Cip68EventListener {
 
         if (!entities.isEmpty()) {
             metadataReferenceNftRepository.saveAll(entities);
-        }
-        // what depends on CIP-68 metadata reacts after the block commits, e.g. the CIP-113 companion check (ADR-020)
-        Set<String> policies = new HashSet<>();
-        entities.forEach(entity -> policies.add(entity.getPolicyId()));
-        if (!policies.isEmpty()) {
-            eventPublisher.publishEvent(new Cip68MetadataIndexedEvent(policies));
         }
     }
 
@@ -382,9 +372,21 @@ public class Cip68EventListener {
      * validate endpoint, so that it reports exactly what indexing would.
      */
     static List<ValidationError> errorsForLabels(ParsedCip68Datum parsed, List<Integer> labels) {
-        List<ValidationError> errors = datumErrors(parsed);
+        List<ValidationError> datumErrors = datumErrors(parsed);
+        List<ValidationError> errors = new ArrayList<>(datumErrors);
+        if (labels.isEmpty()) {
+            return errors;
+        }
+        // Cip68Validator.validate reads the row that would be stored, not the datum: build it from the parsed fields,
+        // without the identity fields (policy, asset name, slot) it does not look at.
+        MetadataReferenceNft row = MetadataReferenceNft.builder()
+                .name(parsed.name())
+                .description(parsed.description())
+                .image(parsed.image())
+                .validationErrors(datumErrors)
+                .build();
         for (int label : labels) {
-            errors.addAll(Cip68Validator.validate(parsed, label));
+            errors.addAll(Cip68Validator.validate(row, label));
         }
         return errors;
     }
