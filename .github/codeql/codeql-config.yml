@@ -1,0 +1,7 @@
+# CodeQL configuration, referenced from .github/workflows/codeql.yml (the query suites are set there).
+query-filters:
+  # Reports every unnamed variable (`_`, Java 22+, JEP 456) as "never read", which is what `_` means. The project is on
+  # Java 25 and uses `_` in type-pattern switches and catch clauses. Unused local variables are still caught by
+  # SonarCloud (java:S1481), which understands `_`.
+  - exclude:
+      id: java/local-variable-is-never-read

@@ -82,6 +82,18 @@ DB_HOST=mydb.example.com DB_PASSWORD=secret MAX_TOKENS=500 \
 - After switching to a different database or network
 - When you want a fresh baseline for regression testing
 
+#### Correcting a fixture instead of regenerating it
+
+A failure is first checked against the chain. When the API is right and the fixture is not, only that entry is
+corrected, never the whole file:
+
+- **A value that changed on chain** (a renamed token, a new description) is updated in place, after checking that the
+  chain and the API agree on it.
+- **An entry that should not be there** is deleted, and the commit says why. On 2026-10-28 that was 324 entries of
+  `cip68_tokens.json` that are NFTs: on chain only their 222 token and their reference NFT exist, and no 333 or 444 was
+  minted. The registry does not serve NFTs (ADR-018); the entries came from a database of a build that labelled such
+  datums 333.
+
 ## Running Tests
 
 ### Run all tests
@@ -103,7 +115,10 @@ uv run pytest -v --alluredir=../allure-results
 uv run pytest -m v1           # V1 endpoints only
 uv run pytest -m v2           # V2 endpoints only
 uv run pytest -m cip26        # CIP-26 token tests
-uv run pytest -m cip68        # CIP-68 token tests
+uv run pytest -m cip68        # CIP-68 token tests (includes the RFT tests)
+uv run pytest -m rft          # CIP-68 rich fungible token (444) tests
+uv run pytest -m validation   # validation_errors and ?validation= tests (ADR-019)
+uv run pytest -m cip113       # CIP-113 programmable token tests
 uv run pytest -m batch        # Batch query tests
 ```
 
@@ -121,6 +136,82 @@ API_BASE_URL=http://myhost:8080 uv run pytest -v
 ```
 
 Default is `http://localhost:8080`.
+
+## CIP-113 programmable tokens
+
+The CIP-113 suite runs on mainnet (`mainnet/test_v2_cip113.py`) and on preprod (`preprod/`), since mainnet has few
+registered tokens. Its fixture, `<network>/fixtures/cip113_tokens.json`, comes from the chain through Koios and not
+from the database, so the suite checks the indexer against an independent source. For each policy in the official
+CIP-113 registry, it holds the extension the API must return and the tokens minted under that policy:
+
+```bash
+uv run python shared/generate_cip113_fixtures.py mainnet
+uv run python shared/generate_cip113_fixtures.py preprod
+```
+
+A programmable token is served only when it also has valid CIP-26 or CIP-68 metadata. A token with valid metadata must
+be `PROGRAMMABLE`, with `extensions.cip113` equal to its registry node. A token without valid metadata must be a 404.
+`preprod/test_v2_cip113.py` lists in `NOT_SERVED` the tokens whose on-chain metadata the registry rejects, with the
+reason. Regenerate the fixture on purpose, when a registration changes, never as part of a test run.
+
+```bash
+cd preprod
+API_BASE_URL=http://my-preprod-host:8080 uv run pytest -v
+```
+
+## CIP-68 rich fungible tokens (444)
+
+The V2 API serves CIP-68 rich fungible tokens (label 444, prefix `001bc280`) with their `image` as `metadata.logo`
+(ADR-018). Their fixture, `mainnet/fixtures/cip68_rft_tokens.json`, comes from the chain through Koios, like the
+CIP-113 one, and not from the database:
+
+```bash
+uv run python shared/generate_cip68_rft_fixtures.py mainnet
+```
+
+It holds the RFTs whose current 444 datum has a name, a description and an image URI with a scheme CIP-68 allows,
+read the way the registry reads them, with a live reference NFT that holds an inline datum. The file records how many
+RFTs were left out and why (no description, a name that is not a plain byte string, a datum hash instead of an inline
+datum, a burned reference NFT, and so on). RFTs without a description are left out because builds before RFT support
+skipped their datums, so they are served only by a database re-indexed since.
+
+`mainnet/test_v2_cip68_rft.py` checks, for every RFT, that V2 serves its name, description, ticker, decimals, version
+and image (as the logo) from CIP-68. On a sample, it also checks `show_cips_details`, that the batch query returns
+them, and that neither the 222 NFT nor the reference NFT of the same base name is served. V1 serves CIP-26 only, so it
+must not serve an RFT. Regenerate the fixture on purpose, never as part of a test run. Run the suite against an
+instance at tip first, and remove a token with a reason, or treat the difference as a bug.
+
+## Validation errors (ADR-019)
+
+The registry serves tokens as indexed, with `validation_errors` saying how their metadata departs from its CIP, and
+`?validation=ALL|MANDATORY_ONLY|STRICT` choosing how strict a response is. These suites cover it
+(marker `validation`):
+
+- `test_v2_validation.py` (on mainnet and preprod, from `shared/validation_suite.py`) checks the contract: every token
+  has a `validation_errors` array, `metadata.valid` is true exactly when it is empty, `?validation=` returns a token
+  exactly when its errors allow it, and under `?property=` the errors are about the requested properties only. It
+  asserts no expected values, only that each response agrees with its own errors.
+  - On mainnet it samples the CIP-26 and CIP-68 baselines.
+  - On preprod it uses `preprod/fixtures/validation_sample.json`: CIP-26 entries, and 333 and 444 tokens served with no
+    error, with optional errors only, and with a mandatory error. It is made by `shared/generate_validation_sample.py`
+    from a database synced with ADR-019 and the API serving it; a token's kind is what its subject is served with,
+    since a CIP-68 subject gets only the errors of its own label:
+
+    ```bash
+    DB_HOST=... DB_PORT=... DB_PASSWORD=... API_BASE_URL=... uv run python shared/generate_validation_sample.py preprod
+    ```
+- `mainnet/test_v2_cip68_validation_errors.py` checks tokens that break CIP-68 in a known way, from
+  `mainnet/fixtures/cip68_validation_errors_tokens.json`, each with the reason: Greenland Reserve Coin (version 0, a
+  MANDATORY error), tokens whose logo is a bare IPFS CID (kept as written, an OPTIONAL error), and the SundaeSwap
+  USDrf/sUSDrf LP token (served as a clean 333 token, though its reference NFT is paired with a pool NFT). Before
+  ADR-019 these were a 404 or lost their logo. The listed errors must be among the token's errors; others are allowed.
+
+The CIP-113 suite follows the same rule: a programmable token with on-chain metadata is served with its errors, one
+without any is served with a CIP-113 `companion_metadata` error (ADR-020; it was a 404). `WITH_MANDATORY_ERRORS`
+(preprod) lists those hidden with `validation=MANDATORY_ONLY`.
+
+These suites need a build with ADR-019 and a database **synced from scratch** with it: rows written before have no
+errors recorded. Against an older build, run `-m "not validation"`.
 
 ## Viewing Results with Allure (Web UI)
 
@@ -195,6 +286,7 @@ uv run pytest -v --alluredir=../allure-results
 | `/metadata/query` | POST | Batch queries, property filters, mixed known/unknown subjects, edge cases |
 | `/api/v2/subjects/{subject}` | GET | All CIP-26 + CIP-68 tokens, `query_priority`, `show_cips_details`, property filter |
 | `/api/v2/subjects/query` | POST | Batch with priority combos, CIP details toggle, mixed CIP types, validity filtering |
+| `/api/v2/subjects/{subject}` and `/query` | GET, POST | Every CIP-68 RFT (444) with a description: fields, image as logo, batch |
 
 ## Project Structure
 
@@ -203,16 +295,35 @@ regression-tests/
 ├── pyproject.toml                            # Project metadata + dependencies
 ├── uv.lock                                   # Locked dependency versions (commit this)
 ├── README.md                                 # This file
+├── shared/
+│   ├── cip113_suite.py                       # CIP-113 test class, built per network
+│   ├── validation_suite.py                   # ADR-019 validation contract test class, built per network
+│   ├── generate_validation_sample.py         # DB + API -> subjects for the validation contract suite
+│   ├── generate_cip113_fixtures.py           # Chain (Koios) -> CIP-113 fixture
+│   └── generate_cip68_rft_fixtures.py        # Chain (Koios) -> CIP-68 RFT (444) fixture
+├── preprod/
+│   ├── test_v2_cip113.py                     # CIP-113 programmable tokens on preprod
+│   ├── test_v2_validation.py                 # ADR-019 validation contract on preprod
+│   └── fixtures/
+│       ├── cip113_tokens.json                # CIP-113 registry snapshot (generated)
+│       └── validation_sample.json            # subjects for the validation contract suite (generated)
 └── mainnet/
     ├── conftest.py                           # Shared pytest fixtures and helpers
     ├── pytest.ini                            # Test markers configuration
     ├── fixtures/
     │   ├── generate_fixtures.py              # DB -> JSON snapshot script
     │   ├── cip26_tokens.json                 # CIP-26 token snapshots (generated)
-    │   └── cip68_tokens.json                 # CIP-68 token snapshots (generated)
+    │   ├── cip68_tokens.json                 # CIP-68 token snapshots (generated)
+    │   ├── cip68_validation_errors_tokens.json  # CIP-68 tokens served with known validation errors
+    │   ├── cip68_rft_tokens.json             # CIP-68 RFT (444) snapshot from the chain (generated)
+    │   └── cip113_tokens.json                # CIP-113 registry snapshot (generated)
     ├── test_v1_get_subject.py                # V1 GET /metadata/{subject}
     ├── test_v1_get_property.py               # V1 GET /metadata/{subject}/properties/{property}
     ├── test_v1_batch_query.py                # V1 POST /metadata/query
     ├── test_v2_get_subject.py                # V2 GET /api/v2/subjects/{subject}
-    └── test_v2_batch_query.py                # V2 POST /api/v2/subjects/query
+    ├── test_v2_batch_query.py                # V2 POST /api/v2/subjects/query
+    ├── test_v2_cip68_validation_errors.py    # CIP-68 tokens served with known validation errors
+    ├── test_v2_validation.py                 # validation_errors / ?validation= contract (ADR-019)
+    ├── test_v2_cip68_rft.py                  # CIP-68 rich fungible tokens (444)
+    └── test_v2_cip113.py                     # CIP-113 programmable tokens
 ```

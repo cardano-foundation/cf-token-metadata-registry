@@ -1,0 +1,297 @@
+{
+  "network": "preprod",
+  "generated_at": "2026-10-22T07:40:09Z",
+  "source": "metadata and metadata_reference_nft of a registry synced with ADR-019, checked against http://localhost:18082",
+  "subjects": [
+    {
+      "subject": "0057360265b49fea0bb1f116cabf356eaf527f1833f46da9654d1c9e74575254",
+      "standard": "CIP-26",
+      "kind": "clean"
+    },
+    {
+      "subject": "0a35ef05ddfc4e72b223bef930a64037bfd7d3b1c1a7604fb5aee9356d6964646c65746f6e",
+      "standard": "CIP-26",
+      "kind": "clean"
+    },
+    {
+      "subject": "12e4574d12610a77e01f3886d93e3d920105975965ed11341b5ba8f452454954",
+      "standard": "CIP-26",
+      "kind": "clean"
+    },
+    {
+      "subject": "1a3e62dd2d0d38cc6ccb05801a4baff13126fc54bab5e64244697830",
+      "standard": "CIP-26",
+      "kind": "clean"
+    },
+    {
+      "subject": "2521f2219e723fdf105f31690a690070f97b57b3c5539562df0b7d0306a48bbc38a7de1eb6513331c35e43b769410ed73c68dc07553d37faa1281878",
+      "standard": "CIP-26",
+      "kind": "clean"
+    },
+    {
+      "subject": "3190d050dea5652da7456949436faa8cac609b3c9e79df55ce2eb09d63544f5349",
+      "standard": "CIP-26",
+      "kind": "clean"
+    },
+    {
+      "subject": "39a8da1934f0f2465cd3045727387126b4f6c9fa0e469a7277e7f14e546573742070726f6a656374",
+      "standard": "CIP-26",
+      "kind": "clean"
+    },
+    {
+      "subject": "42a9fe252add25c77e0d26e1deb1298b46b6e100c3d25b4b73c22d7a73444743",
+      "standard": "CIP-26",
+      "kind": "clean"
+    },
+    {
+      "subject": "4ebcb13f01e735976486b3c39072eed6d9f362e916fb04fe2c37f951744d454c44",
+      "standard": "CIP-26",
+      "kind": "clean"
+    },
+    {
+      "subject": "596f0025dc3204d33feda79f22bd4945d0861671c4cf051c6bf6ff867465696b69",
+      "standard": "CIP-26",
+      "kind": "clean"
+    },
+    {
+      "subject": "648823ffdad1610b4162f4dbc87bd47f6f9cf45d772ddef661eff19869425443",
+      "standard": "CIP-26",
+      "kind": "clean"
+    },
+    {
+      "subject": "6b728428c0eb014949d72c94449bbef4b10b6ad2b1b86bd4e92476f04c616365436f696e32",
+      "standard": "CIP-26",
+      "kind": "clean"
+    },
+    {
+      "subject": "777e6b4903dab74963ae581d39875c5dac16c09bb1f511c0af1ddda8614d454c44",
+      "standard": "CIP-26",
+      "kind": "clean"
+    },
+    {
+      "subject": "83f8ca09f0512f91edb35fa19f3acfa5f53cc284c0663c34281a83d25553444378",
+      "standard": "CIP-26",
+      "kind": "clean"
+    },
+    {
+      "subject": "93062c5d8fcb33a4f507dd31eac1d79bdba2485d687d5517dc00a7a2605c59fa15b66932d8f810c5d9d5df5ec7555ce2b0d5e2b19be411974c65017d",
+      "standard": "CIP-26",
+      "kind": "clean"
+    },
+    {
+      "subject": "9c790a9552e9ef1348f97d529c5d90e2beb717a7f21dfd36beabf87b415454",
+      "standard": "CIP-26",
+      "kind": "clean"
+    },
+    {
+      "subject": "ab49c4983ea2cfd43dcc32279c5ef045bb39d331309f7f0e98da939a7453554e444145",
+      "standard": "CIP-26",
+      "kind": "clean"
+    },
+    {
+      "subject": "b6525f0993875db27b0a1c780f0e0f1678aced0de6caf0d241b61e87",
+      "standard": "CIP-26",
+      "kind": "clean"
+    },
+    {
+      "subject": "bbc95f0d9d263a0c00b401d2b0abc19c118b99723b5e1bd114a7baa7",
+      "standard": "CIP-26",
+      "kind": "clean"
+    },
+    {
+      "subject": "cb32c5fec90829c1110de97bb88b48aaef29f0dc46b809a65bca548d520f42495118ad1a96691b1ad39c3032b47e3d385913c0f5517c4387ec7dae59",
+      "standard": "CIP-26",
+      "kind": "clean"
+    },
+    {
+      "subject": "d14bc12c40521c06f48c96d0ebbe7f1060451b5f1422f217be2d029974657374546f6b656e4465633137",
+      "standard": "CIP-26",
+      "kind": "clean"
+    },
+    {
+      "subject": "d2dbff622e509dda256fedbd31ef6e9fd98ed49ad91d5c0e07f68af14e49474854",
+      "standard": "CIP-26",
+      "kind": "clean"
+    },
+    {
+      "subject": "d83a59d6b99b2ac5c1e43caccfa1e36965d798e8e5057dc4b53b1cde41474958",
+      "standard": "CIP-26",
+      "kind": "clean"
+    },
+    {
+      "subject": "e562f15689155b3db54759f64fceb25ca89165f66ee2d7ecff43a43b544553542d504554",
+      "standard": "CIP-26",
+      "kind": "clean"
+    },
+    {
+      "subject": "f50ed8ec331b2ce550dc4b357cf336796e23f60f72927005919162c6838126455f2b33dbb4cb24a7505ef760d2cde26e74d3191e46a1b45a19d8bd4d",
+      "standard": "CIP-26",
+      "kind": "clean"
+    },
+    {
+      "subject": "0014fc4852f9f369124b53d6bd2c37536be5bb55439435e05b3e608c0014df104167656e745f506565426565",
+      "standard": "CIP-68",
+      "kind": "clean"
+    },
+    {
+      "subject": "0f5ea43d3463072ac9ac55385b7637f8bcf780f913182a4864682f590014df105452555348422d3130313831323036",
+      "standard": "CIP-68",
+      "kind": "clean"
+    },
+    {
+      "subject": "1ed08e235d028c3ea278ab0322475387a02ba94a3a2c42ace521ddeb0014df1044656d6f6e20546f6b656e",
+      "standard": "CIP-68",
+      "kind": "clean"
+    },
+    {
+      "subject": "2a473bef4315ae3eda1a09071caf5a92fc0faed8d7210e0d223625da0014df1074657374",
+      "standard": "CIP-68",
+      "kind": "clean"
+    },
+    {
+      "subject": "3578dd64723b24be0c616aa7ada148c4a1afe7988d78f18fbebaf6b90014df104f4d454741",
+      "standard": "CIP-68",
+      "kind": "clean"
+    },
+    {
+      "subject": "40d7373d3d2a90b4f5b084a6b4632fafd505c24fc473a2480dc9b2340014df10486f6e6579205768616c65",
+      "standard": "CIP-68",
+      "kind": "clean"
+    },
+    {
+      "subject": "4ce978bba292b7623d864bdbba9243a76801ceaa34140f68a7d29af20014df1061736466",
+      "standard": "CIP-68",
+      "kind": "clean"
+    },
+    {
+      "subject": "5b1b3db7fc6dec9b3ff0427fdee30bf7ace5ec83d55c7738874f4d240014df10417267656e74696e61",
+      "standard": "CIP-68",
+      "kind": "clean"
+    },
+    {
+      "subject": "000b2b2a67fbe10da8a0af3ed6513e18db3ef8f4abf8b05698179bf00014df1054455354",
+      "standard": "CIP-68",
+      "kind": "optional"
+    },
+    {
+      "subject": "0c11e4bb50994afe59de2d3730105b918adfd90c94c665b93096f96a0014df105445535420424f54",
+      "standard": "CIP-68",
+      "kind": "optional"
+    },
+    {
+      "subject": "1797ac6277c0d570ba11300b75332c478ce8e9b59eaa68647a96fa180014df1053494c564552",
+      "standard": "CIP-68",
+      "kind": "optional"
+    },
+    {
+      "subject": "218ca327f00612c169e0c01396d90e44731116394134649ea85828470014df104c6c616d6120746f6b656e",
+      "standard": "CIP-68",
+      "kind": "optional"
+    },
+    {
+      "subject": "2ab9a16049e681150feaef75d39a81ceb442f2b390c1df26675fa9120014df1058585858",
+      "standard": "CIP-68",
+      "kind": "optional"
+    },
+    {
+      "subject": "3b4da3eeae4900de14be33f3147bc5c77659a9468e7c09e098b3d5550014df1054657374696e67506c6174666f726d",
+      "standard": "CIP-68",
+      "kind": "optional"
+    },
+    {
+      "subject": "4371e5029719dc4f6833c2ce5ed2a8a5106a5356f67cb755539b5e8c0014df1074414c4c49",
+      "standard": "CIP-68",
+      "kind": "optional"
+    },
+    {
+      "subject": "4ce978bba292b7623d864bdbba9243a76801ceaa34140f68a7d29af20014df1044414d4d",
+      "standard": "CIP-68",
+      "kind": "optional"
+    },
+    {
+      "subject": "023c5d25cdf43e6497bc7805d133ec3b265553409556422310419da90014df10945af3649c3d749d17ab19c264c1beebb66b6785f79bab997480aa87",
+      "standard": "CIP-68",
+      "kind": "mandatory"
+    },
+    {
+      "subject": "1396851381ab762a8f4d3461464f3ddb8d5bd169bad04c1ec5be14ab0014df1017e4b63fe9a1f59fe2f94c9b4993aeb023a260434112a9e645bb2d8f",
+      "standard": "CIP-68",
+      "kind": "mandatory"
+    },
+    {
+      "subject": "1d348dc6f47ec9373cee3838db4551def7b8ddc18530cbf63225f5c60014df104e4557",
+      "standard": "CIP-68",
+      "kind": "mandatory"
+    },
+    {
+      "subject": "29d9bd96229890fe9294eb507ccffdfaf9bd3d0189dd38ad3c4c4e560014df1001e5e13c0a70309473e7bc3f10388f4714e3fb16235264c9ec5bde16",
+      "standard": "CIP-68",
+      "kind": "mandatory"
+    },
+    {
+      "subject": "3599a368bf715c9545709088c5aaa37744ecaf18b3c70f268d3a50030014df104672616374696f6e2045737461746520546f6b656e",
+      "standard": "CIP-68",
+      "kind": "mandatory"
+    },
+    {
+      "subject": "4c415b6bbe422960b6847c540be23e7ffea0aeb483e16b2778e4f59e0014df10cce260af73b2d92046232a8d97fe14574f4d660b8bccbdee7255791c",
+      "standard": "CIP-68",
+      "kind": "mandatory"
+    },
+    {
+      "subject": "4de812a2792739df433a5df4fe01dd841582c93ce9921fac74e7918f0014df10646f6d61696e4e616d65",
+      "standard": "CIP-68",
+      "kind": "mandatory"
+    },
+    {
+      "subject": "6480819d80ec13b8bba4eec21497bb3a3f0c0ec7d984797c509ed7820014df104861743a52757374436170",
+      "standard": "CIP-68",
+      "kind": "mandatory"
+    },
+    {
+      "subject": "023c5d25cdf43e6497bc7805d133ec3b265553409556422310419da9001bc280945af3649c3d749d17ab19c264c1beebb66b6785f79bab997480aa87",
+      "standard": "CIP-68 (444)",
+      "kind": "clean"
+    },
+    {
+      "subject": "024fa432d823223630dcacadcc21f382aac9cf8630048fcc5bb8267f001bc280ee1d040b9ca54927619251897b475db7adb0733faaf85381ddb85778",
+      "standard": "CIP-68 (444)",
+      "kind": "clean"
+    },
+    {
+      "subject": "09a4c692be6ffd9c5a16d53a747a9ff2e784ed6a099727e0c745dd5b001bc2805354554646",
+      "standard": "CIP-68 (444)",
+      "kind": "clean"
+    },
+    {
+      "subject": "015654e0069de25328e5bb9346bede8083bc0ffdf5ee061ca9f842c3001bc2804841",
+      "standard": "CIP-68 (444)",
+      "kind": "optional"
+    },
+    {
+      "subject": "06346b986dce30c56c3f4e7a1131ec93a9f112afa61b094697287806001bc2808888",
+      "standard": "CIP-68 (444)",
+      "kind": "optional"
+    },
+    {
+      "subject": "0b23ec83a52644fe3b93279f420599f93d064ad0dab26ecb437087eb001bc28054657374696e67206672726565656565",
+      "standard": "CIP-68 (444)",
+      "kind": "optional"
+    },
+    {
+      "subject": "13ee22b770bea448c5a8cf1a56efe1a6774a6349313079044a8f098f001bc280746573742031",
+      "standard": "CIP-68 (444)",
+      "kind": "mandatory"
+    },
+    {
+      "subject": "1d3842f4590111a9ede8dd2dd01f2852b300a9efefa5f4a8c5b332cb001bc2805a43464154423035",
+      "standard": "CIP-68 (444)",
+      "kind": "mandatory"
+    },
+    {
+      "subject": "2590728bbcdc9da529656a585ede516ca83f39097df06f579a80040c001bc28000a7284a635c2f3cc6fa18d9c3234adc759c836e4d7a1cc0ab78c967",
+      "standard": "CIP-68 (444)",
+      "kind": "mandatory"
+    }
+  ]
+}

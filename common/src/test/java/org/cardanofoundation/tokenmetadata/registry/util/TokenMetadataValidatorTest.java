@@ -1,389 +1,309 @@
 package org.cardanofoundation.tokenmetadata.registry.util;
 
+import org.cardanofoundation.tokenmetadata.registry.model.Item;
+import org.cardanofoundation.tokenmetadata.registry.model.Mapping;
 import org.cardanofoundation.tokenmetadata.registry.entity.TokenMetadata;
-import org.junit.jupiter.api.BeforeEach;
+import org.cardanofoundation.tokenmetadata.registry.invalidtoken.InvalidTokenReason;
+import org.cardanofoundation.tokenmetadata.registry.validation.FieldCategory;
+import org.cardanofoundation.tokenmetadata.registry.validation.ValidationError;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
 
-import java.time.LocalDateTime;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+/**
+ * CIP-26 entries that break the specification are stored and served with {@link ValidationError}s (ADR-019);
+ * only a subject that cannot be a key, or a logo far beyond any real size, is dropped.
+ */
+@SuppressWarnings("java:S2187") // tests are in @Nested inner classes
+@DisplayName("TokenMetadataValidator")
 class TokenMetadataValidatorTest {
 
-    private TokenMetadataValidator validator;
+    // Valid 56-char hex subject (28-byte policy ID + short asset name)
+    private static final String VALID_SUBJECT = "025146866af908340247fe4e9672d5ac7059f1e8534696b5f920c9e66362544848";
 
-    @BeforeEach
-    void setUp() {
-        validator = new TokenMetadataValidator();
+    private final TokenMetadataValidator validator = new TokenMetadataValidator();
+
+    private static TokenMetadata metadata(String subject, String name, String description) {
+        TokenMetadata m = new TokenMetadata();
+        m.setSubject(subject);
+        m.setName(name);
+        m.setDescription(description);
+        return m;
     }
 
-    @Test
-    @DisplayName("Should validate token metadata with all required CIP-26 fields")
-    void shouldValidateTokenMetadataWithAllFieldsWithinLimits() {
-        // Given
-        TokenMetadata metadata = createValidTokenMetadata();
-
-        // When
-        boolean result = validator.validate(metadata);
-
-        // Then
-        assertThat(result).isTrue();
+    private Cip26Validation validate(TokenMetadata m) {
+        return validator.validate(null, m);
     }
 
-    @Test
-    @DisplayName("Should reject token metadata with missing required fields (name and description)")
-    void shouldValidateTokenMetadataWithNullOptionalFields() {
-        // Given - CIP-26 requires name and description
-        TokenMetadata metadata = new TokenMetadata();
-        metadata.setSubject("1234567890abcdef1234567890abcdef1234567890abcdef1234567890"); // 58 hex chars (valid subject)
-        metadata.setPolicy("validPolicy");
-        metadata.setName(null); // Required in CIP-26
-        metadata.setTicker(null);
-        metadata.setUrl(null);
-        metadata.setDescription(null); // Required in CIP-26
-        metadata.setDecimals(null);
-        metadata.setUpdated(LocalDateTime.now());
-        metadata.setUpdatedBy(null);
-
-        // When
-        boolean result = validator.validate(metadata);
-
-        // Then - Should fail because name and description are required
-        assertThat(result).isFalse();
+    private static List<String> summary(Cip26Validation validation) {
+        return validation.errors().stream()
+                .map(e -> e.fieldName() + ":" + e.fieldCategory() + ":" + e.code()).toList();
     }
 
-    @Test
-    @DisplayName("Should reject token metadata with empty required fields")
-    void shouldValidateTokenMetadataWithEmptyStrings() {
-        // Given - CIP-26 requires non-empty name and description, and valid subject
-        TokenMetadata metadata = new TokenMetadata();
-        metadata.setSubject(""); // Invalid - subject cannot be empty
-        metadata.setPolicy("");
-        metadata.setName(""); // Invalid - required field
-        metadata.setTicker("");
-        metadata.setUrl("");
-        metadata.setDescription(""); // Invalid - required field
-        metadata.setUpdated(LocalDateTime.now());
-        metadata.setUpdatedBy("");
-
-        // When
-        boolean result = validator.validate(metadata);
-
-        // Then - Should fail due to empty required fields
-        assertThat(result).isFalse();
-    }
-
-    @Test
-    @DisplayName("Should reject token metadata when subject exceeds 120 hex characters")
-    void shouldRejectTokenMetadataWhenSubjectExceedsMaxLength() {
-        // Given - Subject must be 56-120 hex characters in CIP-26
-        TokenMetadata metadata = createValidTokenMetadata();
-        metadata.setSubject(generateHexString(122)); // 122 hex chars, exceeds max
-
-        // When
-        boolean result = validator.validate(metadata);
-
-        // Then
-        assertThat(result).isFalse();
-    }
-
-    @Test
-    @DisplayName("Should accept token metadata when subject is exactly 120 hex characters")
-    void shouldAcceptTokenMetadataWhenSubjectIsExactly120Characters() {
-        // Given - 120 hex characters is the maximum allowed for subject
-        TokenMetadata metadata = createValidTokenMetadata();
-        metadata.setSubject(generateHexString(120));
-
-        // When
-        boolean result = validator.validate(metadata);
-
-        // Then
-        assertThat(result).isTrue();
-    }
-
-    @Test
-    @DisplayName("Should reject token metadata when name exceeds 50 characters (CIP-26 limit)")
-    void shouldRejectTokenMetadataWhenNameExceedsMaxLength() {
-        // Given - CIP-26 limits name to 50 characters
-        TokenMetadata metadata = createValidTokenMetadata();
-        metadata.setName(generateString(51));
-
-        // When
-        boolean result = validator.validate(metadata);
-
-        // Then
-        assertThat(result).isFalse();
-    }
-
-    @Test
-    @DisplayName("Should accept token metadata when name is exactly 50 characters (CIP-26 limit)")
-    void shouldAcceptTokenMetadataWhenNameIsExactly255Characters() {
-        // Given - CIP-26 allows up to 50 characters for name
-        TokenMetadata metadata = createValidTokenMetadata();
-        metadata.setName(generateString(50));
-
-        // When
-        boolean result = validator.validate(metadata);
-
-        // Then
-        assertThat(result).isTrue();
-    }
-
-    @Test
-    @DisplayName("Should reject token metadata when ticker exceeds 9 characters (CIP-26 limit)")
-    void shouldRejectTokenMetadataWhenTickerExceedsMaxLength() {
-        // Given - CIP-26 limits ticker to 2-9 characters
-        TokenMetadata metadata = createValidTokenMetadata();
-        metadata.setTicker(generateString(10));
-
-        // When
-        boolean result = validator.validate(metadata);
-
-        // Then
-        assertThat(result).isFalse();
-    }
-
-    @Test
-    @DisplayName("Should accept token metadata when ticker is exactly 9 characters (CIP-26 limit)")
-    void shouldAcceptTokenMetadataWhenTickerIsExactly32Characters() {
-        // Given - CIP-26 allows up to 9 characters for ticker
-        TokenMetadata metadata = createValidTokenMetadata();
-        metadata.setTicker(generateString(9));
-
-        // When
-        boolean result = validator.validate(metadata);
-
-        // Then
-        assertThat(result).isTrue();
-    }
-
-    @ParameterizedTest
-    @ValueSource(ints = {2, 5, 9})
-    @DisplayName("Should accept token metadata when ticker is within valid CIP-26 range (2-9 chars)")
-    void shouldAcceptTokenMetadataWhenTickerIsWithinValidRange(int length) {
-        // Given - CIP-26 requires ticker to be 2-9 characters
-        TokenMetadata metadata = createValidTokenMetadata();
-        metadata.setTicker(generateString(length));
-
-        // When
-        boolean result = validator.validate(metadata);
-
-        // Then
-        assertThat(result).isTrue();
-    }
-
-    @Test
-    @DisplayName("Should reject token metadata when ticker is only 1 character (below CIP-26 minimum)")
-    void shouldRejectTokenMetadataWhenTickerIsTooShort() {
-        // Given - CIP-26 requires ticker to be at least 2 characters
-        TokenMetadata metadata = createValidTokenMetadata();
-        metadata.setTicker("A");
-
-        // When
-        boolean result = validator.validate(metadata);
-
-        // Then
-        assertThat(result).isFalse();
-    }
-
-
-    @Test
-    @DisplayName("Should reject token metadata when description exceeds 500 characters (CIP-26 limit)")
-    void shouldRejectTokenMetadataWhenDescriptionExceedsMaxLength() {
-        // Given - CIP-26 limits description to 500 characters
-        TokenMetadata metadata = createValidTokenMetadata();
-        metadata.setDescription(generateString(501));
-
-        // When
-        boolean result = validator.validate(metadata);
-
-        // Then
-        assertThat(result).isFalse();
-    }
-
-    @Test
-    @DisplayName("Should accept token metadata when description is exactly 500 characters (CIP-26 limit)")
-    void shouldAcceptTokenMetadataWhenDescriptionIsExactly500Characters() {
-        // Given - CIP-26 allows up to 500 characters for description
-        TokenMetadata metadata = createValidTokenMetadata();
-        metadata.setDescription(generateString(500));
-
-        // When
-        boolean result = validator.validate(metadata);
-
-        // Then
-        assertThat(result).isTrue();
-    }
-
-    @Test
-    @DisplayName("Should reject token metadata when multiple fields exceed CIP-26 limits")
-    void shouldRejectTokenMetadataWhenMultipleFieldsExceedMaxLength() {
-        // Given - Multiple fields violating CIP-26 constraints
-        TokenMetadata metadata = createValidTokenMetadata();
-        metadata.setName(generateString(51)); // Max 50
-        metadata.setTicker(generateString(10)); // Max 9
-        metadata.setDescription(generateString(501)); // Max 500
-
-        // When
-        boolean result = validator.validate(metadata);
-
-        // Then
-        assertThat(result).isFalse();
-    }
-
-    @Test
-    @DisplayName("Should accept token metadata with null optional fields (ticker, decimals, url)")
-    void shouldAcceptTokenMetadataWithNullOptionalFields() {
-        // Given - Only required fields (subject, name, description) are provided
-        TokenMetadata metadata = new TokenMetadata();
-        metadata.setSubject(generateHexString(56)); // Valid 56 hex char subject
-        metadata.setPolicy("testPolicy");
-        metadata.setName("Test Token");
-        metadata.setTicker(null); // Optional
-        metadata.setUrl(null); // Optional
-        metadata.setDescription("Test description");
-        metadata.setDecimals(null); // Optional
-        metadata.setUpdated(LocalDateTime.now());
-        metadata.setUpdatedBy("testUser");
-
-        // When
-        boolean result = validator.validate(metadata);
-
-        // Then
-        assertThat(result).isTrue();
-    }
-
-    @Test
-    @DisplayName("Should reject token metadata with negative decimals")
-    void shouldRejectTokenMetadataWithNegativeDecimals() {
-        // Given - CIP-26 requires non-negative decimals
-        TokenMetadata metadata = createValidTokenMetadata();
-        metadata.setDecimals(-1L);
-
-        // When
-        boolean result = validator.validate(metadata);
-
-        // Then
-        assertThat(result).isFalse();
-    }
-
-    // Logo validation tests
-
-    @Test
-    @DisplayName("Should accept valid logo URL")
-    void shouldAcceptValidLogoUrl() {
-        // Given - Valid logo URL
-        String subject = generateHexString(56);
-        String logo = "https://example.com/logo.png";
-
-        // When
-        boolean result = validator.validateLogo(subject, logo);
-
-        // Then
-        assertThat(result).isTrue();
-    }
-
-    @Test
-    @DisplayName("Should accept logo with data URI")
-    void shouldAcceptLogoWithDataUri() {
-        // Given - Logo as data URI
-        String subject = generateHexString(56);
-        String logo = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
-
-        // When
-        boolean result = validator.validateLogo(subject, logo);
-
-        // Then
-        assertThat(result).isTrue();
-    }
-
-    @Test
-    @DisplayName("Should accept null logo (optional field)")
-    void shouldAcceptNullLogo() {
-        // Given - Logo is optional
-        String subject = generateHexString(56);
-        String logo = null;
-
-        // When
-        boolean result = validator.validateLogo(subject, logo);
-
-        // Then
-        assertThat(result).isTrue();
-    }
-
-    @Test
-    @DisplayName("Should accept empty logo string (optional field)")
-    void shouldAcceptEmptyLogo() {
-        // Given - Logo is optional
-        String subject = generateHexString(56);
-        String logo = "";
-
-        // When
-        boolean result = validator.validateLogo(subject, logo);
-
-        // Then
-        assertThat(result).isTrue();
-    }
-
-    @Test
-    @DisplayName("Should accept logo at maximum length (87400 characters per CIP-26)")
-    void shouldAcceptLogoAtMaximumLength() {
-        // Given - CIP-26 specification allows up to 87,400 characters for logo
-        // This limit is enforced by cf-metadata-core library
-        String subject = generateHexString(56);
-        String logo = generateString(87400);
-
-        // When
-        boolean result = validator.validateLogo(subject, logo);
-
-        // Then
-        assertThat(result).isTrue();
-    }
-
-    @Test
-    @DisplayName("Should reject logo exceeding maximum length (87400 characters per CIP-26)")
-    void shouldRejectLogoExceedingMaximumLength() {
-        // Given - Logo exceeds CIP-26 specification limit (87,400 chars)
-        // Validation is performed by cf-metadata-core library
-        String subject = generateHexString(56);
-        String logo = generateString(87401);
-
-        // When
-        boolean result = validator.validateLogo(subject, logo);
-
-        // Then
-        assertThat(result).isFalse();
-    }
-
-    // Helper methods
-
-    private TokenMetadata createValidTokenMetadata() {
-        TokenMetadata metadata = new TokenMetadata();
-        // Valid 56 hex character subject (policy ID only, minimum length)
-        metadata.setSubject("1234567890abcdef1234567890abcdef1234567890abcdef12345678");
-        metadata.setPolicy("testPolicy");
-        metadata.setName("Test Token"); // Within 50 char limit
-        metadata.setTicker("TEST"); // 2-9 characters
-        metadata.setUrl("https://example.com");
-        metadata.setDescription("Test description"); // Within 500 char limit
-        metadata.setDecimals(6L);
-        metadata.setUpdated(LocalDateTime.now());
-        metadata.setUpdatedBy("testUser");
-        return metadata;
-    }
-
-    private String generateString(int length) {
-        return "a".repeat(length);
-    }
-
-    private String generateHexString(int length) {
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < length; i++) {
-            sb.append(Integer.toHexString(i % 16));
+    @Nested
+    @DisplayName("validate — an entry that follows CIP-26")
+    class ValidMetadata {
+
+        @Test
+        void hasNoErrorsForMinimalValidMetadata() {
+            Cip26Validation result = validate(metadata(VALID_SUBJECT, "Nutcoin", "A test token"));
+
+            assertThat(result.isDropped()).isFalse();
+            assertThat(result.errors()).isEmpty();
         }
-        return sb.toString();
+
+        @Test
+        void hasNoErrorsWithAllOptionalFields() {
+            TokenMetadata m = metadata(VALID_SUBJECT, "Nutcoin", "A test token");
+            m.setTicker("NUT");
+            m.setUrl("https://example.com");
+            m.setDecimals(6L);
+            assertThat(validate(m).errors()).isEmpty();
+        }
+
+        @Test
+        void acceptsTheBoundsOfDecimalsAndDescription() {
+            TokenMetadata zero = metadata(VALID_SUBJECT, "Token", "Description");
+            zero.setDecimals(0L);
+            TokenMetadata max = metadata(VALID_SUBJECT, "Token", "d".repeat(500));
+            max.setDecimals(255L);
+
+            assertThat(validate(zero).errors()).isEmpty();
+            assertThat(validate(max).errors()).isEmpty();
+        }
+    }
+
+    @Nested
+    @DisplayName("validate — an entry that breaks CIP-26 is kept, with errors")
+    class InvalidMetadata {
+
+        @Test
+        void reportsAMissingNameAsMandatory() {
+            Cip26Validation result = validate(metadata(VALID_SUBJECT, null, "A description"));
+
+            assertThat(result.isDropped()).isFalse();
+            assertThat(result.errors()).singleElement().satisfies(e -> {
+                assertThat(e.cip()).isEqualTo("CIP-26");
+                assertThat(e.subStandard()).isNull();
+                assertThat(e.fieldName()).isEqualTo("name");
+                assertThat(e.fieldCategory()).isEqualTo(FieldCategory.MANDATORY);
+                assertThat(e.code()).isEqualTo("missing_value");
+                assertThat(e.error()).isEqualTo("name field is missing a mandatory value");
+            });
+        }
+
+        @Test
+        void reportsAMissingDescriptionAsMandatory() {
+            assertThat(summary(validate(metadata(VALID_SUBJECT, "Nutcoin", null))))
+                    .containsExactly("description:MANDATORY:missing_value");
+        }
+
+        @Test
+        void reportsBothWhenNameAndDescriptionAreMissing() {
+            assertThat(summary(validate(metadata(VALID_SUBJECT, null, null))))
+                    .containsExactly("name:MANDATORY:missing_value", "description:MANDATORY:missing_value");
+        }
+
+        @Test
+        void reportsANameOverTheLimitAsAMandatoryFieldWithALengthError() {
+            Cip26Validation result = validate(metadata(VALID_SUBJECT, "A".repeat(100), "A description"));
+
+            assertThat(result.errors()).singleElement().satisfies(e -> {
+                assertThat(e.fieldName()).isEqualTo("name");
+                assertThat(e.fieldCategory()).isEqualTo(FieldCategory.MANDATORY);
+                assertThat(e.code()).isEqualTo("invalid_length");
+                assertThat(e.error()).contains("50").contains("100");
+            });
+        }
+
+        @Test
+        void reportsATickerOverTheLimitAsOptional() {
+            TokenMetadata m = metadata(VALID_SUBJECT, "Token", "Description");
+            m.setTicker("ABCDEFGHIJ"); // CIP-26: ticker max 9 chars
+            assertThat(summary(validate(m))).containsExactly("ticker:OPTIONAL:invalid_length");
+        }
+
+        @Test
+        void reportsAUrlOverTheLimitAsOptional() {
+            TokenMetadata m = metadata(VALID_SUBJECT, "Token", "Description");
+            m.setUrl("https://example.com/" + "a".repeat(300)); // CIP-26: url max 250 chars
+            assertThat(summary(validate(m))).containsExactly("url:OPTIONAL:invalid_length");
+        }
+
+        @Test
+        void reportsAUrlWithoutAHostThatTheLibraryLetsThrough() {
+            // mainnet: ca769ee7...555345 has 'https:/rosen.tech', one slash, so 'rosen.tech' is a path and there is no host
+            TokenMetadata m = metadata(VALID_SUBJECT, "Token", "Description");
+            m.setUrl("https:/rosen.tech");
+
+            Cip26Validation validation = validate(m);
+
+            assertThat(summary(validation)).containsExactly("url:OPTIONAL:invalid_value");
+            assertThat(validation.errors().getFirst().error()).isEqualTo("url 'https:/rosen.tech' has no host");
+        }
+
+        @Test
+        void acceptsHttpsUrlsWithAHost() {
+            for (String url : new String[]{"https://rosen.tech", "https://example.com/path?q=1#top", "HTTPS://EXAMPLE.COM"}) {
+                TokenMetadata m = metadata(VALID_SUBJECT, "Token", "Description");
+                m.setUrl(url);
+                assertThat(validate(m).errors()).as(url).isEmpty();
+            }
+        }
+
+        @Test
+        void reportsAUrlThatIsNotAValidUriOrNotHttps() {
+            assertThat(TokenMetadataValidator.urlProblem("https://exa mple.com")).isEqualTo("url 'https://exa mple.com' is not a valid URI");
+            assertThat(TokenMetadataValidator.urlProblem("ftp://example.com")).isEqualTo("url 'ftp://example.com' is not an https URL");
+            assertThat(TokenMetadataValidator.urlProblem("example.com")).isEqualTo("url 'example.com' is not an https URL");
+            assertThat(TokenMetadataValidator.urlProblem(null)).isNull();
+            assertThat(TokenMetadataValidator.urlProblem("")).isNull();
+        }
+
+        @Test
+        void reportsAUrlTheLibraryRejectsOnlyOnce() {
+            TokenMetadata m = metadata(VALID_SUBJECT, "Token", "Description");
+            m.setUrl("https:/" + "a".repeat(300));
+            assertThat(summary(validate(m))).containsExactly("url:OPTIONAL:invalid_length");
+        }
+
+        @Test
+        void reportsADescriptionOverTheLimit() {
+            assertThat(summary(validate(metadata(VALID_SUBJECT, "Token", "d".repeat(501)))))
+                    .containsExactly("description:MANDATORY:invalid_length");
+        }
+
+        @Test
+        void reportsDecimalsOutsideTheRangeAndKeepsTheValue() {
+            for (long decimals : new long[]{-1L, 256L, 4_294_967_301L}) {
+                // 2^32 + 5: narrowing to int gives 5, which the upstream library would accept
+                TokenMetadata m = metadata(VALID_SUBJECT, "Token", "Description");
+                m.setDecimals(decimals);
+
+                Cip26Validation result = validate(m);
+
+                assertThat(summary(result)).as("decimals %d", decimals).containsExactly("decimals:OPTIONAL:out_of_range");
+                assertThat(m.getDecimals()).isEqualTo(decimals);
+            }
+        }
+
+        @Test
+        void reportsDecimalsThatAreNotANumber() {
+            // MappingsUtil turns a non-numeric value into null (and the raw string stays in the mapping)
+            TokenMetadata m = metadata(VALID_SUBJECT, "Token", "Description");
+            Mapping mapping = new Mapping(VALID_SUBJECT, null, null, null, new Item(1, "six", null), null, null, null);
+
+            Cip26Validation result = validator.validate(mapping, m);
+
+            assertThat(result.errors()).singleElement().satisfies(e -> {
+                assertThat(e.fieldName()).isEqualTo("decimals");
+                assertThat(e.code()).isEqualTo("wrong_type");
+                assertThat(e.error()).contains("'six'");
+            });
+        }
+
+        @Test
+        void reportsEveryProblemOfAnEntryAtOnce() {
+            TokenMetadata m = metadata(VALID_SUBJECT, null, "d".repeat(501));
+            m.setTicker("A");
+            m.setDecimals(300L);
+
+            assertThat(summary(validate(m))).containsExactlyInAnyOrder(
+                    "name:MANDATORY:missing_value", "decimals:OPTIONAL:out_of_range",
+                    "description:MANDATORY:invalid_length", "ticker:OPTIONAL:invalid_length");
+        }
+    }
+
+    @Nested
+    @DisplayName("validate — a subject that cannot be a key drops the entry")
+    class Subject {
+
+        @Test
+        void dropsAMissingSubject() {
+            Cip26Validation result = validate(metadata(null, "Nutcoin", "A description"));
+
+            assertThat(result.isDropped()).isTrue();
+            assertThat(result.droppedCode()).isEqualTo(InvalidTokenReason.UNUSABLE_SUBJECT);
+            assertThat(result.droppedReason()).contains("missing");
+        }
+
+        @Test
+        void dropsASubjectThatIsNotEvenLengthHex() {
+            assertThat(validate(metadata(VALID_SUBJECT + "0", "N", "D")).isDropped()).isTrue();
+            assertThat(validate(metadata("zz" + VALID_SUBJECT.substring(2), "N", "D")).isDropped()).isTrue();
+        }
+
+        @Test
+        void dropsASubjectShorterThanAPolicyIdOrLongerThanTheMaximum() {
+            assertThat(validate(metadata("0251", "N", "D")).isDropped()).isTrue();
+            assertThat(validate(metadata("02".repeat(61), "N", "D")).isDropped()).isTrue();
+        }
+
+        @Test
+        void keepsASubjectAtTheBounds() {
+            assertThat(validate(metadata("02".repeat(28), "N", "D")).isDropped()).isFalse();
+            assertThat(validate(metadata("02".repeat(60), "N", "D")).isDropped()).isFalse();
+        }
+    }
+
+    @Nested
+    @DisplayName("validateLogo")
+    class ValidateLogo {
+
+        @Test
+        void hasNoErrorsForANullOrEmptyLogo() {
+            assertThat(validator.validateLogo(VALID_SUBJECT, null).errors()).isEmpty();
+            assertThat(validator.validateLogo(VALID_SUBJECT, "").errors()).isEmpty();
+        }
+
+        @Test
+        void hasNoErrorsForAValidBase64PngLogo() {
+            // Minimal valid PNG as base64 (1x1 transparent pixel)
+            String validPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+            Cip26Validation result = validator.validateLogo(VALID_SUBJECT, validPng);
+
+            assertThat(result.isDropped()).isFalse();
+            assertThat(result.errors()).isEmpty();
+        }
+
+        @Test
+        void reportsALogoOverTheCipLimitButKeepsIt() {
+            // CIP-26: logo max 87400 base64 chars (64 KiB decoded)
+            Cip26Validation result = validator.validateLogo(VALID_SUBJECT, "A".repeat(90000));
+
+            assertThat(result.isDropped()).isFalse();
+            assertThat(result.errors()).singleElement().satisfies(e -> {
+                assertThat(e.fieldName()).isEqualTo("logo");
+                assertThat(e.fieldCategory()).isEqualTo(FieldCategory.OPTIONAL);
+                assertThat(e.code()).isEqualTo("too_large");
+            });
+        }
+
+        @Test
+        void reportsNonBase64GarbageButKeepsIt() {
+            // Characters outside the base64 alphabet: Base64.getDecoder() throws, which becomes an error
+            Cip26Validation result = validator.validateLogo(VALID_SUBJECT, "this-is-not!!base64@@");
+
+            assertThat(result.isDropped()).isFalse();
+            assertThat(summary(result)).containsExactly("logo:OPTIONAL:invalid_base64");
+        }
+
+        @Test
+        void dropsALogoFarBeyondAnyRealSize() {
+            // an obvious attack on the indexer: far beyond the 64 KiB CIP-26 allows
+            Cip26Validation result = validator.validateLogo(VALID_SUBJECT, "A".repeat(TokenMetadataValidator.LOGO_HARD_CAP_CHARS + 4));
+
+            assertThat(result.isDropped()).isTrue();
+            assertThat(result.droppedCode()).isEqualTo(InvalidTokenReason.LOGO_TOO_LARGE);
+        }
+
+        @Test
+        void handlesAnInvalidSubjectGracefully() {
+            assertThat(validator.validateLogo("invalid", null).errors()).isEmpty();
+        }
     }
 }

@@ -42,7 +42,9 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
-    restart: on-failure
+    # not on-failure: Postgres exits 0 on a host shutdown, so it would stay down after a reboot while the API, which
+    # always restarts, crash-loops without its database
+    restart: unless-stopped
   api:
     <<: *api-service-common
     profiles:
@@ -59,6 +61,7 @@ services:
       GITHUB_TMP_FOLDER: "${GITHUB_TMP_FOLDER:-/tmp}"
       GITHUB_FORCE_CLONE: "${GITHUB_FORCE_CLONE:-false}"
       STORE_SYNCAUTOSTART: "${STORE_SYNCAUTOSTART}"
+      CIP113_REGISTRY_NFT_POLICY_IDS: "${CIP113_REGISTRY_NFT_POLICY_IDS:-}"
       API_LOCAL_BIND_PORT: "${API_LOCAL_BIND_PORT}"
   api-ro:
     <<: *api-service-common
