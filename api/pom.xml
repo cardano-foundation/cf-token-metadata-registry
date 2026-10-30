@@ -222,6 +222,10 @@
                         <configuration>
                             <mainClass>org.cardanofoundation.tokenmetadata.registry.api.TokenMetadataRegistryApplication</mainClass>
                             <buildArgs>
+                                <!-- GraalVM targets x86-64-v3 (AVX2, BMI2, FMA) by default on amd64, so the
+                                     executable fails on older CPUs and VMs with generic CPU models
+                                     ("CPU ISA level is lower than required"). compatibility runs anywhere. -->
+                                <buildArg>-march=compatibility</buildArg>
                                 <buildArg>-O3</buildArg>
                                 <buildArg>--gc=G1</buildArg>
                                 <buildArg>--initialize-at-run-time=sun.net.dns.ResolverConfigurationImpl</buildArg>
