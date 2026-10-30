@@ -10,6 +10,9 @@
 #   run-cip68-tests.sh rft                    RFT (444) tests only
 #   run-cip68-tests.sh "cip68 and not rft"    for a build without RFT support (before PR #110 / ADR-018)
 #   run-cip68-tests.sh "cip68 and not validation"   for a build or database without validation errors (before ADR-019)
+#
+# Its Allure results are added to those of run-cip26-tests.sh, so one report covers the run.
+# ALLURE_CLEAN=1 empties regression-tests/allure-results first, for a run without the CIP-26 step.
 
 set -euo pipefail
 # shellcheck disable=SC1091
@@ -27,8 +30,11 @@ for fixture in cip68_tokens.json cip68_rft_tokens.json; do
   fi
 done
 
+ALLURE_ARGS=(--alluredir=../allure-results)
+[[ "${ALLURE_CLEAN:-0}" == "1" ]] && ALLURE_ARGS+=(--clean-alluredir)
+
 cd "$REGRESSION_DIR"
 echo "[cip68] running pytest -m \"$MARKERS\" against http://localhost:${LOCAL_API_PORT} (using committed fixtures)..."
 cd mainnet
 API_BASE_URL="http://localhost:${LOCAL_API_PORT}" \
-  uv run pytest -m "$MARKERS" -v --alluredir=../allure-results
+  uv run pytest -m "$MARKERS" -v "${ALLURE_ARGS[@]}"

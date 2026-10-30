@@ -51,6 +51,7 @@ node_modules/
 # testing
 .coverage
 regression-tests/allure-results/
+regression-tests/allure-report/
 
 # Claude Code skills live in .claude/ — overrides the global ~/.gitignore_global
 # rule that excludes .claude/*. Only the per-developer settings and skill runtime

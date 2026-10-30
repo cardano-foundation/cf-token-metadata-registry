@@ -4,6 +4,10 @@
 # this is intentional: regenerating fixtures every run would defeat the
 # point of a regression test (compare current API behavior to a fixed
 # baseline). Assumes wait-offchain-ready.sh has already returned UP.
+#
+# It is the first test step of a run, so it empties regression-tests/allure-results
+# first: pytest otherwise adds to the results of every earlier run, and a report
+# built from the folder mixes them. ALLURE_CLEAN=0 keeps the earlier results.
 
 set -euo pipefail
 # shellcheck disable=SC1091
@@ -26,7 +30,10 @@ cd "$REGRESSION_DIR"
 echo "[cip26] syncing dependencies (uv sync, resolves against uv.lock)..."
 uv sync
 
+ALLURE_ARGS=(--alluredir=../allure-results)
+[[ "${ALLURE_CLEAN:-1}" == "1" ]] && ALLURE_ARGS+=(--clean-alluredir)
+
 echo "[cip26] running pytest -m cip26 against http://localhost:${LOCAL_API_PORT} (using committed fixtures)..."
 cd mainnet
 API_BASE_URL="http://localhost:${LOCAL_API_PORT}" \
-  uv run pytest -m cip26 -v --alluredir=../allure-results
+  uv run pytest -m cip26 -v "${ALLURE_ARGS[@]}"
