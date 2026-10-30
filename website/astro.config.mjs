@@ -4,6 +4,7 @@ import starlight from '@astrojs/starlight';
 import starlightOpenAPI, { openAPISidebarGroups } from 'starlight-openapi';
 import tailwindcss from '@tailwindcss/vite';
 import llmsIntegration from './scripts/llms-integration.mjs';
+import markdownExport from './scripts/markdown-export.mjs';
 
 // Served as a GitHub Pages project site, under /cf-token-metadata-registry/. For a custom domain later: add
 // public/CNAME, set SITE to the domain and drop BASE (see website/README.md).
@@ -63,7 +64,6 @@ export default defineConfig({
           label: 'Reference',
           items: [
             { label: 'API', slug: 'reference/api' },
-            { label: 'Try the API (Scalar)', link: '/api-reference/', attrs: { target: '_self' } },
             { label: 'Run your own registry', slug: 'reference/self-hosting' },
           ],
         },
@@ -71,6 +71,8 @@ export default defineConfig({
       ],
     }),
     llmsIntegration(),
+    // A Markdown copy beside every page, for the "Copy as Markdown" button and for tools that read the page text.
+    markdownExport(),
   ],
   vite: {
     plugins: [tailwindcss()],

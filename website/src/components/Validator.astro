@@ -8,7 +8,8 @@ const defaultApi = import.meta.env.PUBLIC_REGISTRY_API_URL ?? '';
 <div class="validator not-content" data-default-api={defaultApi}>
 	<label class="field api">
 		<span>Registry API</span>
-		<input id="api-url" type="url" placeholder="https://registry.example.org" />
+		<input id="api-url" type="url" placeholder="https://tokens.cardano.org" />
+		<small class="hint">Mainnet <code>https://tokens.cardano.org</code>, preprod <code>https://preprod.tokens.cardano.org</code>.</small>
 	</label>
 
 	<div class="tabs" role="tablist">
@@ -193,7 +194,7 @@ const defaultApi = import.meta.env.PUBLIC_REGISTRY_API_URL ?? '';
 			const rows = Object.entries(response.cip113).map(([k, v]) => `<tr><td>${escape(k)}</td><td><code>${escape(v ?? '—')}</code></td></tr>`);
 			parts.push(`<h3>CIP-113 extension</h3><table><tbody>${rows.join('')}</tbody></table>`);
 		}
-		if (response.datum) {
+		if (response.stored && response.datum) {
 			parts.push(`<h3>Datum</h3><p>Put this inline datum on the output that holds your reference NFT:</p><pre><code>${escape(response.datum)}</code></pre>`);
 		}
 		if (response.notes?.length) {
@@ -210,9 +211,16 @@ const defaultApi = import.meta.env.PUBLIC_REGISTRY_API_URL ?? '';
 			return;
 		}
 		result.innerHTML = '<p>Checking…</p>';
+		let request: string;
+		try {
+			request = JSON.stringify(body(form));
+		} catch (error) {
+			result.innerHTML = `<p><span class="badge bad">That is not valid JSON</span> ${escape((error as Error).message)}</p>`;
+			return;
+		}
 		try {
 			const response = await fetch(`${api}/api/v2/validate/${form.dataset.standard}`, {
-				method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body(form)),
+				method: 'POST', headers: { 'Content-Type': 'application/json' }, body: request,
 			});
 			const payload = await response.json().catch(() => ({}));
 			result.innerHTML = response.ok
