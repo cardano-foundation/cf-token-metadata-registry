@@ -108,7 +108,7 @@ public final class Cip68Validator {
                 "logo '" + abbreviate(logo) + "' is not a URI with one of the schemes CIP-68 allows (" + Cip68Uri.ALLOWED_SCHEMES + ")");
     }
 
-    private static boolean isDescriptionForm(ValidationError error) {
+    static boolean isDescriptionForm(ValidationError error) {
         return DESCRIPTION.equals(error.fieldName())
                 && (ValidationCode.WRONG_TYPE.equals(error.code()) || ValidationCode.CHUNKED_TEXT.equals(error.code())
                 || ValidationCode.NOT_UTF8.equals(error.code()));

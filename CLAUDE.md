@@ -108,6 +108,7 @@ Main configuration is in `api/src/main/resources/application.properties`. Key en
 |--------|------|-------------|
 | GET | `/api/v2/subjects/{subject}` | Subject with priority, optional `property`, `query_priority`, `show_cips_details`, `validation` params |
 | POST | `/api/v2/subjects/query` | Batch query with same options |
+| POST | `/api/v2/validate/cip26`, `/cip68`, `/cip113` | Check a token before it exists: what the registry would store and serve (ADR-023). Stateless; `registry.validate.*` properties |
 
 ### Operational Endpoints
 
