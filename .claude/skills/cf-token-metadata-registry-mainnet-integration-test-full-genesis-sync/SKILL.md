@@ -109,7 +109,9 @@ While polling, print the current status periodically so the user sees progress.
 Once offchain is UP, the `metadata` and `logo` tables are populated. Run `scripts/run-cip26-tests.sh` which:
 
 1. `cd regression-tests && uv sync` (local — resolves dependencies from `pyproject.toml` + `uv.lock`).
-2. Runs `cd mainnet && API_BASE_URL=http://localhost:$LOCAL_API_PORT uv run pytest -m cip26 -v --alluredir=../allure-results`.
+2. Runs `cd mainnet && API_BASE_URL=http://localhost:$LOCAL_API_PORT uv run pytest -m cip26 -v --alluredir=../allure-results --clean-alluredir`.
+
+It is the first test step of a run, so it **empties `regression-tests/allure-results`** first (`--clean-alluredir`): pytest otherwise adds to the results of every earlier run, and a report built from the folder mixes them. `ALLURE_CLEAN=0` keeps the earlier results.
 
 **Do not regenerate fixtures.** The committed `regression-tests/mainnet/fixtures/cip26_tokens.json` is the frozen regression baseline (1000 tokens). Regenerating from the live DB on every run would turn this into a self-confirming smoke test rather than a regression test. Fixtures are refreshed only as a deliberate, separate operation.
 
@@ -135,6 +137,8 @@ When the indexer reaches tip, the `metadata_reference_nft` table is populated. R
 
 To run one group only: `scripts/run-cip68-tests.sh rft`, or `scripts/run-cip68-tests.sh "cip68 and not rft"`.
 
+Its Allure results are **added** to those of step 6, so one report covers the run. When CIP-68 is run without step 6 (for example a rerun at the tip), use `ALLURE_CLEAN=1 scripts/run-cip68-tests.sh` so the report holds only that run.
+
 **RFT support exists only from PR #110 (ADR-018) on.** When the branch under test is older, every RFT test fails with 404. That's expected, not a regression: run `scripts/run-cip68-tests.sh "cip68 and not rft"` and say so in the report. A full genesis sync on a build with RFT support also stores RFTs **without** a description. They aren't in the fixture, which covers only RFTs with a description, so they don't affect the result.
 
 **Same fixture rule as CIP-26: do not regenerate.** The committed snapshots are the regression baseline.
@@ -155,7 +159,7 @@ Summarize for the user:
 - Time spent: offchain sync, onchain sync, total.
 - CIP-26: pass/fail counts + first 5 failures.
 - CIP-68: pass/fail counts + first 5 failures, with the fungible token (333) and rich fungible token (444, `-m rft`) results reported separately.
-- Where the Allure results are (`regression-tests/allure-results/`); how to view them (`allure serve regression-tests/allure-results`).
+- The Allure report: run `scripts/generate-allure-report.sh`, which builds `regression-tests/allure-report/` from the run's results (with `allure`, or `npx allure-commandline` when it is not installed; Java is needed), prints its totals, and prints the command that opens it. Check that its totals match the pytest counts: a mismatch means results of an earlier run were left in `allure-results`.
 - Remind the user that the docker compose stack is **still running** on the remote so they can poke at it; ask if you should `docker compose down -v` and remove the SSH tunnels, or leave it up for further inspection.
 
 ## Handling failures
@@ -197,7 +201,8 @@ Observed and filed upstream as **bloxbean/yaci#161** (yaci-core) + **bloxbean/ya
     ├── check-sync-progress.sh     # one-shot window-relative progress (DB cursor vs Koios tip; no /health hit)
     ├── monitor-sync-progress.sh   # looped progress + ETA; --until-tip exits at ~100% (preferred tip detector)
     ├── run-cip26-tests.sh         # pytest -m cip26 against committed fixtures (NO regenerate)
-    └── run-cip68-tests.sh         # pytest -m cip68 (FTs + RFTs) against committed fixtures (NO regenerate); optional marker arg
+    ├── run-cip68-tests.sh         # pytest -m cip68 (FTs + RFTs) against committed fixtures (NO regenerate); optional marker arg
+    └── generate-allure-report.sh  # Allure report of the run into regression-tests/allure-report, with its totals
 ```
 
 All scripts are idempotent and safe to re-run. They print clear progress lines and exit non-zero on failure.

@@ -106,8 +106,12 @@ uv run pytest -v
 ### Run with Allure report data
 
 ```bash
-uv run pytest -v --alluredir=../allure-results
+uv run pytest -v --alluredir=../allure-results --clean-alluredir
 ```
+
+pytest adds to the results already in `allure-results`, so without `--clean-alluredir` a report mixes this run with
+every earlier one. Leave it out only to add a second test step (for example CIP-68 at the tip after CIP-26) to the same
+run.
 
 ### Filter by marker
 
@@ -255,7 +259,7 @@ uv run python mainnet/fixtures/generate_fixtures.py
 
 # 4. Run tests (ensure API is running)
 cd mainnet
-uv run pytest -v --alluredir=../allure-results
+uv run pytest -v --alluredir=../allure-results --clean-alluredir
 
 # 5. View results in browser
 cd ..
@@ -274,7 +278,7 @@ uv run python mainnet/fixtures/generate_fixtures.py
 
 # Re-run tests (CIP-68 tests will now run instead of being skipped)
 cd mainnet
-uv run pytest -v --alluredir=../allure-results
+uv run pytest -v --alluredir=../allure-results --clean-alluredir
 ```
 
 ## Test Coverage
