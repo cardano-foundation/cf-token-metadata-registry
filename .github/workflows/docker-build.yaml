@@ -110,7 +110,7 @@ jobs:
             EXTRA_TAGS="${EXTRA_TAGS} latest"
           fi
 
-          earthly +"${INPUT_APP}-${INPUT_VARIANT}" \
+          earth +"${INPUT_APP}-${INPUT_VARIANT}" \
             --PUSH="${INPUT_PUSH}" \
             --DOCKER_REGISTRIES="${DOCKER_REGISTRIES_FILTERED}" \
             --DOCKER_IMAGES_EXTRA_TAGS="${EXTRA_TAGS}"
