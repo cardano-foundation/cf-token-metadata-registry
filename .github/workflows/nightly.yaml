@@ -6,10 +6,13 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   java-build:
+    # pushes the JaCoCo coverage badges
+    permissions:
+      contents: write
     uses: ./.github/workflows/build.yaml
 
   # JVM Docker build
@@ -34,3 +37,73 @@ jobs:
     with:
       target: docker-native
       image-tag: ${{ needs.docker-build-native.outputs.image-tag }}
+
+  # GraalVM native Docker build for read-only API instances (ADR-021). Read-only mode is fixed when a native image is
+  # built (bloxbean/yaci-store#1293), so this image gets its own smoke test: it must start, be ready, and not index.
+  docker-build-native-readonly:
+    needs: java-build
+    uses: ./.github/workflows/docker-build.yaml
+    with:
+      app: api
+      variant: native-readonly
+
+  smoke-test-native-readonly:
+    needs: docker-build-native-readonly
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: cardano
+          POSTGRES_PASSWORD: smoke
+          POSTGRES_DB: cf_token_metadata_registry
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U cardano -d cf_token_metadata_registry"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - name: Download Docker image
+        uses: actions/download-artifact@v8
+        with:
+          name: docker-image-api-native-readonly
+          path: /tmp
+
+      - name: Load Docker image
+        run: docker load -i /tmp/docker-image.tar
+
+      - name: Start the read-only API (settings of the api-ro compose service)
+        env:
+          IMAGE: ${{ needs.docker-build-native-readonly.outputs.image-tag }}
+        run: |
+          docker run -d --name api-ro --network host \
+            -e DB_URL=jdbc:postgresql://localhost:5432/cf_token_metadata_registry \
+            -e DB_USERNAME=cardano -e DB_PASSWORD=smoke \
+            -e STORE_CARDANO_PROTOCOL_MAGIC=764824073 \
+            -e STORE_CARDANO_HOST=backbone.mainnet.cardanofoundation.org -e STORE_CARDANO_PORT=3001 \
+            -e TOKEN_METADATA_SYNC_JOB=false -e STORE_SYNCAUTOSTART=false -e STORE_READONLYMODE=true \
+            -e SPRING_PROFILES_ACTIVE=readonly \
+            "${IMAGE}"
+
+      - name: Wait for readiness
+        run: |
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost:8080/actuator/health/readiness; then echo; exit 0; fi
+            sleep 2
+          done
+          docker logs api-ro
+          exit 1
+
+      - name: Assert it does not index
+        run: |
+          sleep 30
+          logs=$(docker logs api-ro 2>&1)
+          cursor_rows=$(PGPASSWORD=smoke psql -h localhost -U cardano -d cf_token_metadata_registry -Atc "select count(*) from cursor_")
+          echo "cursor_ rows: ${cursor_rows}"
+          if echo "${logs}" | grep -q "start the sync process"; then
+            echo "::error::The read-only native image started the sync process"; echo "${logs}"; exit 1
+          fi
+          if [ "${cursor_rows}" != "0" ]; then
+            echo "::error::The read-only native image wrote ${cursor_rows} cursor rows"; echo "${logs}"; exit 1
+          fi
+          curl -sf http://localhost:8080/health | grep -q "read-only mode"

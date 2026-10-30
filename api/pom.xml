@@ -214,6 +214,16 @@
     <profiles>
         <profile>
             <id>native</id>
+            <properties>
+                <!--
+                    Yaci Store's read-only mode (store.read-only-mode) decides which beans exist, and Spring AOT
+                    decides that once, when the native image is built: setting STORE_READONLYMODE when the image runs
+                    changes nothing. So a native image is built for one role. true builds the read-only image,
+                    published as cf-token-metadata-registry-api-native-readonly. A workaround until Yaci Store checks read-only mode at
+                    runtime: https://github.com/bloxbean/yaci-store/issues/1293, see ADR-021.
+                -->
+                <native.read-only-mode>false</native.read-only-mode>
+            </properties>
             <build>
                 <plugins>
                     <plugin>
@@ -250,6 +260,9 @@
                             </execution>
                         </executions>
                         <configuration>
+                            <systemPropertyVariables>
+                                <store.read-only-mode>${native.read-only-mode}</store.read-only-mode>
+                            </systemPropertyVariables>
                             <image>
                                 <builder>paketobuildpacks/builder-jammy-tiny:latest</builder>
                             </image>

@@ -17,7 +17,7 @@ VERSION 0.8
 IMPORT --allow-privileged github.com/cardano-foundation/cf-gha-workflows/./earthfiles/functions:main AS functions
 
 ARG --global DOCKER_IMAGE_PREFIX="cf-token-metadata-registry"
-ARG --global DOCKER_IMAGES_TARGETS="api-jvm api-native job-jvm"
+ARG --global DOCKER_IMAGES_TARGETS="api-jvm api-native api-native-readonly job-jvm"
 ARG --global PUSH=false
 ARG --global DOCKER_REGISTRIES=""
 ARG --global DOCKER_IMAGES_EXTRA_TAGS=""
@@ -48,6 +48,22 @@ api-native:
   LET DOCKER_IMAGE_NAME=${DOCKER_IMAGE_PREFIX}-api-native
   WAIT
     FROM DOCKERFILE -f api/Dockerfile.native .
+  END
+  WAIT
+    SAVE IMAGE ${DOCKER_IMAGE_NAME}:latest
+  END
+  DO functions+DOCKER_TAG_N_PUSH \
+    --PUSH=$PUSH \
+    --DOCKER_IMAGE_NAME=${DOCKER_IMAGE_NAME} \
+    --DOCKER_IMAGES_EXTRA_TAGS="${DOCKER_IMAGES_EXTRA_TAGS}" \
+    --DOCKER_REGISTRIES="${DOCKER_REGISTRIES}"
+
+# Native image for read-only API instances: read-only mode is fixed when a native image is built, not when it runs
+# (ADR-021, bloxbean/yaci-store#1293)
+api-native-readonly:
+  LET DOCKER_IMAGE_NAME=${DOCKER_IMAGE_PREFIX}-api-native-readonly
+  WAIT
+    FROM DOCKERFILE --build-arg READ_ONLY_MODE=true -f api/Dockerfile.native .
   END
   WAIT
     SAVE IMAGE ${DOCKER_IMAGE_NAME}:latest

@@ -47,6 +47,23 @@ jobs:
       GITLAB_DOCKER_REGISTRY_URL: ${{ secrets.GITLAB_DOCKER_REGISTRY_URL }}
       GITLAB_PKG_REGISTRY_TOKEN: ${{ secrets.GITLAB_PKG_REGISTRY_TOKEN }}
 
+  # Native image for read-only API instances. A workaround: read-only mode is fixed when a native image is built, so it
+  # needs its own image until Yaci Store checks it at runtime (ADR-021, bloxbean/yaci-store#1293).
+  docker-api-native-readonly:
+    needs: java-build
+    if: github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && !startsWith(github.event.pull_request.head.ref, 'release-please--branches--'))
+    uses: ./.github/workflows/docker-build.yaml
+    with:
+      app: api
+      variant: native-readonly
+      push: true
+    secrets:
+      DOCKER_REGISTRIES: ${{ secrets.DOCKER_REGISTRIES }}
+      HUB_DOCKER_COM_USER: ${{ secrets.HUB_DOCKER_COM_USER }}
+      HUB_DOCKER_COM_PASS: ${{ secrets.HUB_DOCKER_COM_PASS }}
+      GITLAB_DOCKER_REGISTRY_URL: ${{ secrets.GITLAB_DOCKER_REGISTRY_URL }}
+      GITLAB_PKG_REGISTRY_TOKEN: ${{ secrets.GITLAB_PKG_REGISTRY_TOKEN }}
+
   docker-job:
     needs: java-build
     if: github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && !startsWith(github.event.pull_request.head.ref, 'release-please--branches--'))

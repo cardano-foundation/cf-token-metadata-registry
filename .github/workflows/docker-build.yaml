@@ -11,7 +11,7 @@ on:
       variant:
         type: string
         required: true
-        description: 'Build variant: jvm or native'
+        description: 'Build variant: jvm, native, or native-readonly (native image built for read-only mode, see ADR-021)'
       push:
         type: boolean
         default: false
@@ -66,10 +66,10 @@ jobs:
           INPUT_APP: ${{ inputs.app }}
           INPUT_VARIANT: ${{ inputs.variant }}
         run: |
-          if [ "${INPUT_VARIANT}" = "native" ]; then
-            IMAGE="cf-token-metadata-registry-${INPUT_APP}-native"
-          else
+          if [ "${INPUT_VARIANT}" = "jvm" ]; then
             IMAGE="cf-token-metadata-registry-${INPUT_APP}"
+          else
+            IMAGE="cf-token-metadata-registry-${INPUT_APP}-${INPUT_VARIANT}"
           fi
           echo "image-tag=${IMAGE}:latest" | tee -a "$GITHUB_OUTPUT"
 
