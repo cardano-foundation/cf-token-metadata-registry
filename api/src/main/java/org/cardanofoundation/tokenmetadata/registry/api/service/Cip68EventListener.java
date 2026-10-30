@@ -384,20 +384,29 @@ public class Cip68EventListener {
                 .build();
     }
 
+    /** What is wrong with the datum itself, whatever its label: the parser's errors, and the logo. */
+    static List<ValidationError> datumErrors(ParsedCip68Datum parsed) {
+        List<ValidationError> errors = new ArrayList<>(parsed.validationErrors());
+        ValidationError logoError = Cip68Validator.validateLogo(parsed);
+        if (logoError != null) {
+            errors.add(logoError);
+        }
+        return errors;
+    }
+
     /**
      * Every error of a datum checked against each of its labels, without storing any of them: what the validate endpoint
      * reports, so that it answers exactly as the registry would serve the token.
      */
     static List<ValidationError> errorsForLabels(ParsedCip68Datum parsed, List<Integer> labels) {
-        List<ValidationError> datumErrors = new ArrayList<>(parsed.validationErrors());
-        ValidationError logoError = Cip68Validator.validateLogo(parsed);
-        if (logoError != null) {
-            datumErrors.add(logoError);
-        }
-        List<ValidationError> errors = new ArrayList<>(datumErrors);
+        List<ValidationError> datumErrors = datumErrors(parsed);
         if (labels.isEmpty()) {
-            return errors;
+            return new ArrayList<>(datumErrors);
         }
+        // A description written in a form the label judges (a wrong type, chunks, bytes that are not UTF-8) is stored
+        // without a label: validate() reports it again with the category of the label asked for, so it is left out here.
+        List<ValidationError> stored = datumErrors.stream().filter(error -> !Cip68Validator.isDescriptionForm(error)).toList();
+        List<ValidationError> errors = new ArrayList<>(stored);
         // Cip68Validator.validate reads the row that would be stored: build it from the parsed fields, without the
         // identity fields (policy, asset name, slot) it does not look at.
         MetadataReferenceNft row = MetadataReferenceNft.builder()
@@ -407,7 +416,12 @@ public class Cip68EventListener {
                 .validationErrors(datumErrors)
                 .build();
         for (int label : labels) {
-            errors.addAll(Cip68Validator.validate(row, label));
+            // validate() returns the stored errors as they are, so they would come back once per label
+            for (ValidationError error : Cip68Validator.validate(row, label)) {
+                if (!stored.contains(error)) {
+                    errors.add(error);
+                }
+            }
         }
         return errors;
     }

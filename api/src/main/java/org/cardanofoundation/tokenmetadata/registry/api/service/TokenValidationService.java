@@ -115,7 +115,9 @@ public class TokenValidationService {
 
     private ValidateResponse parsedCip68(ParsedCip68Datum parsed, List<Integer> labels, String datum) {
         List<ValidationError> errors = Cip68EventListener.errorsForLabels(parsed, labels);
-        MetadataReferenceNft row = Cip68EventListener.buildMetadataReferenceNft(parsed, errors, PREVIEW_REFERENCE_NFT, datum, 0L);
+        // The row carries the datum's own errors, as the indexer stores them: the label's are added when it is served.
+        MetadataReferenceNft row = Cip68EventListener.buildMetadataReferenceNft(parsed, Cip68EventListener.datumErrors(parsed),
+                PREVIEW_REFERENCE_NFT, datum, 0L);
         List<ServedAs> served = labels.stream()
                 .map(label -> {
                     FungibleTokenMetadata metadata = cip68FungibleTokenService.toFungibleTokenMetadata(row, List.of(), label == LABEL_RFT);

@@ -114,7 +114,11 @@ class TokenValidationServiceTest {
             ValidateResponse response = service.validateCip68(new Cip68ValidateRequest(null,
                     fields("My Token", "Useful", null, null, 0L), null));
 
-            assertThat(response.validationErrors()).extracting(ValidationError::code).contains("undefined_version");
+            assertThat(response.validationErrors()).singleElement().satisfies(error -> {
+                assertThat(error.code()).isEqualTo("invalid_version");
+                assertThat(error.fieldCategory()).isEqualTo(FieldCategory.MANDATORY);
+                assertThat(error.fieldName()).isEqualTo("version");
+            });
         }
 
         @Test
