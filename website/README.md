@@ -46,11 +46,11 @@ node scripts/update-openapi.mjs http://localhost:8081/apidocs     # from a local
 
 The dev server reads the snapshot when it starts, so restart it afterwards.
 
-The generated pages document; they cannot send requests. For that, each one links ("Try it in Scalar") to the same
-operation on the Scalar page, `public/api-reference/index.html`, served at `/api-reference/`. Scalar reads the same
-snapshot, published at `/openapi.json` by `src/pages/openapi.json.ts`, and sends its requests through
-`proxy.scalar.com`, since the registry allows cross-origin requests only on the validate endpoints. The dev server does
-not serve `/api-reference/` (it does not map a folder to its `index.html`); use `npm run build && npm run preview`.
+The generated pages document the endpoints, and each one opens the request client over the page (**Test request**).
+The client reads the same snapshot, published at `/openapi.json` by `src/pages/openapi.json.ts`, and sends its
+requests through `proxy.scalar.com`, since the registry allows cross-origin requests only on the validate endpoints.
+It lists the public registries, a local instance (`http://localhost:8080`) and any address given as `?server=<url>`
+on the page, which the browser remembers.
 
 ## Deployment
 

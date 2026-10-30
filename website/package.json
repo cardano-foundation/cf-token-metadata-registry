@@ -12,6 +12,8 @@
   },
   "dependencies": {
     "@astrojs/starlight": "^0.38.3",
+    "@scalar/api-client": "^3.23.5",
+    "@scalar/workspace-store": "^0.69.2",
     "@tailwindcss/vite": "4.2.2",
     "astro": "6.1.5",
     "sharp": "^0.34.2",
