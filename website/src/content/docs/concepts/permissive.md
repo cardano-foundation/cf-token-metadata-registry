@@ -33,8 +33,7 @@ registry filter for you, use the **`validation`** parameter:
 curl "$REGISTRY/api/v2/subjects/$SUBJECT?validation=MANDATORY_ONLY"
 ```
 
-A token the chosen level does not accept is a `404`, or is left out of a batch. The errors of a token that is returned
-are never filtered: you always see everything that is wrong with it.
+A token the chosen level does not accept is a `404`, or is left out of a batch. The `validation` level never filters the errors of a token that is returned: you see everything that is wrong with it, unless `?property=` narrows them to the properties you asked for.
 
 Or take everything (`ALL`) and decide per field yourself: each error names the `field_name`, whether the field is
 `MANDATORY` or `OPTIONAL`, and a stable `code`. See [validation errors](../validation-errors/).
@@ -58,6 +57,10 @@ What each standard **requires** (an error there is `MANDATORY`) and what it **al
 A missing or broken **mandatory** field is a `MANDATORY` error: the token is still served under `ALL`, and hidden by
 `MANDATORY_ONLY` and `STRICT`. A broken **optional** field is an `OPTIONAL` error: the token is hidden only by `STRICT`.
 
+A token of a policy registered in CIP-113 needs its CIP-26 or CIP-68 metadata, its **companion** metadata, for the same
+reason: a registry node has no name, ticker or logo. Without it the token is served under `ALL` with a `MANDATORY`
+`missing_value` error on `companion_metadata`, and hidden by `MANDATORY_ONLY` and `STRICT`.
+
 A CIP-68 reference NFT paired with several user tokens (a 333 and a 444) is checked against each label, and each
 subject is served with the errors of its own label.
 
@@ -80,13 +83,12 @@ A `404` for a token that exists on chain has one of these reasons, from the most
 
 1. **Not indexed yet.** The registry indexes the chain as it goes, and syncs the CIP-26 registry every hour. A token
    minted a moment ago, or a CIP-26 entry merged a moment ago, may not be there yet.
-2. **No metadata.** The token has neither a CIP-26 entry nor a CIP-68 datum. There is nothing to serve. NFTs (label
-   222) are not served.
-3. **A CIP-113 token without metadata.** A programmable token is served only with its CIP-26 or CIP-68 metadata: a
-   registry node has no name to show.
-4. **Your `validation` level hides it.** With `MANDATORY_ONLY` or `STRICT`, a token with errors is a `404`. Ask with
+2. **No metadata.** The token has neither a CIP-26 entry nor a CIP-68 datum. There is nothing to serve, unless it is
+   a programmable token of a registered policy, which is served with the missing companion reported (see 3). NFTs
+   (label 222) are not served.
+3. **Your `validation` level hides it.** With `MANDATORY_ONLY` or `STRICT`, a token with errors is a `404`. Ask with
    `ALL` to see it and its errors.
-5. **It is in a very bad state, or looks like an attack on the registry.** A few things are not indexed at all,
+4. **It is in a very bad state, or looks like an attack on the registry.** A few things are not indexed at all,
    because they cannot be read, or because their only plausible purpose is to harm the indexer:
 
 | What | Why it is not indexed |
