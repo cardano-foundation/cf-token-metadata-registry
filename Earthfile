@@ -14,7 +14,7 @@ VERSION 0.8
 #   earthly +api-jvm --PUSH=true --DOCKER_REGISTRIES="$DOCKER_REGISTRIES_FILTERED" \
 #     --DOCKER_IMAGES_EXTRA_TAGS="$EARTHLY_DOCKER_IMAGES_EXTRA_TAGS"
 
-IMPORT --allow-privileged github.com/cardano-foundation/cf-gha-workflows/./earthfiles/functions:main AS functions
+IMPORT --allow-privileged github.com/cardano-foundation/cf-gha-workflows/./earthfiles/functions:feat/earthbuild AS functions
 
 ARG --global DOCKER_IMAGE_PREFIX="cf-token-metadata-registry"
 ARG --global DOCKER_IMAGES_TARGETS="api-jvm api-native job-jvm"
@@ -45,18 +45,20 @@ api-jvm:
     --DOCKER_REGISTRIES="${DOCKER_REGISTRIES}"
 
 api-native:
-  LET DOCKER_IMAGE_NAME=${DOCKER_IMAGE_PREFIX}-api-native
+  LET DOCKER_IMAGE_NAME=${DOCKER_IMAGE_PREFIX}-api
   WAIT
     FROM DOCKERFILE -f api/Dockerfile.native .
   END
   WAIT
     SAVE IMAGE ${DOCKER_IMAGE_NAME}:latest
   END
+  # same image repository as +api-jvm; -native goes on every tag, not on the image name
   DO functions+DOCKER_TAG_N_PUSH \
     --PUSH=$PUSH \
     --DOCKER_IMAGE_NAME=${DOCKER_IMAGE_NAME} \
     --DOCKER_IMAGES_EXTRA_TAGS="${DOCKER_IMAGES_EXTRA_TAGS}" \
-    --DOCKER_REGISTRIES="${DOCKER_REGISTRIES}"
+    --DOCKER_REGISTRIES="${DOCKER_REGISTRIES}" \
+    --TAG_SUFFIX=-native
 
 job-jvm:
   LET DOCKER_IMAGE_NAME=${DOCKER_IMAGE_PREFIX}-job
