@@ -10,9 +10,7 @@ should it be shown?* It collects metadata from the three ways a token can carry 
 |---|---|---|
 | [CIP-26](https://cips.cardano.org/cip/CIP-0026) | a JSON file in the [Cardano token registry](https://github.com/cardano-foundation/cardano-token-registry) on GitHub | `source: "CIP_26"` |
 | [CIP-68](https://cips.cardano.org/cip/CIP-0068) | the inline datum of a *reference NFT* on chain; fungible tokens (label 333) and rich fungible tokens (label 444) | `source: "CIP_68"` |
-| [CIP-113](https://github.com/cardano-foundation/CIPs/pull/444) | an on-chain registry of *programmable tokens* and the scripts that govern them | `type: "PROGRAMMABLE"` and `extensions.cip113` |
-
-## What you can do with it
+| [CIP-113](https://cips.cardano.org/cip/CIP-0113) | an on-chain registry of *programmable tokens* and the scripts that govern them | `type: "PROGRAMMABLE"` and `extensions.cip113` |
 
 - **Show tokens** in a wallet, an explorer or a DEX: one request per token, or a batch.
   [Getting started](../getting-started/)

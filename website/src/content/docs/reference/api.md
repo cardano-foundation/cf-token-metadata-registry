@@ -5,8 +5,7 @@ description: The endpoints of the registry, V2 and V1, and the validate endpoint
 
 Every instance publishes its OpenAPI description at **`/apidocs`**. The public registries are
 **`https://tokens.cardano.org`** (mainnet) and **`https://preprod.tokens.cardano.org`** (preprod). Every endpoint,
-parameter and schema is in the [API reference](/cf-token-metadata-registry/api/). To send requests from the browser, use
-**Try it in Scalar** on an endpoint's page, or [open Scalar](/cf-token-metadata-registry/api-reference/).
+parameter and schema is in the [API reference](/cf-token-metadata-registry/api/), and each endpoint page can send the request from the browser: press **Test request**, fill the fields and send it.
 
 ## V2: CIP-26, CIP-68 and CIP-113 (current)
 
@@ -66,7 +65,7 @@ curl -X POST "$REGISTRY/api/v2/validate/cip68" -H 'Content-Type: application/jso
 | `cip113` | CIP-113: the extension V2 would add |
 | `notes` | what the answer assumes |
 
-A request over 64 KiB is refused. A registry operator can switch the endpoint off.
+A request over 96 KiB is refused. The cap leaves room for a CIP-26 entry whose `logo` is at the [64 KiB the CIP allows](https://github.com/cardano-foundation/CIPs/blob/master/CIP-0026/README.md) (about 87 KB in base64) plus the signatures of every property.
 
 ## V1: CIP-26 only (deprecated)
 

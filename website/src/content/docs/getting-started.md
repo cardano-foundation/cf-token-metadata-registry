@@ -83,7 +83,7 @@ told that the description is missing, and `?validation=` judges the token on tho
 ## Programmable tokens
 
 A token registered as a [CIP-113](../guides/cip113/) programmable token comes back with `"type": "PROGRAMMABLE"` and
-its rules under `extensions.cip113`. Everything else is the same.
+its rules under `extensions.cip113`. Everything else is the same. Its name, ticker and logo come from CIP-26 or CIP-68 metadata; without any, it is still a `200`, with a `MANDATORY` error on `companion_metadata`.
 
 ## The V1 API (deprecated)
 
