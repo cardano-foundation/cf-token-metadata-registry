@@ -38,14 +38,12 @@ The answer has the shape of what the registry would record and serve:
 - `datum`: for CIP-68, the datum as given, or as built from the fields (`Cip68DatumBuilder`), so an issuer can put
   exactly that datum on the reference NFT;
 - `cip113`: the extension V2 would add;
-- `notes`: what the answer assumes. The subjects V2 serves the CIP-68 metadata under, minted or not (ADR-022); CIP-26
-  signatures are not verified; a programmable token is served only with its CIP-26 or CIP-68 metadata (ADR-020).
+- `notes`: what the answer assumes. The subjects V2 serves the CIP-68 metadata under, minted or not (ADR-022); CIP-26 signatures are not verified; a programmable token without CIP-26 or CIP-68 metadata is served with a `MANDATORY` error on `companion_metadata` (ADR-020).
 
 **Nothing is stored or read from the index.** The endpoint is a function of its input.
 
 **It is public, so it is bounded:**
-- **Size:** a request larger than `registry.validate.max-request-bytes` (64 KiB by default), or of unknown length, is
-  refused (413 / 411) before it is read. The parser's own bounds (nesting depth, value sizes) apply as for chain data.
+- **Size:** a request larger than `registry.validate.max-request-bytes` (96 KiB by default), or of unknown length, is refused (413 / 411) before it is read. The parser's own bounds (nesting depth, value sizes) apply as for chain data.
 - **Switch:** `registry.validate.enabled` (default `true`). It is read at runtime, not as a bean condition, so the native
   image honours it too (see ADR-021).
 - **CORS:** only for `/api/v2/validate/**`, only for the origins in `registry.validate.cors.allowed-origins` (for example
