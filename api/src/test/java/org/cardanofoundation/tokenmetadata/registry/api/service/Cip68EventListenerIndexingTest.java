@@ -187,9 +187,9 @@ class Cip68EventListenerIndexingTest {
             });
         }
 
-        /** Mainnet: 570 fungible tokens give their description as 64-byte chunks (Templar Protocol, ...). */
+        /** Mainnet: hundreds of fungible tokens give their description as a list of byte strings (Templar Protocol, ...). */
         @Test
-        void servesAChunkedDescriptionWithOneOptionalErrorFor333() throws Exception {
+        void storesAndServesADescriptionGivenAsAListWithNoError() throws Exception {
             MapPlutusData metadata = map("name", BytesPlutusData.of("Templar Protocol"));
             metadata.put(BytesPlutusData.of("description"), ListPlutusData.of(
                     BytesPlutusData.of("Templar Protocol - Templar lets "), BytesPlutusData.of("you borrow")));
@@ -198,14 +198,9 @@ class Cip68EventListenerIndexingTest {
 
             assertThat(saved()).singleElement().satisfies(row -> {
                 assertThat(row.getDescription()).isEqualTo("Templar Protocol - Templar lets you borrow");
-                // stored without a label, served for the label asked for; the chunks are joined, so the description is
-                // there and its form is an optional error, also for a 333
-                assertThat(row.getValidationErrors()).extracting(ValidationError::subStandard, ValidationError::code)
-                        .containsExactly(tuple(null, "chunked_text"));
-                assertThat(Cip68Validator.validate(row, LABEL_FT))
-                        .extracting(ValidationError::subStandard, ValidationError::fieldName, ValidationError::fieldCategory,
-                                ValidationError::code)
-                        .containsExactly(tuple("333", "description", FieldCategory.OPTIONAL, "chunked_text"));
+                // a list is accepted as the text, the way CIP-68 accepts it for a uri: nothing stored, nothing served
+                assertThat(row.getValidationErrors()).isEmpty();
+                assertThat(Cip68Validator.validate(row, LABEL_FT)).isEmpty();
             });
         }
 

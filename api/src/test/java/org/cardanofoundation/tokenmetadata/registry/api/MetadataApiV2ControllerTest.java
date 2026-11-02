@@ -600,25 +600,23 @@ class MetadataApiV2ControllerTest {
                     .andExpect(status().isNotFound());
         }
 
-        // a text given as chunks is joined and served, so it is there: only its form is off, an optional error (Awkward
+        // a text given as a list of byte strings is accepted as the text, the way CIP-68 accepts a list for a uri (Awkward
         // Seal on mainnet, with 590 other fungible tokens, was hidden by MANDATORY_ONLY with a readable description)
 
         @Test
-        void servesATokenWithAChunkedDescriptionToMandatoryOnlyButNotToStrict() throws Exception {
+        void servesATokenWhoseDescriptionWasStoredWithChunkedTextByAnEarlierBuildAsValidEvenToStrict() throws Exception {
             stored(List.of(ValidationError.optional("CIP-68", null, "description", "chunked_text",
                     "description is a list of byte strings, not one byte string; the chunks are joined")));
 
             mockMvc.perform(get("/api/v2/subjects/" + SUBJECT))
                     .andExpect(status().isOk())
                     .andExpect(MockMvcResultMatchers.jsonPath("$.subject.metadata.description.value").value("The Sundae token"))
-                    .andExpect(MockMvcResultMatchers.jsonPath("$.subject.metadata.valid").value(false))
-                    .andExpect(MockMvcResultMatchers.jsonPath("$.subject.validation_errors[0].code").value("chunked_text"))
-                    .andExpect(MockMvcResultMatchers.jsonPath("$.subject.validation_errors[0].sub_standard").value("333"))
-                    .andExpect(MockMvcResultMatchers.jsonPath("$.subject.validation_errors[0].field_category").value("OPTIONAL"));
+                    .andExpect(MockMvcResultMatchers.jsonPath("$.subject.metadata.valid").value(true))
+                    .andExpect(MockMvcResultMatchers.jsonPath("$.subject.validation_errors").isEmpty());
             mockMvc.perform(get("/api/v2/subjects/" + SUBJECT).queryParam("validation", "MANDATORY_ONLY"))
                     .andExpect(status().isOk());
             mockMvc.perform(get("/api/v2/subjects/" + SUBJECT).queryParam("validation", "STRICT"))
-                    .andExpect(status().isNotFound());
+                    .andExpect(status().isOk());
         }
 
         @Test
@@ -633,14 +631,15 @@ class MetadataApiV2ControllerTest {
         }
 
         @Test
-        void servesAChunkedNameStoredAsMandatoryByAnEarlierBuildToMandatoryOnlyWithoutAResync() throws Exception {
+        void doesNotServeAChunkedNameErrorStoredByAnEarlierBuildWithoutAResync() throws Exception {
             stored(List.of(ValidationError.mandatory("CIP-68", null, "name", "chunked_text",
                     "name is a list of byte strings, not one byte string; the chunks are joined")));
 
             mockMvc.perform(get("/api/v2/subjects/" + SUBJECT))
                     .andExpect(status().isOk())
-                    .andExpect(MockMvcResultMatchers.jsonPath("$.subject.validation_errors[0].field_category").value("OPTIONAL"));
-            mockMvc.perform(get("/api/v2/subjects/" + SUBJECT).queryParam("validation", "MANDATORY_ONLY"))
+                    .andExpect(MockMvcResultMatchers.jsonPath("$.subject.metadata.valid").value(true))
+                    .andExpect(MockMvcResultMatchers.jsonPath("$.subject.validation_errors").isEmpty());
+            mockMvc.perform(get("/api/v2/subjects/" + SUBJECT).queryParam("validation", "STRICT"))
                     .andExpect(status().isOk());
         }
 
