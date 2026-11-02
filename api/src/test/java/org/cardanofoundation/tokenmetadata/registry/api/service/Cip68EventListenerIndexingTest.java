@@ -189,7 +189,7 @@ class Cip68EventListenerIndexingTest {
 
         /** Mainnet: 570 fungible tokens give their description as 64-byte chunks (Templar Protocol, ...). */
         @Test
-        void servesAChunkedDescriptionWithOneMandatoryErrorFor333() throws Exception {
+        void servesAChunkedDescriptionWithOneOptionalErrorFor333() throws Exception {
             MapPlutusData metadata = map("name", BytesPlutusData.of("Templar Protocol"));
             metadata.put(BytesPlutusData.of("description"), ListPlutusData.of(
                     BytesPlutusData.of("Templar Protocol - Templar lets "), BytesPlutusData.of("you borrow")));
@@ -198,13 +198,14 @@ class Cip68EventListenerIndexingTest {
 
             assertThat(saved()).singleElement().satisfies(row -> {
                 assertThat(row.getDescription()).isEqualTo("Templar Protocol - Templar lets you borrow");
-                // stored without a label, served with the category of the label: only a 333 requires a description
+                // stored without a label, served for the label asked for; the chunks are joined, so the description is
+                // there and its form is an optional error, also for a 333
                 assertThat(row.getValidationErrors()).extracting(ValidationError::subStandard, ValidationError::code)
                         .containsExactly(tuple(null, "chunked_text"));
                 assertThat(Cip68Validator.validate(row, LABEL_FT))
                         .extracting(ValidationError::subStandard, ValidationError::fieldName, ValidationError::fieldCategory,
                                 ValidationError::code)
-                        .containsExactly(tuple("333", "description", FieldCategory.MANDATORY, "chunked_text"));
+                        .containsExactly(tuple("333", "description", FieldCategory.OPTIONAL, "chunked_text"));
             });
         }
 

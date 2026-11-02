@@ -600,6 +600,50 @@ class MetadataApiV2ControllerTest {
                     .andExpect(status().isNotFound());
         }
 
+        // a text given as chunks is joined and served, so it is there: only its form is off, an optional error (Awkward
+        // Seal on mainnet, with 590 other fungible tokens, was hidden by MANDATORY_ONLY with a readable description)
+
+        @Test
+        void servesATokenWithAChunkedDescriptionToMandatoryOnlyButNotToStrict() throws Exception {
+            stored(List.of(ValidationError.optional("CIP-68", null, "description", "chunked_text",
+                    "description is a list of byte strings, not one byte string; the chunks are joined")));
+
+            mockMvc.perform(get("/api/v2/subjects/" + SUBJECT))
+                    .andExpect(status().isOk())
+                    .andExpect(MockMvcResultMatchers.jsonPath("$.subject.metadata.description.value").value("The Sundae token"))
+                    .andExpect(MockMvcResultMatchers.jsonPath("$.subject.metadata.valid").value(false))
+                    .andExpect(MockMvcResultMatchers.jsonPath("$.subject.validation_errors[0].code").value("chunked_text"))
+                    .andExpect(MockMvcResultMatchers.jsonPath("$.subject.validation_errors[0].sub_standard").value("333"))
+                    .andExpect(MockMvcResultMatchers.jsonPath("$.subject.validation_errors[0].field_category").value("OPTIONAL"));
+            mockMvc.perform(get("/api/v2/subjects/" + SUBJECT).queryParam("validation", "MANDATORY_ONLY"))
+                    .andExpect(status().isOk());
+            mockMvc.perform(get("/api/v2/subjects/" + SUBJECT).queryParam("validation", "STRICT"))
+                    .andExpect(status().isNotFound());
+        }
+
+        @Test
+        void stillHidesADescriptionOfTheWrongTypeFromMandatoryOnly() throws Exception {
+            // left out, so a 333 has no description: that stays mandatory
+            stored(null, List.of(ValidationError.optional("CIP-68", null, "description", "wrong_type",
+                    "description is not a byte string, left out")));
+
+            mockMvc.perform(get("/api/v2/subjects/" + SUBJECT)).andExpect(status().isOk());
+            mockMvc.perform(get("/api/v2/subjects/" + SUBJECT).queryParam("validation", "MANDATORY_ONLY"))
+                    .andExpect(status().isNotFound());
+        }
+
+        @Test
+        void servesAChunkedNameStoredAsMandatoryByAnEarlierBuildToMandatoryOnlyWithoutAResync() throws Exception {
+            stored(List.of(ValidationError.mandatory("CIP-68", null, "name", "chunked_text",
+                    "name is a list of byte strings, not one byte string; the chunks are joined")));
+
+            mockMvc.perform(get("/api/v2/subjects/" + SUBJECT))
+                    .andExpect(status().isOk())
+                    .andExpect(MockMvcResultMatchers.jsonPath("$.subject.validation_errors[0].field_category").value("OPTIONAL"));
+            mockMvc.perform(get("/api/v2/subjects/" + SUBJECT).queryParam("validation", "MANDATORY_ONLY"))
+                    .andExpect(status().isOk());
+        }
+
         @Test
         void limitsTheErrorsToTheRequestedProperties() throws Exception {
             storedWithoutDescription();

@@ -35,7 +35,9 @@ departs from the CIP is neither repaired nor dropped: it is described in a list 
 the row (`validation_errors` JSON column, migration V7) and returned by the V2 API. Values are kept as written: a logo
 with a bad scheme, a version 0, a `decimals` of 300, a Plutus constructor in a property (kept as
 `{"constructor": n, "fields": [...]}`). A CIP-68 text given as a list of byte-string chunks (`chunked_text`) is kept as
-the same bytes, joined, the way CIP-68 itself joins a chunked `uri`: that is a representation, not a repair.
+the same bytes, joined, the way CIP-68 itself joins a chunked `uri`: that is a representation, not a repair. Since the
+text is there and readable, `chunked_text` is an OPTIONAL error for every field and label, also for a `name` and for
+the `description` of a 333 (decision 5).
 
 ### 2. The contract: `validation_errors`
 
@@ -90,6 +92,9 @@ kept, but differs in both directions:
     cf-tokens-cip26 error dropped the whole entry; now only `name` and `description` errors are `MANDATORY`.
   - A CIP-68 token with a `logo` that is not an allowed URI. It used to be served with the logo removed; it is now
     served with the logo as written and an `OPTIONAL` error. The logo value a client receives therefore changes.
+  - A CIP-68 token whose `name` or `description` is given as a list of chunks. Before, such a text was not read; now
+    it is joined and served with an `OPTIONAL` `chunked_text` error (591 of the 2,024 fungible tokens on mainnet have
+    a chunked description).
 - **It returns less:** a token is hidden by any `MANDATORY` error of a standard that has it, not only by a missing
   merged `name` or `description`. For example, a token with a CIP-26 entry that has an error and a valid CIP-68 datum
   used to be served from the datum; now it is hidden, because the CIP-26 error counts.
@@ -151,8 +156,14 @@ Found on the mainnet validation run of 2026-10-26, and done the same way in yaci
     a 333 updated with a name and an image but no description read as a 222, and was served without the error its
     missing description is.
   - What is wrong with the form of a `description` (`wrong_type`, `chunked_text`, `not_utf8`) is stored without a
-    label and reported for the label asked for: MANDATORY for 333, which requires a description, OPTIONAL for 444. A
-    333 description of the wrong type is not also reported as missing.
+    label and reported for the label asked for. `wrong_type` (left out) and `not_utf8` (kept as hex) are MANDATORY for
+    333, which requires a description, and OPTIONAL for 444. A 333 description of the wrong type is not also reported
+    as missing.
+  - A text given as chunks is joined and served, so it is there: `chunked_text` is OPTIONAL for every field and label,
+    the `name` and a 333's `description` included. It was MANDATORY for these two, a category left from when a chunked
+    description was dropped as `wrong_type` and a 333 then had none. That hid tokens whose name and description read
+    fine from `?validation=MANDATORY_ONLY`: 591 of the 2,024 fungible tokens on mainnet. A row indexed before stores a
+    chunked `name` as MANDATORY; it is served as OPTIONAL, so no resync is needed.
   - A `name` that is not valid UTF-8 (kept as hex) is a MANDATORY `not_utf8` error, as a `name` of the wrong type is:
     every label requires a name, and hex is not one. Other texts that are not UTF-8 are OPTIONAL.
   - An LP token minted with a pool NFT is a clean 333 token, not one that "lacks an image".
