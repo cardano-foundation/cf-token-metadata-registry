@@ -159,13 +159,14 @@ public class Cip68FungibleTokenService {
     /**
      * The reference NFT that holds the metadata of a served CIP-68 user token: a fungible token (label 333, prefix
      * {@code 0014df10}) or a rich fungible token (label 444, prefix {@code 001bc280}). Empty for any other subject.
+     * The name after the prefix can be empty, as the ledger allows: {@code <policyId>0014df10} is the token whose
+     * reference NFT is {@code <policyId>000643b0}.
      */
     public Optional<AssetType> getReferenceNftSubject(String subject) {
         AssetType assetType = AssetType.fromUnit(subject);
         String assetName = assetType.assetName();
         int tokenPrefixLength = REFERENCE_TOKEN_PREFIX.length();
-        if (assetName.length() > tokenPrefixLength
-                && (assetName.startsWith(FUNGIBLE_TOKEN_PREFIX) || assetName.startsWith(RICH_FUNGIBLE_TOKEN_PREFIX))) {
+        if (assetName.startsWith(FUNGIBLE_TOKEN_PREFIX) || assetName.startsWith(RICH_FUNGIBLE_TOKEN_PREFIX)) {
             String refNftAssetName = String.format("%s%s", REFERENCE_TOKEN_PREFIX, assetType.assetName().substring(tokenPrefixLength));
             return Optional.of(new AssetType(assetType.policyId(), refNftAssetName));
         } else {
@@ -173,10 +174,9 @@ public class Cip68FungibleTokenService {
         }
     }
 
-    /** Whether the subject is a CIP-68 rich fungible token (label 444, prefix {@code 001bc280}). */
+    /** Whether the subject is a CIP-68 rich fungible token (label 444, prefix {@code 001bc280}), also with an empty name. */
     public boolean isRichFungibleToken(String subject) {
-        String assetName = AssetType.fromUnit(subject).assetName();
-        return assetName.length() > RICH_FUNGIBLE_TOKEN_PREFIX.length() && assetName.startsWith(RICH_FUNGIBLE_TOKEN_PREFIX);
+        return AssetType.fromUnit(subject).assetName().startsWith(RICH_FUNGIBLE_TOKEN_PREFIX);
     }
 
 }
