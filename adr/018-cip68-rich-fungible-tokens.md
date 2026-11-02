@@ -33,7 +33,10 @@ The V2 API serves 444 subjects next to 333 subjects. NFTs (222) are still not se
 
 1. **Mapping**: a `001bc280` subject maps to its reference NFT, like a `0014df10` subject
    (`Cip68FungibleTokenService.getReferenceNftSubject`). It does so whether or not that user token was minted, so a
-   reference NFT answers under both its 333 and its 444 subject (ADR-022 records why this is kept).
+   reference NFT answers under both its 333 and its 444 subject (ADR-022 records why this is kept). The name after the
+   prefix can be empty, as the ledger allows: `<policy>0014df10` or `<policy>001bc280` maps to `<policy>000643b0`
+   (PBG Token on mainnet). The check is only that the subject's asset name starts with the prefix; the image is served
+   as the logo of an empty-name 444 too (`isRichFungibleToken`).
 2. **Image as logo**: CIP-68 gives an RFT no `logo`. Its picture is the required `image`, which is served, for a
    `001bc280` subject whatever label its datum was stored or guessed as (ADR-019), as
    `metadata.logo` (source `CIP_68`), so wallets show it with no change on their side. For CIP-68 FTs, `logo` is

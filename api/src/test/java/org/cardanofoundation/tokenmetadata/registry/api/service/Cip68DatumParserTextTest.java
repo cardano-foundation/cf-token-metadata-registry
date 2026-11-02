@@ -35,8 +35,8 @@ import static org.assertj.core.api.Assertions.tuple;
  *   <li>Text that is valid UTF-8 is stored as text; anything else is stored as hex, for every text field,
  *       not decoded with replacement characters (which loses the bytes).</li>
  *   <li>A {@code logo} or {@code image} given as a list of chunks is joined as bytes, then decoded once. So is a text
- *       ({@code name}, {@code description}, ...), which CIP-68 defines as one byte string: it is reported as
- *       {@code chunked_text}.</li>
+ *       ({@code name}, {@code description}, ...), which CIP-68 defines as one byte string: the list is accepted as the
+ *       text, with no error.</li>
  *   <li>A {@code logo} or {@code image} over {@value Cip68FTDatumParser#URI_MAX_BYTES} bytes is dropped with a
  *       warning, and the rest of the datum is kept.</li>
  * </ul>
@@ -159,7 +159,7 @@ class Cip68FTDatumParserTextTest {
     // ---------- texts given as chunks ----------
 
     @Test
-    void joinsATextGivenAsChunksAndReportsItsForm() throws Exception {
+    void joinsATextGivenAsAListOfByteStringsWithNoError() throws Exception {
         // CIP-68 defines name, description, ticker and url as one bounded_bytes; on mainnet 570 descriptions, 43 urls and
         // 12 names are lists of 64-byte chunks instead, the way CIP-25 splits a long text
         MapPlutusData properties = new MapPlutusData();
@@ -172,15 +172,21 @@ class Cip68FTDatumParserTextTest {
         assertThat(parsed.name()).isEqualTo("Stable coin from family Pazinatto");
         assertThat(parsed.description()).isEqualTo("Templar Protocol - Templar lets you borrow");
         assertThat(parsed.url()).isEqualTo("https://www.thirdhalf.com/cerisewallet");
+        // a list is accepted as the text, the way CIP-68 accepts it for a uri: nothing to report
+        assertThat(parsed.validationErrors()).isEmpty();
+    }
+
+    @Test
+    void aNameGivenAsAListThatIsNotUtf8IsStillMandatoryForTheHex() throws Exception {
+        // the list is accepted; what it joins into is stored as hex, which is not the name a token needs
+        MapPlutusData properties = new MapPlutusData();
+        properties.put(BytesPlutusData.of("name"), ListPlutusData.of(
+                BytesPlutusData.of(new byte[]{(byte) 0xff}), BytesPlutusData.of(new byte[]{0x00})));
+
+        ParsedCip68Datum parsed = parse(properties).orElseThrow();
+
         assertThat(parsed.validationErrors()).extracting(ValidationError::fieldName, ValidationError::fieldCategory, ValidationError::code)
-                .containsExactlyInAnyOrder(
-                        tuple("name", FieldCategory.MANDATORY, "chunked_text"),
-                        tuple("description", FieldCategory.OPTIONAL, "chunked_text"),
-                        tuple("url", FieldCategory.OPTIONAL, "chunked_text"));
-        assertThat(parsed.validationErrors()).allSatisfy(e -> {
-            assertThat(e.subStandard()).isNull();
-            assertThat(e.error()).endsWith("is a list of byte strings, not one byte string; the chunks are joined");
-        });
+                .containsExactly(tuple("name", FieldCategory.MANDATORY, "not_utf8"));
     }
 
     @Test
