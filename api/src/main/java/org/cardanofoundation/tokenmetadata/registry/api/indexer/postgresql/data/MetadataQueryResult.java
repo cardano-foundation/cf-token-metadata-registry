@@ -1,7 +1,8 @@
 package org.cardanofoundation.tokenmetadata.registry.api.indexer.postgresql.data;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -36,7 +37,7 @@ public class MetadataQueryResult {
 
   public static final List<String> DEFAULT_PROPERTY_NAMES =
       List.of(PROP_NAME, PROP_TICKER, PROP_URL, PROP_DESCRIPTION, PROP_LOGO, PROP_DECIMALS, "tools");
-  static final ObjectMapper VALUE_MAPPER = new ObjectMapper();
+  static final ObjectMapper VALUE_MAPPER = new JsonMapper();
 
   private String subject;
   private String policy;
@@ -77,7 +78,7 @@ public class MetadataQueryResult {
           tokenMetadata.setUpdatedBy(this.updatedBy);
         }
         return tokenMetadata;
-      } catch (final JsonProcessingException e) {
+      } catch (final JacksonException e) {
         throw new IllegalStateException(
             String.format(
                 "Properties object of record related to subject %s is invalid.", this.subject),

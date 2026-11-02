@@ -2,18 +2,19 @@ package org.cardanofoundation.tokenmetadata.registry.api;
 
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.autoconfigure.jdbc.JdbcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.jdbc.test.autoconfigure.JdbcTest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.ActiveProfiles;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @JdbcTest
 @ActiveProfiles("test")
-@SuppressWarnings("java:S5738") // @MockBean deprecated — @MockitoBean cannot replace it here (EntityManager needs early registration)
 class TokenMetadataRegistryApplicationTests {
 
-    @MockBean
+    // Spring Data registers this shared EntityManager under a fixed name. Replacing that
+    // definition avoids a lookup of the real entityManagerFactory, which this slice does not start.
+    @MockitoBean(name = "jpaSharedEM_entityManagerFactory")
     private EntityManager entityManager;
 
     @Test

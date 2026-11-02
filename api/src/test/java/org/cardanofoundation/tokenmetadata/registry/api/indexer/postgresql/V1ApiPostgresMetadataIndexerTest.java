@@ -1,6 +1,7 @@
 package org.cardanofoundation.tokenmetadata.registry.api.indexer.postgresql;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import org.cardanofoundation.tokenmetadata.registry.api.indexer.postgresql.data.MetadataQueryResult;
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.TokenMetadata;
 import org.junit.jupiter.api.Nested;
@@ -25,7 +26,7 @@ class V1ApiPostgresMetadataIndexerTest {
     private static final String FILE_SUBJECT = "0b9bedfbfb62b21a2a41f581c2811ee74ee062ce32b0eca43964cf796D6174726978";
 
     private final NamedParameterJdbcTemplate jdbcTemplate = mock(NamedParameterJdbcTemplate.class);
-    private final V1ApiPostgresMetadataIndexer indexer = new V1ApiPostgresMetadataIndexer(new ObjectMapper(), jdbcTemplate);
+    private final V1ApiPostgresMetadataIndexer indexer = new V1ApiPostgresMetadataIndexer(new JsonMapper(), jdbcTemplate);
 
     @SuppressWarnings("unchecked")
     private void storedEntry() {

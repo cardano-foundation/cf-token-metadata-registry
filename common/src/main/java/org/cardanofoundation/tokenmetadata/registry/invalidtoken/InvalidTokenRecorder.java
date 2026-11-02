@@ -1,7 +1,8 @@
 package org.cardanofoundation.tokenmetadata.registry.invalidtoken;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import jakarta.annotation.Nullable;
@@ -46,7 +47,7 @@ public class InvalidTokenRecorder {
 
     public static final String COUNTER = "token.metadata.invalid.tokens";
 
-    private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final ObjectMapper MAPPER = new JsonMapper();
 
     @Nullable
     private final InvalidTokenRepository repository;
@@ -156,7 +157,7 @@ public class InvalidTokenRecorder {
             if (MAPPER.writeValueAsString(bounded).length() > MAX_DETAILS_CHARS) {
                 return Map.of("truncated", true);
             }
-        } catch (JsonProcessingException _) {
+        } catch (JacksonException _) {
             return Map.of("truncated", true);
         }
         return bounded;

@@ -1,7 +1,8 @@
 package org.cardanofoundation.tokenmetadata.registry.api.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.cardanofoundation.tokenmetadata.registry.api.model.QueryPriority;
 import org.cardanofoundation.tokenmetadata.registry.api.model.v2.*;
@@ -13,10 +14,10 @@ import java.util.stream.Stream;
 @Slf4j
 class MetadataV2ParserTest {
 
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    private static final ObjectMapper OBJECT_MAPPER = new JsonMapper();
 
     @Test
-    void parseFLDTDatumTest() throws JsonProcessingException {
+    void parseFLDTDatumTest() throws JacksonException {
 
         List<String> priorities = Stream.of(QueryPriority.values()).map(QueryPriority::name).toList();
 

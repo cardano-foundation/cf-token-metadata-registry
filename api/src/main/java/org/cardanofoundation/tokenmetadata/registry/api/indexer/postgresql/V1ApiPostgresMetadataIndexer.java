@@ -1,8 +1,8 @@
 package org.cardanofoundation.tokenmetadata.registry.api.indexer.postgresql;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
 import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
@@ -61,7 +61,7 @@ public class V1ApiPostgresMetadataIndexer implements V1ApiMetadataIndexer {
             tokenMetadata.setSubject(metadataQueryResult.getSubject());
             excludeProperties(tokenMetadata, propertiesToExclude);
             return Optional.of(tokenMetadata);
-        } catch (final JsonProcessingException e) {
+        } catch (final JacksonException e) {
             log.warn(
                     String.format(
                             "Could not parse properties of subject %s.", metadataQueryResult.getSubject()),
@@ -146,7 +146,7 @@ public class V1ApiPostgresMetadataIndexer implements V1ApiMetadataIndexer {
         }
         try {
             return objectMapper.readValue(json, VALIDATION_ERRORS);
-        } catch (final JsonProcessingException e) {
+        } catch (final JacksonException e) {
             log.warn("Could not read the validation errors of subject {}: {}", LogSanitizer.sanitizeHex(subject), e.getMessage());
             return null;
         }

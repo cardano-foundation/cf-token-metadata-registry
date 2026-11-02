@@ -1,7 +1,7 @@
 package org.cardanofoundation.tokenmetadata.registry.config;
 
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.json.JsonMapper;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -9,10 +9,12 @@ import org.springframework.context.annotation.Configuration;
 public class JsonConfiguration {
 
     @Bean
-    public ObjectMapper objectMapper() {
-        ObjectMapper objectMapper = new ObjectMapper();
-        objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-        return objectMapper;
+    public JsonMapper objectMapper() {
+        // Jackson 3 mappers are immutable. FAIL_ON_UNKNOWN_PROPERTIES is already off by default;
+        // disabling it here keeps the previous ObjectMapper configuration explicit.
+        return JsonMapper.builder()
+                .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+                .build();
     }
 
 }

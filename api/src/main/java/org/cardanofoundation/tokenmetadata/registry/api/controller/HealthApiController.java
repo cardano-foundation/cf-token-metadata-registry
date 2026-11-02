@@ -5,8 +5,8 @@ import jakarta.annotation.Nullable;
 import lombok.extern.slf4j.Slf4j;
 import org.cardanofoundation.tokenmetadata.registry.api.health.OffchainSyncHealthIndicator;
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.HealthResponse;
-import org.springframework.boot.actuate.health.Health;
-import org.springframework.boot.actuate.health.Status;
+import org.springframework.boot.health.contributor.Health;
+import org.springframework.boot.health.contributor.Status;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -45,16 +45,24 @@ public class HealthApiController implements HealthApi {
     @Override
     public ResponseEntity<HealthResponse> getHealthStatus() {
         Health offchainHealth = offchainSyncHealthIndicator.health();
-        Health onchainHealth = onchainSyncHealthIndicator != null
-                ? onchainSyncHealthIndicator.health()
-                : Health.up().withDetail(SYNC_STATUS, "On-chain sync disabled (read-only mode)").build();
+        // yaci-store 2.0.7 still returns the Boot 3 health type. Boot 4 moved Health to
+        // org.springframework.boot.health.contributor, so the two results are compared by status code.
+        boolean onchainUp;
+        Object onchainDetail;
+        if (onchainSyncHealthIndicator != null) {
+            org.springframework.boot.actuate.health.Health onchainHealth = onchainSyncHealthIndicator.health();
+            onchainUp = org.springframework.boot.actuate.health.Status.UP.equals(onchainHealth.getStatus());
+            onchainDetail = onchainHealth.getDetails().get(SYNC_STATUS);
+        } else {
+            onchainUp = true;
+            onchainDetail = "On-chain sync disabled (read-only mode)";
+        }
 
-        boolean synced = Status.UP.equals(offchainHealth.getStatus())
-                && Status.UP.equals(onchainHealth.getStatus());
+        boolean synced = Status.UP.equals(offchainHealth.getStatus()) && onchainUp;
 
         String syncStatus = "offchain: %s, onchain: %s".formatted(
                 offchainHealth.getDetails().get(SYNC_STATUS),
-                onchainHealth.getDetails().get(SYNC_STATUS));
+                onchainDetail);
 
         return new ResponseEntity<>(HealthResponse.builder()
                 .synced(synced)

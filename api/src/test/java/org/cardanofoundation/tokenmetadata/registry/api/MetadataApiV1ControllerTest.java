@@ -11,8 +11,8 @@ import org.cardanofoundation.tokenmetadata.registry.api.model.rest.wellknownprop
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
@@ -30,7 +30,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(MetadataApiController.class)
 @Import(SpringWebSecurityConfig.class)
 @ActiveProfiles("test")
-@SuppressWarnings("java:S5738") // @MockBean deprecated — @MockitoBean cannot replace it here (EntityManager needs early registration)
 class MetadataApiV1ControllerTest {
 
     @Autowired
@@ -39,13 +38,13 @@ class MetadataApiV1ControllerTest {
     @Autowired
     private MockMvc mockMvc;
 
-    @MockBean
+    @MockitoBean
     private V1ApiMetadataIndexer v1ApiMetadataIndexer;
 
-    @MockBean
+    @MockitoBean(name = "jpaSharedEM_entityManagerFactory")
     private EntityManager entityManager;
 
-    @MockBean
+    @MockitoBean
     private RegistryMetricsService metricsService;
 
     @BeforeEach

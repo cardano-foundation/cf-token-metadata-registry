@@ -8,7 +8,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.boot.actuate.health.Health;
+import org.springframework.boot.health.contributor.Health;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
@@ -33,7 +33,7 @@ class HealthApiControllerTest {
         when(offchainSyncHealthIndicator.health())
                 .thenReturn(Health.up().withDetail("syncStatus", "Sync done").build());
         when(onchainSyncHealthIndicator.health())
-                .thenReturn(Health.up().withDetail("syncStatus", "Healthy").build());
+                .thenReturn(org.springframework.boot.actuate.health.Health.up().withDetail("syncStatus", "Healthy").build());
 
         ResponseEntity<HealthResponse> response = healthApiController.getHealthStatus();
 
@@ -48,7 +48,7 @@ class HealthApiControllerTest {
         when(offchainSyncHealthIndicator.health())
                 .thenReturn(Health.down().withDetail("syncStatus", "Error while syncing").build());
         when(onchainSyncHealthIndicator.health())
-                .thenReturn(Health.up().withDetail("syncStatus", "Healthy").build());
+                .thenReturn(org.springframework.boot.actuate.health.Health.up().withDetail("syncStatus", "Healthy").build());
 
         ResponseEntity<HealthResponse> response = healthApiController.getHealthStatus();
 
@@ -61,7 +61,7 @@ class HealthApiControllerTest {
         when(offchainSyncHealthIndicator.health())
                 .thenReturn(Health.up().withDetail("syncStatus", "Sync done").build());
         when(onchainSyncHealthIndicator.health())
-                .thenReturn(Health.down().withDetail("syncStatus", "Indexer unreachable").build());
+                .thenReturn(org.springframework.boot.actuate.health.Health.down().withDetail("syncStatus", "Indexer unreachable").build());
 
         ResponseEntity<HealthResponse> response = healthApiController.getHealthStatus();
 
@@ -74,7 +74,7 @@ class HealthApiControllerTest {
         when(offchainSyncHealthIndicator.health())
                 .thenReturn(Health.down().withDetail("syncStatus", "Error while syncing").build());
         when(onchainSyncHealthIndicator.health())
-                .thenReturn(Health.down().withDetail("syncStatus", "Indexer unreachable").build());
+                .thenReturn(org.springframework.boot.actuate.health.Health.down().withDetail("syncStatus", "Indexer unreachable").build());
 
         ResponseEntity<HealthResponse> response = healthApiController.getHealthStatus();
 
@@ -87,7 +87,7 @@ class HealthApiControllerTest {
         when(offchainSyncHealthIndicator.health())
                 .thenReturn(Health.outOfService().withDetail("syncStatus", "Sync in progress").build());
         when(onchainSyncHealthIndicator.health())
-                .thenReturn(Health.up().withDetail("syncStatus", "Healthy").build());
+                .thenReturn(org.springframework.boot.actuate.health.Health.up().withDetail("syncStatus", "Healthy").build());
 
         ResponseEntity<HealthResponse> response = healthApiController.getHealthStatus();
 
