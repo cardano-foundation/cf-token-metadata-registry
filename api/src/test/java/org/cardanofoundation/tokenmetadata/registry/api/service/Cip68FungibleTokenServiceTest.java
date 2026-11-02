@@ -103,17 +103,28 @@ class Cip68FungibleTokenServiceTest {
                     .contains(new AssetType(POLICY, "000643b041"));
         }
 
+        // the name after the label prefix can be empty, as the ledger allows (PBG Token on mainnet, policy d05c14bb...)
         @ParameterizedTest
-        @ValueSource(strings = {"000de14041", "000643b041", "0014df10", "001bc280", "41"})
-        void doesNotMapAnNftAReferenceNftOrAnAssetWithoutBaseName(String assetName) {
+        @ValueSource(strings = {"0014df10", "001bc280"})
+        void mapsAFungibleOrRichFungibleTokenWithAnEmptyNameToTheReferenceNftPrefixAlone(String label) {
+            assertThat(service.getReferenceNftSubject(POLICY + label))
+                    .contains(new AssetType(POLICY, "000643b0"));
+        }
+
+        @ParameterizedTest
+        @ValueSource(strings = {"000de14041", "000643b041", "000de140", "000643b0", "41", "", "0014df", "001bc2", "aa0014df1041"})
+        void doesNotMapAnNftAReferenceNftOrAnAssetWithoutALabelPrefix(String assetName) {
             assertThat(service.getReferenceNftSubject(POLICY + assetName)).isEmpty();
         }
 
         @Test
         void tellsARichFungibleTokenApart() {
             assertThat(service.isRichFungibleToken(POLICY + "001bc28041")).isTrue();
+            assertThat(service.isRichFungibleToken(POLICY + "001bc280")).isTrue();
             assertThat(service.isRichFungibleToken(POLICY + "0014df1041")).isFalse();
-            assertThat(service.isRichFungibleToken(POLICY + "001bc280")).isFalse();
+            assertThat(service.isRichFungibleToken(POLICY + "0014df10")).isFalse();
+            assertThat(service.isRichFungibleToken(POLICY + "001bc2")).isFalse();
+            assertThat(service.isRichFungibleToken(POLICY)).isFalse();
         }
     }
 

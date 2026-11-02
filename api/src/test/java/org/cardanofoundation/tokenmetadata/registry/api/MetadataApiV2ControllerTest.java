@@ -524,6 +524,94 @@ class MetadataApiV2ControllerTest {
     }
 
     /**
+     * A CIP-68 token whose name after the label prefix is empty, as the ledger allows (PBG Token on mainnet, policy
+     * d05c14bb...): its reference NFT is the prefix alone, 000643b0.
+     */
+    @Nested
+    class EmptyTokenName {
+
+        private static final String POLICY = "d05c14bba89ff3b7e468b2628654b6250e00ebab2c8ac552912bda6b";
+        private static final String NAMED_BASE = "4e414d4544";
+        private static final String FT_SUBJECT = POLICY + "0014df10";
+        private static final String RFT_SUBJECT = POLICY + "001bc280";
+
+        private final MetadataReferenceNft emptyNameRow = row("000643b0", "PBG Token", "ipfs://bafypbg");
+        private final MetadataReferenceNft namedRow = row("000643b0" + NAMED_BASE, "Named", "ipfs://bafynamed");
+
+        EmptyTokenName() throws Exception {
+        }
+
+        @BeforeEach
+        void storeBothTokensOfThePolicy() {
+            when(metadataReferenceNftRepository.findFirstByPolicyIdAndAssetNameOrderBySlotDesc(POLICY, "000643b0"))
+                    .thenReturn(Optional.of(emptyNameRow));
+            when(metadataReferenceNftRepository.findFirstByPolicyIdAndAssetNameOrderBySlotDesc(POLICY, "000643b0" + NAMED_BASE))
+                    .thenReturn(Optional.of(namedRow));
+            when(metadataReferenceNftRepository.findLatestByPolicyIds(anyCollection())).thenReturn(List.of(emptyNameRow, namedRow));
+        }
+
+        @Test
+        void servesTheFungibleTokenBySubject() throws Exception {
+            mockMvc.perform(get("/api/v2/subjects/" + FT_SUBJECT))
+                    .andExpect(status().isOk())
+                    .andExpect(MockMvcResultMatchers.jsonPath("$.subject.subject").value(FT_SUBJECT))
+                    .andExpect(MockMvcResultMatchers.jsonPath("$.subject.metadata.name.value").value("PBG Token"))
+                    .andExpect(MockMvcResultMatchers.jsonPath("$.subject.metadata.name.source").value("CIP_68"))
+                    .andExpect(MockMvcResultMatchers.jsonPath("$.subject.metadata.logo").doesNotExist())
+                    .andExpect(MockMvcResultMatchers.jsonPath("$.subject.metadata.valid").value(true));
+        }
+
+        @Test
+        void servesTheRichFungibleTokenWithItsImageAsTheLogo() throws Exception {
+            mockMvc.perform(get("/api/v2/subjects/" + RFT_SUBJECT))
+                    .andExpect(status().isOk())
+                    .andExpect(MockMvcResultMatchers.jsonPath("$.subject.metadata.name.value").value("PBG Token"))
+                    .andExpect(MockMvcResultMatchers.jsonPath("$.subject.metadata.logo.value").value("ipfs://bafypbg"));
+        }
+
+        @Test
+        void keepsItApartFromANamedTokenOfTheSamePolicyInABatch() throws Exception {
+            String namedSubject = POLICY + "0014df10" + NAMED_BASE;
+            BatchRequest request = new BatchRequest(List.of(FT_SUBJECT, namedSubject), List.of());
+
+            mockMvc.perform(post("/api/v2/subjects/query")
+                            .contentType("application/json")
+                            .content(new ObjectMapper().writeValueAsString(request)))
+                    .andExpect(status().isOk())
+                    .andExpect(MockMvcResultMatchers.jsonPath("$.subjects.length()").value(2))
+                    .andExpect(MockMvcResultMatchers.jsonPath("$.subjects[?(@.subject == '" + FT_SUBJECT + "')].metadata.name.value")
+                            .value("PBG Token"))
+                    .andExpect(MockMvcResultMatchers.jsonPath("$.subjects[?(@.subject == '" + namedSubject + "')].metadata.name.value")
+                            .value("Named"));
+        }
+
+        @Test
+        void doesNotServeTheNftOrTheReferenceNftWithAnEmptyName() throws Exception {
+            mockMvc.perform(get("/api/v2/subjects/" + POLICY + "000de140")).andExpect(status().isNotFound());
+            mockMvc.perform(get("/api/v2/subjects/" + POLICY + "000643b0")).andExpect(status().isNotFound());
+        }
+
+        private static MetadataReferenceNft row(String assetName, String name, String image) throws Exception {
+            MapPlutusData metadata = new MapPlutusData();
+            metadata.put(BytesPlutusData.of("name"), BytesPlutusData.of(name));
+            metadata.put(BytesPlutusData.of("description"), BytesPlutusData.of("A coin"));
+            metadata.put(BytesPlutusData.of("image"), BytesPlutusData.of(image));
+            ConstrPlutusData datum = ConstrPlutusData.of(0, metadata, BigIntPlutusData.of(1));
+            return MetadataReferenceNft.builder()
+                    .policyId(POLICY)
+                    .assetName(assetName)
+                    .slot(100L)
+                    .name(name)
+                    .description("A coin")
+                    .image(image)
+                    .version(1L)
+                    .validationErrors(List.of())
+                    .datum(HexUtil.encodeHexString(CborSerializationUtil.serialize(datum.serialize())))
+                    .build();
+        }
+    }
+
+    /**
      * A token is served as indexed with its validation errors (ADR-019): a 200 whatever is wrong with it, unless
      * ?validation= asks for a stricter view.
      */
