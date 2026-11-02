@@ -3,8 +3,8 @@ package org.cardanofoundation.tokenmetadata.registry.api.health;
 import lombok.RequiredArgsConstructor;
 import org.cardanofoundation.tokenmetadata.registry.service.SyncStatus;
 import org.cardanofoundation.tokenmetadata.registry.service.TokenMetadataSyncService;
-import org.springframework.boot.actuate.health.Health;
-import org.springframework.boot.actuate.health.HealthIndicator;
+import org.springframework.boot.health.contributor.Health;
+import org.springframework.boot.health.contributor.HealthIndicator;
 import org.springframework.stereotype.Component;
 
 @Component

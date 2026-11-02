@@ -1,8 +1,9 @@
 package org.cardanofoundation.tokenmetadata.registry.api.model.v2;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import org.cardanofoundation.tokenmetadata.registry.api.model.cip68.FungibleTokenMetadata;
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.TokenMetadata;
 import org.cardanofoundation.tokenmetadata.registry.validation.ValidationError;
@@ -19,7 +20,10 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 class ValidationErrorsJsonTest {
 
-    private final ObjectMapper mapper = new ObjectMapper().setDefaultPropertyInclusion(JsonInclude.Include.NON_NULL);
+    private final ObjectMapper mapper = JsonMapper.builder()
+            .changeDefaultPropertyInclusion(value -> JsonInclude.Value.construct(
+                    JsonInclude.Include.NON_NULL, JsonInclude.Include.NON_NULL))
+            .build();
 
     private static final ValidationError ERROR = ValidationError.mandatory("CIP-68", "333", "description", "missing_value",
             "description field is missing a mandatory value");

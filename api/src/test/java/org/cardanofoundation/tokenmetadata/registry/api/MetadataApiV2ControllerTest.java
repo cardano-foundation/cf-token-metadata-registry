@@ -6,7 +6,8 @@ import com.bloxbean.cardano.client.plutus.spec.BytesPlutusData;
 import com.bloxbean.cardano.client.plutus.spec.ConstrPlutusData;
 import com.bloxbean.cardano.client.plutus.spec.MapPlutusData;
 import com.bloxbean.cardano.client.util.HexUtil;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import jakarta.persistence.EntityManager;
 import net.minidev.json.JSONArray;
 import org.cardanofoundation.tokenmetadata.registry.api.config.AppConfig;
@@ -32,8 +33,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Nested;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
@@ -56,7 +57,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(V2ApiController.class)
 @Import({SpringWebSecurityConfig.class, Cip68FungibleTokenService.class, Cip68FTDatumParser.class, AppConfig.CipPriorityConfiguration.class})
 @ActiveProfiles("test")
-@SuppressWarnings("java:S5738") // @MockBean deprecated — @MockitoBean cannot replace it here (EntityManager needs early registration)
 class MetadataApiV2ControllerTest {
 
     @Autowired
@@ -65,19 +65,19 @@ class MetadataApiV2ControllerTest {
     @Autowired
     private MockMvc mockMvc;
 
-    @MockBean
+    @MockitoBean
     private MetadataReferenceNftRepository metadataReferenceNftRepository;
 
-    @MockBean
+    @MockitoBean
     private V1ApiMetadataIndexer v1ApiMetadataIndexer;
 
-    @MockBean
+    @MockitoBean(name = "jpaSharedEM_entityManagerFactory")
     private EntityManager entityManager;
 
-    @MockBean
+    @MockitoBean
     private Cip113RegistryService cip113RegistryService;
 
-    @MockBean
+    @MockitoBean
     private RegistryMetricsService metricsService;
 
     @BeforeEach
@@ -324,7 +324,7 @@ class MetadataApiV2ControllerTest {
     @Test
     void getSubjectsTest() throws Exception {
 
-        ObjectMapper objectMapper = new ObjectMapper();
+        ObjectMapper objectMapper = new JsonMapper();
 
         BatchRequest request = new BatchRequest(List.of("025146866af908340247fe4e9672d5ac7059f1e8534696b5f920c9e66362544848", "577f0b1342f8f8f4aed3388b80a8535812950c7a892495c0ecdf0f1e0014df10464c4454"), List.of());
 
@@ -352,7 +352,7 @@ class MetadataApiV2ControllerTest {
     @Test
     void getSubjectsBatchNeedsNoNameOrDescription() throws Exception {
 
-        ObjectMapper objectMapper = new ObjectMapper();
+        ObjectMapper objectMapper = new JsonMapper();
 
         BatchRequest request = new BatchRequest(List.of("025146866af908340247fe4e9672d5ac7059f1e8534696b5f920c9e66362544848"), List.of("ticker"));
 
@@ -365,7 +365,7 @@ class MetadataApiV2ControllerTest {
     @Test
     void getSubjectsFilterMissingOutTest() throws Exception {
 
-        ObjectMapper objectMapper = new ObjectMapper();
+        ObjectMapper objectMapper = new JsonMapper();
 
         BatchRequest request = new BatchRequest(List.of("025146866af908340247fe4e9672d5ac7059f1e8534696b5f920c9e66362544843", "577f0b1342f8f8f4aed3388b80a8535812950c7a892495c0ecdf0f1e0014df10464c4454"), List.of());
 
@@ -415,7 +415,7 @@ class MetadataApiV2ControllerTest {
     @Test
     void batchQueryShouldIncludeExtensionsForProgrammableTokenOnly() throws Exception {
 
-        ObjectMapper objectMapper = new ObjectMapper();
+        ObjectMapper objectMapper = new JsonMapper();
 
         BatchRequest request = new BatchRequest(List.of(
                 "025146866af908340247fe4e9672d5ac7059f1e8534696b5f920c9e66362544848",
@@ -473,7 +473,7 @@ class MetadataApiV2ControllerTest {
 
             mockMvc.perform(post("/api/v2/subjects/query")
                             .contentType("application/json")
-                            .content(new ObjectMapper().writeValueAsString(request)))
+                            .content(new JsonMapper().writeValueAsString(request)))
                     .andExpect(status().isOk())
                     .andExpect(MockMvcResultMatchers.jsonPath("$.subjects.length()").value(1))
                     .andExpect(MockMvcResultMatchers.jsonPath("$.subjects[0].metadata.logo.value").value("ipfs://bafypuzzle"));
@@ -487,7 +487,7 @@ class MetadataApiV2ControllerTest {
 
             mockMvc.perform(post("/api/v2/subjects/query")
                             .contentType("application/json")
-                            .content(new ObjectMapper().writeValueAsString(request)))
+                            .content(new JsonMapper().writeValueAsString(request)))
                     .andExpect(status().isOk())
                     .andExpect(MockMvcResultMatchers.jsonPath("$.subjects.length()").value(2))
                     .andExpect(MockMvcResultMatchers.jsonPath("$.subjects[?(@.subject == '" + ftSubject + "')].metadata.logo").isEmpty())
@@ -618,12 +618,12 @@ class MetadataApiV2ControllerTest {
 
             mockMvc.perform(post("/api/v2/subjects/query").queryParam("validation", "MANDATORY_ONLY")
                             .contentType("application/json")
-                            .content(new ObjectMapper().writeValueAsString(request)))
+                            .content(new JsonMapper().writeValueAsString(request)))
                     .andExpect(status().isOk())
                     .andExpect(MockMvcResultMatchers.jsonPath("$.subjects.length()").value(0));
             mockMvc.perform(post("/api/v2/subjects/query")
                             .contentType("application/json")
-                            .content(new ObjectMapper().writeValueAsString(request)))
+                            .content(new JsonMapper().writeValueAsString(request)))
                     .andExpect(status().isOk())
                     .andExpect(MockMvcResultMatchers.jsonPath("$.subjects[0].validation_errors[0].code").value("missing_value"));
         }
@@ -693,7 +693,7 @@ class MetadataApiV2ControllerTest {
 
             mockMvc.perform(post("/api/v2/subjects/query")
                             .contentType("application/json")
-                            .content(new ObjectMapper().writeValueAsString(request)))
+                            .content(new JsonMapper().writeValueAsString(request)))
                     .andExpect(status().isOk())
                     .andExpect(MockMvcResultMatchers.jsonPath("$.subjects.length()").value(1))
                     .andExpect(MockMvcResultMatchers.jsonPath("$.subjects[0].subject").value(SUBJECT))

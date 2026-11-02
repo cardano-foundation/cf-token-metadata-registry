@@ -5,8 +5,9 @@ import com.bloxbean.cardano.yaci.store.common.domain.Amt;
 import com.bloxbean.cardano.yaci.store.events.RollbackEvent;
 import com.bloxbean.cardano.yaci.store.utxo.domain.AddressUtxoEvent;
 import com.bloxbean.cardano.yaci.store.utxo.domain.TxInputOutput;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import jakarta.annotation.Nullable;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -60,7 +61,7 @@ public class Cip68EventListener {
      * built: Hibernate writes it at flush, inside the block transaction, where an exception stops the whole sync
      * (bloxbean/yaci-store#1240, #1243). Do not remove it as "unused serialization".
      */
-    private static final ObjectMapper PROPERTIES_MAPPER = new ObjectMapper();
+    private static final ObjectMapper PROPERTIES_MAPPER = new JsonMapper();
     private static final int DATUM_PREFIX_CHARS = 256;
 
     private final Cip68FungibleTokenService cip68FungibleTokenService;
@@ -217,7 +218,7 @@ public class Cip68EventListener {
         }
         try {
             PROPERTIES_MAPPER.writeValueAsString(entity.getProperties());
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             throw new IllegalStateException("the properties cannot be written as JSON: " + e.getOriginalMessage(), e);
         }
     }

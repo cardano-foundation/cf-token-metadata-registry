@@ -1,8 +1,9 @@
 package org.cardanofoundation.tokenmetadata.registry.validation;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -15,7 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 class ValidationErrorJsonTest {
 
-    private final ObjectMapper mapper = new ObjectMapper();
+    private final ObjectMapper mapper = new JsonMapper();
 
     private static final ValidationError ERROR = ValidationError.mandatory("CIP-68", "333", "description", "missing_value",
             "description field is missing a mandatory value");
@@ -30,7 +31,7 @@ class ValidationErrorJsonTest {
         assertThat(json.get("field_category").asText()).isEqualTo("MANDATORY");
         assertThat(json.get("code").asText()).isEqualTo("missing_value");
         assertThat(json.get("error").asText()).isEqualTo("description field is missing a mandatory value");
-        assertThat(json.fieldNames()).toIterable().doesNotContain("subStandard", "fieldName", "fieldCategory");
+        assertThat(json.propertyNames()).doesNotContain("subStandard", "fieldName", "fieldCategory");
     }
 
     @Test

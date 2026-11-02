@@ -1,9 +1,10 @@
 package org.cardanofoundation.metadatatools.api;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.SerializationFeature;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.cli.*;
 import org.cardanofoundation.metadatatools.core.cip26.model.Metadata;
@@ -32,10 +33,11 @@ public class MetadataCliApplication implements CommandLineRunner {
     }
 
     private static ObjectMapper getObjectMapper() {
-        final ObjectMapper objectMapper = new ObjectMapper();
-        objectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
-        objectMapper.enable(SerializationFeature.INDENT_OUTPUT);
-        return objectMapper;
+        return JsonMapper.builder()
+                .changeDefaultPropertyInclusion(value -> JsonInclude.Value.construct(
+                        JsonInclude.Include.NON_NULL, JsonInclude.Include.NON_NULL))
+                .enable(SerializationFeature.INDENT_OUTPUT)
+                .build();
     }
 
     private boolean validateSubject(final String subject) {
@@ -51,7 +53,7 @@ public class MetadataCliApplication implements CommandLineRunner {
             processInitCommand(cmd, options);
         } catch (final ParseException _) {
             printHelp(options);
-        } catch (final JsonProcessingException e) {
+        } catch (final JacksonException e) {
             log.error("Unexpected error: Was not able to serialize output.", e);
         } catch (IOException e) {
             log.error("Unexpected error: Was not able to write result to file.", e);

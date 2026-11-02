@@ -1,6 +1,7 @@
 package org.cardanofoundation.tokenmetadata.registry.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.cardanofoundation.tokenmetadata.registry.model.Item;
 import org.cardanofoundation.tokenmetadata.registry.model.Mapping;
@@ -22,7 +23,7 @@ import java.util.Optional;
 @Slf4j
 class TokenMappingServiceTest {
 
-    private final TokenMappingService tokenMappingService = new TokenMappingService(new ObjectMapper());
+    private final TokenMappingService tokenMappingService = new TokenMappingService(new JsonMapper());
 
     @CsvSource({
             "4ffaa4ef3217df37c4995bb96066af4cb68dfcc66b9f2a10e0c333b95779726d73746f6e65.json",
