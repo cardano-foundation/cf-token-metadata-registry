@@ -19,6 +19,10 @@ api:
     pullPolicy: Always
   tokenMetadataUpdateJob:
     enabled: true
+  # CIP-113 registry-node NFT policy IDs, comma-separated (CIP113_REGISTRY_NFT_POLICY_IDS); empty keeps CIP-113 off.
+  # The official deployments: mainnet 484e733d122af44e6101988bcc47ed261a7af5c43c797e89d60e3075,
+  # preprod 3083d387537f9318b6ff5aeab7de5f5629d26495319b8fafd409222a (the shipped .env files of 2.0.0).
+  cip113RegistryNftPolicyIds: ""
   startupProbe:
     httpGet:
       path: /actuator/health/startup

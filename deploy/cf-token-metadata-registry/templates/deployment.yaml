@@ -82,6 +82,10 @@ spec:
             - name: TOKEN_METADATA_SYNC_JOB
               value: {{ .Values.api.tokenMetadataUpdateJob.enabled | quote }}
 
+            # CIP-113 programmable tokens: the registry-node NFT policy IDs to index and serve; empty keeps CIP-113 off
+            - name: CIP113_REGISTRY_NFT_POLICY_IDS
+              value: {{ .Values.api.cip113RegistryNftPolicyIds | default "" | quote }}
+
           ports:
             - name: http
               containerPort: {{ .Values.service.port }}
