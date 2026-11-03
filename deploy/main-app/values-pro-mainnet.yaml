@@ -15,7 +15,8 @@ cf-token-metadata-registry:
         tag: "1.7.0-main-57f4e5b"
       tokenMetadataUpdateJob:
         enabled: false
-      cip113RegistryNftPolicyIds: "484e733d122af44e6101988bcc47ed261a7af5c43c797e89d60e3075"
+      cip113RegistryNftPolicyIds:
+        - 484e733d122af44e6101988bcc47ed261a7af5c43c797e89d60e3075
     job:
       enabled: true
       image:
