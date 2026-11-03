@@ -39,7 +39,9 @@ the same bytes, joined, the way CIP-68 itself joins a chunked `uri`: that is a r
 **not reported**:
 - **What CIP-68 says:** it defines these texts as one `bounded_bytes`, which can be any length. In a datum, the 64-byte
   limit applies to each CBOR chunk of a byte string, not to its value; the 64-byte limit on each text is a rule of
-  transaction metadata (CIP-25), not of Plutus Data.
+  transaction metadata (CIP-25), not of Plutus Data. The ledger accepts a long text as one byte string: on mainnet
+  (2026-11-02, latest row per reference NFT) 299 descriptions over 64 bytes are stored that way, the longest 1,406
+  bytes. So a list is never needed in a datum; it is a habit carried over from CIP-25.
 - **What minters do:** most minting tools split a long text into a list anyway. On mainnet, 592 fungible-token
   descriptions and 13,480 NFT descriptions are lists, against 107 and 171 long descriptions stored as one byte string.
 - **So the list is accepted as the text,** as CIP-68 version 3 accepted it for `image` and `src`. The token is valid,
