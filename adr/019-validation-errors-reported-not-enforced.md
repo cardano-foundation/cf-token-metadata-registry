@@ -84,6 +84,20 @@ before validation existed has `NULL` errors, meaning "never checked", which is d
   - `MANDATORY_ONLY`: no `MANDATORY` error.
   - `STRICT`: no error at all.
 
+  **What `STRICT` does not promise.** *No error* means none from the checks the registry runs; it is not a guarantee
+  that the metadata follows every rule of its CIP. Some departures are tolerated on purpose, and reported by no error
+  (made explicit in 2.0.1, after a review of the same code in bloxbean/yaci-store#1220):
+  - **A CIP-68 text given as a list of byte strings** (`name`, `description`, `ticker`, `url`). CIP-68 defines these
+    as one byte string (only a `uri` may be a list), but minting tools split long texts into 64-byte chunks the way
+    CIP-25 does: on mainnet about 570 descriptions, 43 urls and 12 names. They are joined and served as the text;
+    reporting them would mark these tokens invalid and hide them under `STRICT`.
+  - **A URI is checked for its scheme only** (`https`, `ipfs`, `ar`, `data`), not for its full syntax. No mainnet
+    value with an allowed scheme breaks the syntax, and a strict parser would risk rejecting real `data:` URIs and IPFS
+    paths.
+  - **A CIP-26 `logo` is checked for base64 and size, not for being a PNG.** CIP-26 asks for an `image/png`; one
+    mainnet logo is a JPEG ("Volume"), which wallets show as well, so flagging it would only hide it under `STRICT`.
+
+
   A token that is not accepted is a `404`, or is left out of a batch. The errors of a returned token are never
   filtered.
 
