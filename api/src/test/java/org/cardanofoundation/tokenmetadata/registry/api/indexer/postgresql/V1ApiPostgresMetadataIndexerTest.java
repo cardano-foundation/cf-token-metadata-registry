@@ -14,6 +14,7 @@ import org.cardanofoundation.tokenmetadata.registry.api.model.rest.AnnotatedSign
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.TokenMetadata;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
@@ -26,6 +27,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class V1ApiPostgresMetadataIndexerTest {
@@ -85,6 +87,37 @@ class V1ApiPostgresMetadataIndexerTest {
 
             assertThat(indexer.findSubject(STORED_SUBJECT))
                     .hasValueSatisfying(metadata -> assertThat(metadata.getSubject()).isEqualTo(STORED_SUBJECT));
+        }
+    }
+
+    @Nested
+    class LookedUpSubject {
+
+        @Test
+        void isInLowerCaseWhenTheClientAsksWithTheSubjectAsTheRegistryFileWritesIt() {
+            storedEntry();
+
+            assertThat(indexer.findSubject(FILE_SUBJECT))
+                    .hasValueSatisfying(metadata -> assertThat(metadata.getSubject()).isEqualTo(FILE_SUBJECT));
+            assertThat(askedFor()).isEqualTo(STORED_SUBJECT);
+        }
+
+        @Test
+        void isInLowerCaseInABatchQueryTooOnceForBothCases() {
+            storedEntry();
+
+            Map<String, TokenMetadata> found = indexer.findSubjectsSelectProperties(List.of(FILE_SUBJECT, STORED_SUBJECT), List.of());
+
+            assertThat(found).containsOnlyKeys(STORED_SUBJECT);
+            assertThat(askedFor()).isEqualTo(List.of(STORED_SUBJECT));
+        }
+
+        @SuppressWarnings("unchecked")
+        private Object askedFor() {
+            ArgumentCaptor<SqlParameterSource> params = ArgumentCaptor.forClass(SqlParameterSource.class);
+            verify(jdbcTemplate).query(anyString(), params.capture(), any(RowMapper.class));
+            SqlParameterSource asked = params.getValue();
+            return asked.hasValue("subject") ? asked.getValue("subject") : asked.getValue("subjects");
         }
     }
 

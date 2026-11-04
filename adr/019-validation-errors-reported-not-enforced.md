@@ -140,7 +140,10 @@ Found on the mainnet validation run of 2026-10-26, and done the same way in yaci
 - **An entry is served with its subject as the registry file writes it** (V1, and `standards.cip26` in V2), not in
   lower case: each CIP-26 signature is made over the CBOR of the subject as written, so the signatures of those 39
   entries (106 on mainnet) only verify against the subject in upper case. 2.0.0 served the stored subject, in lower
-  case, and none of them verified; corrected in 2.0.1. The entry is still stored and looked up in lower case.
+  case, and none of them verified; corrected in 2.0.1. The entry is still stored in lower case.
+- **A subject asked for is looked up in lower case** (V1 and V2, alone and in a batch), so a client finds an entry in
+  either case. 2.0.0 looked up the subject as asked: one asked for as the registry file writes it, in upper case, was
+  a `204` on V1 and a `404` on V2, where 1.5.0 found it; corrected in 2.0.1.
 
 ### 5. Where the registry differs from yaci-store
 
