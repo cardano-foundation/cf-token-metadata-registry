@@ -27,7 +27,7 @@ The V2 API queries CIP-26 and CIP-68 by priority (`CIP_68,CIP_26` by default). C
 > [!NOTE]
 > By default, Yaci Store connects to a public Cardano node (`STORE_CARDANO_HOST` in `.env`). You can point it to your own node if preferred.
 
-See the [API Reference](https://cardano-foundation.github.io/cf-token-metadata-registry/) for the full API definition.
+See the [website](https://cardano-foundation.github.io/cf-token-metadata-registry/) for guides, and the [API reference](https://cardano-foundation.github.io/cf-token-metadata-registry/api/) for the full API definition.
 
 ## Quick Start
 
@@ -66,7 +66,7 @@ docker compose --env-file .env.preview up
 | GET | `/api/v2/subjects/{subject}` | Token metadata with CIP priority selection |
 | POST | `/api/v2/subjects/query` | Batch query with priority and detail options |
 
-For the full API reference (including V1 endpoints and query parameters), see the [API Reference](https://cardano-foundation.github.io/cf-token-metadata-registry/).
+For the full API reference (including V1 endpoints and query parameters), see the [API reference](https://cardano-foundation.github.io/cf-token-metadata-registry/api/).
 
 ## Operational Endpoints
 

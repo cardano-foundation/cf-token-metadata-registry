@@ -1,0 +1,112 @@
+---
+import Default from '@astrojs/starlight/components/PageTitle.astro';
+import TryIt from './TryIt.astro';
+import spec from '../../openapi/registry.json';
+
+// The generated API reference pages (api/operations/<operation id>/) document only. Each one opens the request
+// client on its own operation, and every page offers the Markdown copy written beside it at build time.
+type Operation = { operationId?: string };
+
+const operationId = Astro.url.pathname.match(/\/api\/operations\/([^/]+)\/?$/)?.[1];
+
+// The page knows which operation it documents, so the button carries it directly instead of pointing at another
+// program's URL scheme.
+let operation: { path: string; method: string } | undefined;
+if (operationId) {
+	for (const [path, operations] of Object.entries(spec.paths as Record<string, Record<string, Operation>>)) {
+		for (const [method, entry] of Object.entries(operations)) {
+			if (entry.operationId === operationId) operation = { path, method };
+		}
+	}
+}
+
+// scripts/markdown-export.mjs writes index.md beside the index.html of every page.
+const markdown = `${Astro.url.pathname.replace(/\/?$/, '/')}index.md`;
+---
+
+<Default />
+<div class="page-actions not-content">
+	{
+		operation && (
+			<button
+				class="action action-primary"
+				type="button"
+				data-test-request
+				data-path={operation.path}
+				data-method={operation.method}
+			>
+				<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+					<path d="M4 12l16-8-6 16-3.5-6.5L4 12z" />
+				</svg>
+				Test request
+			</button>
+		)
+	}
+	<button class="action" type="button" data-copy-markdown={markdown}>
+		<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+			<rect x="9" y="9" width="11" height="11" rx="2" />
+			<path d="M5 15V5a2 2 0 0 1 2-2h8" />
+		</svg>
+		Copy as Markdown
+	</button>
+</div>
+{operation && <TryIt />}
+
+<script>
+	const buttons = document.querySelectorAll<HTMLButtonElement>('[data-copy-markdown]');
+	for (const button of buttons) {
+		button.addEventListener('click', async () => {
+			const label = button.textContent;
+			try {
+				const response = await fetch(button.dataset.copyMarkdown!);
+				if (!response.ok) throw new Error(String(response.status));
+				await navigator.clipboard.writeText(await response.text());
+				button.textContent = 'Copied';
+			} catch {
+				button.textContent = 'Copy failed';
+			}
+			setTimeout(() => {
+				button.textContent = label;
+			}, 1600);
+		});
+	}
+</script>
+
+<style>
+	.page-actions {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+		margin-top: 1rem;
+	}
+	.action {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.45rem;
+		padding: 0.5rem 1.1rem;
+		border: 1px solid var(--sl-color-gray-5);
+		border-radius: 9999px;
+		background: transparent;
+		color: var(--sl-color-text);
+		font-family: inherit;
+		font-size: var(--sl-text-sm);
+		font-weight: 500;
+		line-height: 1.4;
+		text-decoration: none;
+		cursor: pointer;
+	}
+	.action svg {
+		width: 1rem;
+		height: 1rem;
+		flex: none;
+	}
+	.action:hover {
+		border-color: var(--sl-color-gray-4);
+		opacity: 0.9;
+	}
+	.action-primary {
+		border-color: var(--sl-color-text);
+		background: var(--sl-color-text);
+		color: var(--sl-color-bg);
+	}
+</style>

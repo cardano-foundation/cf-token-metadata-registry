@@ -122,7 +122,7 @@ public class Cip68FungibleTokenService {
      *       indexed before validation existed keeps {@code null}: it was never checked.</li>
      * </ul>
      */
-    private FungibleTokenMetadata toFungibleTokenMetadata(MetadataReferenceNft referenceNft, List<String> properties,
+    FungibleTokenMetadata toFungibleTokenMetadata(MetadataReferenceNft referenceNft, List<String> properties,
                                                           boolean richFungibleToken) {
         String logo = richFungibleToken ? imageOf(referenceNft) : referenceNft.getLogo();
         int label = richFungibleToken ? LABEL_RFT : LABEL_FT;
