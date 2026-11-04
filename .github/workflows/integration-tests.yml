@@ -55,3 +55,34 @@ jobs:
         env:
           API_BASE_URL: http://localhost:8081
           YACI_STORE_URL: http://localhost:8080/api/v1/
+
+      # When a test fails, show the state of the DevKit chain: whether it still makes blocks, and the last lines of its
+      # logs. A faucet transaction that never lands (DevKitFaucet) is otherwise invisible in the test output.
+      - name: Show DevKit state
+        if: failure()
+        run: |
+          echo "Latest block seen by DevKit's Yaci Store, 10 s apart:"
+          curl -s --max-time 5 http://localhost:8080/api/v1/blocks/latest || echo "(no answer)"
+          echo
+          sleep 10
+          curl -s --max-time 5 http://localhost:8080/api/v1/blocks/latest || echo "(no answer)"
+          echo
+          echo "DevKit processes:"
+          ps -eo pid,etime,args | grep -E "cardano-node|cardano-submit-api|yaci" | grep -v grep || true
+          for f in $(find "$HOME/.yaci-cli" -name "*.log" -type f 2>/dev/null) nohup.out; do
+            [ -f "$f" ] || continue
+            echo "::group::$f (last 200 lines)"
+            tail -n 200 "$f"
+            echo "::endgroup::"
+          done
+
+      - name: Upload DevKit logs
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: devkit-logs-${{ inputs.target }}
+          path: |
+            ~/.yaci-cli/**/*.log
+            nohup.out
+          if-no-files-found: ignore
+          retention-days: 7
