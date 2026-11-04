@@ -59,6 +59,7 @@ The API exposes both a legacy V1 (CIP-26 only) and an enhanced V2 (CIP-26 + CIP-
 | ADR | Title | Status |
 |-----|-------|--------|
 | [ADR-007](007-yaci-store-onchain-indexing.md) | Yaci Store for On-Chain Data Indexing | Accepted |
+| [ADR-023](023-sequential-block-processing.md) | Blocks Are Indexed One at a Time, in Chain Order | Accepted |
 | [ADR-008](008-jgit-git-operations.md) | JGit for Git Operations | Accepted |
 | [ADR-009](009-incremental-github-sync.md) | Incremental GitHub Sync with Commit Tracking | Accepted |
 
