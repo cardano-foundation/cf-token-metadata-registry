@@ -56,7 +56,7 @@ class TestV1RemovedSubjects:
         # V1 answers 204 No Content when none of the requested subjects exists, which is the expected answer here
         assert resp.status_code in (200, 204)
         data = resp.json() if resp.status_code == 200 else {}
-        returned = {s["subject"] for s in data.get("subjects", [])}
+        returned = {s["subject"].lower() for s in data.get("subjects", [])}
         leaked = returned & set(REMOVED_SUBJECTS)
         assert not leaked, (
             f"{len(leaked)} deleted subject(s) still returned by batch query, "

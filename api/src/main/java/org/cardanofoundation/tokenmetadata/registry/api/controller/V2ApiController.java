@@ -26,6 +26,7 @@ import org.cardanofoundation.tokenmetadata.registry.api.service.cip113.Cip113Reg
 import org.cardanofoundation.tokenmetadata.registry.api.service.cip113.Cip113Validation;
 import org.cardanofoundation.tokenmetadata.registry.api.util.AssetType;
 import org.cardanofoundation.tokenmetadata.registry.api.util.LogSanitizer;
+import org.cardanofoundation.tokenmetadata.registry.util.MappingsUtil;
 import org.cardanofoundation.tokenmetadata.registry.validation.ValidationError;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -168,8 +169,8 @@ public class V2ApiController implements V2Api {
     private Optional<ResolvedMetadata> findMetadata(String subject, List<String> properties, QueryPriority priority) {
         return switch (priority) {
             case CIP_26 -> v1ApiMetadataIndexer.findSubjectSelectProperties(subject, properties)
-                    .map(metadata -> cip26(metadata, v1ApiMetadataIndexer.findValidationErrors(List.of(subject)).get(subject),
-                            properties));
+                    .map(metadata -> cip26(metadata, v1ApiMetadataIndexer.findValidationErrors(List.of(subject))
+                            .get(MappingsUtil.normalizeSubject(subject)), properties));
             case CIP_68 -> cip68FungibleTokenService.getReferenceNftSubject(subject)
                     .flatMap(assetType -> cip68FungibleTokenService.findSubject(assetType.policyId(), assetType.assetName(), properties,
                             cip68FungibleTokenService.isRichFungibleToken(subject)))
@@ -211,8 +212,9 @@ public class V2ApiController implements V2Api {
                                                          QueryPriority priority,
                                                          BatchPrefetchData prefetch) {
         return switch (priority) {
-            case CIP_26 -> Optional.ofNullable(prefetch.cip26Map().get(subject))
-                    .map(metadata -> cip26(metadata, prefetch.cip26ErrorsMap().get(subject), properties));
+            // the CIP-26 maps are keyed by the stored subject, in lower case
+            case CIP_26 -> Optional.ofNullable(prefetch.cip26Map().get(MappingsUtil.normalizeSubject(subject)))
+                    .map(metadata -> cip26(metadata, prefetch.cip26ErrorsMap().get(MappingsUtil.normalizeSubject(subject)), properties));
 
             case CIP_68 -> cip68FungibleTokenService.getReferenceNftSubject(subject)
                     .flatMap(assetType -> cip68FungibleTokenService.findSubject(assetType.policyId(), assetType.assetName(), properties, prefetch.cip68Map(),
