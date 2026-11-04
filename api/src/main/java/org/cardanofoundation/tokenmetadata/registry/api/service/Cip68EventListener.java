@@ -24,6 +24,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -80,13 +81,16 @@ public class Cip68EventListener {
     public void processTransaction(AddressUtxoEvent addressUtxoEvent) {
         Long slot = addressUtxoEvent.getMetadata().getSlot();
         List<MetadataReferenceNft> entities = new ArrayList<>();
+        // The rows of the block are saved together after its last transaction, so the database does not know a reference
+        // NFT indexed by an earlier transaction of the same block: this set does (see isIndexed).
+        Set<String> indexedInBlock = new HashSet<>();
         // Per transaction: the labels of a reference NFT come from the user tokens paired with it, which are minted in
         // the same transaction
         for (TxInputOutput txInputOutput : addressUtxoEvent.getTxInputOutputs()) {
             Set<String> assetUnitsInTx = collectAssetUnits(txInputOutput);
             for (AddressUtxo output : txInputOutput.getOutputs()) {
                 try {
-                    indexOutput(output, assetUnitsInTx, slot, entities);
+                    indexOutput(output, assetUnitsInTx, slot, entities, indexedInBlock);
                 } catch (RuntimeException e) {
                     skipOutput(output, slot, e);
                 }
@@ -104,7 +108,8 @@ public class Cip68EventListener {
      * steps read the datum of the output, whatever else it holds), and one info line lists them so the case can be
      * audited. One reference NFT failing does not take the others of the output with it.
      */
-    private void indexOutput(AddressUtxo output, Set<String> assetUnitsInTx, Long slot, List<MetadataReferenceNft> entities) {
+    private void indexOutput(AddressUtxo output, Set<String> assetUnitsInTx, Long slot, List<MetadataReferenceNft> entities,
+                             Set<String> indexedInBlock) {
         List<Amt> referenceNfts = cip68FungibleTokenService.extractReferenceNfts(output);
         SharedDatum shared = null;
         if (referenceNfts.size() > 1 && !cip68DatumParser.hasNestedMetadata(output.getInlineDatum())) {
@@ -117,7 +122,10 @@ public class Cip68EventListener {
         for (Amt referenceNftAmt : referenceNfts) {
             AssetType referenceNft = AssetType.fromUnit(referenceNftAmt.getUnit());
             try {
-                toEntity(output, referenceNft, assetUnitsInTx, slot, shared).ifPresent(entities::add);
+                toEntity(output, referenceNft, assetUnitsInTx, slot, shared, indexedInBlock).ifPresent(entity -> {
+                    entities.add(entity);
+                    indexedInBlock.add(referenceNft.toUnit());
+                });
             } catch (RuntimeException e) {
                 skipReferenceNft(output, slot, referenceNft, e);
             }
@@ -129,12 +137,12 @@ public class Cip68EventListener {
      * wrong with it; one that cannot be decoded is recorded in {@code invalid_token}, once for a shared flat datum.
      */
     private Optional<MetadataReferenceNft> toEntity(AddressUtxo output, AssetType referenceNft, Set<String> assetUnitsInTx,
-                                                    Long slot, @Nullable SharedDatum shared) {
+                                                    Long slot, @Nullable SharedDatum shared, Set<String> indexedInBlock) {
         ParseOutcome outcome = shared != null
                 ? shared.outcome
                 : cip68DatumParser.parseDetailed(output.getInlineDatum(), referenceNft);
         if (outcome instanceof ParseOutcome.Parsed(ParsedCip68Datum parsed)) {
-            return indexDatum(parsed, output, referenceNft, assetUnitsInTx, slot, shared);
+            return indexDatum(parsed, output, referenceNft, assetUnitsInTx, slot, shared, indexedInBlock);
         }
         if (outcome instanceof ParseOutcome.Dropped(String reasonCode, String message) && (shared == null || shared.markReported())) {
             recordDropped(output, slot, referenceNft, reasonCode, message, shared);
@@ -143,20 +151,33 @@ public class Cip68EventListener {
     }
 
     /**
+     * Whether the reference NFT already has a row: one saved by an earlier block, or one built by an earlier transaction
+     * of this block. The rows of a block are only saved after its last transaction, and they are plain objects until then,
+     * not entities Hibernate could flush before the query, so the database alone does not see the second kind. A
+     * transaction can spend an output created earlier in its block, so a token minted with its metadata and cleared in the
+     * next transaction of the same block would otherwise keep the metadata it was minted with (found in review of
+     * bloxbean/yaci-store#1220).
+     */
+    private boolean isIndexed(AssetType referenceNft, Set<String> indexedInBlock) {
+        return indexedInBlock.contains(referenceNft.toUnit())
+                || metadataReferenceNftRepository.existsByPolicyIdAndAssetName(referenceNft.policyId(), referenceNft.assetName());
+    }
+
+    /**
      * The row for a datum that was read: what is wrong with the datum itself, and what is reported about it. What the
      * label requires is not stored: it is checked when the token is served, for the label asked for
      * ({@link Cip68Validator#validate}).
      */
     private Optional<MetadataReferenceNft> indexDatum(ParsedCip68Datum parsed, AddressUtxo output, AssetType referenceNft,
-                                                      Set<String> assetUnitsInTx, Long slot, @Nullable SharedDatum shared) {
+                                                      Set<String> assetUnitsInTx, Long slot, @Nullable SharedDatum shared,
+                                                      Set<String> indexedInBlock) {
         // A reference NFT can have user tokens of several labels (the CIP allows it)
         List<Integer> pairedLabels = pairedLabels(referenceNft, assetUnitsInTx);
         // Without a user token in the transaction the label can only be inferred from the datum, and a datum with none
         // of the CIP-68 token fields (a dApp's own state under the 000643b0 prefix, an empty map) is not token metadata:
         // it would only be indexed as a 333 fungible token by default. Once a reference NFT is indexed, every later
         // datum is, so that an owner who clears the metadata is not served the old one.
-        if (pairedLabels.isEmpty() && !parsed.hasTokenFields()
-                && !metadataReferenceNftRepository.existsByPolicyIdAndAssetName(referenceNft.policyId(), referenceNft.assetName())) {
+        if (pairedLabels.isEmpty() && !parsed.hasTokenFields() && !isIndexed(referenceNft, indexedInBlock)) {
             log.debug("Skipping CIP-68 datum of {}/{}: no user token in the transaction and none of the CIP-68 token fields",
                     referenceNft.policyId(), referenceNft.assetName());
             return Optional.empty();
@@ -164,7 +185,7 @@ public class Cip68EventListener {
         // Only the user tokens of the transaction tell what a datum is: one without them is stored, since its 333 or 444
         // token can be minted in another transaction (an RFT datum without decimals looks like an NFT's)
         if (!pairedLabels.isEmpty() && !pairedLabels.contains(LABEL_FT) && !pairedLabels.contains(LABEL_RFT)
-                && !metadataReferenceNftRepository.existsByPolicyIdAndAssetName(referenceNft.policyId(), referenceNft.assetName())) {
+                && !isIndexed(referenceNft, indexedInBlock)) {
             log.debug("Skipping CIP-68 datum of {}/{} (labels {}): not a fungible or rich fungible token",
                     referenceNft.policyId(), referenceNft.assetName(), pairedLabels);
             return Optional.empty();
