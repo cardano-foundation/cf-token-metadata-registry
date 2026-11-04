@@ -135,8 +135,12 @@ Found on the mainnet validation run of 2026-10-26, and done the same way in yaci
 - **A subject is stored in lower case.** It is base16 and its case carries no meaning, but 39 mainnet registry files
   are named and written in upper case and were stored as written, so a lower-case query, as every on-chain subject is
   written, was a 404. The subject is lower-cased when the entry and its logo are stored, when an entry is deleted, and
-  when a full sync compares the stored subjects with the file names. V1 serves an entry under its stored subject.
-  There is no migration: deployments of this release index from an empty database.
+  when a full sync compares the stored subjects with the file names. There is no migration: deployments of this
+  release index from an empty database.
+- **An entry is served with its subject as the registry file writes it** (V1, and `standards.cip26` in V2), not in
+  lower case: each CIP-26 signature is made over the CBOR of the subject as written, so the signatures of those 39
+  entries (106 on mainnet) only verify against the subject in upper case. 2.0.0 served the stored subject, in lower
+  case, and none of them verified; corrected in 2.0.1. The entry is still stored and looked up in lower case.
 
 ### 5. Where the registry differs from yaci-store
 
