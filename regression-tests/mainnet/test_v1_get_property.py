@@ -37,7 +37,8 @@ class TestV1GetProperty:
 
         assert resp.status_code == 200
         data = resp.json()
-        assert data["subject"] == subject
+        # V1 serves a subject as the registry file writes it (some in upper case); the fixtures have it in lower case
+        assert data["subject"].lower() == subject
 
         prop_data = data.get(prop)
         assert prop_data is not None, f"Expected {prop} in response"
@@ -58,7 +59,8 @@ class TestV1GetProperty:
 
         assert resp.status_code == 200
         data = resp.json()
-        assert data["subject"] == subject
+        # V1 serves a subject as the registry file writes it (some in upper case); the fixtures have it in lower case
+        assert data["subject"].lower() == subject
 
         prop_data = data.get(prop)
         if prop_data is not None:
