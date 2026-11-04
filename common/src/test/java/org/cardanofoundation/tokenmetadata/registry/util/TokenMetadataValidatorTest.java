@@ -70,7 +70,7 @@ class TokenMetadataValidatorTest {
             TokenMetadata zero = metadata(VALID_SUBJECT, "Token", "Description");
             zero.setDecimals(0L);
             TokenMetadata max = metadata(VALID_SUBJECT, "Token", "d".repeat(500));
-            max.setDecimals(255L);
+            max.setDecimals(19L);
 
             assertThat(validate(zero).errors()).isEmpty();
             assertThat(validate(max).errors()).isEmpty();
@@ -179,7 +179,8 @@ class TokenMetadataValidatorTest {
 
         @Test
         void reportsDecimalsOutsideTheRangeAndKeepsTheValue() {
-            for (long decimals : new long[]{-1L, 256L, 4_294_967_301L}) {
+            for (long decimals : new long[]{-1L, 20L, 255L, 256L, 4_294_967_301L}) {
+                // CIP-26 allows 0 to 19; 20 to 255 fit the storage bound and were taken as valid before
                 // 2^32 + 5: narrowing to int gives 5, which the upstream library would accept
                 TokenMetadata m = metadata(VALID_SUBJECT, "Token", "Description");
                 m.setDecimals(decimals);

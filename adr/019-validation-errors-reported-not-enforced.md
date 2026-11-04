@@ -132,6 +132,9 @@ Found on the mainnet validation run of 2026-10-26, and done the same way in yaci
 - **A `url` needs `https` and a host.** cf-tokens-cip26 checks the scheme only, so `https:/rosen.tech` (one slash)
   passed. A `url` that is not a valid URI, not `https`, or has no host is an `OPTIONAL` `invalid_value` error that
   quotes it, unless the library already reported the `url`.
+- **CIP-26 `decimals` is checked against [0, 19]** (2.0.1), the range CIP-26 allows. Up to 2.0.0 the check used
+  `TokenDecimals`, [0, 255], so 20 to 255 passed as valid; that stays the storage bound shared with CIP-68, which sets
+  no range of its own. None on mainnet: the highest is 18. Found in review of bloxbean/yaci-store#1220.
 - **A subject is stored in lower case.** It is base16 and its case carries no meaning, but 39 mainnet registry files
   are named and written in upper case and were stored as written, so a lower-case query, as every on-chain subject is
   written, was a 404. The subject is lower-cased when the entry and its logo are stored, when an entry is deleted, and
