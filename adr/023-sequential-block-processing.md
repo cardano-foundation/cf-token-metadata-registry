@@ -26,7 +26,8 @@ datum is skipped unless its reference NFT is already stored (`existsByPolicyIdAn
 - its transaction has the 222 NFT and no 333 or 444 token (#121).
 
 Both rules exist so that once a reference NFT is indexed, every later datum of it is: an owner who clears the metadata
-is not served the old one. They are only correct if every earlier block has been indexed when the check runs.
+is not served the old one. They are only correct if every earlier block has been indexed when the check runs, and
+every earlier transaction of the same block too (see Corrections).
 
 yaci-store's `assets-ext` module implements the same rules and runs with parallel processing on, as in the
 `config/application.properties` shipped with yaci-store. There, the check depended on which partition finished first,
@@ -52,7 +53,8 @@ rows.
 
 ### Positive
 
-- **The two CIP-68 skips are exact.** When a block is indexed, every earlier block has been.
+- **The two CIP-68 skips are exact.** When a block is indexed, every earlier block has been; the earlier transactions of
+  the same block are known from the set the listener keeps for the block (see Corrections).
 - **Simple listeners.** No state is kept between blocks, and nothing is held in memory until the end of a batch.
 - **Same rows at the tip and during a sync from scratch.**
 
@@ -83,6 +85,15 @@ ADR-019 and the javadoc of `Cip68EventListener` said that yaci-store processes t
 sync, as a reason why only the transaction can be relied on. That reasoning came from `assets-ext`. The conclusion still
 holds here: a 333 or 444 token minted in a later block is not known when the datum is indexed. ADR-019 is amended; the
 javadoc is to be corrected with the next code change.
+
+**The skips were not exact within a block (corrected in 2.0.1).** The rows of a block are saved together after its last
+transaction (`saveAll`), and until then they are plain objects Hibernate cannot flush, so `existsByPolicyIdAndAssetName`
+did not see a row built by an earlier transaction of the same block. A transaction can spend an output created earlier
+in its block: a token minted with its metadata and cleared in the next transaction of the same block kept the metadata it
+was minted with (the same for a 222-only update after the 333 mint). Sequential processing orders blocks, not the
+transactions of a block, so it does not help. `Cip68EventListener` now keeps the reference NFTs indexed in the current
+block, and one in that set counts as already stored (`isIndexed`). Found in review of bloxbean/yaci-store#1220, where
+`assets-ext` has the same fix.
 
 ## References
 
