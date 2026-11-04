@@ -2,7 +2,8 @@
 
 ## Status
 
-Accepted. Supersedes ADR-017. Follows yaci-store's ADR 0006 (bloxbean/yaci-store#1224, implemented in #1220).
+Accepted. Supersedes ADR-017. Follows yaci-store's ADR 0006 (bloxbean/yaci-store#1224, implemented in #1220). Amended by ADR-023
+(2026-11-04): blocks are indexed in chain order, not in parallel.
 
 ## Date
 
@@ -146,8 +147,9 @@ Found on the mainnet validation run of 2026-10-26, and done the same way in yaci
     or 444 token can be minted in another transaction, before or after the reference NFT: on mainnet the GOAT RFTs
     (`e987e459…`) minted their reference NFTs first, BushWifPlanesTier1 (`cc816014…`) its 444 token first. Their
     datums have an image and no `decimals`, so a label guessed from the datum read them as 222 NFTs, and they were
-    never served. Only the transaction can be relied on: yaci-store processes the blocks of a batch in parallel during
-    sync, so the order of a mint and a datum in other transactions is not known. An NFT whose reference NFT was minted
+    never served. Only the transaction can be relied on: a 333 or 444 token minted in a later block is not known when
+    the datum is indexed. (*Amended by ADR-023:* this said that yaci-store processes the blocks of a batch in parallel
+    during sync. The registry does not: it indexes blocks one at a time, in chain order.) An NFT whose reference NFT was minted
     without its 222 token is stored too, and answers under its 333 and 444 subjects, as any reference NFT does
     (ADR-022, rejected).
   - A datum that updates a reference NFT already stored is kept whatever its transaction holds.
