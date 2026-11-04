@@ -117,7 +117,7 @@ class V1ApiPostgresMetadataIndexerTest {
             ArgumentCaptor<SqlParameterSource> params = ArgumentCaptor.forClass(SqlParameterSource.class);
             verify(jdbcTemplate).query(anyString(), params.capture(), any(RowMapper.class));
             SqlParameterSource asked = params.getValue();
-            return asked.hasValue("subject") ? asked.getValue("subject") : asked.getValue("subjects");
+            return asked.getValue(asked.hasValue("subject") ? "subject" : "subjects");
         }
     }
 
