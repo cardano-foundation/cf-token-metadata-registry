@@ -4,8 +4,12 @@ on:
   push:
     branches:
       - main
-    tags:
-      - '[0-9]+.[0-9]+.[0-9]+*'
+  # public images come from a GitHub release, not from a tag push: a pre-release is pushed with -prerelease tags,
+  # a release (or a pre-release promoted to one) with the plain version tags and latest (cf-gha-baseline)
+  release:
+    types:
+      - prereleased
+      - released
   pull_request:
     types:
       - opened

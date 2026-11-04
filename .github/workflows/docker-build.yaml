@@ -103,10 +103,10 @@ jobs:
 
           EXTRA_TAGS="${EARTHLY_DOCKER_IMAGES_EXTRA_TAGS}"
 
-          # release tags define hub's latest, branch builds do not (cf-gha-baseline only
-          # appends 'latest' for main/master branch pushes, which no longer reach public
+          # a release defines hub's latest; a pre-release and branch builds do not (cf-gha-baseline
+          # only appends 'latest' for main/master branch pushes, which no longer reach public
           # registries)
-          if [ "${TRIGGERING_REF}" = "tag" ]; then
+          if [ "${TRIGGERING_REF}" = "tag" ] && [ "${IS_PRERELEASE}" != "true" ]; then
             EXTRA_TAGS="${EXTRA_TAGS} latest"
           fi
 
