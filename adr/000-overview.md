@@ -38,6 +38,7 @@ The API exposes both a legacy V1 (CIP-26 only) and an enhanced V2 (CIP-26 + CIP-
 | [ADR-001](001-multi-module-maven-structure.md) | Multi-Module Maven Project Structure | Accepted |
 | [ADR-002](002-spring-boot-virtual-threads-jdk25.md) | Spring Boot 3 with Virtual Threads on JDK 25 | Accepted |
 | [ADR-003](003-graalvm-native-image-support.md) | GraalVM Native Image Support | Accepted |
+| [ADR-021](021-native-image-read-only-mode.md) | A Separate Native Image for Read-Only Mode (Workaround) | Accepted (temporary) |
 
 ### Data & Standards
 
