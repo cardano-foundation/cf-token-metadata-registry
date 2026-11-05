@@ -14,10 +14,10 @@ cf-token-metadata-registry:
       rollingUpdate:
         maxSurge: 0
         maxUnavailable: 1
-    dbSchema: registry
+    dbSchema: registry_blue
     api:
       image:
-        tag: "1.7.0-main-57f4e5b"
+        tag: "2.0.0"
       tokenMetadataUpdateJob:
         enabled: false
       cip113RegistryNftPolicyIds:
@@ -25,7 +25,7 @@ cf-token-metadata-registry:
     job:
       enabled: true
       image:
-        tag: "1.7.0-main-57f4e5b"
+        tag: "2.0.0"
 
     postgres:
       numberOfInstances: 2
@@ -41,7 +41,7 @@ cf-token-metadata-registry:
         syncStartBlockhash: ""
         blocksEpochCalculationInterval: "14400"
     github:
-      organization: "input-output-hk"
+      organization: "cardano-foundation"
       projectName: "metadata-registry-testnet"
       mappingsFolder: "registry"
       tmpFolder: "/tmp"
