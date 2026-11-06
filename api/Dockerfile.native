@@ -1,4 +1,7 @@
-FROM container-registry.oracle.com/graalvm/native-image:25 AS build
+# Temurin has no native-image, so the native build stays on Oracle GraalVM, pinned for the same reason as the JVM
+# images: a native executable embeds the trust store of the JDK that built it, and the 25.0.5 build (October 2026)
+# has none of the compromised eMudhra roots. The runtime image below has no JDK, so it needs no pin for this.
+FROM container-registry.oracle.com/graalvm/native-image:25.0.5 AS build
 
 RUN microdnf install -y maven findutils && microdnf clean all
 
