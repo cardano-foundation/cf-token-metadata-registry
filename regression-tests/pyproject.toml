@@ -8,6 +8,7 @@ dependencies = [
     "allure-pytest>=2.13",
     "requests>=2.31",
     "psycopg2-binary>=2.9",
+    "pynacl>=1.5",
 ]
 
 [tool.uv]

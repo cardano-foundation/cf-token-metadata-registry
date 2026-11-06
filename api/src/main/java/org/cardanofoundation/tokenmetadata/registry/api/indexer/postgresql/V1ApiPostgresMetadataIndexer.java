@@ -11,6 +11,7 @@ import org.cardanofoundation.tokenmetadata.registry.api.indexer.V1ApiMetadataInd
 import org.cardanofoundation.tokenmetadata.registry.api.indexer.postgresql.data.MetadataQueryResult;
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.TokenMetadata;
 import org.cardanofoundation.tokenmetadata.registry.api.util.LogSanitizer;
+import org.cardanofoundation.tokenmetadata.registry.util.MappingsUtil;
 import org.cardanofoundation.tokenmetadata.registry.validation.ValidationError;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -56,9 +57,12 @@ public class V1ApiPostgresMetadataIndexer implements V1ApiMetadataIndexer {
         try {
             final TokenMetadata tokenMetadata =
                     objectMapper.readValue(metadataQueryResult.getProperties(), TokenMetadata.class);
-            // the registry file is kept as written, its subject too; the entry is served under the subject it is
-            // stored and looked up by, in lower case
-            tokenMetadata.setSubject(metadataQueryResult.getSubject());
+            // the registry file is kept as written, its subject too, and the entry is served with that subject: each
+            // signature is made over the subject as written, so one written in upper case only verifies in upper case.
+            // The entry is still stored and looked up by its subject in lower case.
+            if (tokenMetadata.getSubject() == null) {
+                tokenMetadata.setSubject(metadataQueryResult.getSubject());
+            }
             excludeProperties(tokenMetadata, propertiesToExclude);
             return Optional.of(tokenMetadata);
         } catch (final JsonProcessingException e) {
@@ -99,7 +103,7 @@ public class V1ApiPostgresMetadataIndexer implements V1ApiMetadataIndexer {
 
     @Override
     public Map<String, TokenMetadata> findSubjectsSelectProperties(List<String> subjects, List<String> properties) {
-        final SqlParameterSource params = new MapSqlParameterSource(Map.ofEntries(entry("subjects", subjects)));
+        final SqlParameterSource params = new MapSqlParameterSource(Map.ofEntries(entry("subjects", storedSubjects(subjects))));
         final String queryStatement = String.format("%s WHERE subject in (:subjects)", MetadataQueryResult.DEFAULT_QUERY_STRING);
         final List<MetadataQueryResult> queryResults = jdbcTemplate.query(queryStatement,
                 params,
@@ -109,7 +113,7 @@ public class V1ApiPostgresMetadataIndexer implements V1ApiMetadataIndexer {
 
     @Override
     public Optional<TokenMetadata> findSubject(String subject) {
-        final SqlParameterSource params = new MapSqlParameterSource(Map.ofEntries(entry(SUBJECT, subject)));
+        final SqlParameterSource params = new MapSqlParameterSource(Map.ofEntries(entry(SUBJECT, MappingsUtil.normalizeSubject(subject))));
         final List<MetadataQueryResult> queryResults = jdbcTemplate.query(String.format("%s WHERE subject = :subject", MetadataQueryResult.DEFAULT_QUERY_STRING),
                 params,
                 (rs, rowNum) -> MetadataQueryResult.fromSubjectAndPropertiesResultSet(rs));
@@ -118,7 +122,7 @@ public class V1ApiPostgresMetadataIndexer implements V1ApiMetadataIndexer {
 
     @Override
     public Optional<TokenMetadata> findSubjectSelectProperties(String subject, List<String> properties) {
-        final SqlParameterSource params = new MapSqlParameterSource(Map.ofEntries(entry(SUBJECT, subject)));
+        final SqlParameterSource params = new MapSqlParameterSource(Map.ofEntries(entry(SUBJECT, MappingsUtil.normalizeSubject(subject))));
         final String queryStatement = String.format("%s WHERE subject = :subject", MetadataQueryResult.DEFAULT_QUERY_STRING);
         final List<MetadataQueryResult> queryResults = jdbcTemplate.query(queryStatement,
                 params,
@@ -131,12 +135,20 @@ public class V1ApiPostgresMetadataIndexer implements V1ApiMetadataIndexer {
         if (subjects.isEmpty()) {
             return Map.of();
         }
-        final SqlParameterSource params = new MapSqlParameterSource(Map.ofEntries(entry("subjects", subjects)));
+        final SqlParameterSource params = new MapSqlParameterSource(Map.ofEntries(entry("subjects", storedSubjects(subjects))));
         final Map<String, List<ValidationError>> errors = new HashMap<>();
         jdbcTemplate.query("SELECT subject, validation_errors FROM metadata WHERE subject IN (:subjects)", params, rs -> {
             errors.put(rs.getString(SUBJECT), readValidationErrors(rs.getString(SUBJECT), rs.getString("validation_errors")));
         });
         return errors;
+    }
+
+    /**
+     * The subjects asked for, as they are stored: in lower case. A client can ask with the subject as the registry file
+     * writes it, in upper case for 39 mainnet entries. The maps returned are keyed by the stored subject.
+     */
+    private static List<String> storedSubjects(Collection<String> subjects) {
+        return subjects.stream().map(MappingsUtil::normalizeSubject).distinct().toList();
     }
 
     @Nullable
