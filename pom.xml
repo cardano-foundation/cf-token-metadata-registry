@@ -66,8 +66,8 @@
         <version.maven-site-plugin>4.0.0-M16</version.maven-site-plugin>
         <version.spring-boot>3.5.16</version.spring-boot>
         <version.lombok>1.18.38</version.lombok>
-        <version.springdoc-openapi-ui>2.10.0</version.springdoc-openapi-ui>
-        <version.swagger-annotations>2.2.55</version.swagger-annotations>
+        <version.springdoc-openapi-ui>2.8.4</version.springdoc-openapi-ui>
+        <version.swagger-annotations>2.2.28</version.swagger-annotations>
         <version.validation-api>3.1.1</version.validation-api>
         <version.bouncycastle>1.86</version.bouncycastle>
         <version.commons-cli>1.11.0</version.commons-cli>
