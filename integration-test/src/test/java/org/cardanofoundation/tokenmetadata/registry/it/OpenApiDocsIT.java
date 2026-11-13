@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
+import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -132,6 +133,18 @@ class OpenApiDocsIT extends BaseIntegrationIT {
             assertThat(apiDocs.read("$.components.schemas.ProgrammableTokenCip113.properties.transfer_logic_script", Object.class)).isNotNull();
             assertThat(apiDocs.read("$.components.schemas.ProgrammableTokenCip113.properties.third_party_transfer_logic_script", Object.class)).isNotNull();
             assertThat(apiDocs.read("$.components.schemas.ProgrammableTokenCip113.properties.global_state_policy_id", Object.class)).isNotNull();
+        }
+
+        @Test
+        void cip113ScriptHashesArePublishedAsNullable() {
+            // the API sends null for a script the registry node does not specify (unfracking_logic_script for every
+            // mainnet token so far); in OpenAPI 3.1 a nullable string is the type list ["string", "null"]
+            for (String field : List.of("minting_logic_script", "transfer_logic_script",
+                    "third_party_transfer_logic_script", "unfracking_logic_script", "global_state_policy_id")) {
+                assertThat(apiDocs.read("$.components.schemas.ProgrammableTokenCip113.properties." + field + ".type", List.class))
+                        .as(field)
+                        .containsExactlyInAnyOrder("string", "null");
+            }
         }
     }
 
