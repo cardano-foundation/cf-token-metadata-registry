@@ -37,8 +37,9 @@ public interface MetadataReferenceNftRepository extends JpaRepository<MetadataRe
      * Each unit ({@code policyId || assetName}) is split back into its policy ID and asset name, and the query filters
      * on both, so the database reads only the requested reference NFTs through the index on
      * {@code (policy_id, asset_name, slot)}. A filter on the policy IDs alone reads every reference NFT of those
-     * policies: an NFT collection can have tens of thousands of rows, read with a sequential scan and sorted on disk,
-     * however few of its subjects were asked for.
+     * policies, however few of their subjects were asked for: a policy can have tens of thousands of stored datums
+     * (an NFT collection whose datums are stored, though never served, ADR-019), read with a sequential scan and
+     * sorted on disk.
      * <p>
      * Large requests are split, so that a query binds at most three parameters per unit, far below the 65,535 bind
      * parameters a PostgreSQL statement accepts, and the pairs the two {@code IN} lists can match stay bounded.

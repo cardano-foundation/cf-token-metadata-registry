@@ -201,7 +201,8 @@ public class V2ApiController implements V2Api {
         Map<String, List<ValidationError>> cip26ErrorsMap = cip26Map.isEmpty()
                 ? Map.of()
                 : v1ApiMetadataIndexer.findValidationErrors(cip26Map.keySet());
-        // only the reference NFTs of the requested 333/444 subjects: a policy can have tens of thousands of them
+        // only the reference NFTs of the requested 333/444 subjects, not every one of their policies: a policy can have
+        // tens of thousands of stored datums (an NFT collection, stored but never served, ADR-019)
         List<AssetType> referenceNfts = subjects.stream()
                 .map(cip68FungibleTokenService::getReferenceNftSubject)
                 .flatMap(Optional::stream)
