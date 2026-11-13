@@ -48,6 +48,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -205,7 +206,7 @@ class MetadataApiV2ControllerTest {
                 ));
 
         // Batch CIP-68 pre-fetch: return reference NFTs for both known tokens
-        when(metadataReferenceNftRepository.findLatestByPolicyIds(anyCollection()))
+        when(metadataReferenceNftRepository.findLatestByUnits(anyCollection()))
                 .thenReturn(List.of(
                         MetadataReferenceNft.builder()
                                 .policyId(knownAssetType.policyId())
@@ -350,6 +351,24 @@ class MetadataApiV2ControllerTest {
     }
 
     @Test
+    void getSubjectsLooksUpOnlyTheReferenceNftsOfTheRequestedCip68Subjects() throws Exception {
+        String fungibleToken = "577f0b1342f8f8f4aed3388b80a8535812950c7a892495c0ecdf0f1e0014df10464c4454";
+        String richFungibleToken = "577f0b1342f8f8f4aed3388b80a8535812950c7a892495c0ecdf0f1e001bc28050555a5a4c45";
+        BatchRequest request = new BatchRequest(List.of(
+                "025146866af908340247fe4e9672d5ac7059f1e8534696b5f920c9e66362544848",   // not CIP-68
+                fungibleToken, fungibleToken, richFungibleToken), List.of());
+
+        mockMvc.perform(post("/api/v2/subjects/query")
+                        .contentType("application/json")
+                        .content(new ObjectMapper().writeValueAsString(request)))
+                .andExpect(status().isOk());
+
+        verify(metadataReferenceNftRepository).findLatestByUnits(List.of(
+                "577f0b1342f8f8f4aed3388b80a8535812950c7a892495c0ecdf0f1e000643b0464c4454",
+                "577f0b1342f8f8f4aed3388b80a8535812950c7a892495c0ecdf0f1e000643b050555a5a4c45"));
+    }
+
+    @Test
     void getSubjectsBatchNeedsNoNameOrDescription() throws Exception {
 
         ObjectMapper objectMapper = new ObjectMapper();
@@ -452,7 +471,7 @@ class MetadataApiV2ControllerTest {
             MetadataReferenceNft row = rftRow();
             when(metadataReferenceNftRepository.findFirstByPolicyIdAndAssetNameOrderBySlotDesc(RFT_POLICY, "000643b0" + BASE_NAME))
                     .thenReturn(Optional.of(row));
-            when(metadataReferenceNftRepository.findLatestByPolicyIds(anyCollection())).thenReturn(List.of(row));
+            when(metadataReferenceNftRepository.findLatestByUnits(anyCollection())).thenReturn(List.of(row));
         }
 
         @Test
@@ -547,7 +566,7 @@ class MetadataApiV2ControllerTest {
                     .thenReturn(Optional.of(emptyNameRow));
             when(metadataReferenceNftRepository.findFirstByPolicyIdAndAssetNameOrderBySlotDesc(POLICY, "000643b0" + NAMED_BASE))
                     .thenReturn(Optional.of(namedRow));
-            when(metadataReferenceNftRepository.findLatestByPolicyIds(anyCollection())).thenReturn(List.of(emptyNameRow, namedRow));
+            when(metadataReferenceNftRepository.findLatestByUnits(anyCollection())).thenReturn(List.of(emptyNameRow, namedRow));
         }
 
         @Test
@@ -642,7 +661,7 @@ class MetadataApiV2ControllerTest {
                     .validationErrors(errors).build();
             when(metadataReferenceNftRepository.findFirstByPolicyIdAndAssetNameOrderBySlotDesc(POLICY, "000643b0" + BASE_NAME))
                     .thenReturn(Optional.of(row));
-            when(metadataReferenceNftRepository.findLatestByPolicyIds(anyCollection())).thenReturn(List.of(row));
+            when(metadataReferenceNftRepository.findLatestByUnits(anyCollection())).thenReturn(List.of(row));
         }
 
         @Test

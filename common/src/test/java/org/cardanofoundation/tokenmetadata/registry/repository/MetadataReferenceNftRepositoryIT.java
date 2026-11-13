@@ -2,6 +2,7 @@ package org.cardanofoundation.tokenmetadata.registry.repository;
 
 import org.cardanofoundation.tokenmetadata.registry.config.RepositoryTestConfig;
 import org.cardanofoundation.tokenmetadata.registry.entity.MetadataReferenceNft;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -11,8 +12,11 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -183,6 +187,82 @@ class MetadataReferenceNftRepositoryIT {
         assertTrue(result2.isPresent(), "Should find asset2");
         assertEquals(400000L, result2.get().getSlot(), "Should return asset2's slot");
         assertEquals("Asset2", result2.get().getName(), "Should return asset2's name");
+    }
+
+    @Nested
+    class FindLatestByUnits {
+
+        private static final String POLICY_1 = "aabbccdd11223344aabbccdd11223344aabbccdd11223344aabbccdd";
+        private static final String POLICY_2 = "11223344aabbccdd11223344aabbccdd11223344aabbccdd11223344";
+        private static final String REF_A = "000643b0414141";
+        private static final String REF_B = "000643b0424242";
+
+        @Test
+        void returnsTheLatestRowOfEachRequestedReferenceNft() {
+            persist(createNft(POLICY_1, REF_A, 100L, "a-old"), createNft(POLICY_1, REF_A, 200L, "a-new"),
+                    createNft(POLICY_2, REF_B, 150L, "b"));
+
+            assertThat(repository.findLatestByUnits(List.of(POLICY_1 + REF_A, POLICY_2 + REF_B)))
+                    .extracting(MetadataReferenceNft::getName)
+                    .containsExactlyInAnyOrder("a-new", "b");
+        }
+
+        @Test
+        void doesNotReturnOtherReferenceNftsOfARequestedPolicy() {
+            persist(createNft(POLICY_1, REF_A, 100L, "requested"), createNft(POLICY_1, REF_B, 100L, "same policy"));
+
+            assertThat(repository.findLatestByUnits(List.of(POLICY_1 + REF_A)))
+                    .extracting(MetadataReferenceNft::getName)
+                    .containsExactly("requested");
+        }
+
+        @Test
+        void doesNotReturnAnUnrequestedPairThatMatchesBothInLists() {
+            persist(createNft(POLICY_1, REF_A, 100L, "p1-a"), createNft(POLICY_2, REF_B, 100L, "p2-b"),
+                    createNft(POLICY_1, REF_B, 100L, "p1-b"));   // policy 1 and asset B are both requested, the pair is not
+
+            assertThat(repository.findLatestByUnits(List.of(POLICY_1 + REF_A, POLICY_2 + REF_B)))
+                    .extracting(MetadataReferenceNft::getName)
+                    .containsExactlyInAnyOrder("p1-a", "p2-b");
+        }
+
+        @Test
+        void splitsALargeRequestIntoSeveralQueriesAndReturnsEveryMatchOnce() {
+            int unitCount = 2 * MetadataReferenceNftRepository.MAX_KEYS_PER_QUERY + 1;
+            List<String> units = new ArrayList<>();
+            for (int i = 0; i < unitCount; i++) {
+                units.add(POLICY_1 + "000643b0" + String.format("%06x", i));
+            }
+            // one stored reference NFT in each of the three queries: the first unit, the first of the second query, the last
+            int[] stored = {0, MetadataReferenceNftRepository.MAX_KEYS_PER_QUERY, unitCount - 1};
+            for (int i : stored) {
+                persist(createNft(POLICY_1, units.get(i).substring(MetadataReferenceNftRepository.POLICY_ID_HEX_LENGTH), 100L, "unit-" + i));
+            }
+            units.add(units.get(0));   // a duplicate unit is looked up once
+
+            assertThat(repository.findLatestByUnits(units))
+                    .extracting(MetadataReferenceNft::getName)
+                    .containsExactlyInAnyOrder("unit-0", "unit-" + MetadataReferenceNftRepository.MAX_KEYS_PER_QUERY,
+                            "unit-" + (unitCount - 1));
+        }
+
+        @Test
+        void omitsUnitsWithoutMetadataAndUnitsShorterThanAPolicyId() {
+            persist(createNft(POLICY_1, REF_A, 100L, "p1-a"));
+
+            assertThat(repository.findLatestByUnits(List.of(POLICY_1 + REF_A, POLICY_2 + REF_A, "abcd")))
+                    .extracting(MetadataReferenceNft::getName)
+                    .containsExactly("p1-a");
+            assertThat(repository.findLatestByUnits(List.of())).isEmpty();
+        }
+
+        private void persist(MetadataReferenceNft... nfts) {
+            for (MetadataReferenceNft nft : nfts) {
+                entityManager.persist(nft);
+            }
+            entityManager.flush();
+            entityManager.clear();
+        }
     }
 
     private MetadataReferenceNft createNft(String policyId, String assetName, Long slot, String name) {
