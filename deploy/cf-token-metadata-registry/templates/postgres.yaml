@@ -3,17 +3,27 @@ apiVersion: "acid.zalan.do/v1"
 kind: postgresql
 metadata:
   # name must start w/ teamId
+  namespace: zpg-system
   name: cf-token-metadata-registry-pg
+  annotations:
+    delete-name: cf-token-metadata-registry-pg
 spec:
+  enableConnectionPooler: true
+  enableLogicalBackup: false
+  enableMasterLoadBalancer: false
+  enableMasterPoolerLoadBalancer: false
+  enableReplicaConnectionPooler: false
+  enableReplicaLoadBalancer: false
+  enableReplicaPoolerLoadBalancer: false
   teamId: "cf"
   volume:
     size: 50Gi
   numberOfInstances: {{ .Values.postgres.numberOfInstances | default 2 }}
   users:
-    cardano: []
+    cf-token-metadata-registry.cardano: []
   databases:
-    cf_token_metadata_registry: cardano
+    cf_token_metadata_registry: cf-token-metadata-registry.cardano
   postgresql:
     version: "15"
-  enableLogicalBackup: true
+  enableLogicalBackup: false
 {{ end }}
