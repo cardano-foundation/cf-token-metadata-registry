@@ -33,7 +33,8 @@ class TestV1BatchQuery:
             )
             assert resp.status_code == 200
             data = resp.json()
-            returned_subjects = {s["subject"] for s in data["subjects"]}
+            # V1 serves a subject as the registry file writes it (some in upper case); the fixtures have it in lower case
+            returned_subjects = {s["subject"].lower() for s in data["subjects"]}
 
             for subj in batch:
                 assert subj in returned_subjects, f"Subject {subj[:16]}... not in batch response"
@@ -68,7 +69,8 @@ class TestV1BatchQuery:
         data = resp.json()
 
         for entry in data["subjects"]:
-            subject = entry["subject"]
+            # V1 serves a subject as the registry file writes it (some in upper case); the fixtures have it in lower case
+            subject = entry["subject"].lower()
             expected = CIP26_BY_SUBJECT[subject]
 
             if expected["name"] is not None and entry.get("name"):
@@ -90,7 +92,8 @@ class TestV1BatchQuery:
         )
         assert resp.status_code == 200
         data = resp.json()
-        returned_subjects = {s["subject"] for s in data["subjects"]}
+        # V1 serves a subject as the registry file writes it (some in upper case); the fixtures have it in lower case
+        returned_subjects = {s["subject"].lower() for s in data["subjects"]}
 
         for subj in known:
             assert subj in returned_subjects
@@ -125,7 +128,7 @@ class TestV1BatchQuery:
         assert resp.status_code == 200
         data = resp.json()
         for entry in data["subjects"]:
-            expected = CIP26_BY_SUBJECT[entry["subject"]]
+            expected = CIP26_BY_SUBJECT[entry["subject"].lower()]
             if expected["policy"]:
                 assert entry.get("policy") == expected["policy"]
 

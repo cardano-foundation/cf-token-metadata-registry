@@ -60,7 +60,7 @@ Each error has the same fields and codes as yaci-store's:
 | `sub_standard` | for CIP-68, the label the rule was checked for: the label of the subject asked for (`333`, `444`); absent for CIP-26 and for a rule that does not depend on a label (a bad `logo`, a version) |
 | `field_name` | the field, e.g. `description`, `image`, `version`, `files`, `properties.owner` |
 | `field_category` | `MANDATORY` if the CIP requires the field, `OPTIONAL` otherwise |
-| `code` | a stable reason: `missing_value`, `wrong_type`, `invalid_uri_scheme`, `invalid_length`, `invalid_value`, `out_of_range`, `invalid_version`, `plutus_constructor`, `not_utf8`, `invalid_files_entry`, `no_nested_entry`, `too_deep`, `unsupported_key`, `key_collision`, `invalid_base64`, `too_large` |
+| `code` | a stable reason: `missing_value`, `wrong_type`, `invalid_uri_scheme`, `invalid_length`, `invalid_value`, `out_of_range`, `invalid_version`, `plutus_constructor`, `not_utf8`, `invalid_files_entry`, `no_nested_entry`, `too_deep`, `unsupported_key`, `key_collision`, `invalid_base64`, `too_large`, `invalid_constructor` |
 | `error` | a message for people |
 
 V2 returns `validation_errors` in two places:
@@ -83,6 +83,20 @@ before validation existed has `NULL` errors, meaning "never checked", which is d
   - `ALL`, the default: every indexed token.
   - `MANDATORY_ONLY`: no `MANDATORY` error.
   - `STRICT`: no error at all.
+
+  **What `STRICT` does not promise.** *No error* means none from the checks the registry runs; it is not a guarantee
+  that the metadata follows every rule of its CIP. Some departures are tolerated on purpose, and reported by no error
+  (made explicit in 2.0.1, after a review of the same code in bloxbean/yaci-store#1220):
+  - **A CIP-68 text given as a list of byte strings** (`name`, `description`, `ticker`, `url`). CIP-68 defines these
+    as one byte string (only a `uri` may be a list), but minting tools split long texts into 64-byte chunks the way
+    CIP-25 does: on mainnet about 570 descriptions, 43 urls and 12 names. They are joined and served as the text;
+    reporting them would mark these tokens invalid and hide them under `STRICT`.
+  - **A URI is checked for its scheme only** (`https`, `ipfs`, `ar`, `data`), not for its full syntax. No mainnet
+    value with an allowed scheme breaks the syntax, and a strict parser would risk rejecting real `data:` URIs and IPFS
+    paths.
+  - **A CIP-26 `logo` is checked for base64 and size, not for being a PNG.** CIP-26 asks for an `image/png`; one
+    mainnet logo is a JPEG ("Volume"), which wallets show as well, so flagging it would only hide it under `STRICT`.
+
 
   A token that is not accepted is a `404`, or is left out of a batch. The errors of a returned token are never
   filtered.
@@ -132,11 +146,21 @@ Found on the mainnet validation run of 2026-10-26, and done the same way in yaci
 - **A `url` needs `https` and a host.** cf-tokens-cip26 checks the scheme only, so `https:/rosen.tech` (one slash)
   passed. A `url` that is not a valid URI, not `https`, or has no host is an `OPTIONAL` `invalid_value` error that
   quotes it, unless the library already reported the `url`.
+- **CIP-26 `decimals` is checked against [0, 19]** (2.0.1), the range CIP-26 allows. Up to 2.0.0 the check used
+  `TokenDecimals`, [0, 255], so 20 to 255 passed as valid; that stays the storage bound shared with CIP-68, which sets
+  no range of its own. None on mainnet: the highest is 18. Found in review of bloxbean/yaci-store#1220.
 - **A subject is stored in lower case.** It is base16 and its case carries no meaning, but 39 mainnet registry files
   are named and written in upper case and were stored as written, so a lower-case query, as every on-chain subject is
   written, was a 404. The subject is lower-cased when the entry and its logo are stored, when an entry is deleted, and
-  when a full sync compares the stored subjects with the file names. V1 serves an entry under its stored subject.
-  There is no migration: deployments of this release index from an empty database.
+  when a full sync compares the stored subjects with the file names. There is no migration: deployments of this
+  release index from an empty database.
+- **An entry is served with its subject as the registry file writes it** (V1, and `standards.cip26` in V2), not in
+  lower case: each CIP-26 signature is made over the CBOR of the subject as written, so the signatures of those 39
+  entries (106 on mainnet) only verify against the subject in upper case. 2.0.0 served the stored subject, in lower
+  case, and none of them verified; corrected in 2.0.1. The entry is still stored in lower case.
+- **A subject asked for is looked up in lower case** (V1 and V2, alone and in a batch), so a client finds an entry in
+  either case. 2.0.0 looked up the subject as asked: one asked for as the registry file writes it, in upper case, was
+  a `204` on V1 and a `404` on V2, where 1.7.0 (the release before) found it; corrected in 2.0.1.
 
 ### 5. Where the registry differs from yaci-store
 
@@ -158,6 +182,18 @@ Found on the mainnet validation run of 2026-10-26, and done the same way in yaci
     DEBUG unless its reference NFT is already stored. Such a datum would only read as a 333 by default; on mainnet
     these were dApp state (Atrium profiles, an `insert_fee`) and empty maps.
   - yaci-store stores 222 datums too.
+- **A datum that is not constructor 0, and a `uri` list with an element that is not bytes, are reported (2.0.1).**
+  CIP-68 defines the datum as `#6.121([metadata, version, extra])`, constructor 0, and a `uri` as
+  `bounded_bytes / [* bounded_bytes]`. Up to 2.0.0 the parser read both without an error, so they passed `STRICT`.
+  - A datum of another constructor is read as written, with a **`MANDATORY`** `invalid_constructor` error (field
+    `constructor`), like an invalid `version`. On mainnet 12 datums are not constructor 0 (2026-11-04), 3 of them of 333
+    tokens: two of BuyBTC (constructor 1) and one of Greenland Reserve Coin (the general form, tag 102).
+  - An element of a `uri` list that is not a byte string is left out, the byte strings are joined, and a `wrong_type`
+    error says so. None on mainnet (943 lists, all byte strings).
+  - The full URI syntax is not checked, only the scheme: no mainnet value with an allowed scheme breaks it, and a
+    strict parser risks rejecting real `data:` URIs.
+  - The errors are stored when a datum is indexed: a 2.0.0 database has them only after a resync.
+  Found in review of bloxbean/yaci-store#1220, where `assets-ext` has the same fix.
 - **Errors of the label asked for, checked when the token is served.**
   - The row stores what is wrong with the datum itself: the parser's errors and a bad `logo`. They have no
     `sub_standard`.

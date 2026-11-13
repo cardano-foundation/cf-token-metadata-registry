@@ -1,4 +1,18 @@
+# The trust store (cacerts) is Eclipse Temurin's latest JDK 25, like the JVM images'. native-image embeds the
+# build JDK's cacerts in the executable, so it is replaced before the build: both images then trust the same roots.
+# Since 25.0.5+8, Temurin drops the roots that signed the compromised eMudhra intermediate CAs.
+FROM eclipse-temurin:25-jre AS cacerts
+
 FROM container-registry.oracle.com/graalvm/native-image:25 AS build
+
+COPY --from=cacerts /opt/java/openjdk/lib/security/cacerts $JAVA_HOME/lib/security/cacerts
+# Fail the build on a JDK older than 25.0.5+8 (e.g. a stale cached base image): its trust store still has the
+# roots that signed the compromised eMudhra intermediate CAs. https://adoptium.net/news/2026/10/temurin-october-2026-emudhra/
+# The listing is checked to be non-empty, so a keytool that fails does not pass the check.
+RUN keytool -list -v -cacerts -storepass changeit > /tmp/cacerts.txt \
+    && grep -q "^Owner: " /tmp/cacerts.txt \
+    && ! grep -E "^Owner: .*CN=(emSign ECC Root CA - G3|AAA Certificate Services)\b" /tmp/cacerts.txt \
+    && rm /tmp/cacerts.txt
 
 RUN microdnf install -y maven findutils && microdnf clean all
 
