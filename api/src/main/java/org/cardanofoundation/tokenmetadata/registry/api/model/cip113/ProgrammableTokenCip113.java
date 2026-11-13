@@ -15,7 +15,7 @@ public record ProgrammableTokenCip113(
                 + "that authorises minting and burning of this token. Bound on-chain to the token's policy ID "
                 + "at registration. Null when the registry node does not specify one.",
                 example = "f462a4e22e5b138c17d893d4e0811790f51f1231b8be4198313e08d0",
-                nullable = true,
+                types = {"string", "null"},
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
         @JsonProperty("minting_logic_script") @Nullable String mintingLogicScript,
 
@@ -23,7 +23,7 @@ public record ProgrammableTokenCip113(
                 + "This script runs on-chain via the withdraw-zero pattern whenever tokens move between addresses. "
                 + "Null when the registry node does not specify a transfer logic script.",
                 example = "aaa513b0fcc01d635f8535d49f38acc33d4d6b62ee8732ca6e126102",
-                nullable = true,
+                types = {"string", "null"},
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
         @JsonProperty("transfer_logic_script") @Nullable String transferLogicScript,
 
@@ -31,14 +31,14 @@ public record ProgrammableTokenCip113(
                 + "such as freeze, seize, or burn. Allows a token issuer to perform privileged actions "
                 + "on tokens held by other addresses. Null when the substandard has no third-party operations.",
                 example = "def513b0fcc01d635f8535d49f38acc33d4d6b62ee8732ca6e126103",
-                nullable = true,
+                types = {"string", "null"},
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
         @JsonProperty("third_party_transfer_logic_script") @Nullable String thirdPartyTransferLogicScript,
 
         @Schema(description = "Blake2b-224 hash of the credential (script or verification key) that must approve "
                 + "any unfracking action touching this token. Null means unfracking is forbidden for this token.",
                 example = "f91c65ec585a20176feeb2c4e5281e856d3b61e95d1980717da724fc",
-                nullable = true,
+                types = {"string", "null"},
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
         @JsonProperty("unfracking_logic_script") @Nullable String unfrackingLogicScript,
 
@@ -46,7 +46,7 @@ public record ProgrammableTokenCip113(
                 + "For example, a freeze-and-seize substandard uses this to reference a denylist "
                 + "of blocked addresses. Null when the token's substandard has no global state.",
                 example = "1234567890abcdef1234567890abcdef1234567890abcdef12345678",
-                nullable = true,
+                types = {"string", "null"},
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
         @JsonProperty("global_state_policy_id") @Nullable String globalStatePolicyId
 
