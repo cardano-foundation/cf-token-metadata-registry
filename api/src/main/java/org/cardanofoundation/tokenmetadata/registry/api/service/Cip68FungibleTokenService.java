@@ -72,11 +72,14 @@ public class Cip68FungibleTokenService {
     }
 
     /**
-     * Batch-fetches the latest CIP-68 reference NFT metadata for a set of policy IDs.
+     * Batch-fetches the latest CIP-68 metadata of the given reference NFTs, and only of those.
      * Returns a map keyed by "policyId:assetName" for O(1) lookup.
      */
-    public Map<String, MetadataReferenceNft> findLatestByPolicyIds(Collection<String> policyIds) {
-        return metadataReferenceNftRepository.findLatestByPolicyIds(policyIds).stream()
+    public Map<String, MetadataReferenceNft> findLatestByReferenceNfts(Collection<AssetType> referenceNfts) {
+        List<String> units = referenceNfts.stream()
+                .map(referenceNft -> referenceNft.policyId() + referenceNft.assetName())
+                .toList();
+        return metadataReferenceNftRepository.findLatestByUnits(units).stream()
                 .collect(Collectors.toMap(
                         nft -> nft.getPolicyId() + ":" + nft.getAssetName(),
                         nft -> nft,
