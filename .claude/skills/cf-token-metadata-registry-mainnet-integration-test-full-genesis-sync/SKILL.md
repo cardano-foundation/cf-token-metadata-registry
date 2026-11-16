@@ -109,7 +109,8 @@ While polling, print the current status periodically so the user sees progress.
 Once offchain is UP, the `metadata` and `logo` tables are populated. Run `scripts/run-cip26-tests.sh` which:
 
 1. `cd regression-tests && uv sync` (local — resolves dependencies from `pyproject.toml` + `uv.lock`).
-2. Runs `cd mainnet && API_BASE_URL=http://localhost:$LOCAL_API_PORT uv run pytest -m cip26 -v --alluredir=../allure-results --clean-alluredir`.
+2. Checks that the two test steps together select every regression test, and fails naming any test that neither selects. The marker expressions of both steps are in `scripts/markers.sh`; a test with other markers only (it happened to the V2 batch tests and the CIP-113 tests, #171) would never run.
+3. Runs `cd mainnet && API_BASE_URL=http://localhost:$LOCAL_API_PORT uv run pytest -m cip26 -v --alluredir=../allure-results --clean-alluredir`.
 
 It is the first test step of a run, so it **empties `regression-tests/allure-results`** first (`--clean-alluredir`): pytest otherwise adds to the results of every earlier run, and a report built from the folder mixes them. `ALLURE_CLEAN=0` keeps the earlier results.
 
@@ -129,11 +130,15 @@ From slot 65836843 to tip is ~12 h on a typical box; from true genesis it's days
 
 ### Step 8 — Run CIP-68 regression tests (fungible tokens and rich fungible tokens)
 
-When the indexer reaches tip, the `metadata_reference_nft` table is populated. Run `scripts/run-cip68-tests.sh`, which runs `uv run pytest -m "cip68 or validation" -v --alluredir=../allure-results` against the committed snapshots. That covers:
+When the indexer reaches tip, the `metadata_reference_nft` table is populated. Run `scripts/run-cip68-tests.sh`, which runs `uv run pytest -m "cip68 or validation or cip113 or openapi" -v --alluredir=../allure-results` against the committed snapshots. That covers:
 
 - **CIP-68 fungible tokens (333)**: `regression-tests/mainnet/fixtures/cip68_tokens.json` (a DB snapshot), plus `cip68_validation_errors_tokens.json` (tokens that break CIP-68 in a known way, served with the listed validation errors, ADR-019).
 - **Validation contract (marker `validation`, ADR-019)**: `test_v2_validation.py` and `test_v2_cip68_validation_errors.py`. Every token has a `validation_errors` array, `metadata.valid` matches it, and `?validation=MANDATORY_ONLY|STRICT` and `?property=` behave as specified. These need a build with ADR-019 **synced from scratch**: on an older build, or a database synced before it (no errors recorded), run `scripts/run-cip68-tests.sh "cip68 and not validation"` and say so in the report.
 - **CIP-68 rich fungible tokens (444, prefix `001bc280`)**: `regression-tests/mainnet/fixtures/cip68_rft_tokens.json` and `test_v2_cip68_rft.py` (marker `rft`, about 550 tests). The fixture comes from the **chain via Koios** (`shared/generate_cip68_rft_fixtures.py`), not from a DB. It holds every RFT whose current 444 datum has a name, a description and an image URI, read from a live reference NFT with an inline datum. For each one, V2 must serve the datum's name, description, ticker, decimals and version, and its **image as `metadata.logo`** (ADR-018). On a sample, the suite also checks the batch query, `show_cips_details`, that the 222 NFT and the reference NFT of the same base name are 404, and that V1 does not serve RFTs (V1 is CIP-26 only).
+
+- **CIP-113 programmable tokens (marker `cip113`)**: `test_v2_cip113.py` against `cip113_tokens.json`. Every token of a registered policy is served as `PROGRAMMABLE` with its `extensions.cip113`; tokens without CIP-26 or CIP-68 metadata carry the `companion_metadata` error (ADR-020).
+- **Responses against the spec (marker `openapi`)**: real responses validated against the schemas of the instance's own `/apidocs` (OpenAPI 3.1), as a client generated from the spec would read them. It runs at the tip, so every standard is in the responses.
+- **V2 batch with CIP-68 subjects**: the two batch tests marked `cip68`. The other V2 batch tests run in step 6.
 
 To run one group only: `scripts/run-cip68-tests.sh rft`, or `scripts/run-cip68-tests.sh "cip68 and not rft"`.
 
@@ -200,8 +205,9 @@ Observed and filed upstream as **bloxbean/yaci#161** (yaci-core) + **bloxbean/ya
     ├── wait-onchain-tip.sh        # poll /actuator/health/readiness (final confirm only; see Step 7 caveats)
     ├── check-sync-progress.sh     # one-shot window-relative progress (DB cursor vs Koios tip; no /health hit)
     ├── monitor-sync-progress.sh   # looped progress + ETA; --until-tip exits at ~100% (preferred tip detector)
-    ├── run-cip26-tests.sh         # pytest -m cip26 against committed fixtures (NO regenerate)
-    ├── run-cip68-tests.sh         # pytest -m cip68 (FTs + RFTs) against committed fixtures (NO regenerate); optional marker arg
+    ├── markers.sh                 # the marker expression of each test step; together they must select every test
+    ├── run-cip26-tests.sh         # checks every test is selected, then pytest -m cip26 against committed fixtures (NO regenerate)
+    ├── run-cip68-tests.sh         # pytest -m "cip68 or validation or cip113 or openapi" against committed fixtures (NO regenerate); optional marker arg
     └── generate-allure-report.sh  # Allure report of the run into regression-tests/allure-report, with its totals
 ```
 
