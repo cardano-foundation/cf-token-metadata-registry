@@ -157,6 +157,13 @@ class OpenApiDocsIT extends BaseIntegrationIT {
             assertThat(apiDocs.read("$.components.schemas.TokenMetadata", Object.class)).isNotNull();
             assertThat(apiDocs.read("$.components.schemas.BatchRequest", Object.class)).isNotNull();
         }
+
+        @Test
+        void metadataEmptyIsDocumented() {
+            // in every V2 response, and true for a programmable token served without metadata
+            assertThat(apiDocs.read("$.components.schemas.Metadata.properties.empty.description", String.class))
+                    .contains("CIP-113");
+        }
     }
 
 }

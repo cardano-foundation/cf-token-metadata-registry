@@ -1,5 +1,6 @@
 package org.cardanofoundation.tokenmetadata.registry.api.model.v2;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 import org.cardanofoundation.tokenmetadata.registry.api.model.QueryPriority;
 import org.cardanofoundation.tokenmetadata.registry.api.model.cip68.FungibleTokenMetadata;
@@ -66,7 +67,13 @@ public record Metadata(StringProperty name, StringProperty description, StringPr
         return new Metadata(name, description, ticker, decimals, logo, url, version, false);
     }
 
-    /** True when no property has a value ({@code valid} is not a property). */
+    /**
+     * True when no property has a value ({@code valid} is not a property). Jackson writes it as {@code empty}, and it is
+     * true for a programmable token (CIP-113) served without CIP-26 or CIP-68 metadata (ADR-020), so it is documented
+     * rather than dropped from the response.
+     */
+    @Schema(description = "True when none of the properties above has a value, for example a programmable token (CIP-113) "
+            + "served without CIP-26 or CIP-68 metadata")
     public boolean isEmpty() {
         return name == null && description == null && ticker == null && decimals == null
                 && logo == null && url == null && version == null;
