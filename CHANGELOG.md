@@ -1,5 +1,30 @@
 # Changelog
 
+## [2.0.1](https://github.com/cardano-foundation/cf-token-metadata-registry/compare/2.0.0...2.0.1) (2026-11-16)
+
+
+### Bug Fixes
+
+* **api:** a V2 batch query with no subjects returns an empty list, not 500 ([#163](https://github.com/cardano-foundation/cf-token-metadata-registry/issues/163)) ([#167](https://github.com/cardano-foundation/cf-token-metadata-registry/issues/167)) ([36b94bc](https://github.com/cardano-foundation/cf-token-metadata-registry/commit/36b94bc670d8f763c92957bf429bd45bf12bee17))
+* **api:** leave the Metadata.isEmpty() helper out of V2 responses and the spec ([#166](https://github.com/cardano-foundation/cf-token-metadata-registry/issues/166)) ([22938c9](https://github.com/cardano-foundation/cf-token-metadata-registry/commit/22938c9c8ca26618b4e7d3e16a256dbb6af87e77))
+* **cip26:** check decimals against the range CIP-26 allows, 0 to 19 ([#147](https://github.com/cardano-foundation/cf-token-metadata-registry/issues/147)) ([681e87f](https://github.com/cardano-foundation/cf-token-metadata-registry/commit/681e87fd7f6d1a096eb2f1591db4d044822a3bef))
+* **cip26:** serve and find a subject as the registry file writes it ([#144](https://github.com/cardano-foundation/cf-token-metadata-registry/issues/144)) ([cfde139](https://github.com/cardano-foundation/cf-token-metadata-registry/commit/cfde1391c84dd1511b7e89d859ebdf68b957eeec))
+* **cip68:** a reference NFT indexed by an earlier transaction of the same block counts as indexed ([#145](https://github.com/cardano-foundation/cf-token-metadata-registry/issues/145)) ([f35a927](https://github.com/cardano-foundation/cf-token-metadata-registry/commit/f35a927d026b8b9c11b9490b2162eec56f624260))
+* **cip68:** report a datum that is not constructor 0, and a uri list with an element that is not bytes ([#146](https://github.com/cardano-foundation/cf-token-metadata-registry/issues/146)) ([59b62a6](https://github.com/cardano-foundation/cf-token-metadata-registry/commit/59b62a60d3e4566b515c71cb4b1ae6a098ea5a68))
+* **deps:** Bouncy Castle 1.86, JGit 7.1.1, and urllib3 2.8.0 and certifi 2026.10.23 for the regression tests ([#137](https://github.com/cardano-foundation/cf-token-metadata-registry/issues/137)) ([caf26af](https://github.com/cardano-foundation/cf-token-metadata-registry/commit/caf26afbe88ee67b4dd7fe2b95c364cdb7e291ff))
+* **docker:** fail the image build on a trust store with the compromised eMudhra roots, and give native Temurin's ([#151](https://github.com/cardano-foundation/cf-token-metadata-registry/issues/151)) ([ed944a6](https://github.com/cardano-foundation/cf-token-metadata-registry/commit/ed944a63e4d64da77dea0d6d5262806415cc0c16))
+* **docker:** give the read-only API the CIP-113 registry policy IDs; /apidocs is OpenAPI 3.1 ([#164](https://github.com/cardano-foundation/cf-token-metadata-registry/issues/164)) ([#168](https://github.com/cardano-foundation/cf-token-metadata-registry/issues/168)) ([aa94dd2](https://github.com/cardano-foundation/cf-token-metadata-registry/commit/aa94dd2f470d0a4a154f6cfe78defb18030bc337))
+* **docker:** use API_EXPOSED_PORT for API healthcheck instead of API_LOCAL_BIND_PORT ([#96](https://github.com/cardano-foundation/cf-token-metadata-registry/issues/96)) ([9581bf9](https://github.com/cardano-foundation/cf-token-metadata-registry/commit/9581bf968e832e294981ac9929c4110ede12fee3))
+* **openapi:** give the V2 batch response its own schema, SubjectBatchResponse ([#161](https://github.com/cardano-foundation/cf-token-metadata-registry/issues/161)) ([#165](https://github.com/cardano-foundation/cf-token-metadata-registry/issues/165)) ([f3af37a](https://github.com/cardano-foundation/cf-token-metadata-registry/commit/f3af37aaacc571ed842fc9de17b9587d05d0ef81))
+* **openapi:** publish the CIP-113 script hashes as nullable ([#159](https://github.com/cardano-foundation/cf-token-metadata-registry/issues/159)) ([#160](https://github.com/cardano-foundation/cf-token-metadata-registry/issues/160)) ([0c906ff](https://github.com/cardano-foundation/cf-token-metadata-registry/commit/0c906ffd5e3c54d03479b2e1436346b52585631b))
+
+
+### Documentation
+
+* ADR-023, blocks are indexed one at a time, in chain order ([#135](https://github.com/cardano-foundation/cf-token-metadata-registry/issues/135)) ([41ce371](https://github.com/cardano-foundation/cf-token-metadata-registry/commit/41ce371977782416633476f6d99a62ac6a4fd7ca))
+* **skill:** use a neutral example SSH alias in the mainnet test skill ([#169](https://github.com/cardano-foundation/cf-token-metadata-registry/issues/169)) ([#170](https://github.com/cardano-foundation/cf-token-metadata-registry/issues/170)) ([6bb47f3](https://github.com/cardano-foundation/cf-token-metadata-registry/commit/6bb47f3eba7452fc3e4a32324718c6be7c040f32))
+* STRICT means no error from the checks the registry runs, not full CIP compliance ([#148](https://github.com/cardano-foundation/cf-token-metadata-registry/issues/148)) ([3316b7a](https://github.com/cardano-foundation/cf-token-metadata-registry/commit/3316b7ab7073a4a4f8ecfc074dd4e0bd985ca3e0))
+
 ## [2.0.0](https://github.com/cardano-foundation/cf-token-metadata-registry/compare/1.7.0...2.0.0) (2026-10-29)
 
 
