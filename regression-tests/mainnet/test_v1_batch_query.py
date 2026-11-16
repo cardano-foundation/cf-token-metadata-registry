@@ -191,3 +191,8 @@ class TestV1BatchQuery:
                 assert "value" in prop_data
                 assert "signatures" in prop_data
                 assert "sequenceNumber" in prop_data
+
+    @allure.story("Batch with subjects null is a bad request")
+    def test_null_subjects_is_bad_request(self):
+        resp = requests.post(f"{API_BASE_URL}/metadata/query", json={"subjects": None})
+        assert resp.status_code == 400

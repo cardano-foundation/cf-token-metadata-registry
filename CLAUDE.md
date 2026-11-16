@@ -119,7 +119,7 @@ Main configuration is in `api/src/main/resources/application.properties`. Key en
 | `/actuator/health/readiness` | Readiness probe — includes: `readinessState`, `offchainSync`, `nodeSync`, `db` |
 | `/actuator/prometheus` | Prometheus metrics |
 | `/actuator/metrics` | Spring Boot metrics |
-| `/apidocs` | OpenAPI 3.0 specification (JSON) |
+| `/apidocs` | OpenAPI 3.1 specification (JSON) |
 | `/admin-ui/` | Yaci Store admin UI for sync control |
 | `/health` | **DEPRECATED** — use `/actuator/health/readiness` instead. Will be removed in a future release |
 

@@ -24,6 +24,8 @@ x-api-common-environment: &api-common-environment
   STORE_CARDANO_SYNC_START_BLOCKHASH: "${STORE_CARDANO_SYNC_START_BLOCKHASH}"
   STORE_BLOCKS_EPOCH_CALCULATION_INTERVAL: "${STORE_BLOCKS_EPOCH_CALCULATION_INTERVAL}"
   CIP_QUERY_PRIORITY: "${CIP_QUERY_PRIORITY}"
+  # read by the read-write and the read-only API alike: CIP-113 is enabled only when it is non-empty
+  CIP113_REGISTRY_NFT_POLICY_IDS: "${CIP113_REGISTRY_NFT_POLICY_IDS:-}"
   JAVA_OPTS: "${JAVA_OPTS:--Xmx2g}"
 
 services:
@@ -61,7 +63,6 @@ services:
       GITHUB_TMP_FOLDER: "${GITHUB_TMP_FOLDER:-/tmp}"
       GITHUB_FORCE_CLONE: "${GITHUB_FORCE_CLONE:-false}"
       STORE_SYNCAUTOSTART: "${STORE_SYNCAUTOSTART}"
-      CIP113_REGISTRY_NFT_POLICY_IDS: "${CIP113_REGISTRY_NFT_POLICY_IDS:-}"
       API_LOCAL_BIND_PORT: "${API_LOCAL_BIND_PORT}"
   api-ro:
     <<: *api-service-common

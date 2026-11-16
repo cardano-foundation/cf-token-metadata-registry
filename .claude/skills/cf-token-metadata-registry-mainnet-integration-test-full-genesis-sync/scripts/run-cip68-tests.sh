@@ -6,7 +6,8 @@
 #   cip68_rft_tokens.json      CIP-68 rich fungible tokens (444), chain snapshot via Koios
 # Assumes wait-onchain-tip.sh (or monitor-sync-progress.sh --until-tip) has already returned.
 #
-# Usage: run-cip68-tests.sh [pytest marker expression]   (default: "cip68 or validation": FTs, RFTs and the ADR-019 contract)
+# Usage: run-cip68-tests.sh [pytest marker expression]   (default: CIP68_MARKERS of markers.sh, "cip68 or validation or
+#   cip113 or openapi": FTs, RFTs, the ADR-019 contract, CIP-113, and responses validated against /apidocs)
 #   run-cip68-tests.sh rft                    RFT (444) tests only
 #   run-cip68-tests.sh "cip68 and not rft"    for a build without RFT support (before PR #110 / ADR-018)
 #   run-cip68-tests.sh "cip68 and not validation"   for a build or database without validation errors (before ADR-019)
@@ -17,8 +18,10 @@
 set -euo pipefail
 # shellcheck disable=SC1091
 source "$(dirname "${BASH_SOURCE[0]}")/load-config.sh"
+# shellcheck disable=SC1091
+source "$(dirname "${BASH_SOURCE[0]}")/markers.sh"
 
-MARKERS="${1:-cip68 or validation}"
+MARKERS="${1:-$CIP68_MARKERS}"
 PROJECT_ROOT="$(cd "$SKILL_DIR/../../.." && pwd)"
 REGRESSION_DIR="$PROJECT_ROOT/regression-tests"
 FIXTURES_DIR="$REGRESSION_DIR/mainnet/fixtures"

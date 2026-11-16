@@ -1,6 +1,7 @@
 package org.cardanofoundation.tokenmetadata.registry.api.model.v2;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Nullable;
 import lombok.Builder;
 import org.cardanofoundation.tokenmetadata.registry.api.model.QueryPriority;
 import org.cardanofoundation.tokenmetadata.registry.api.model.cip68.FungibleTokenMetadata;
@@ -18,8 +19,14 @@ import java.util.Base64;
  * after the merge; a token indexed before validation existed falls back to the old rule.
  */
 @Builder(toBuilder = true)
-public record Metadata(StringProperty name, StringProperty description, StringProperty ticker, LongProperty decimals,
-                       StringProperty logo, StringProperty url, LongProperty version, boolean valid) {
+public record Metadata(@Schema(nullable = true) @Nullable StringProperty name,
+                       @Schema(nullable = true) @Nullable StringProperty description,
+                       @Schema(nullable = true) @Nullable StringProperty ticker,
+                       @Schema(nullable = true) @Nullable LongProperty decimals,
+                       @Schema(nullable = true) @Nullable StringProperty logo,
+                       @Schema(nullable = true) @Nullable StringProperty url,
+                       @Schema(nullable = true) @Nullable LongProperty version,
+                       boolean valid) {
 
     private static final Metadata EMPTY_METADATA = Metadata.builder().build();
 

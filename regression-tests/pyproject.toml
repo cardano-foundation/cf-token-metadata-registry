@@ -9,6 +9,7 @@ dependencies = [
     "requests>=2.31",
     "psycopg2-binary>=2.9",
     "pynacl>=1.5",
+    "jsonschema>=4.23",
 ]
 
 [tool.uv]
