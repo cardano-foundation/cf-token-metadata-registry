@@ -25,15 +25,14 @@ public record Subject(
                 requiredMode = Schema.RequiredMode.REQUIRED)
         Metadata metadata,
 
-        @Schema(description = "Raw per-standard metadata, only present when show_cips_details=true",
+        @Schema(description = "Raw per-standard metadata when show_cips_details=true, null otherwise",
                 nullable = true,
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-        Standards standards,
+        @Nullable Standards standards,
 
         @Schema(description = "Additional on-chain properties from CIP extensions. "
                 + "Each key is a CIP identifier (e.g. 'cip113'). "
                 + "Omitted when the token has no extensions.",
-                nullable = true,
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
         @JsonInclude(JsonInclude.Include.NON_EMPTY)
         Map<String, Extension> extensions,
