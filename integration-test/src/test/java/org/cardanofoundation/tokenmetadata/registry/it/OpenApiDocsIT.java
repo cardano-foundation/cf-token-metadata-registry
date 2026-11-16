@@ -192,6 +192,14 @@ class OpenApiDocsIT extends BaseIntegrationIT {
                 assertThat(apiDocs.read(path + ".anyOf[1].type", String.class)).as(field).isEqualTo("null");
             });
         }
+
+        @Test
+        void metadataHasNoEmptyProperty() {
+            // Metadata.isEmpty() is a helper, left out of the responses, so the spec must not list it either
+            assertThat(apiDocs.read("$.components.schemas.Metadata.properties", Map.class))
+                    .containsKey("valid")
+                    .doesNotContainKey("empty");
+        }
     }
 
 }

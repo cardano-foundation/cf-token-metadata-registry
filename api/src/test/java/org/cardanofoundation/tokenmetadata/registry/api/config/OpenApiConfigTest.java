@@ -86,6 +86,15 @@ class OpenApiConfigTest {
         }
 
         @Test
+        void metadataHasNoEmptyProperty() {
+            // Metadata.isEmpty() is a helper (@JsonIgnore), not a property of the response
+            JsonNode properties = schemas.path("Metadata").path("properties");
+
+            assertThat(properties.has("valid")).isTrue();
+            assertThat(properties.has("empty")).isFalse();
+        }
+
+        @Test
         void nullableStringsStayATypeList() {
             for (String field : List.of("name", "description", "ticker", "logo", "url")) {
                 JsonNode type = schemas.path("FungibleTokenMetadata").path("properties").path(field).path("type");

@@ -1,5 +1,6 @@
 package org.cardanofoundation.tokenmetadata.registry.api.model.v2;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.annotation.Nullable;
 import lombok.Builder;
@@ -74,7 +75,11 @@ public record Metadata(@Schema(nullable = true) @Nullable StringProperty name,
         return new Metadata(name, description, ticker, decimals, logo, url, version, false);
     }
 
-    /** True when no property has a value ({@code valid} is not a property). */
+    /**
+     * True when no property has a value ({@code valid} is not a property). A helper for the controller, not part of the
+     * response: without {@code @JsonIgnore}, Jackson and the OpenAPI spec would publish it as {@code metadata.empty}.
+     */
+    @JsonIgnore
     public boolean isEmpty() {
         return name == null && description == null && ticker == null && decimals == null
                 && logo == null && url == null && version == null;
