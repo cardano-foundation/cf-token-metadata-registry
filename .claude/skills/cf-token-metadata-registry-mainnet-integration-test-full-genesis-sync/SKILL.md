@@ -39,7 +39,7 @@ Load config from (in priority order):
 | `LOCAL_API_PORT` | `8080` | no |
 | `LOCAL_DB_PORT` | `5432` | no |
 
-If `REMOTE_SSH_HOST` is missing, refuse to start and tell the user to either supply it as an arg or fill in `config.env`. **Never invent or default a hostname.** `REMOTE_SSH_USER` is optional — when the host is an ssh_config alias (e.g. an entry named `mczeladka` with its own `User devbox` directive), leave the user empty so the alias takes effect.
+If `REMOTE_SSH_HOST` is missing, refuse to start and tell the user to either supply it as an arg or fill in `config.env`. **Never invent or default a hostname.** `REMOTE_SSH_USER` is optional — when the host is an ssh_config alias (e.g. an entry named `test-box` with its own `User devbox` directive), leave the user empty so the alias takes effect.
 
 A template lives at `config.env.example`. Tell the user to `cp config.env.example config.env` and fill it in; the real `config.env` is gitignored.
 

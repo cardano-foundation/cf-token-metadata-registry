@@ -29,7 +29,7 @@ if [[ -z "${REMOTE_SSH_HOST:-}" ]]; then
 fi
 
 # REMOTE_SSH_USER is OPTIONAL. If it's empty, we connect by host only — this
-# lets ssh_config aliases (e.g. an entry named 'mczeladka' with its own User
+# lets ssh_config aliases (e.g. an entry named 'test-box' with its own User
 # directive) take effect. If it's set, we force user@host.
 if [[ -n "${REMOTE_SSH_USER:-}" ]]; then
   REMOTE="${REMOTE_SSH_USER}@${REMOTE_SSH_HOST}"
