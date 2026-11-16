@@ -31,6 +31,7 @@ VALID_CIP26_SUBJECTS = [
 class TestV2BatchQuery:
 
     @allure.story("Batch query returns all valid CIP-26 subjects")
+    @pytest.mark.cip26
     def test_batch_all_cip26_subjects(self):
         batch_size = 50
         for i in range(0, len(VALID_CIP26_SUBJECTS), batch_size):
@@ -49,6 +50,7 @@ class TestV2BatchQuery:
                 )
 
     @allure.story("Batch query includes queryPriority in response")
+    @pytest.mark.cip26
     def test_batch_includes_query_priority(self):
         batch = VALID_CIP26_SUBJECTS[:5]
         resp = requests.post(
@@ -61,6 +63,7 @@ class TestV2BatchQuery:
         assert data["queryPriority"] == ["CIP_68", "CIP_26"]
 
     @allure.story("Batch query with CIP_26 only priority")
+    @pytest.mark.cip26
     def test_batch_cip26_only_priority(self):
         batch = VALID_CIP26_SUBJECTS[:20]
         resp = requests.post(
@@ -80,6 +83,7 @@ class TestV2BatchQuery:
                     assert val["source"] == "CIP_26"
 
     @allure.story("Batch query values match DB fixture")
+    @pytest.mark.cip26
     def test_batch_values_match_fixture(self):
         batch = VALID_CIP26_SUBJECTS[:50]
         resp = requests.post(
@@ -104,6 +108,7 @@ class TestV2BatchQuery:
                 assert metadata["decimals"]["value"] == expected["decimals"]
 
     @allure.story("Batch query with show_cips_details=true validates values")
+    @pytest.mark.cip26
     def test_batch_show_cips_details(self):
         batch = VALID_CIP26_SUBJECTS[:50]
         resp = requests.post(
@@ -135,6 +140,7 @@ class TestV2BatchQuery:
                 assert cip26["policy"] == expected["policy"]
 
     @allure.story("Batch query with show_cips_details=false hides standards")
+    @pytest.mark.cip26
     def test_batch_hide_cips_details(self):
         batch = VALID_CIP26_SUBJECTS[:10]
         resp = requests.post(
@@ -149,6 +155,7 @@ class TestV2BatchQuery:
             assert entry.get("standards") is None
 
     @allure.story("Batch query with mixed known and unknown subjects")
+    @pytest.mark.cip26
     def test_batch_mixed_known_unknown(self):
         known = VALID_CIP26_SUBJECTS[:5]
         unknown = ["00" * 56, "ff" * 56]
@@ -166,6 +173,7 @@ class TestV2BatchQuery:
             assert subj not in returned_subjects
 
     @allure.story("Large batch query (all valid CIP-26 tokens)")
+    @pytest.mark.cip26
     def test_large_batch(self):
         resp = requests.post(
             f"{API_BASE_URL}/api/v2/subjects/query",
@@ -176,6 +184,7 @@ class TestV2BatchQuery:
         assert len(data["subjects"]) == len(VALID_CIP26_SUBJECTS)
 
     @allure.story("V2 batch with CIP-68 subjects")
+    @pytest.mark.cip68
     def test_batch_cip68_subjects(self):
         if not CIP68_SUBJECTS:
             pytest.skip("No CIP-68 tokens available yet")
@@ -201,6 +210,7 @@ class TestV2BatchQuery:
             assert subj in returned_subjects
 
     @allure.story("V2 batch with mixed CIP-26 and CIP-68 subjects")
+    @pytest.mark.cip68
     def test_batch_mixed_cip26_cip68(self):
         if not CIP68_SUBJECTS:
             pytest.skip("No CIP-68 tokens available yet")
@@ -228,6 +238,7 @@ class TestV2BatchQuery:
             assert standards.get("cip26") is not None or standards.get("cip68") is not None
 
     @allure.story("Batch query with properties filter (name+description keeps results valid)")
+    @pytest.mark.cip26
     def test_batch_with_valid_properties_filter(self):
         """When filtering to name+description, results should still pass V2 validity check."""
         batch = VALID_CIP26_SUBJECTS[:20]
@@ -241,6 +252,7 @@ class TestV2BatchQuery:
         assert len(data["subjects"]) > 0
 
     @allure.story("A batch property filter no longer needs name and description (ADR-019)")
+    @pytest.mark.cip26
     def test_batch_with_properties_filter_without_description(self):
         batch = VALID_CIP26_SUBJECTS[:20]
         resp = requests.post(
