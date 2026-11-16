@@ -3,7 +3,7 @@ x-api-service-common: &api-service-common
     context: .
     dockerfile: ${API_DOCKERFILE:-api/Dockerfile.jvm}
   healthcheck: &api-healthcheck
-    test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/localhost/${API_LOCAL_BIND_PORT}'"]
+    test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/localhost/${API_EXPOSED_PORT}'"]
     interval: 30s
     timeout: 5s
     retries: 10
@@ -24,6 +24,8 @@ x-api-common-environment: &api-common-environment
   STORE_CARDANO_SYNC_START_BLOCKHASH: "${STORE_CARDANO_SYNC_START_BLOCKHASH}"
   STORE_BLOCKS_EPOCH_CALCULATION_INTERVAL: "${STORE_BLOCKS_EPOCH_CALCULATION_INTERVAL}"
   CIP_QUERY_PRIORITY: "${CIP_QUERY_PRIORITY}"
+  # read by the read-write and the read-only API alike: CIP-113 is enabled only when it is non-empty
+  CIP113_REGISTRY_NFT_POLICY_IDS: "${CIP113_REGISTRY_NFT_POLICY_IDS:-}"
   JAVA_OPTS: "${JAVA_OPTS:--Xmx2g}"
 
 services:
@@ -61,7 +63,6 @@ services:
       GITHUB_TMP_FOLDER: "${GITHUB_TMP_FOLDER:-/tmp}"
       GITHUB_FORCE_CLONE: "${GITHUB_FORCE_CLONE:-false}"
       STORE_SYNCAUTOSTART: "${STORE_SYNCAUTOSTART}"
-      CIP113_REGISTRY_NFT_POLICY_IDS: "${CIP113_REGISTRY_NFT_POLICY_IDS:-}"
       API_LOCAL_BIND_PORT: "${API_LOCAL_BIND_PORT}"
   api-ro:
     <<: *api-service-common

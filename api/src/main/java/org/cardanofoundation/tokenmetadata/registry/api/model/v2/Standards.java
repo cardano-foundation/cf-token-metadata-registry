@@ -1,10 +1,13 @@
 package org.cardanofoundation.tokenmetadata.registry.api.model.v2;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Nullable;
 import org.cardanofoundation.tokenmetadata.registry.api.model.cip68.FungibleTokenMetadata;
 import org.cardanofoundation.tokenmetadata.registry.api.model.rest.TokenMetadata;
 
-public record Standards(TokenMetadata cip26, FungibleTokenMetadata cip68) {
+public record Standards(@Schema(nullable = true) @Nullable TokenMetadata cip26,
+                        @Schema(nullable = true) @Nullable FungibleTokenMetadata cip68) {
 
     /** True when neither standard has anything indexed for the subject. */
     @JsonIgnore

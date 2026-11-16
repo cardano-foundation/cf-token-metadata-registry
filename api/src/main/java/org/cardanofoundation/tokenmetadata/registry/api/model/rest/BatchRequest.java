@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -17,6 +18,7 @@ public class BatchRequest {
 
   @JsonProperty("subjects")
   @Valid
+  @NotNull
   @Schema(name = "subjects", requiredMode = Schema.RequiredMode.REQUIRED)
   private List<String> subjects = new ArrayList<>();
 

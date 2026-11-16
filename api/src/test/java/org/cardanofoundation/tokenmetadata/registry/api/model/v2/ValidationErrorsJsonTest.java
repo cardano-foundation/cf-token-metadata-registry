@@ -38,12 +38,13 @@ class ValidationErrorsJsonTest {
     }
 
     @Test
-    void theMetadataKeepsItsValidAndEmptyFlags() throws Exception {
+    void theMetadataKeepsItsValidFlagAndLeavesOutEmpty() throws Exception {
         StringProperty name = new StringProperty("n", "CIP_68");
 
         assertThat(json(Metadata.builder().name(name).valid(true).build()).get("valid").asBoolean()).isTrue();
         assertThat(json(Metadata.builder().name(name).build()).get("valid").asBoolean()).isFalse();
-        assertThat(json(Metadata.empty()).get("empty").asBoolean()).isTrue();
+        // isEmpty() is a helper, not a property of the response
+        assertThat(json(Metadata.empty()).has("empty")).isFalse();
     }
 
     @Test

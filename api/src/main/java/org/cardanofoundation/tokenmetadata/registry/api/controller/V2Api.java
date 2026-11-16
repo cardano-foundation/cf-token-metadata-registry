@@ -28,7 +28,7 @@ public interface V2Api {
                                         @RequestParam(value = "query_priority", required = false) final List<QueryPriority> priorities,
                                         @Parameter(description = "whether all the CIP specific properties should be returned in the response. False by default")
                                         @RequestParam(value = "show_cips_details", defaultValue = "false", required = false) final Boolean showCipsDetails,
-                                        @Parameter(description = "which tokens to return, by how well their metadata follows its CIP: ALL (default) returns every indexed token with its validation_errors; MANDATORY_ONLY only tokens with no MANDATORY error; STRICT only tokens with no error at all (metadata.valid true). A token that is not accepted is a 404")
+                                        @Parameter(description = "which tokens to return, by how well their metadata follows its CIP: ALL (default) returns every indexed token with its validation_errors; MANDATORY_ONLY only tokens with no MANDATORY error; STRICT only tokens with no error at all (metadata.valid true). No error means none from the checks this API runs, not full CIP compliance: a CIP-68 text given as a list of byte strings is accepted, a URI is checked for its scheme only, and a CIP-26 logo for base64 and size, not for being a PNG (ADR-019). A token that is not accepted is a 404")
                                         @RequestParam(value = "validation", defaultValue = "ALL", required = false) final ValidationScope validation);
 
     @Operation(operationId = "getSubjects", summary = "Query either all or a subset of properties of the given subjects")
@@ -38,7 +38,7 @@ public interface V2Api {
                                               @RequestParam(value = "query_priority", required = false) final List<QueryPriority> priorities,
                                               @Parameter(description = "whether all the CIP specific properties should be returned in the response. False by default")
                                               @RequestParam(value = "show_cips_details", defaultValue = "false", required = false) final Boolean showCipsDetails,
-                                              @Parameter(description = "which tokens to return, by how well their metadata follows its CIP: ALL (default) returns every indexed token with its validation_errors; MANDATORY_ONLY only tokens with no MANDATORY error; STRICT only tokens with no error at all (metadata.valid true). A token that is not accepted is left out of the response")
+                                              @Parameter(description = "which tokens to return, by how well their metadata follows its CIP: ALL (default) returns every indexed token with its validation_errors; MANDATORY_ONLY only tokens with no MANDATORY error; STRICT only tokens with no error at all (metadata.valid true). No error means none from the checks this API runs, not full CIP compliance: a CIP-68 text given as a list of byte strings is accepted, a URI is checked for its scheme only, and a CIP-26 logo for base64 and size, not for being a PNG (ADR-019). A token that is not accepted is left out of the response")
                                               @RequestParam(value = "validation", defaultValue = "ALL", required = false) final ValidationScope validation);
 
 }

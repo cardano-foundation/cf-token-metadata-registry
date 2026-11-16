@@ -12,6 +12,8 @@
 set -euo pipefail
 # shellcheck disable=SC1091
 source "$(dirname "${BASH_SOURCE[0]}")/load-config.sh"
+# shellcheck disable=SC1091
+source "$(dirname "${BASH_SOURCE[0]}")/markers.sh"
 
 PROJECT_ROOT="$(cd "$SKILL_DIR/../../.." && pwd)"
 REGRESSION_DIR="$PROJECT_ROOT/regression-tests"
@@ -33,7 +35,17 @@ uv sync
 ALLURE_ARGS=(--alluredir=../allure-results)
 [[ "${ALLURE_CLEAN:-1}" == "1" ]] && ALLURE_ARGS+=(--clean-alluredir)
 
-echo "[cip26] running pytest -m cip26 against http://localhost:${LOCAL_API_PORT} (using committed fixtures)..."
 cd mainnet
+
+# a test that neither step selects would never run: fail before the run instead
+echo "[cip26] checking that the CIP-26 and CIP-68 steps together select every test..."
+UNSELECTED="$(uv run pytest --collect-only -q -m "not (${CIP26_MARKERS}) and not (${CIP68_MARKERS})" 2>/dev/null | grep '::' || true)"
+if [[ -n "$UNSELECTED" ]]; then
+  echo "ERROR: these tests have markers that neither step selects (see markers.sh):" >&2
+  echo "$UNSELECTED" >&2
+  exit 1
+fi
+
+echo "[cip26] running pytest -m \"${CIP26_MARKERS}\" against http://localhost:${LOCAL_API_PORT} (using committed fixtures)..."
 API_BASE_URL="http://localhost:${LOCAL_API_PORT}" \
-  uv run pytest -m cip26 -v "${ALLURE_ARGS[@]}"
+  uv run pytest -m "${CIP26_MARKERS}" -v "${ALLURE_ARGS[@]}"

@@ -56,6 +56,11 @@ This creates two files:
 - `mainnet/fixtures/cip26_tokens.json` - up to 1000 CIP-26 token snapshots
 - `mainnet/fixtures/cip68_tokens.json` - up to 1000 CIP-68 token snapshots
 
+`mainnet/fixtures/cip26_upper_case_subjects.json` is not generated: three of the 39 mainnet registry entries whose file
+writes the subject in upper case, with the properties it signs. `test_cip26_signatures.py` asks for them in lower case
+and as written, and checks that each is found, served with the subject as written, and that every signature verifies
+against it (`shared/cip26_signatures.py`).
+
 #### Customizing the database connection
 
 All settings are configurable via environment variables:
@@ -124,6 +129,7 @@ uv run pytest -m rft          # CIP-68 rich fungible token (444) tests
 uv run pytest -m validation   # validation_errors and ?validation= tests (ADR-019)
 uv run pytest -m cip113       # CIP-113 programmable token tests
 uv run pytest -m batch        # Batch query tests
+uv run pytest -m signatures   # CIP-26 signatures of subjects written in upper case (V1 and V2)
 ```
 
 Markers can be combined:

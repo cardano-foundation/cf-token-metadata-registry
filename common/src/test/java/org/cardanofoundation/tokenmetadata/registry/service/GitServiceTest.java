@@ -64,6 +64,7 @@ class GitServiceTest {
         git.add().addFilepattern("README.md").call();
         git.commit().setMessage("initial commit")
                 .setAuthor(new PersonIdent("Init", "init@test.com"))
+                .setSign(false)
                 .call();
 
         return git;
@@ -76,6 +77,7 @@ class GitServiceTest {
         git.add().addFilepattern("mappings/" + fileName).call();
         return git.commit().setMessage("add " + fileName)
                 .setAuthor(new PersonIdent("Test Author", email))
+                .setSign(false)
                 .call();
     }
 
@@ -184,6 +186,7 @@ class GitServiceTest {
             git.rm().addFilepattern("mappings/" + fileName).call();
             return git.commit().setMessage("delete " + fileName)
                     .setAuthor(new PersonIdent("Dev", "dev@test.com"))
+                    .setSign(false)
                     .call();
         }
 
@@ -247,6 +250,7 @@ class GitServiceTest {
             testRepo.add().addFilepattern("other.json").call();
             testRepo.commit().setMessage("add other.json")
                     .setAuthor(new PersonIdent("Dev", "dev@test.com"))
+                    .setSign(false)
                     .call();
 
             addMappingFile(testRepo, "token1.json", "{}", "dev@test.com");
@@ -430,6 +434,7 @@ class GitServiceTest {
             testRepo.add().addFilepattern("mappings/").call();
             testRepo.commit().setMessage("initial with mappings")
                     .setAuthor(new PersonIdent("Author", "author@test.com"))
+                    .setSign(false)
                     .call();
             gitService.git = testRepo;
 
@@ -512,6 +517,7 @@ class GitServiceTest {
                     seedGit.add().addFilepattern(".").call();
                     seedGit.commit().setMessage("init")
                             .setAuthor(new PersonIdent("Seed", "seed@test.com"))
+                            .setSign(false)
                             .call();
                     seedGit.push().setRemote(remoteDir.toUri().toString()).call();
                 }

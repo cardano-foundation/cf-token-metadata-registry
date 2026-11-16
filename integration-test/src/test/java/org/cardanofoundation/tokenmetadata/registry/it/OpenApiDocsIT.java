@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
+import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -92,6 +93,21 @@ class OpenApiDocsIT extends BaseIntegrationIT {
             assertThat(apiDocs.read("$.paths['/api/v2/subjects/query'].post.operationId", String.class)).isNotNull();
             assertThat(apiDocs.read("$.paths['/api/v2/subjects/query'].post.summary", String.class)).isNotNull();
         }
+
+        @Test
+        void batchQueryReturnsV2Subjects() {
+            // the V1 and V2 batch responses are both BatchResponse classes; each must keep its own schema
+            assertThat(apiDocs.read("$.paths['/api/v2/subjects/query'].post.responses.200.content.*.schema.$ref", List.class))
+                    .containsOnly("#/components/schemas/SubjectBatchResponse");
+            assertThat(apiDocs.read("$.components.schemas.SubjectBatchResponse.properties.subjects.items.$ref", String.class))
+                    .isEqualTo("#/components/schemas/Subject");
+            assertThat(apiDocs.read("$.components.schemas.SubjectBatchResponse.properties.queryPriority", Object.class))
+                    .isNotNull();
+            assertThat(apiDocs.read("$.paths['/metadata/query'].post.responses.200.content.*.schema.$ref", List.class))
+                    .containsOnly("#/components/schemas/BatchResponse");
+            assertThat(apiDocs.read("$.components.schemas.BatchResponse.properties.subjects.items.$ref", String.class))
+                    .isEqualTo("#/components/schemas/TokenMetadata");
+        }
     }
 
     @Nested
@@ -133,6 +149,18 @@ class OpenApiDocsIT extends BaseIntegrationIT {
             assertThat(apiDocs.read("$.components.schemas.ProgrammableTokenCip113.properties.third_party_transfer_logic_script", Object.class)).isNotNull();
             assertThat(apiDocs.read("$.components.schemas.ProgrammableTokenCip113.properties.global_state_policy_id", Object.class)).isNotNull();
         }
+
+        @Test
+        void cip113ScriptHashesArePublishedAsNullable() {
+            // the API sends null for a script the registry node does not specify (unfracking_logic_script for every
+            // mainnet token so far); in OpenAPI 3.1 a nullable string is the type list ["string", "null"]
+            for (String field : List.of("minting_logic_script", "transfer_logic_script",
+                    "third_party_transfer_logic_script", "unfracking_logic_script", "global_state_policy_id")) {
+                assertThat(apiDocs.read("$.components.schemas.ProgrammableTokenCip113.properties." + field + ".type", List.class))
+                        .as(field)
+                        .containsExactlyInAnyOrder("string", "null");
+            }
+        }
     }
 
     @Nested
@@ -143,6 +171,34 @@ class OpenApiDocsIT extends BaseIntegrationIT {
         void shouldIncludeKeySchemas() {
             assertThat(apiDocs.read("$.components.schemas.TokenMetadata", Object.class)).isNotNull();
             assertThat(apiDocs.read("$.components.schemas.BatchRequest", Object.class)).isNotNull();
+        }
+
+        @Test
+        void fieldsWrittenAsNullAcceptTheirObjectOrNull() {
+            // the API writes these as null when they have no value; in OpenAPI 3.1 a type next to a $ref applies together
+            // with it, so a nullable reference has to be anyOf the reference and null
+            Map<String, String> references = Map.of(
+                    "Subject.properties.standards", "Standards",
+                    "Metadata.properties.name", "StringProperty",
+                    "Metadata.properties.decimals", "LongProperty",
+                    "Metadata.properties.version", "LongProperty",
+                    "Standards.properties.cip26", "TokenMetadata",
+                    "Standards.properties.cip68", "FungibleTokenMetadata");
+            references.forEach((field, reference) -> {
+                String path = "$.components.schemas." + field;
+                assertThat(apiDocs.read(path, Map.class)).as(field).doesNotContainKeys("$ref", "type");
+                assertThat(apiDocs.read(path + ".anyOf[0].$ref", String.class)).as(field)
+                        .isEqualTo("#/components/schemas/" + reference);
+                assertThat(apiDocs.read(path + ".anyOf[1].type", String.class)).as(field).isEqualTo("null");
+            });
+        }
+
+        @Test
+        void metadataHasNoEmptyProperty() {
+            // Metadata.isEmpty() is a helper, left out of the responses, so the spec must not list it either
+            assertThat(apiDocs.read("$.components.schemas.Metadata.properties", Map.class))
+                    .containsKey("valid")
+                    .doesNotContainKey("empty");
         }
     }
 

@@ -1,5 +1,8 @@
 package org.cardanofoundation.tokenmetadata.registry.api.model.v2;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Nullable;
 import lombok.Builder;
 import org.cardanofoundation.tokenmetadata.registry.api.model.QueryPriority;
 import org.cardanofoundation.tokenmetadata.registry.api.model.cip68.FungibleTokenMetadata;
@@ -17,8 +20,14 @@ import java.util.Base64;
  * after the merge; a token indexed before validation existed falls back to the old rule.
  */
 @Builder(toBuilder = true)
-public record Metadata(StringProperty name, StringProperty description, StringProperty ticker, LongProperty decimals,
-                       StringProperty logo, StringProperty url, LongProperty version, boolean valid) {
+public record Metadata(@Schema(nullable = true) @Nullable StringProperty name,
+                       @Schema(nullable = true) @Nullable StringProperty description,
+                       @Schema(nullable = true) @Nullable StringProperty ticker,
+                       @Schema(nullable = true) @Nullable LongProperty decimals,
+                       @Schema(nullable = true) @Nullable StringProperty logo,
+                       @Schema(nullable = true) @Nullable StringProperty url,
+                       @Schema(nullable = true) @Nullable LongProperty version,
+                       boolean valid) {
 
     private static final Metadata EMPTY_METADATA = Metadata.builder().build();
 
@@ -66,7 +75,11 @@ public record Metadata(StringProperty name, StringProperty description, StringPr
         return new Metadata(name, description, ticker, decimals, logo, url, version, false);
     }
 
-    /** True when no property has a value ({@code valid} is not a property). */
+    /**
+     * True when no property has a value ({@code valid} is not a property). A helper for the controller, not part of the
+     * response: without {@code @JsonIgnore}, Jackson and the OpenAPI spec would publish it as {@code metadata.empty}.
+     */
+    @JsonIgnore
     public boolean isEmpty() {
         return name == null && description == null && ticker == null && decimals == null
                 && logo == null && url == null && version == null;

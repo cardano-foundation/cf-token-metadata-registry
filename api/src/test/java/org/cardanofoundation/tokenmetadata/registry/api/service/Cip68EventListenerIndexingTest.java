@@ -313,6 +313,27 @@ class Cip68EventListenerIndexingTest {
             assertThat(saved()).singleElement().satisfies(row -> assertThat(row.getName()).isNull());
         }
 
+        // A transaction can spend an output created earlier in its block, and the rows of a block are saved after its last
+        // transaction: "already stored" must see the rows of the earlier transactions of the block too.
+
+        @Test
+        void storesTheMetadataClearedByALaterTransactionOfTheBlockThatMintedTheToken() throws Exception {
+            listener.processTransaction(block(
+                    transaction(output(flatDatum("Token", "Desc", "TKN"), REF + A), userToken(FT + A)),
+                    transaction(output(datum(), REF + A))));
+
+            assertThat(saved()).extracting(MetadataReferenceNft::getName).containsExactly("Token", null);
+        }
+
+        @Test
+        void storesAnUpdateWithOnlyThe222NftInALaterTransactionOfTheBlockThatMintedThe333Token() throws Exception {
+            listener.processTransaction(block(
+                    transaction(output(flatDatum("Token", "Desc", "TKN"), REF + A), userToken(FT + A)),
+                    transaction(output(datum("name", "Token v2", "image", "ipfs://bafy"), REF + A), userToken(NFT + A))));
+
+            assertThat(saved()).extracting(MetadataReferenceNft::getName).containsExactly("Token", "Token v2");
+        }
+
         @Test
         void storesAnUnpairedDatumWhoseOnlyTokenFieldHasTheWrongType() throws Exception {
             // the field is there, so it is token metadata, broken
@@ -470,6 +491,17 @@ class Cip68EventListenerIndexingTest {
                 .metadata(EventMetadata.builder().slot(100L).build())
                 .txInputOutputs(List.of(TxInputOutput.builder().outputs(Arrays.asList(outputs)).build()))
                 .build();
+    }
+
+    private static AddressUtxoEvent block(TxInputOutput... transactions) {
+        return AddressUtxoEvent.builder()
+                .metadata(EventMetadata.builder().slot(100L).build())
+                .txInputOutputs(Arrays.asList(transactions))
+                .build();
+    }
+
+    private static TxInputOutput transaction(AddressUtxo... outputs) {
+        return TxInputOutput.builder().outputs(Arrays.asList(outputs)).build();
     }
 
     private static AddressUtxo output(String datum, String... referenceNftAssetNames) {

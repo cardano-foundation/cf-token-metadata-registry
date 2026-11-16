@@ -44,7 +44,8 @@ public final class MappingsUtil {
     /**
      * A subject as it is stored and looked up: lower case. A subject is base16, so its case carries no meaning, and
      * CIP-68 subjects and the asset units clients query with are lower case; a registry file named in upper case would
-     * otherwise only be found by a query in upper case.
+     * otherwise only be found by a query in upper case. An entry is served with its subject as the registry file
+     * writes it, since the signatures are made over it ({@code V1ApiPostgresMetadataIndexer}).
      */
     @Nullable
     public static String normalizeSubject(@Nullable String subject) {

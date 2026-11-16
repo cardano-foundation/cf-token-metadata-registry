@@ -29,7 +29,8 @@ class TestV1GetSubject:
         data = resp.json()
         expected = CIP26_BY_SUBJECT[subject]
 
-        assert data["subject"] == subject
+        # V1 serves a subject as the registry file writes it (some in upper case); the fixtures have it in lower case
+        assert data["subject"].lower() == subject
         self._assert_field(data, expected, "name")
         self._assert_field(data, expected, "ticker")
         self._assert_field(data, expected, "description")
