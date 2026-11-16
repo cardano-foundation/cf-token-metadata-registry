@@ -93,6 +93,21 @@ class OpenApiDocsIT extends BaseIntegrationIT {
             assertThat(apiDocs.read("$.paths['/api/v2/subjects/query'].post.operationId", String.class)).isNotNull();
             assertThat(apiDocs.read("$.paths['/api/v2/subjects/query'].post.summary", String.class)).isNotNull();
         }
+
+        @Test
+        void batchQueryReturnsV2Subjects() {
+            // the V1 and V2 batch responses are both BatchResponse classes; each must keep its own schema
+            assertThat(apiDocs.read("$.paths['/api/v2/subjects/query'].post.responses.200.content.*.schema.$ref", List.class))
+                    .containsOnly("#/components/schemas/SubjectBatchResponse");
+            assertThat(apiDocs.read("$.components.schemas.SubjectBatchResponse.properties.subjects.items.$ref", String.class))
+                    .isEqualTo("#/components/schemas/Subject");
+            assertThat(apiDocs.read("$.components.schemas.SubjectBatchResponse.properties.queryPriority", Object.class))
+                    .isNotNull();
+            assertThat(apiDocs.read("$.paths['/metadata/query'].post.responses.200.content.*.schema.$ref", List.class))
+                    .containsOnly("#/components/schemas/BatchResponse");
+            assertThat(apiDocs.read("$.components.schemas.BatchResponse.properties.subjects.items.$ref", String.class))
+                    .isEqualTo("#/components/schemas/TokenMetadata");
+        }
     }
 
     @Nested
