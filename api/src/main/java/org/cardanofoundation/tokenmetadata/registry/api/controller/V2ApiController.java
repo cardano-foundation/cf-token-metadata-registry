@@ -109,10 +109,15 @@ public class V2ApiController implements V2Api {
                                                      List<QueryPriority> priorities,
                                                      Boolean showCipsDetails,
                                                      ValidationScope validation) {
+        List<QueryPriority> queryPriority = priorities != null ? priorities : priorityConfiguration.getDefaultPriority();
+        List<String> stringPriorities = queryPriority.stream().map(QueryPriority::name).toList();
+        // nothing to look up: the queries below would run "in ()", which is not valid SQL
+        if (body.getSubjects().isEmpty()) {
+            return ResponseEntity.ok(new BatchResponse(List.of(), stringPriorities));
+        }
         metricsService.recordV2Query(body.getSubjects().size());
 
         List<String> queryProperties = body.getProperties() != null ? body.getProperties() : ALL_PROPERTIES;
-        List<QueryPriority> queryPriority = priorities != null ? priorities : priorityConfiguration.getDefaultPriority();
         ValidationScope scope = validation != null ? validation : ValidationScope.ALL;
 
         // Pre-fetch all data to avoid N+1 queries (4 bulk queries upfront)
@@ -124,7 +129,6 @@ public class V2ApiController implements V2Api {
                 .map(subject -> buildSubject(subject, queryPriority, queryProperties, prefetch, includeCipsDetails, scope))
                 .flatMap(Optional::stream)
                 .toList();
-        List<String> stringPriorities = queryPriority.stream().map(QueryPriority::name).toList();
 
         return ResponseEntity.ok(new BatchResponse(subjects, stringPriorities));
     }

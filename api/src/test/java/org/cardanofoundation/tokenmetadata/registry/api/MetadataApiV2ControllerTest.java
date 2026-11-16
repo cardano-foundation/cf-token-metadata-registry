@@ -48,6 +48,8 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -347,6 +349,32 @@ class MetadataApiV2ControllerTest {
                 .andExpect(MockMvcResultMatchers.jsonPath("$.subjects[1].metadata.url.source").value("CIP_26"))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.queryPriority").value(expectedArray)
                 );
+    }
+
+    @Nested
+    class BatchWithoutSubjects {
+
+        @Test
+        void anEmptyListIsAnEmptyResponseWithoutAQuery() throws Exception {
+            // a lookup of no subjects would run "in ()", which is not valid SQL
+            for (String body : List.of("{\"subjects\": []}", "{}")) {
+                mockMvc.perform(post("/api/v2/subjects/query")
+                                .contentType("application/json")
+                                .content(body))
+                        .andExpect(status().isOk())
+                        .andExpect(MockMvcResultMatchers.jsonPath("$.subjects").isEmpty())
+                        .andExpect(MockMvcResultMatchers.jsonPath("$.queryPriority[0]").value("CIP_68"));
+            }
+            verify(v1ApiMetadataIndexer, never()).findSubjectsSelectProperties(anyList(), anyList());
+        }
+
+        @Test
+        void nullSubjectsAreABadRequest() throws Exception {
+            mockMvc.perform(post("/api/v2/subjects/query")
+                            .contentType("application/json")
+                            .content("{\"subjects\": null}"))
+                    .andExpect(status().isBadRequest());
+        }
     }
 
     @Test

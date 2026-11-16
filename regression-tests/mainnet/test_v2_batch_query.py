@@ -251,3 +251,25 @@ class TestV2BatchQuery:
         returned = resp.json()["subjects"]
         assert len(returned) == len(batch)
         assert all(s["metadata"].get("description") is None for s in returned)
+
+
+@allure.epic("V2 API")
+@allure.feature("POST /api/v2/subjects/query")
+@pytest.mark.v2
+@pytest.mark.batch
+@pytest.mark.cip26
+class TestV2BatchQueryWithoutSubjects:
+
+    @allure.story("Batch query with no subjects returns an empty list")
+    @pytest.mark.parametrize("body", [{"subjects": []}, {}], ids=["empty_list", "no_subjects_key"])
+    def test_no_subjects_returns_empty_list(self, body):
+        resp = requests.post(f"{API_BASE_URL}/api/v2/subjects/query", json=body)
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["subjects"] == []
+        assert data["queryPriority"] == ["CIP_68", "CIP_26"]
+
+    @allure.story("Batch query with subjects null is a bad request")
+    def test_null_subjects_is_bad_request(self):
+        resp = requests.post(f"{API_BASE_URL}/api/v2/subjects/query", json={"subjects": None})
+        assert resp.status_code == 400
