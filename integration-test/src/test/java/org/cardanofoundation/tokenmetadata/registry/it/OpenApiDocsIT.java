@@ -194,10 +194,11 @@ class OpenApiDocsIT extends BaseIntegrationIT {
         }
 
         @Test
-        void metadataEmptyIsDocumented() {
-            // in every V2 response, and true for a programmable token served without metadata
-            assertThat(apiDocs.read("$.components.schemas.Metadata.properties.empty.description", String.class))
-                    .contains("CIP-113");
+        void metadataHasNoEmptyProperty() {
+            // Metadata.isEmpty() is a helper, left out of the responses, so the spec must not list it either
+            assertThat(apiDocs.read("$.components.schemas.Metadata.properties", Map.class))
+                    .containsKey("valid")
+                    .doesNotContainKey("empty");
         }
     }
 

@@ -1,5 +1,6 @@
 package org.cardanofoundation.tokenmetadata.registry.api.model.v2;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.annotation.Nullable;
 import lombok.Builder;
@@ -75,12 +76,10 @@ public record Metadata(@Schema(nullable = true) @Nullable StringProperty name,
     }
 
     /**
-     * True when no property has a value ({@code valid} is not a property). Jackson writes it as {@code empty}, and it is
-     * true for a programmable token (CIP-113) served without CIP-26 or CIP-68 metadata (ADR-020), so it is documented
-     * rather than dropped from the response.
+     * True when no property has a value ({@code valid} is not a property). A helper for the controller, not part of the
+     * response: without {@code @JsonIgnore}, Jackson and the OpenAPI spec would publish it as {@code metadata.empty}.
      */
-    @Schema(description = "True when none of the properties above has a value, for example a programmable token (CIP-113) "
-            + "served without CIP-26 or CIP-68 metadata")
+    @JsonIgnore
     public boolean isEmpty() {
         return name == null && description == null && ticker == null && decimals == null
                 && logo == null && url == null && version == null;
