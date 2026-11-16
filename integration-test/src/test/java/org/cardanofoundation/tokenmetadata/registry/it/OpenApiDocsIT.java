@@ -157,6 +157,26 @@ class OpenApiDocsIT extends BaseIntegrationIT {
             assertThat(apiDocs.read("$.components.schemas.TokenMetadata", Object.class)).isNotNull();
             assertThat(apiDocs.read("$.components.schemas.BatchRequest", Object.class)).isNotNull();
         }
+
+        @Test
+        void fieldsWrittenAsNullAcceptTheirObjectOrNull() {
+            // the API writes these as null when they have no value; in OpenAPI 3.1 a type next to a $ref applies together
+            // with it, so a nullable reference has to be anyOf the reference and null
+            Map<String, String> references = Map.of(
+                    "Subject.properties.standards", "Standards",
+                    "Metadata.properties.name", "StringProperty",
+                    "Metadata.properties.decimals", "LongProperty",
+                    "Metadata.properties.version", "LongProperty",
+                    "Standards.properties.cip26", "TokenMetadata",
+                    "Standards.properties.cip68", "FungibleTokenMetadata");
+            references.forEach((field, reference) -> {
+                String path = "$.components.schemas." + field;
+                assertThat(apiDocs.read(path, Map.class)).as(field).doesNotContainKeys("$ref", "type");
+                assertThat(apiDocs.read(path + ".anyOf[0].$ref", String.class)).as(field)
+                        .isEqualTo("#/components/schemas/" + reference);
+                assertThat(apiDocs.read(path + ".anyOf[1].type", String.class)).as(field).isEqualTo("null");
+            });
+        }
     }
 
 }
