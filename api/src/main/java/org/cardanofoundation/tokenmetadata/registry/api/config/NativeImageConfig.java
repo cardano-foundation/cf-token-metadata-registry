@@ -115,6 +115,27 @@ public class NativeImageConfig {
                         DECLARED_FIELDS);
             }
 
+            // Validate endpoint (ADR-023): request bodies Jackson builds, including the CIP-26 registry file model, and the
+            // response records it writes
+            for (Class<?> clazz : new Class<?>[]{
+                    org.cardanofoundation.tokenmetadata.registry.api.model.validate.Cip26ValidateRequest.class,
+                    org.cardanofoundation.tokenmetadata.registry.api.model.validate.Cip68ValidateRequest.class,
+                    org.cardanofoundation.tokenmetadata.registry.api.model.validate.Cip68Fields.class,
+                    org.cardanofoundation.tokenmetadata.registry.api.model.validate.Cip113ValidateRequest.class,
+                    org.cardanofoundation.tokenmetadata.registry.api.model.validate.ValidateResponse.class,
+                    org.cardanofoundation.tokenmetadata.registry.api.model.validate.ServedAs.class,
+                    org.cardanofoundation.tokenmetadata.registry.api.model.validate.DropReason.class,
+                    org.cardanofoundation.tokenmetadata.registry.api.model.v2.ValidationScope.class,
+                    org.cardanofoundation.tokenmetadata.registry.model.Mapping.class,
+                    org.cardanofoundation.tokenmetadata.registry.model.Item.class,
+                    org.cardanofoundation.tokenmetadata.registry.model.Signature.class
+            }) {
+                reflection.registerType(clazz,
+                        INVOKE_DECLARED_CONSTRUCTORS,
+                        INVOKE_DECLARED_METHODS,
+                        DECLARED_FIELDS);
+            }
+
             // Validation errors (ADR-019): written and read as JSON by Hibernate (validation_errors columns) and Jackson
             for (Class<?> clazz : new Class<?>[]{ValidationError.class, FieldCategory.class}) {
                 reflection.registerType(clazz,

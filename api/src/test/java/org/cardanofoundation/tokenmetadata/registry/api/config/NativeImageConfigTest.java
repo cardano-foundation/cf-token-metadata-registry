@@ -39,7 +39,14 @@ class NativeImageConfigTest {
             FieldCategory.class,
             ProgrammableTokenCip113.class,
             Subject.class,
-            FungibleTokenMetadata.class})
+            FungibleTokenMetadata.class,
+            org.cardanofoundation.tokenmetadata.registry.api.model.validate.Cip26ValidateRequest.class,
+            org.cardanofoundation.tokenmetadata.registry.api.model.validate.Cip68ValidateRequest.class,
+            org.cardanofoundation.tokenmetadata.registry.api.model.validate.Cip68Fields.class,
+            org.cardanofoundation.tokenmetadata.registry.api.model.validate.Cip113ValidateRequest.class,
+            org.cardanofoundation.tokenmetadata.registry.api.model.validate.ValidateResponse.class,
+            org.cardanofoundation.tokenmetadata.registry.api.model.validate.ServedAs.class,
+            org.cardanofoundation.tokenmetadata.registry.model.Mapping.class})
     void registersTheTypeForReflection(Class<?> type) {
         assertThat(RuntimeHintsPredicates.reflection().onType(type)).accepts(hints);
     }
