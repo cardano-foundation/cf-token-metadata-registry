@@ -59,19 +59,14 @@ jobs:
           DOCKER_REGISTRIES: "${{ secrets.DOCKER_REGISTRIES }}"
 
       # image names come from the Earthfile targets; only the local tag needed
-      # by the nightly workflow's integration tests is derived here
+      # by the nightly workflow's integration tests is derived here. The Earthfile
+      # saves both variants as cf-token-metadata-registry-<app>:latest: the native
+      # image differs only in the -native suffix of its pushed tags
       - name: Set image metadata
         id: meta
         env:
           INPUT_APP: ${{ inputs.app }}
-          INPUT_VARIANT: ${{ inputs.variant }}
-        run: |
-          if [ "${INPUT_VARIANT}" = "native" ]; then
-            IMAGE="cf-token-metadata-registry-${INPUT_APP}-native"
-          else
-            IMAGE="cf-token-metadata-registry-${INPUT_APP}"
-          fi
-          echo "image-tag=${IMAGE}:latest" | tee -a "$GITHUB_OUTPUT"
+        run: echo "image-tag=cf-token-metadata-registry-${INPUT_APP}:latest" | tee -a "$GITHUB_OUTPUT"
 
       - name: Download JAR artifact
         if: inputs.variant == 'jvm'
