@@ -55,8 +55,8 @@ class OpenApiConfigTest {
 
             assertThat(field.has("$ref")).as("no $ref next to anyOf").isFalse();
             assertThat(field.has("type")).as("no type next to anyOf").isFalse();
-            assertThat(field.path("anyOf").toString())
-                    .isEqualTo("[{\"$ref\":\"#/components/schemas/" + reference + "\"},{\"type\":\"null\"}]");
+            assertThat(field.path("anyOf"))
+                    .hasToString("[{\"$ref\":\"#/components/schemas/" + reference + "\"},{\"type\":\"null\"}]");
         }
 
         @Test
@@ -89,7 +89,7 @@ class OpenApiConfigTest {
         void nullableStringsStayATypeList() {
             for (String field : List.of("name", "description", "ticker", "logo", "url")) {
                 JsonNode type = schemas.path("FungibleTokenMetadata").path("properties").path(field).path("type");
-                assertThat(type.toString()).as(field).isEqualTo("[\"string\",\"null\"]");
+                assertThat(type).as(field).hasToString("[\"string\",\"null\"]");
             }
         }
     }
