@@ -3,16 +3,16 @@ apiVersion: "acid.zalan.do/v1"
 kind: postgresql
 metadata:
   # name must start w/ teamId
-  name: cf-token-metadata-registry-pg
+  name: {{ include "cf-token-metadata-registry.postgres.clusterName" . }}
 spec:
   teamId: "cf"
   volume:
     size: 50Gi
   numberOfInstances: {{ .Values.postgres.numberOfInstances | default 2 }}
   users:
-    cardano: []
+    {{ include "cf-token-metadata-registry.postgres.user" . }}: []
   databases:
-    cf_token_metadata_registry: cardano
+    {{ include "cf-token-metadata-registry.postgres.dbName" . }}: {{ include "cf-token-metadata-registry.postgres.user" . }}
   postgresql:
     version: "15"
   enableLogicalBackup: true
