@@ -2,7 +2,7 @@
 //
 //   node scripts/update-openapi.mjs [url-or-file]
 //
-// The source defaults to https://tokens.cardano.org/apidocs. Point it at an instance running the branch you document
+// The source defaults to https://v2.tokens.cardano.org/apidocs. Point it at an instance running the branch you document
 // (for example http://localhost:8081/apidocs) when the public registry does not serve the endpoints yet.
 //
 // The registry's own spec also lists operator endpoints (Yaci Store admin, actuator, the deprecated /health), names the
@@ -10,7 +10,7 @@
 // registries as servers and readable tags.
 import { readFile, writeFile } from 'node:fs/promises';
 
-const source = process.argv[2] ?? 'https://tokens.cardano.org/apidocs';
+const source = process.argv[2] ?? 'https://v2.tokens.cardano.org/apidocs';
 const target = new URL('../openapi/registry.json', import.meta.url);
 
 const spec = JSON.parse(
@@ -39,7 +39,7 @@ spec.info = {
     'Query Cardano token metadata merged from CIP-26 and CIP-68, with additional script information for CIP-113 programmable tokens. V1 serves CIP-26 only and is retained here for existing integrations.',
 };
 spec.servers = [
-  { url: 'https://tokens.cardano.org', description: 'Mainnet' },
+  { url: 'https://v2.tokens.cardano.org', description: 'Mainnet' },
   { url: 'https://preprod.tokens.cardano.org', description: 'Preprod' },
 ];
 

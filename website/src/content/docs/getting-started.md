@@ -3,14 +3,14 @@ title: Getting started
 description: Query a token's metadata with the V2 API, one token or many at a time.
 ---
 
-All you need is the **subject** of a token: its policy id followed by its asset name, in hex. The examples use `$REGISTRY` for the address of a registry instance: `https://tokens.cardano.org` for mainnet, `https://preprod.tokens.cardano.org` for preprod.
+All you need is the **subject** of a token: its policy id followed by its asset name, in hex. The examples use `$REGISTRY` for the address of a registry instance: `https://v2.tokens.cardano.org` for mainnet, `https://preprod.tokens.cardano.org` for preprod.
 
 The API combines CIP-26 and CIP-68 metadata and reports validation errors. CIP-113 programmable tokens also carry script information in a separate extension. You can try each operation from the [API reference](../api/) using the **Test request** button.
 
 ## One token
 
 ```bash
-REGISTRY="https://tokens.cardano.org"
+REGISTRY="https://v2.tokens.cardano.org"
 SUBJECT="<your-token-subject>" # replace with your token's subject
 
 curl "$REGISTRY/api/v2/subjects/$SUBJECT"

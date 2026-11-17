@@ -7,7 +7,7 @@
   },
   "servers": [
     {
-      "url": "https://tokens.cardano.org",
+      "url": "https://v2.tokens.cardano.org",
       "description": "Mainnet"
     },
     {
