@@ -1,7 +1,7 @@
 name: Deploy Website to GitHub Pages
 
-# The project's GitHub Pages site: the website (website/) at the root and the interactive API reference at
-# /api-reference/ (website/public/api-reference). One workflow deploys both, since a repository has one Pages site.
+# The project's GitHub Pages site: the website at the root and generated API reference under /api/.
+# Scalar opens as a request client within each operation page.
 on:
   push:
     # The live site tracks main: a promotion that touches the site redeploys it.
@@ -42,10 +42,6 @@ jobs:
 
       - name: Build website
         working-directory: website
-        env:
-          # The registry the validator page calls; it must allow https://cardano-foundation.github.io (CORS).
-          # The repository variable REGISTRY_API_URL overrides the production registry.
-          PUBLIC_REGISTRY_API_URL: ${{ vars.REGISTRY_API_URL || 'https://tokens.cardano.org' }}
         run: npm run build
 
       - uses: actions/configure-pages@v5

@@ -3,26 +3,28 @@ import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
 import starlightOpenAPI, { openAPISidebarGroups } from 'starlight-openapi';
 import tailwindcss from '@tailwindcss/vite';
-import llmsIntegration from './scripts/llms-integration.mjs';
 import markdownExport from './scripts/markdown-export.mjs';
 
 // Served as a GitHub Pages project site, under /cf-token-metadata-registry/. For a custom domain later: add
 // public/CNAME, set SITE to the domain and drop BASE (see website/README.md).
 const SITE = 'https://cardano-foundation.github.io';
 const BASE = '/cf-token-metadata-registry';
+const SITE_METADATA = {
+  title: 'CF Token Metadata Registry',
+  description: 'Query Cardano token metadata from CIP-26 and CIP-68, with additional information for CIP-113 programmable tokens.',
+};
 
 export default defineConfig({
   site: SITE,
   base: BASE,
   integrations: [
     starlight({
-      title: 'CF Token Metadata Registry',
-      description: 'The Cardano Foundation token metadata registry: Cardano token metadata from CIP-26, CIP-68 and CIP-113 in one API, with a validator to check your token before you mint it.',
+      ...SITE_METADATA,
       social: [
         { icon: 'github', label: 'GitHub', href: 'https://github.com/cardano-foundation/cf-token-metadata-registry' },
       ],
       editLink: {
-        baseUrl: 'https://github.com/cardano-foundation/cf-token-metadata-registry/edit/develop/website/',
+        baseUrl: 'https://github.com/cardano-foundation/cf-token-metadata-registry/edit/main/website/',
       },
       customCss: ['./src/styles/starlight.css'],
       plugins: [
@@ -43,13 +45,13 @@ export default defineConfig({
       sidebar: [
         { label: 'Overview', slug: 'overview' },
         { label: 'Getting started', slug: 'getting-started' },
-        { label: 'Validator', slug: 'validator' },
         {
           label: 'Guides',
           items: [
             { label: 'Register a CIP-26 token', slug: 'guides/cip26' },
             { label: 'Mint a CIP-68 token', slug: 'guides/cip68' },
             { label: 'CIP-113 programmable tokens', slug: 'guides/cip113' },
+            { label: 'Run your own registry', slug: 'guides/self-hosting' },
           ],
         },
         {
@@ -60,19 +62,10 @@ export default defineConfig({
             { label: 'Merging the standards', slug: 'concepts/merging' },
           ],
         },
-        {
-          label: 'Reference',
-          items: [
-            { label: 'API', slug: 'reference/api' },
-            { label: 'Run your own registry', slug: 'reference/self-hosting' },
-          ],
-        },
         ...openAPISidebarGroups,
       ],
     }),
-    llmsIntegration(),
-    // A Markdown copy beside every page, for the "Copy as Markdown" button and for tools that read the page text.
-    markdownExport(),
+    markdownExport(SITE_METADATA),
   ],
   vite: {
     plugins: [tailwindcss()],

@@ -3,19 +3,16 @@ title: Getting started
 description: Query a token's metadata with the V2 API, one token or many at a time.
 ---
 
-All you need is the **subject** of a token: its policy id followed by its asset name, in hex. The examples use
-`$REGISTRY` for the address of a registry instance: `https://tokens.cardano.org` for mainnet,
-`https://preprod.tokens.cardano.org` for preprod.
+All you need is the **subject** of a token: its policy id followed by its asset name, in hex. The examples use `$REGISTRY` for the address of a registry instance: `https://tokens.cardano.org` for mainnet, `https://preprod.tokens.cardano.org` for preprod.
 
-:::note[Which API]
-**V2** (`/api/v2/...`) is the current API: it serves CIP-26, CIP-68 and CIP-113, with validation errors. **V1**
-(`/metadata/...`) is **deprecated**: it serves CIP-26 only, in the format of the original CIP-26 metadata server, and is
-kept for existing integrations. Use V2 for anything new.
-:::
+The API combines CIP-26 and CIP-68 metadata and reports validation errors. CIP-113 programmable tokens also carry script information in a separate extension. You can try each operation from the [API reference](../api/) using the **Test request** button.
 
 ## One token
 
 ```bash
+REGISTRY="https://tokens.cardano.org"
+SUBJECT="<your-token-subject>" # replace with your token's subject
+
 curl "$REGISTRY/api/v2/subjects/$SUBJECT"
 ```
 
@@ -33,12 +30,12 @@ curl "$REGISTRY/api/v2/subjects/$SUBJECT"
       "valid": true
     },
     "validation_errors": []
-  }
+  },
+  "queryPriority": ["CIP_68", "CIP_26"]
 }
 ```
 
-Each property says where it came from (`source`). `valid` is `true` when the token has no validation errors. A token
-the registry knows nothing about is a `404`.
+Each property says where it came from (`source`). `valid` is `true` when the token has no validation errors. A token the registry knows nothing about is a `404`.
 
 ## Many tokens
 
@@ -52,8 +49,7 @@ The response holds the tokens the registry knows, in `subjects`. Unknown subject
 
 ## Only the properties you need
 
-By default every property is returned. To get only some of them, name them, which keeps responses small when you show,
-say, only a name and a ticker:
+By default every property is returned. To get only some of them, name them, which keeps responses small when you show, say, only a name and a ticker:
 
 ```bash
 # one token: repeat the parameter
@@ -65,11 +61,9 @@ curl -X POST "$REGISTRY/api/v2/subjects/query" \
   -d '{"subjects": ["<subject 1>", "<subject 2>"], "properties": ["name", "ticker", "decimals"]}'
 ```
 
-The properties are `name`, `description`, `ticker`, `decimals`, `logo`, `url` and `version`. Any combination works; you
-do not need to ask for `name` or `description`.
+The properties are `name`, `description`, `ticker`, `decimals`, `logo`, `url` and `version`. Any combination works; you do not need to ask for `name` or `description`.
 
-The `validation_errors` then cover only the properties you asked for: a client that asks only for the `ticker` is not
-told that the description is missing, and `?validation=` judges the token on those properties only.
+Requesting specific properties also narrows the validation errors returned. For example, asking for `ticker` does not report a missing `description`. The `validation` parameter is applied after this filtering.
 
 ## Options
 
@@ -82,11 +76,6 @@ told that the description is missing, and `?validation=` judges the token on tho
 
 ## Programmable tokens
 
-A token registered as a [CIP-113](../guides/cip113/) programmable token comes back with `"type": "PROGRAMMABLE"` and
-its rules under `extensions.cip113`. Everything else is the same. Its name, ticker and logo come from CIP-26 or CIP-68 metadata; without any, it is still a `200`, with a `MANDATORY` error on `companion_metadata`.
+A token registered as a [CIP-113](../guides/cip113/) programmable token comes back with `"type": "PROGRAMMABLE"` and script information under `extensions.cip113`. Its name, ticker and logo come from CIP-26 or CIP-68 metadata; CIP-113 does not participate in `query_priority`.
 
-## The V1 API (deprecated)
-
-`GET /metadata/{subject}`, `GET /metadata/{subject}/properties/{property}` and `POST /metadata/query` serve **CIP-26
-only**, in the format of the original CIP-26 metadata server. V1 is **deprecated** and kept for existing integrations:
-it does not serve CIP-68 or CIP-113 tokens and has no validation errors. Use V2.
+Without companion metadata, the default `validation=ALL` still returns `200`, with a `MANDATORY` `missing_value` error on `companion_metadata`. `MANDATORY_ONLY` and `STRICT` return `404` for that subject or omit it from a batch.

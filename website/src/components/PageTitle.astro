@@ -20,8 +20,9 @@ if (operationId) {
 	}
 }
 
-// scripts/markdown-export.mjs writes index.md beside the index.html of every page.
+// scripts/markdown-export.mjs writes copies for docs and every generated API route, but not the 404 page.
 const markdown = `${Astro.url.pathname.replace(/\/?$/, '/')}index.md`;
+const hasMarkdown = Astro.props.id !== '404';
 ---
 
 <Default />
@@ -42,34 +43,18 @@ const markdown = `${Astro.url.pathname.replace(/\/?$/, '/')}index.md`;
 			</button>
 		)
 	}
-	<button class="action" type="button" data-copy-markdown={markdown}>
+	{hasMarkdown && <button class="action" type="button" data-copy-markdown={markdown}>
 		<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 			<rect x="9" y="9" width="11" height="11" rx="2" />
 			<path d="M5 15V5a2 2 0 0 1 2-2h8" />
 		</svg>
-		Copy as Markdown
-	</button>
+		<span data-copy-label aria-live="polite">Copy as Markdown</span>
+	</button>}
 </div>
 {operation && <TryIt />}
 
 <script>
-	const buttons = document.querySelectorAll<HTMLButtonElement>('[data-copy-markdown]');
-	for (const button of buttons) {
-		button.addEventListener('click', async () => {
-			const label = button.textContent;
-			try {
-				const response = await fetch(button.dataset.copyMarkdown!);
-				if (!response.ok) throw new Error(String(response.status));
-				await navigator.clipboard.writeText(await response.text());
-				button.textContent = 'Copied';
-			} catch {
-				button.textContent = 'Copy failed';
-			}
-			setTimeout(() => {
-				button.textContent = label;
-			}, 1600);
-		});
-	}
+	import '../scripts/copy-markdown';
 </script>
 
 <style>
@@ -103,6 +88,9 @@ const markdown = `${Astro.url.pathname.replace(/\/?$/, '/')}index.md`;
 	.action:hover {
 		border-color: var(--sl-color-gray-4);
 		opacity: 0.9;
+	}
+	.action:disabled {
+		cursor: wait;
 	}
 	.action-primary {
 		border-color: var(--sl-color-text);

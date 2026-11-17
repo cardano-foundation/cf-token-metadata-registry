@@ -40,8 +40,6 @@ To scale reads, run extra instances that serve the same database without indexin
 | `TOKEN_METADATA_SYNC_JOB` | sync the CIP-26 registry in this instance (`true`), or leave it to a separate job |
 | `GITHUB_ORGANIZATION`, `GITHUB_PROJECT_NAME` | the CIP-26 registry repository |
 | `CIP113_REGISTRY_NFT_POLICY_IDS` | the CIP-113 registry to index; empty switches CIP-113 off |
-| `REGISTRY_VALIDATE_ENABLED` | the validate endpoint, on by default |
-| `REGISTRY_VALIDATE_CORS_ALLOWED_ORIGINS` | sites allowed to call the validate endpoint from a browser, e.g. `https://cardano-foundation.github.io` |
 
 The full list, and the design decisions behind the registry, are in the
 [repository](https://github.com/cardano-foundation/cf-token-metadata-registry).

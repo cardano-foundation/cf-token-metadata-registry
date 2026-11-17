@@ -3,8 +3,7 @@ title: Mint a CIP-68 token
 description: On-chain metadata for fungible (333) and rich fungible (444) tokens, and the rules the registry applies.
 ---
 
-A CIP-68 token keeps its metadata **on chain**, in the inline datum of a separate **reference NFT** with the same policy
-and name. Updating the metadata means spending that output and creating a new one with a new datum.
+A CIP-68 token keeps its metadata **on chain**, in the inline datum of a separate **reference NFT** with the same policy ID and the same asset-name bytes after the label prefix. Updating the metadata means spending that output and creating a new one with a new datum.
 
 ## The tokens
 
@@ -14,15 +13,15 @@ and name. Updating the metadata means spending that output and creating a new on
 | Fungible token (label 333), what people hold | `0014df10` + name | your supply |
 | Rich fungible token (label 444), what people hold | `001bc280` + name | your supply |
 
-The registry serves the **333 or 444 token**: its subject is the policy id followed by `0014df10…` or `001bc280…`. The
-metadata comes from the reference NFT of the same policy and name, whether or not the user token was minted, so a `200`
-does not mean the token exists: ask the chain. NFTs (label 222) are not served by this registry.
+The registry serves the **333 or 444 token**: its subject is the policy id followed by `0014df10…` or `001bc280…`. The metadata comes from the reference NFT with the same policy ID and the same asset-name bytes after the label prefix, whether or not the user token was minted, so a `200` does not mean the token exists: ask the chain. NFTs (label 222) are not served by this registry.
 
 ## The datum
 
 ```
-Constr 0 [ metadata : Map<Bytes, Data>, version : Int, extra : Data (optional) ]
+Constr 0 [ metadata : Map<Bytes, Data>, version : Int, extra : Data ]
 ```
+
+The `extra` field is required. When you have no additional data, use Unit (`Constr 0 []`).
 
 | Field | 333 fungible | 444 rich fungible | Format |
 |---|---|---|---|
@@ -38,22 +37,17 @@ Constr 0 [ metadata : Map<Bytes, Data>, version : Int, extra : Data (optional) ]
 
 A rich fungible token's `image` is served as its `logo`, so wallets show it without special handling.
 
-The ledger limits a byte string in a datum to 64 bytes. A longer value is written in CBOR chunks, which the registry reads as one value. A text field written as a list of byte strings is joined and served, with a `chunked_text` error; a value that is not a byte string at all is a `wrong_type` error, and is left out.
+CIP-68 defines text fields as UTF-8 byte strings. The registry also accepts a non-empty list of byte strings: it joins the bytes before decoding the text, without reporting an error for the list form. Invalid UTF-8 is kept as hex with a `not_utf8` error. Other value types are left out with a `wrong_type` error.
 
 ## What happens when a rule is broken
 
-The datum is **still indexed and served**, with `validation_errors` that name the field and the rule:
-a missing required field is a `MANDATORY` error, a `logo` that is not an allowed URI is an `OPTIONAL` one and is kept
-as written, and a `version` that is not an integer, does not fit a 64-bit integer or is outside 1 to 4 is a `MANDATORY`
-`invalid_version`. A datum that cannot be decoded, that is not CIP-68, or that belongs only to an NFT (label 222) is not indexed at all; everything else is served, with its errors.
+With the default `validation=ALL`, indexed metadata is returned with `validation_errors` that name the field and the rule: a missing required field is a `MANDATORY` error, a `logo` that is not an allowed URI is an `OPTIONAL` one and is kept as written, and a `version` that is not an integer, does not fit a 64-bit integer or is outside 1 to 4 is a `MANDATORY` `invalid_version`. A datum that cannot be decoded, that is not CIP-68, or that belongs only to an NFT (label 222) is not indexed at all.
 
-If your reference NFT is paired with several user tokens (a 333 and a 444), the datum is checked against each, and each
-subject is served with the errors of its own label.
+If your reference NFT is paired with several user tokens (a 333 and a 444), the datum is checked against each, and each subject is served with the errors of its own label.
 
 ## Before you mint
 
-Use the [validator](../../validator/), CIP-68 tab: enter your token's fields, choose the labels, and you get the errors
-the registry would report and **the datum to put on your reference NFT**, ready to use with your minting tool.
+Build the reference NFT datum with your minting tool according to the [CIP-68 specification](https://cips.cardano.org/cip/CIP-0068). Check the required fields for your user-token label against the table above. This registry reads the result; it does not mint the tokens.
 
 ## After you mint
 

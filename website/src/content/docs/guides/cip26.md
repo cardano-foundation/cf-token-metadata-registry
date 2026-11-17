@@ -3,9 +3,7 @@ title: Register a CIP-26 token
 description: Off-chain metadata in the Cardano token registry, and what this registry checks in it.
 ---
 
-CIP-26 metadata is a JSON file in the [Cardano token registry](https://github.com/cardano-foundation/cardano-token-registry)
-on GitHub, submitted by pull request. That repository explains how to create, sign and submit the file. This registry
-**syncs it every hour** and serves it with `source: "CIP_26"`.
+CIP-26 metadata is a JSON file in the [Cardano token registry](https://github.com/cardano-foundation/cardano-token-registry) on GitHub, submitted by pull request. That repository explains how to create, sign and submit the file. This registry **syncs it every hour** and serves it with `source: "CIP_26"`.
 
 ## The file
 
@@ -28,15 +26,14 @@ on GitHub, submitted by pull request. That repository explains how to create, si
 |---|---|
 | `name` and `description` are present | a `MANDATORY` `missing_value` error |
 | texts have the lengths CIP-26 allows, e.g. a `name` of at most 50 characters | an `invalid_length` error, `MANDATORY` for `name` and `description` |
-| `decimals` is a whole number in range | an `OPTIONAL` `out_of_range` or `wrong_type` error |
+| `decimals` is a whole number from 0 to 19 | an `OPTIONAL` `out_of_range` or `wrong_type` error |
 | `logo` is valid base64, at most 64 KiB once decoded | an `OPTIONAL` `invalid_base64` or `too_large` error |
 | the file is named `<subject>.json`, after the subject inside it | **not indexed** (`filename_subject_mismatch`) |
 | the subject is hex, 56 to 120 characters | **not indexed** (`unusable_subject`) |
 
-An entry with errors is still served, with its `validation_errors`. Only the last two rules stop it from being indexed.
+With `validation=ALL` (the default), an entry with errors is still served with its `validation_errors`.
 
-Check your file before you open the pull request: paste it into the [validator](../../validator/), CIP-26 tab, with the
-file name you will use.
+Follow the [token registry's submission instructions](https://github.com/cardano-foundation/cardano-token-registry) to validate and sign your file before opening the pull request.
 
 :::note
 Signatures and the policy script are not verified by this registry. The token registry's own checks cover them.

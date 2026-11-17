@@ -17,22 +17,18 @@ const spec = JSON.parse(
   /^https?:\/\//.test(source) ? await (await fetch(source)).text() : await readFile(source, 'utf8'),
 );
 
-const PUBLIC_PATHS = [/^\/api\/v2\//, /^\/metadata\//];
+const PUBLIC_PATHS = [/^\/api\/v2\/subjects(?:\/|$)/, /^\/metadata\//];
 // Readable operation ids, as they are the page URLs (api/operations/<id>/) and springdoc suffixes clashes
 // (getSubjects_1), and short summaries, as they are the sidebar labels and page titles.
 const OPERATIONS = {
   getSubject: { id: 'v2-get-subject', summary: 'Get a subject' },
   getSubjects_1: { id: 'v2-query-subjects', summary: 'Query subjects' },
-  validateCip68: { id: 'v2-validate-cip68', summary: 'Validate a CIP-68 datum' },
-  validateCip26: { id: 'v2-validate-cip26', summary: 'Validate a CIP-26 entry' },
-  validateCip113: { id: 'v2-validate-cip113', summary: 'Validate a CIP-113 node' },
   getAllPropertiesForSubject: { id: 'v1-get-subject', summary: 'Get a subject' },
   getPropertyForSubject: { id: 'v1-get-property', summary: 'Get a property of a subject' },
   getSubjects: { id: 'v1-query-subjects', summary: 'Query subjects' },
 };
 const TAGS = {
   'v-2-api-controller': 'V2 subjects',
-  Validate: 'V2 validate',
   'v1-api': 'V1 (deprecated)',
 };
 
@@ -40,7 +36,7 @@ spec.info = {
   title: 'CF Token Metadata Registry API',
   version: 'v2',
   description:
-    'Cardano token metadata from CIP-26, CIP-68 and CIP-113 in one API. Use the V2 endpoints; V1 serves CIP-26 only and is deprecated.',
+    'Query Cardano token metadata merged from CIP-26 and CIP-68, with additional script information for CIP-113 programmable tokens. V1 serves CIP-26 only and is retained here for existing integrations.',
 };
 spec.servers = [
   { url: 'https://tokens.cardano.org', description: 'Mainnet' },
@@ -63,10 +59,8 @@ for (const [path, operations] of Object.entries(spec.paths)) {
   }
 }
 
-const descriptions = Object.fromEntries((spec.tags ?? []).map((tag) => [tag.name, tag.description]));
 spec.tags = [
-  { name: 'V2 subjects', description: 'Token metadata merged from CIP-26, CIP-68 and CIP-113, with its validation errors.' },
-  { name: 'V2 validate', description: descriptions.Validate },
+  { name: 'V2 subjects', description: 'Token metadata merged from CIP-26 and CIP-68, with separate CIP-113 extensions and validation errors.' },
   { name: 'V1 (deprecated)', description: 'CIP-26 metadata only, as served before V2. Use the V2 endpoints.' },
 ];
 

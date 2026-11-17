@@ -3,9 +3,7 @@ title: Validation errors
 description: How the registry reports what departs from a token's standard, and how to filter by it.
 ---
 
-The registry serves tokens **as they are written**. When a token breaks its standard, it is still served, with a list of
-`validation_errors` saying what is wrong. Nothing is fixed or guessed for you, and nothing is hidden unless you ask.
-Why, which fields are mandatory, and when a token does not appear at all: [A permissive registry](../permissive/).
+The registry serves tokens **as they are written** and reports errors found by its checks in `validation_errors`. Why, which fields are mandatory, and when a token does not appear at all: [A permissive registry](../permissive/).
 
 ## An error
 
@@ -37,12 +35,13 @@ Why, which fields are mandatory, and when a token does not appear at all: [A per
 |---|---|
 | `ALL` (default) | every token, with its errors |
 | `MANDATORY_ONLY` | tokens with no `MANDATORY` error: problems only in optional fields are tolerated |
-| `STRICT` | tokens with no error at all |
+| `STRICT` | tokens with no reported validation errors, whether `MANDATORY` or `OPTIONAL` |
 
 A token that the chosen level does not accept is a `404`, or is left out of a batch. The errors of a token that is returned are never filtered by the `validation` level.
 
-With `?property=`, the errors are about the requested properties only: a client that asks only for the `ticker` is not
-told that the description is missing.
+With `?property=`, validation errors are scoped to the requested properties before the registry calculates `metadata.valid` and applies `MANDATORY_ONLY` or `STRICT`. For example, `?property=ticker&validation=STRICT` can return a token whose description is missing, provided no reported error affects the ticker.
+
+Errors that concern all metadata, such as `no_nested_entry` and missing CIP-113 `companion_metadata`, remain regardless of `?property=`. An `image` error also applies when `logo` is requested, since rich fungible tokens expose their image as the logo.
 
 ## Error codes
 
@@ -64,19 +63,18 @@ told that the description is missing.
 | `key_collision` | two keys read the same, e.g. the text `1` and the integer `1`; one is kept |
 | `invalid_base64` | a CIP-26 `logo` is not valid base64 |
 | `too_large` | a CIP-26 `logo` is over 64 KiB once decoded; over 1,400,000 base64 characters it is not stored at all |
-| `chunked_text` | a CIP-68 text is a list of byte strings instead of one; the chunks are joined and the text is served |
 
-New codes may be added; an existing code is never changed or removed.
+New codes may be added.
 
 ## What is not indexed at all
 
-A few things cannot be stored, so they have no errors to show. The [validator](../../validator/) reports them with
-these codes:
+Some inputs cannot be indexed. The registry records these reasons in its internal `invalid_token` table for operators; they are not subject responses or a public error-query API:
 
 | Code | When |
 |---|---|
 | `filename_subject_mismatch` | a CIP-26 file named after another subject than the one inside it |
 | `unusable_subject` | a CIP-26 subject that is not hex, or not 56 to 120 characters |
 | `datum_undecodable`, `datum_too_deep_to_decode` | a CIP-68 datum that cannot be decoded |
-| `not_cip68` | a datum that is not a CIP-68 datum at all (validator only; the registry simply ignores it) |
 | `registry_node_unparseable` | a CIP-113 registry node that cannot be read |
+
+A datum that is not CIP-68 at all is simply ignored, rather than recorded in that table.

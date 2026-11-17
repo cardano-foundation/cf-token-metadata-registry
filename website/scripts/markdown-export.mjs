@@ -1,29 +1,13 @@
-// Writes a Markdown copy beside every page of the build, so a reader (or a tool) can take the text of the page
-// instead of scraping the HTML. Docs pages keep their source text; the API operations, which only exist as pages
-// generated from openapi/registry.json, are rendered from the spec.
+// One collection of docs and API pages feeds per-page Markdown, llms.txt and llms-full.txt in dev and builds.
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { slug } from 'github-slugger';
 
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const DOCS = path.join(ROOT, 'src', 'content', 'docs');
 const SPEC_PATH = path.join(ROOT, 'openapi', 'registry.json');
-
 const METHODS = ['get', 'post', 'put', 'patch', 'delete', 'head', 'options'];
-
-async function listDocs(dir, prefix = '') {
-	const entries = await fs.readdir(dir, { withFileTypes: true });
-	const pages = [];
-	for (const entry of entries.sort((a, b) => a.name.localeCompare(b.name))) {
-		const full = path.join(dir, entry.name);
-		if (entry.isDirectory()) {
-			pages.push(...(await listDocs(full, `${prefix}${entry.name}/`)));
-		} else if (/\.mdx?$/.test(entry.name)) {
-			pages.push({ file: full, slug: `${prefix}${entry.name.replace(/\.mdx?$/, '')}` });
-		}
-	}
-	return pages;
-}
 
 const splitFrontmatter = (text) => {
 	const match = text.match(/^---\n([\s\S]*?)\n---\n/);
@@ -36,12 +20,6 @@ const splitFrontmatter = (text) => {
 	}
 	return { fields, body: match ? text.slice(match[0].length) : text };
 };
-
-async function docsMarkdown(file) {
-	const { fields, body } = splitFrontmatter(await fs.readFile(file, 'utf8'));
-	const heading = fields.title ? `# ${fields.title}\n\n` : '';
-	return `${heading}${body.trim()}\n`;
-}
 
 const cell = (value) => String(value ?? '').replace(/\|/g, '\\|').replace(/\n+/g, ' ').trim();
 
@@ -61,17 +39,18 @@ function parametersTable(parameters = []) {
 	].join('\n');
 }
 
-function operationMarkdown(pathname, method, operation) {
-	const lines = [`# ${operation.summary ?? `${method.toUpperCase()} ${pathname}`}`, ''];
-	lines.push(`\`${method.toUpperCase()} ${pathname}\``, '');
+function operationMarkdown(pathname, method, operation, schemas) {
+	const lines = [`\`${method.toUpperCase()} ${pathname}\``, ''];
 	if (operation.description) lines.push(operation.description, '');
 	if (operation.parameters?.length) {
 		lines.push('## Parameters', '', parametersTable(operation.parameters));
 	}
-	const body = operation.requestBody?.content?.['application/json'];
+	const body = Object.entries(operation.requestBody?.content ?? {})
+		.find(([type]) => type.split(';')[0].trim().toLowerCase() === 'application/json')?.[1];
 	if (body?.schema) {
+		const reference = body.schema.$ref?.match(/^#\/components\/schemas\/(.+)$/)?.[1];
 		lines.push('## Request body', '');
-		lines.push('```json', JSON.stringify(body.schema, null, 2), '```', '');
+		lines.push('```json', JSON.stringify(schemas[reference] ?? body.schema, null, 2), '```', '');
 	}
 	if (body?.example) {
 		lines.push('### Example', '', '```json', JSON.stringify(body.example, null, 2), '```', '');
@@ -83,41 +62,102 @@ function operationMarkdown(pathname, method, operation) {
 		}
 		lines.push('');
 	}
-	lines.push('```bash', `curl -X ${method.toUpperCase()} "https://tokens.cardano.org${pathname}"`, '```', '');
 	return lines.join('\n');
 }
 
-export default function markdownExport() {
+const apiIndexMarkdown = (description, operations, linkPrefix) => [
+	description ?? '', '',
+	...operations.map(({ pathname, method, operation }) =>
+		`- [${operation.summary ?? operation.operationId}](${linkPrefix}${slug(operation.operationId)}/): \`${method.toUpperCase()} ${pathname}\``),
+	'',
+].join('\n');
+
+async function collectPages(siteUrl) {
+	const pages = [];
+	const add = (route, title, description, body) => pages.push({
+		route: `${route}/index.md`, title, description, body: body.trim(), url: new URL(`${route}/`, siteUrl).href,
+	});
+	const docs = await Array.fromAsync(fs.glob('**/*.{md,mdx}', { cwd: DOCS }));
+	for (const file of docs.sort()) {
+		const route = file.replace(/\.mdx?$/, '');
+		const { fields, body } = splitFrontmatter(await fs.readFile(path.join(DOCS, file), 'utf8'));
+		add(route, fields.title ?? route, fields.description, body);
+	}
+	const spec = JSON.parse(await fs.readFile(SPEC_PATH, 'utf8'));
+	const entries = [];
+	for (const [pathname, operations] of Object.entries(spec.paths ?? {})) {
+		for (const method of METHODS) {
+			const operation = operations[method];
+			if (!operation) continue;
+			const name = slug(operation.operationId ?? `${method}-${pathname.replace(/\W+/g, '-')}`);
+			entries.push({ pathname, method, operation });
+			add(`api/operations/${name}`, operation.summary ?? `${method.toUpperCase()} ${pathname}`,
+				`${method.toUpperCase()} ${pathname}`, operationMarkdown(pathname, method, operation, spec.components?.schemas ?? {}));
+		}
+	}
+	add('api', spec.info.title, spec.info.description, apiIndexMarkdown(spec.info.description, entries, 'operations/'));
+	const tags = new Set(entries.flatMap(({ operation }) => operation.tags ?? []));
+	for (const name of tags) {
+		const tag = spec.tags?.find((entry) => entry.name === name);
+		add(`api/operations/tags/${slug(name)}`, name, tag?.description,
+			apiIndexMarkdown(tag?.description, entries.filter(({ operation }) => operation.tags?.includes(name)), '../../'));
+	}
+	return pages;
+}
+
+const renderMarkdown = ({ title, url, body }, withSource = false) =>
+	`# ${title}\n\n${withSource ? `Source: ${url}\n\n` : ''}${body}\n`;
+
+const renderLlmsIndex = (pages, { title, description }) => [
+	`# ${title}`, '', `> ${description}`, '', '## Docs', '',
+	...pages.map(({ title, url, description }) => `- [${title}](${url})${description ? `: ${description}` : ''}`),
+	'',
+].join('\n');
+
+const renderLlmsFull = (pages) => pages.map((page) => renderMarkdown(page, true)).join('\n---\n\n');
+
+async function collectExports(siteUrl, siteMetadata) {
+	const pages = await collectPages(siteUrl);
+	const files = new Map(pages.map((page) => [page.route, renderMarkdown(page)]));
+	files.set('llms.txt', renderLlmsIndex(pages, siteMetadata));
+	files.set('llms-full.txt', renderLlmsFull(pages));
+	return files;
+}
+
+export default function markdownExport(siteMetadata) {
+	let siteUrl;
 	return {
 		name: 'token-registry-markdown-export',
 		hooks: {
+			'astro:config:done': ({ config }) => {
+				siteUrl = new URL(config.base.replace(/\/?$/, '/'), config.site);
+			},
+			'astro:server:setup': ({ server }) => {
+				server.middlewares.use(async (request, response, next) => {
+					// Vite has already stripped Astro's configured base from request.url.
+					const route = new URL(request.url ?? '/', 'http://localhost').pathname.slice(1);
+					const isLlms = route === 'llms.txt' || route === 'llms-full.txt';
+					if (!['GET', 'HEAD'].includes(request.method) || (!isLlms && !route.endsWith('/index.md'))) return next();
+					try {
+						// Look up known routes, never filesystem paths supplied by the request.
+						const content = (await collectExports(siteUrl, siteMetadata)).get(route);
+						if (content === undefined) return next();
+						response.setHeader('Content-Type', `${isLlms ? 'text/plain' : 'text/markdown'}; charset=utf-8`);
+						response.end(request.method === 'HEAD' ? '' : content);
+					} catch (error) {
+						next(error);
+					}
+				});
+			},
 			'astro:build:done': async ({ dir, logger }) => {
 				const outDir = fileURLToPath(dir);
-				let written = 0;
-				const write = async (target, content) => {
+				const files = await collectExports(siteUrl, siteMetadata);
+				for (const [route, content] of files) {
+					const target = path.join(outDir, route);
 					await fs.mkdir(path.dirname(target), { recursive: true });
 					await fs.writeFile(target, content);
-					written += 1;
-				};
-
-				for (const page of await listDocs(DOCS)) {
-					await write(path.join(outDir, page.slug, 'index.md'), await docsMarkdown(page.file));
 				}
-
-				const spec = JSON.parse(await fs.readFile(SPEC_PATH, 'utf8'));
-				for (const [pathname, operations] of Object.entries(spec.paths ?? {})) {
-					for (const method of METHODS) {
-						const operation = operations[method];
-						if (!operation) continue;
-						const name = operation.operationId ?? `${method}-${pathname.replace(/\W+/g, '-')}`;
-						await write(
-							path.join(outDir, 'api', 'operations', name, 'index.md'),
-							operationMarkdown(pathname, method, operation),
-						);
-					}
-				}
-
-				logger.info(`Markdown copies written: ${written}`);
+				logger.info(`Exported ${files.size} files: per-page Markdown, llms.txt and llms-full.txt`);
 			},
 		},
 	};

@@ -7,7 +7,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 const docs = (slug: string) => `${base}/${slug}/`;
 const repo = 'https://github.com/cardano-foundation/cf-token-metadata-registry';
 
-const standards = [
+const metadataSources = [
 	{
 		cip: 'CIP-26',
 		title: 'Off-chain metadata',
@@ -20,12 +20,6 @@ const standards = [
 		text: 'Fungible (333) and rich fungible (444) tokens whose metadata lives in the datum of a reference NFT.',
 		href: docs('guides/cip68'),
 	},
-	{
-		cip: 'CIP-113',
-		title: 'Programmable tokens',
-		text: 'Tokens registered with on-chain transfer and minting rules, served with their scripts as an extension.',
-		href: docs('guides/cip113'),
-	},
 ];
 
 const features = [
@@ -36,10 +30,6 @@ const features = [
 	{
 		title: 'Errors you can act on',
 		text: 'A token that breaks its standard is still served, with validation errors naming the field and the rule. Wallets choose how strict to be.',
-	},
-	{
-		title: 'Check before you mint',
-		text: 'The validator runs the registry’s own rules on metadata that does not exist yet, and for CIP-68 builds the datum for your reference NFT.',
 	},
 ];
 
@@ -67,7 +57,7 @@ const example = `GET /api/v2/subjects/<policy id><asset name>
 		<title>CF Token Metadata Registry</title>
 		<meta
 			name="description"
-			content="The Cardano Foundation token metadata registry: one API for Cardano token metadata from CIP-26, CIP-68 and CIP-113, and a validator to check your token before you mint it."
+			content="Query Cardano token metadata from CIP-26 and CIP-68, with additional information for CIP-113 programmable tokens."
 		/>
 		<link rel="icon" type="image/svg+xml" href={`${base}/favicon.svg`} />
 	</head>
@@ -83,7 +73,6 @@ const example = `GET /api/v2/subjects/<policy id><asset name>
 				</a>
 				<nav class="flex items-center gap-7 text-[15px] font-medium tracking-tight text-cf-ink-soft">
 					<a href={docs('overview')} class="hover:text-cf-ink">Docs</a>
-					<a href={docs('validator')} class="hover:text-cf-ink">Validator</a>
 					<a href={`${base}/api/`} class="hover:text-cf-ink">API</a>
 					<a href={repo} class="hidden hover:text-cf-ink sm:inline">GitHub</a>
 				</nav>
@@ -91,24 +80,24 @@ const example = `GET /api/v2/subjects/<policy id><asset name>
 
 			<section class="relative mx-auto max-w-7xl px-6 pb-28 pt-16 md:pt-28">
 				<h1 class="max-w-4xl text-5xl leading-[1.05] tracking-[-0.03em] text-cf-ink-soft md:text-7xl">
-					Every token, from every standard, in one answer
+					Cardano token metadata, in one API
 				</h1>
 				<p class="mt-8 max-w-2xl text-lg leading-relaxed tracking-tight text-cf-ink-soft">
-					The CF Token Metadata Registry merges CIP-26, CIP-68 and CIP-113 metadata for every Cardano native token,
-					and tells you exactly where a token departs from its standard. Check your token before you mint it.
+					Query token metadata from CIP-26 and CIP-68, with additional information for CIP-113 programmable tokens.
+					Each response identifies the metadata sources and reports validation errors.
 				</p>
 				<div class="mt-10 flex flex-wrap gap-3">
 					<a
-						href={docs('validator')}
+						href={docs('getting-started')}
 						class="rounded-full bg-cf-ink-soft px-6 py-4 text-sm font-medium text-white transition hover:bg-cf-ink"
 					>
-						Validate a token
+						Query the API
 					</a>
 					<a
-						href={docs('getting-started')}
+						href={docs('overview')}
 						class="rounded-full bg-neutral-100 px-6 py-4 text-sm font-semibold text-neutral-900 transition hover:bg-white"
 					>
-						Query the API
+						Read the docs
 					</a>
 				</div>
 			</section>
@@ -117,11 +106,11 @@ const example = `GET /api/v2/subjects/<policy id><asset name>
 		<main>
 			<section class="mx-auto max-w-7xl px-6 py-20">
 				<h2 class="max-w-3xl text-4xl leading-tight tracking-[-0.02em] text-cf-ink-soft md:text-5xl">
-					Three standards, one registry
+					Two metadata sources
 				</h2>
-				<div class="mt-12 grid gap-5 md:grid-cols-3">
+				<div class="mt-12 grid gap-5 md:grid-cols-2">
 					{
-						standards.map((s) => (
+						metadataSources.map((s) => (
 							<a href={s.href} class="group rounded-3xl bg-white/70 p-8 transition hover:bg-white">
 								<p class="text-sm font-medium text-cf-accent">{s.cip}</p>
 								<h3 class="mt-3 text-2xl tracking-tight text-cf-ink-soft">{s.title}</h3>
@@ -131,6 +120,20 @@ const example = `GET /api/v2/subjects/<policy id><asset name>
 						))
 					}
 				</div>
+			</section>
+
+			<section class="mx-auto max-w-7xl px-6 pb-20" aria-labelledby="programmable-tokens">
+				<p class="text-sm font-medium text-cf-accent">CIP-113 support</p>
+				<h2 id="programmable-tokens" class="mt-3 text-4xl leading-tight tracking-[-0.02em] text-cf-ink-soft">
+					Working with programmable tokens?
+				</h2>
+				<p class="mt-5 max-w-3xl text-lg leading-relaxed text-cf-ink-soft">
+					The registry identifies registered programmable-token policies and returns their script information
+					in addition to the token's metadata. Names, tickers and logos still come from CIP-26 or CIP-68.
+				</p>
+				<a href={docs('guides/cip113')} class="mt-5 inline-block font-medium underline underline-offset-4">
+					Read the programmable tokens guide
+				</a>
 			</section>
 
 			<section class="mx-auto grid max-w-7xl items-start gap-12 px-6 pb-28 md:grid-cols-2">
