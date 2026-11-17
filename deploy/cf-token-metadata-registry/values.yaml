@@ -3,14 +3,9 @@ roReplicaCount: 2
 
 roStrategy: {}
 
-# Keep read-only replicas on separate nodes.
-roAffinity:
-  podAntiAffinity:
-    requiredDuringSchedulingIgnoredDuringExecution:
-      - labelSelector:
-          matchLabels:
-            app.kubernetes.io/component: read-only
-        topologyKey: kubernetes.io/hostname
+# Read-only replicas are kept on separate nodes: the chart computes a release-scoped
+# podAntiAffinity. Set roAffinity to a raw affinity blob to override it verbatim.
+roAffinity: {}
 
 api:
   image:
@@ -69,13 +64,20 @@ ingress:
 postgres:
   createDb: true
   numberOfInstances: 2
-  host: cf-token-metadata-registry-pg
+  # Empty values fall back to defaults (see _helpers.tpl):
+  # clusterName <fullname>-pg, host <clusterName>,
+  # secret <release-namespace>.<user>.<clusterName>.credentials.postgresql.acid.zalan.do,
+  # dbName / user are fixed (not release-scoped)
+  clusterName: ""
+  user: ""
+  host: ""
   port: 5432
-  dbName: cf_token_metadata_registry
+  dbName: ""  # empty -> cf_token_metadata_registry
   schema: public
   secret:
-    name: cardano.cf-token-metadata-registry-pg.credentials.postgresql.acid.zalan.do
+    name: ""
     userKey: username
+    # password key; the value name is misnamed upstream, kept for compatibility
     hostKey: password
 
 

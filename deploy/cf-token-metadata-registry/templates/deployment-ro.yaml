@@ -17,16 +17,23 @@ spec:
   template:
     metadata:
       labels:
-        {{- include "cf-token-metadata-registry.selectorLabels" . | nindent 8 }}
-        app.kubernetes.io/component: read-only
+        {{- include "cf-token-metadata-registry.roSelectorLabels" . | nindent 8 }}
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.roAffinity }}
+      {{- if .Values.roAffinity }}
       affinity:
-        {{- toYaml . | nindent 8 }}
+        {{- toYaml .Values.roAffinity | nindent 8 }}
+      {{- else }}
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  {{- include "cf-token-metadata-registry.roSelectorLabels" . | nindent 18 }}
+              topologyKey: kubernetes.io/hostname
       {{- end }}
       containers:
         - name: {{ .Chart.Name }}
@@ -46,24 +53,24 @@ spec:
             - name: DB_DIALECT
               value: "org.hibernate.dialect.PostgreSQLDialect"
             - name: POSTGRES_HOST
-              value: {{ .Values.postgres.host }}
+              value: {{ include "cf-token-metadata-registry.postgres.host" . }}
             - name: POSTGRES_PORT
               value: {{ .Values.postgres.port | quote }}
             - name: POSTGRES_DB
-              value: {{ .Values.postgres.dbName }}
+              value: {{ include "cf-token-metadata-registry.postgres.dbName" . }}
             - name: DB_SCHEMA
-              value: {{ .Values.dbSchema | default "public" }}
+              value: {{ .Values.dbSchema | default .Values.postgres.schema | default "public" }}
             - name: DB_URL
               value: jdbc:postgresql://$(POSTGRES_HOST):$(POSTGRES_PORT)/$(POSTGRES_DB)?currentSchema=$(DB_SCHEMA)
             - name: DB_USERNAME
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.postgres.secret.name }}
+                  name: {{ include "cf-token-metadata-registry.postgres.secretName" . }}
                   key: {{ .Values.postgres.secret.userKey }}
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.postgres.secret.name }}
+                  name: {{ include "cf-token-metadata-registry.postgres.secretName" . }}
                   key: {{ .Values.postgres.secret.hostKey }}
 
             - name: STORE_CARDANO_HOST
