@@ -69,5 +69,11 @@ export default defineConfig({
   ],
   vite: {
     plugins: [tailwindcss()],
+    // The request client is loaded with dynamic import() (src/scripts/try-it.ts), which Vite's dependency scan misses.
+    // Discovered late, it makes Vite re-bundle and answer 504 for the dev toolbar since Astro 6.2
+    // (withastro/astro#16630). Pre-bundling it up front keeps `astro dev` working; the production build is unaffected.
+    optimizeDeps: {
+      include: ['@scalar/api-client/modal', '@scalar/workspace-store/client'],
+    },
   },
 });
