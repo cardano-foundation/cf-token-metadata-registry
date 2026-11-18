@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.2](https://github.com/cardano-foundation/cf-token-metadata-registry/compare/2.0.1...2.0.2) (2026-11-18)
+
+
+### Bug Fixes
+
+* Base64Utils, no Guava, and JDK_JAVA_OPTIONS baked into images for reported CVE-2026-114938 ([#182](https://github.com/cardano-foundation/cf-token-metadata-registry/issues/182)) ([f61fff2](https://github.com/cardano-foundation/cf-token-metadata-registry/commit/f61fff2d85f26ce7eeff25c3e6f5ed67e4e58b25))
+
 ## [2.0.1](https://github.com/cardano-foundation/cf-token-metadata-registry/compare/2.0.0...2.0.1) (2026-11-16)
 
 
