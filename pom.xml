@@ -71,6 +71,7 @@
         <version.validation-api>3.1.1</version.validation-api>
         <version.bouncycastle>1.86</version.bouncycastle>
         <version.commons-cli>1.11.0</version.commons-cli>
+        <version.guava>33.5.0-jre</version.guava>
         <version.cardano-client-lib>0.7.3</version.cardano-client-lib>
         <!--
             yaci (the Cardano mini-protocol and CBOR library) is pinned on its own, so a yaci fix
@@ -148,6 +149,11 @@
                 <groupId>commons-cli</groupId>
                 <artifactId>commons-cli</artifactId>
                 <version>${version.commons-cli}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.google.guava</groupId>
+                <artifactId>guava</artifactId>
+                <version>${version.guava}</version>
             </dependency>
             <dependency>
                 <groupId>org.eclipse.jgit</groupId>

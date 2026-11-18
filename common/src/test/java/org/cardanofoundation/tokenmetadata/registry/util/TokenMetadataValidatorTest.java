@@ -9,8 +9,6 @@ import org.cardanofoundation.tokenmetadata.registry.validation.ValidationError;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.List;
 
@@ -288,7 +286,7 @@ class TokenMetadataValidatorTest {
 
         @Test
         void reportsNonBase64GarbageButKeepsIt() {
-            // Characters outside the base64 alphabet are an error
+            // Characters outside the base64 alphabet: the decoder throws, which becomes an error
             Cip26Validation result = validator.validateLogo(VALID_SUBJECT, "this-is-not!!base64@@");
 
             assertThat(result.isDropped()).isFalse();
@@ -316,46 +314,6 @@ class TokenMetadataValidatorTest {
 
             assertThat(result.isDropped()).isFalse();
             assertThat(summary(result)).containsExactly("logo:OPTIONAL:invalid_base64");
-        }
-    }
-
-    @Nested
-    @DisplayName("base64DecodedLength")
-    class Base64DecodedLength {
-
-        @ParameterizedTest
-        @ValueSource(strings = {
-                "", "A", "AA", "AAA", "AAAA", "AAAAA", "AAAAAA", "AAAAAAA", "AAAAAAAA",
-                "AA==", "AAA=", "AAAA====", "A===", "AA=", "AAAA=", "AAA==", "=", "==", "===", "====",
-                "A=AA", "AA=A", "AA==AA==", "+/+/", "-_-_", "AA AA", "AAAA\n", "AAAA\r\nAAAA", "AÄAA", "AAĀA",
-                "iVBORw0KGgo=", "iVBORw0KGgo", "iVBO=w0K", "this-is-not!!base64@@",
-                "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
-        })
-        void matchesTheJdkDecoder(String value) {
-            // the JDK decoder is only used here, as the reference the production check must agree with
-            int expected;
-            try {
-                expected = java.util.Base64.getDecoder().decode(value).length;
-            } catch (IllegalArgumentException e) {
-                expected = -1;
-            }
-
-            assertThat(TokenMetadataValidator.base64DecodedLength(value)).isEqualTo(expected);
-        }
-
-        @Test
-        void matchesTheJdkDecoderForEveryLengthAndPadding() {
-            for (int size = 0; size <= 64; size++) {
-                byte[] bytes = new byte[size];
-                for (int i = 0; i < size; i++) {
-                    bytes[i] = (byte) (i * 37 + 11);
-                }
-                String padded = java.util.Base64.getEncoder().encodeToString(bytes);
-                String unpadded = java.util.Base64.getEncoder().withoutPadding().encodeToString(bytes);
-
-                assertThat(TokenMetadataValidator.base64DecodedLength(padded)).as("padded, %d bytes", size).isEqualTo(size);
-                assertThat(TokenMetadataValidator.base64DecodedLength(unpadded)).as("unpadded, %d bytes", size).isEqualTo(size);
-            }
         }
     }
 }

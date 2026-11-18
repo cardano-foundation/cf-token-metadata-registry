@@ -1,5 +1,6 @@
 package org.cardanofoundation.tokenmetadata.registry.util;
 
+import com.google.common.io.BaseEncoding;
 import jakarta.annotation.Nullable;
 import lombok.extern.slf4j.Slf4j;
 import org.cardanofoundation.metadatatools.core.cip26.MetadataCreator;
@@ -132,46 +133,20 @@ public class TokenMetadataValidator {
             return Cip26Validation.dropped(InvalidTokenReason.LOGO_TOO_LARGE, "the logo has " + logo.length() + " characters");
         }
 
-        int decodedLength = base64DecodedLength(logo);
-        if (decodedLength < 0) {
+        byte[] decoded;
+        try {
+            // Guava's pure-Java decoder rather than java.util.Base64, whose JIT intrinsic is affected by the
+            // reported CVE-2026-114938
+            decoded = BaseEncoding.base64().decode(logo);
+        } catch (IllegalArgumentException _) {
             return Cip26Validation.of(List.of(ValidationError.optional(CIP_26, null, "logo", ValidationCode.INVALID_BASE64,
                     "logo is not valid base64")));
         }
-        if (decodedLength > LOGO_MAX_DECODED_BYTES) {
+        if (decoded.length > LOGO_MAX_DECODED_BYTES) {
             return Cip26Validation.of(List.of(ValidationError.optional(CIP_26, null, "logo", ValidationCode.TOO_LARGE,
-                    "logo is " + decodedLength + " bytes, CIP-26 allows at most " + LOGO_MAX_DECODED_BYTES)));
+                    "logo is " + decoded.length + " bytes, CIP-26 allows at most " + LOGO_MAX_DECODED_BYTES)));
         }
         return Cip26Validation.of(List.of());
-    }
-
-    /**
-     * The number of bytes {@code value} decodes to as RFC 4648 base64, or -1 if it is not valid base64. It accepts exactly
-     * what {@code Base64.getDecoder()} accepts (padding optional, no line breaks), but computes the length without
-     * decoding, so registry data never reaches the JDK's hardware-accelerated Base64 decoder intrinsic (reported
-     * CVE-2026-114938).
-     */
-    static int base64DecodedLength(String value) {
-        int length = value.length();
-        int padding = 0;
-        if (length > 0 && value.charAt(length - 1) == '=') {
-            padding = length > 1 && value.charAt(length - 2) == '=' ? 2 : 1;
-        }
-        int dataChars = length - padding;
-        for (int i = 0; i < dataChars; i++) {
-            if (!isBase64AlphabetChar(value.charAt(i))) {
-                return -1;
-            }
-        }
-        int remainder = dataChars % 4;
-        // a single character in the last unit carries too few bits; padding must complete the last unit
-        if (remainder == 1 || (padding > 0 && remainder + padding != 4)) {
-            return -1;
-        }
-        return dataChars / 4 * 3 + (remainder == 0 ? 0 : remainder - 1);
-    }
-
-    private static boolean isBase64AlphabetChar(char c) {
-        return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '+' || c == '/';
     }
 
     /**
