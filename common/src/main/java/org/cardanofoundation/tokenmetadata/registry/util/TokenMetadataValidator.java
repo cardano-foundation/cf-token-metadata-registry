@@ -123,6 +123,7 @@ public class TokenMetadataValidator {
      * that fails is kept as written, with an error; only one far beyond any real logo is dropped. The image format is
      * not checked, as in cf-tokens-cip26.
      */
+    @SuppressWarnings("java:S4738") // Guava on purpose: keeps registry data away from java.util.Base64's JIT intrinsic (CVE-2026-114938)
     public Cip26Validation validateLogo(String subject, @Nullable String logo) {
         if (logo == null || logo.isEmpty()) {
             return Cip26Validation.of(List.of());
