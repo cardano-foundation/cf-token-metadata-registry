@@ -27,6 +27,8 @@ x-api-common-environment: &api-common-environment
   # read by the read-write and the read-only API alike: CIP-113 is enabled only when it is non-empty
   CIP113_REGISTRY_NFT_POLICY_IDS: "${CIP113_REGISTRY_NFT_POLICY_IDS:-}"
   JAVA_OPTS: "${JAVA_OPTS:--Xmx2g}"
+  # read by the java launcher itself, so it applies to every JVM image whatever its ENTRYPOINT form
+  JDK_JAVA_OPTIONS: "${JDK_JAVA_OPTIONS:-}"
 
 services:
   db:

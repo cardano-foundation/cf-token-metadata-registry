@@ -11,6 +11,4 @@ WORKDIR /app
 COPY ./target/*.jar app.jar
 
 EXPOSE 8080
-# -XX:-UseBASE64Intrinsics: run java.util.Base64 decoding as plain Java instead of the JIT intrinsic
-# (reported CVE-2026-114938 in the AVX-512 decoder) until a fixed JDK 25 build is available
-ENTRYPOINT ["java", "-XX:-UseBASE64Intrinsics", "-jar", "app.jar"]
+ENTRYPOINT ["java", "-jar", "app.jar"]

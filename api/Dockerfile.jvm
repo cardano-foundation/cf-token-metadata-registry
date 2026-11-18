@@ -16,6 +16,4 @@ RUN keytool -list -v -cacerts -storepass changeit > /tmp/cacerts.txt \
 
 COPY --from=builder /app/api/target/*.jar /app/app.jar
 WORKDIR /app
-# -XX:-UseBASE64Intrinsics: run java.util.Base64 decoding as plain Java instead of the JIT intrinsic
-# (reported CVE-2026-114938 in the AVX-512 decoder) until a fixed JDK 25 build is available
-ENTRYPOINT ["sh", "-c", "exec java -XX:-UseBASE64Intrinsics $JAVA_OPTS -jar app.jar"]
+ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS -jar app.jar"]

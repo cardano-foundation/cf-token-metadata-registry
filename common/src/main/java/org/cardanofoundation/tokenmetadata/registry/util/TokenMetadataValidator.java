@@ -1,6 +1,5 @@
 package org.cardanofoundation.tokenmetadata.registry.util;
 
-import com.google.common.io.BaseEncoding;
 import jakarta.annotation.Nullable;
 import lombok.extern.slf4j.Slf4j;
 import org.cardanofoundation.metadatatools.core.cip26.MetadataCreator;
@@ -20,6 +19,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import static org.cardanofoundation.tokenmetadata.registry.validation.ValidationError.CIP_26;
 
@@ -123,7 +123,6 @@ public class TokenMetadataValidator {
      * that fails is kept as written, with an error; only one far beyond any real logo is dropped. The image format is
      * not checked, as in cf-tokens-cip26.
      */
-    @SuppressWarnings("java:S4738") // Guava on purpose: keeps registry data away from java.util.Base64's JIT intrinsic (CVE-2026-114938)
     public Cip26Validation validateLogo(String subject, @Nullable String logo) {
         if (logo == null || logo.isEmpty()) {
             return Cip26Validation.of(List.of());
@@ -134,18 +133,15 @@ public class TokenMetadataValidator {
             return Cip26Validation.dropped(InvalidTokenReason.LOGO_TOO_LARGE, "the logo has " + logo.length() + " characters");
         }
 
-        byte[] decoded;
-        try {
-            // Guava's pure-Java decoder rather than java.util.Base64, whose JIT intrinsic is affected by the
-            // reported CVE-2026-114938
-            decoded = BaseEncoding.base64().decode(logo);
-        } catch (IllegalArgumentException _) {
+        Optional<byte[]> decoded = Base64Utils.decode(logo);
+        if (decoded.isEmpty()) {
             return Cip26Validation.of(List.of(ValidationError.optional(CIP_26, null, "logo", ValidationCode.INVALID_BASE64,
                     "logo is not valid base64")));
         }
-        if (decoded.length > LOGO_MAX_DECODED_BYTES) {
+        int decodedLength = decoded.get().length;
+        if (decodedLength > LOGO_MAX_DECODED_BYTES) {
             return Cip26Validation.of(List.of(ValidationError.optional(CIP_26, null, "logo", ValidationCode.TOO_LARGE,
-                    "logo is " + decoded.length + " bytes, CIP-26 allows at most " + LOGO_MAX_DECODED_BYTES)));
+                    "logo is " + decodedLength + " bytes, CIP-26 allows at most " + LOGO_MAX_DECODED_BYTES)));
         }
         return Cip26Validation.of(List.of());
     }
