@@ -18,7 +18,6 @@ import org.springframework.stereotype.Component;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.List;
 
 import static org.cardanofoundation.tokenmetadata.registry.validation.ValidationError.CIP_26;
@@ -133,18 +132,46 @@ public class TokenMetadataValidator {
             return Cip26Validation.dropped(InvalidTokenReason.LOGO_TOO_LARGE, "the logo has " + logo.length() + " characters");
         }
 
-        byte[] decoded;
-        try {
-            decoded = Base64.getDecoder().decode(logo);
-        } catch (IllegalArgumentException _) {
+        int decodedLength = base64DecodedLength(logo);
+        if (decodedLength < 0) {
             return Cip26Validation.of(List.of(ValidationError.optional(CIP_26, null, "logo", ValidationCode.INVALID_BASE64,
                     "logo is not valid base64")));
         }
-        if (decoded.length > LOGO_MAX_DECODED_BYTES) {
+        if (decodedLength > LOGO_MAX_DECODED_BYTES) {
             return Cip26Validation.of(List.of(ValidationError.optional(CIP_26, null, "logo", ValidationCode.TOO_LARGE,
-                    "logo is " + decoded.length + " bytes, CIP-26 allows at most " + LOGO_MAX_DECODED_BYTES)));
+                    "logo is " + decodedLength + " bytes, CIP-26 allows at most " + LOGO_MAX_DECODED_BYTES)));
         }
         return Cip26Validation.of(List.of());
+    }
+
+    /**
+     * The number of bytes {@code value} decodes to as RFC 4648 base64, or -1 if it is not valid base64. It accepts exactly
+     * what {@code Base64.getDecoder()} accepts (padding optional, no line breaks), but computes the length without
+     * decoding, so registry data never reaches the JDK's hardware-accelerated Base64 decoder intrinsic (reported
+     * CVE-2026-114938).
+     */
+    static int base64DecodedLength(String value) {
+        int length = value.length();
+        int padding = 0;
+        if (length > 0 && value.charAt(length - 1) == '=') {
+            padding = length > 1 && value.charAt(length - 2) == '=' ? 2 : 1;
+        }
+        int dataChars = length - padding;
+        for (int i = 0; i < dataChars; i++) {
+            if (!isBase64AlphabetChar(value.charAt(i))) {
+                return -1;
+            }
+        }
+        int remainder = dataChars % 4;
+        // a single character in the last unit carries too few bits; padding must complete the last unit
+        if (remainder == 1 || (padding > 0 && remainder + padding != 4)) {
+            return -1;
+        }
+        return dataChars / 4 * 3 + (remainder == 0 ? 0 : remainder - 1);
+    }
+
+    private static boolean isBase64AlphabetChar(char c) {
+        return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '+' || c == '/';
     }
 
     /**
