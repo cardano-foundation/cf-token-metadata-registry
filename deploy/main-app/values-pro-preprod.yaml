@@ -17,7 +17,7 @@ cf-token-metadata-registry:
     dbSchema: registry_blue
     api:
       image:
-        tag: "2.0.0"
+        tag: "2.0.2"
       tokenMetadataUpdateJob:
         enabled: false
       cip113RegistryNftPolicyIds:
@@ -25,7 +25,7 @@ cf-token-metadata-registry:
     job:
       enabled: true
       image:
-        tag: "2.0.0"
+        tag: "2.0.2"
 
     postgres:
       numberOfInstances: 2
