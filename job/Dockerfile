@@ -11,4 +11,8 @@ WORKDIR /app
 COPY ./target/*.jar app.jar
 
 EXPOSE 8080
+# Workaround for the reported CVE-2026-114938 (JDK AVX-512 Base64 decoder intrinsic): decode base64 in plain Java.
+# Baked into the image so every deployment gets it. JDK_JAVA_OPTIONS is read by the java launcher whatever the
+# ENTRYPOINT form; if you set your own JDK_JAVA_OPTIONS, keep this flag in it. Remove once the JDK ships the fix.
+ENV JDK_JAVA_OPTIONS="-XX:-UseBASE64Intrinsics"
 ENTRYPOINT ["java", "-jar", "app.jar"]

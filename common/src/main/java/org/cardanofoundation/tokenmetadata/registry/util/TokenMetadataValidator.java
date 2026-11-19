@@ -18,8 +18,8 @@ import org.springframework.stereotype.Component;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.List;
+import java.util.Optional;
 
 import static org.cardanofoundation.tokenmetadata.registry.validation.ValidationError.CIP_26;
 
@@ -133,16 +133,15 @@ public class TokenMetadataValidator {
             return Cip26Validation.dropped(InvalidTokenReason.LOGO_TOO_LARGE, "the logo has " + logo.length() + " characters");
         }
 
-        byte[] decoded;
-        try {
-            decoded = Base64.getDecoder().decode(logo);
-        } catch (IllegalArgumentException _) {
+        Optional<byte[]> decoded = Base64Utils.decode(logo);
+        if (decoded.isEmpty()) {
             return Cip26Validation.of(List.of(ValidationError.optional(CIP_26, null, "logo", ValidationCode.INVALID_BASE64,
                     "logo is not valid base64")));
         }
-        if (decoded.length > LOGO_MAX_DECODED_BYTES) {
+        int decodedLength = decoded.get().length;
+        if (decodedLength > LOGO_MAX_DECODED_BYTES) {
             return Cip26Validation.of(List.of(ValidationError.optional(CIP_26, null, "logo", ValidationCode.TOO_LARGE,
-                    "logo is " + decoded.length + " bytes, CIP-26 allows at most " + LOGO_MAX_DECODED_BYTES)));
+                    "logo is " + decodedLength + " bytes, CIP-26 allows at most " + LOGO_MAX_DECODED_BYTES)));
         }
         return Cip26Validation.of(List.of());
     }

@@ -286,7 +286,7 @@ class TokenMetadataValidatorTest {
 
         @Test
         void reportsNonBase64GarbageButKeepsIt() {
-            // Characters outside the base64 alphabet: Base64.getDecoder() throws, which becomes an error
+            // Characters outside the base64 alphabet: the decoder throws, which becomes an error
             Cip26Validation result = validator.validateLogo(VALID_SUBJECT, "this-is-not!!base64@@");
 
             assertThat(result.isDropped()).isFalse();
@@ -305,6 +305,15 @@ class TokenMetadataValidatorTest {
         @Test
         void handlesAnInvalidSubjectGracefully() {
             assertThat(validator.validateLogo("invalid", null).errors()).isEmpty();
+        }
+
+        @Test
+        void reportsMisplacedPaddingButKeepsIt() {
+            // length is a multiple of 4, but '=' in the middle is not valid base64
+            Cip26Validation result = validator.validateLogo(VALID_SUBJECT, "iVBO=w0K");
+
+            assertThat(result.isDropped()).isFalse();
+            assertThat(summary(result)).containsExactly("logo:OPTIONAL:invalid_base64");
         }
     }
 }
