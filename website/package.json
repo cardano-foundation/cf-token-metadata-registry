@@ -11,11 +11,11 @@
     "astro": "astro"
   },
   "dependencies": {
-    "@astrojs/starlight": "^0.38.3",
+    "@astrojs/starlight": "^0.43.1",
     "@scalar/api-client": "^3.23.5",
     "@scalar/workspace-store": "^0.69.2",
     "@tailwindcss/vite": "4.2.2",
-    "astro": "6.4.8",
+    "astro": "7.4.13",
     "github-slugger": "^2.0.0",
     "sharp": "^0.34.2",
     "starlight-openapi": "0.25.2",
