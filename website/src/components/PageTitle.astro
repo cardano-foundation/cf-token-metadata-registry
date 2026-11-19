@@ -1,0 +1,100 @@
+---
+import Default from '@astrojs/starlight/components/PageTitle.astro';
+import TryIt from './TryIt.astro';
+import spec from '../../openapi/registry.json';
+
+// The generated API reference pages (api/operations/<operation id>/) document only. Each one opens the request
+// client on its own operation, and every page offers the Markdown copy written beside it at build time.
+type Operation = { operationId?: string };
+
+const operationId = Astro.url.pathname.match(/\/api\/operations\/([^/]+)\/?$/)?.[1];
+
+// The page knows which operation it documents, so the button carries it directly instead of pointing at another
+// program's URL scheme.
+let operation: { path: string; method: string } | undefined;
+if (operationId) {
+	for (const [path, operations] of Object.entries(spec.paths as Record<string, Record<string, Operation>>)) {
+		for (const [method, entry] of Object.entries(operations)) {
+			if (entry.operationId === operationId) operation = { path, method };
+		}
+	}
+}
+
+// scripts/markdown-export.mjs writes copies for docs and every generated API route, but not the 404 page.
+const markdown = `${Astro.url.pathname.replace(/\/?$/, '/')}index.md`;
+const hasMarkdown = Astro.props.id !== '404';
+---
+
+<Default />
+<div class="page-actions not-content">
+	{
+		operation && (
+			<button
+				class="action action-primary"
+				type="button"
+				data-test-request
+				data-path={operation.path}
+				data-method={operation.method}
+			>
+				<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+					<path d="M4 12l16-8-6 16-3.5-6.5L4 12z" />
+				</svg>
+				Test request
+			</button>
+		)
+	}
+	{hasMarkdown && <button class="action" type="button" data-copy-markdown={markdown}>
+		<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+			<rect x="9" y="9" width="11" height="11" rx="2" />
+			<path d="M5 15V5a2 2 0 0 1 2-2h8" />
+		</svg>
+		<span data-copy-label aria-live="polite">Copy as Markdown</span>
+	</button>}
+</div>
+{operation && <TryIt />}
+
+<script>
+	import '../scripts/copy-markdown';
+</script>
+
+<style>
+	.page-actions {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+		margin-top: 1rem;
+	}
+	.action {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.45rem;
+		padding: 0.5rem 1.1rem;
+		border: 1px solid var(--sl-color-gray-5);
+		border-radius: 9999px;
+		background: transparent;
+		color: var(--sl-color-text);
+		font-family: inherit;
+		font-size: var(--sl-text-sm);
+		font-weight: 500;
+		line-height: 1.4;
+		text-decoration: none;
+		cursor: pointer;
+	}
+	.action svg {
+		width: 1rem;
+		height: 1rem;
+		flex: none;
+	}
+	.action:hover {
+		border-color: var(--sl-color-gray-4);
+		opacity: 0.9;
+	}
+	.action:disabled {
+		cursor: wait;
+	}
+	.action-primary {
+		border-color: var(--sl-color-text);
+		background: var(--sl-color-text);
+		color: var(--sl-color-bg);
+	}
+</style>

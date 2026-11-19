@@ -1,0 +1,180 @@
+---
+import '../styles/landing.css';
+
+// Styled after cardanofoundation.org: Switzer, a greyscale palette, regular-weight headings with tight tracking,
+// pill buttons, the soft orange-to-blue hero glow and a dark footer.
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+const docs = (slug: string) => `${base}/${slug}/`;
+const repo = 'https://github.com/cardano-foundation/cf-token-metadata-registry';
+
+const metadataSources = [
+	{
+		cip: 'CIP-26',
+		title: 'Off-chain metadata',
+		text: 'Name, ticker, logo and decimals submitted to the Cardano token registry on GitHub, synced every hour.',
+		href: docs('guides/cip26'),
+	},
+	{
+		cip: 'CIP-68',
+		title: 'On-chain metadata',
+		text: 'Fungible (333) and rich fungible (444) tokens whose metadata lives in the datum of a reference NFT.',
+		href: docs('guides/cip68'),
+	},
+];
+
+const features = [
+	{
+		title: 'One subject, one answer',
+		text: 'Ask for a token by its policy id and asset name. Each property comes from the standard that has it, on-chain first by default, and says where it came from.',
+	},
+	{
+		title: 'Errors you can act on',
+		text: 'A token that breaks its standard is still served, with validation errors naming the field and the rule. Wallets choose how strict to be.',
+	},
+];
+
+const example = `GET /api/v2/subjects/<policy id><asset name>
+
+{
+  "subject": {
+    "type": "NATIVE",
+    "metadata": {
+      "name":     { "value": "My Token", "source": "CIP_68" },
+      "ticker":   { "value": "MTK",      "source": "CIP_68" },
+      "decimals": { "value": 6,          "source": "CIP_68" },
+      "valid": true
+    },
+    "validation_errors": []
+  }
+}`;
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>CF Token Metadata Registry</title>
+		<meta
+			name="description"
+			content="Query Cardano token metadata from CIP-26 and CIP-68, with additional information for CIP-113 programmable tokens."
+		/>
+		<link rel="icon" type="image/svg+xml" href={`${base}/favicon.svg`} />
+	</head>
+	<body class="bg-cf-paper font-sans text-cf-ink antialiased">
+		<div class="relative overflow-hidden">
+			<div class="cf-glow pointer-events-none absolute inset-0 -z-0" aria-hidden="true"></div>
+
+			<header class="relative mx-auto flex max-w-7xl items-center justify-between px-6 py-6">
+				<a href={`${base}/`} class="flex items-center gap-4">
+					<img src={`${base}/images/cf-logo-text.svg`} alt="Cardano Foundation" class="h-10 w-auto" />
+					<span class="hidden h-7 w-px bg-cf-ink-soft/30 md:block" aria-hidden="true"></span>
+					<span class="hidden text-lg tracking-tight text-cf-ink-soft md:block">Token Metadata Registry</span>
+				</a>
+				<nav class="flex items-center gap-7 text-[15px] font-medium tracking-tight text-cf-ink-soft">
+					<a href={docs('overview')} class="hover:text-cf-ink">Docs</a>
+					<a href={`${base}/api/`} class="hover:text-cf-ink">API</a>
+					<a href={repo} class="hidden hover:text-cf-ink sm:inline">GitHub</a>
+				</nav>
+			</header>
+
+			<section class="relative mx-auto max-w-7xl px-6 pb-28 pt-16 md:pt-28">
+				<h1 class="max-w-4xl text-5xl leading-[1.05] tracking-[-0.03em] text-cf-ink-soft md:text-7xl">
+					Cardano token metadata, in one API
+				</h1>
+				<p class="mt-8 max-w-2xl text-lg leading-relaxed tracking-tight text-cf-ink-soft">
+					Query token metadata from CIP-26 and CIP-68, with additional information for CIP-113 programmable tokens.
+					Each response identifies the metadata sources and reports validation errors.
+				</p>
+				<div class="mt-10 flex flex-wrap gap-3">
+					<a
+						href={docs('getting-started')}
+						class="rounded-full bg-cf-ink-soft px-6 py-4 text-sm font-medium text-white transition hover:bg-cf-ink"
+					>
+						Query the API
+					</a>
+					<a
+						href={docs('overview')}
+						class="rounded-full bg-neutral-100 px-6 py-4 text-sm font-semibold text-neutral-900 transition hover:bg-white"
+					>
+						Read the docs
+					</a>
+				</div>
+			</section>
+		</div>
+
+		<main>
+			<section class="mx-auto max-w-7xl px-6 py-20">
+				<h2 class="max-w-3xl text-4xl leading-tight tracking-[-0.02em] text-cf-ink-soft md:text-5xl">
+					Two metadata sources
+				</h2>
+				<div class="mt-12 grid gap-5 md:grid-cols-2">
+					{
+						metadataSources.map((s) => (
+							<a href={s.href} class="group rounded-3xl bg-white/70 p-8 transition hover:bg-white">
+								<p class="text-sm font-medium text-cf-accent">{s.cip}</p>
+								<h3 class="mt-3 text-2xl tracking-tight text-cf-ink-soft">{s.title}</h3>
+								<p class="mt-3 leading-relaxed text-cf-ink-soft/80">{s.text}</p>
+								<p class="mt-6 text-sm font-medium text-cf-ink-soft group-hover:underline">Read the guide →</p>
+							</a>
+						))
+					}
+				</div>
+			</section>
+
+			<section class="mx-auto max-w-7xl px-6 pb-20" aria-labelledby="programmable-tokens">
+				<p class="text-sm font-medium text-cf-accent">CIP-113 support</p>
+				<h2 id="programmable-tokens" class="mt-3 text-4xl leading-tight tracking-[-0.02em] text-cf-ink-soft">
+					Working with programmable tokens?
+				</h2>
+				<p class="mt-5 max-w-3xl text-lg leading-relaxed text-cf-ink-soft">
+					The registry identifies registered programmable-token policies and returns their script information
+					in addition to the token's metadata. Names, tickers and logos still come from CIP-26 or CIP-68.
+				</p>
+				<a href={docs('guides/cip113')} class="mt-5 inline-block font-medium underline underline-offset-4">
+					Read the programmable tokens guide
+				</a>
+			</section>
+
+			<section class="mx-auto grid max-w-7xl items-start gap-12 px-6 pb-28 md:grid-cols-2">
+				<div class="space-y-10">
+					{
+						features.map((f) => (
+							<div>
+								<h3 class="text-2xl tracking-tight text-cf-ink-soft">{f.title}</h3>
+								<p class="mt-3 leading-relaxed text-cf-ink-soft/80">{f.text}</p>
+							</div>
+						))
+					}
+				</div>
+				<pre
+					class="overflow-x-auto rounded-3xl bg-cf-night p-7 text-sm leading-relaxed text-neutral-200"><code>{example}</code></pre>
+			</section>
+		</main>
+
+		<footer class="bg-cf-night text-white">
+			<div class="mx-auto flex max-w-7xl flex-col gap-8 px-6 py-14 md:flex-row md:items-end md:justify-between">
+				<div>
+					<img src={`${base}/images/cf-logo-text-white.svg`} alt="Cardano Foundation" class="h-10 w-auto" />
+					<p class="mt-5 max-w-sm text-sm leading-relaxed text-white/60">
+						The CF Token Metadata Registry is developed by the Cardano Foundation, open source under Apache 2.0.
+					</p>
+				</div>
+				<div class="space-y-2 text-sm text-white/60 md:text-right">
+					<p>
+						<a href={repo} class="hover:text-white">GitHub</a>
+						<span class="mx-2">·</span>
+						<a href={docs('overview')} class="hover:text-white">Docs</a>
+						<span class="mx-2">·</span>
+						<a href="https://cardanofoundation.org" class="hover:text-white">cardanofoundation.org</a>
+					</p>
+					<p>
+						Built on <a href="https://github.com/bloxbean/yaci-store" class="underline hover:text-white">Yaci Store</a>
+						and <a href="https://github.com/bloxbean/cardano-client-lib" class="underline hover:text-white">cardano-client-lib</a>
+						by BloxBean.
+					</p>
+				</div>
+			</div>
+		</footer>
+	</body>
+</html>
