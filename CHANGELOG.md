@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.3](https://github.com/cardano-foundation/cf-token-metadata-registry/compare/2.0.2...2.0.3) (2026-11-19)
+
+
+### Documentation
+
+* **website:** add the CF Token Metadata Registry site ([#179](https://github.com/cardano-foundation/cf-token-metadata-registry/issues/179)) ([9368c3b](https://github.com/cardano-foundation/cf-token-metadata-registry/commit/9368c3bf4602da3d639c3d3a691e4a41572df8d8))
+
 ## [2.0.2](https://github.com/cardano-foundation/cf-token-metadata-registry/compare/2.0.1...2.0.2) (2026-11-18)
 
 
