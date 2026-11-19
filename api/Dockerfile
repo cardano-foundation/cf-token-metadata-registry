@@ -1,4 +1,7 @@
 FROM eclipse-temurin:25-jre
+# Fail the build on a JRE older than 25.0.5.1+2 (e.g. a stale cached base image): it lacks the fix for CVE-2026-114938,
+# the Base64 decoder intrinsic. https://adoptium.net/news/2026/11/temurin-november-2026-cspu-java4shell
+RUN java -XshowSettings:properties -version 2>&1 | grep -E "java.runtime.version = 25\.0\.(5\.[1-9]|[6-9]|[1-9][0-9])"
 # Fail the build on a JDK older than 25.0.5+8 (e.g. a stale cached base image): its trust store still has the
 # roots that signed the compromised eMudhra intermediate CAs. https://adoptium.net/news/2026/10/temurin-october-2026-emudhra/
 # The listing is checked to be non-empty, so a keytool that fails does not pass the check.
@@ -11,8 +14,4 @@ WORKDIR /app
 COPY ./target/*.jar app.jar
 
 EXPOSE 8080
-# Workaround for the reported CVE-2026-114938 (JDK AVX-512 Base64 decoder intrinsic): decode base64 in plain Java.
-# Baked into the image so every deployment gets it. JDK_JAVA_OPTIONS is read by the java launcher whatever the
-# ENTRYPOINT form; if you set your own JDK_JAVA_OPTIONS, keep this flag in it. Remove once the JDK ships the fix.
-ENV JDK_JAVA_OPTIONS="-XX:-UseBASE64Intrinsics"
 ENTRYPOINT ["java", "-jar", "app.jar"]
