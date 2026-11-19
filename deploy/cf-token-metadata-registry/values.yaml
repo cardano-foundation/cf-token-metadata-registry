@@ -58,7 +58,6 @@ service:
 
 ingress:
   enabled: true
-  disableActuatorEndpoint: true
   additionalDomains: []
 
 postgres:

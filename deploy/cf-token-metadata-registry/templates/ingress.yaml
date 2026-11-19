@@ -16,42 +16,66 @@ spec:
     - host: "api.{{ .Values.domain }}"
       http:
         paths:
-{{ if .Values.ingress.disableActuatorEndpoint }}
-          - path: /actuator
-            pathType: Prefix
-            backend:
-              service:
-                name: nginx-not-found
-                port:
-                  number: 80
-{{ end }}
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: {{ $fullName }}
-                port:
-                  number: {{ $svcPort }}
+        - path: /health
+          pathType: Prefix
+          backend:
+            service:
+              name: {{ $fullName }}
+              port:
+                number: {{ $svcPort }}
+        - path: /metadata
+          pathType: Prefix
+          backend:
+            service:
+              name: {{ $fullName }}
+              port:
+                number: {{ $svcPort }}
+        - path: /api/v2
+          pathType: Prefix
+          backend:
+            service:
+              name: {{ $fullName }}
+              port:
+                number: {{ $svcPort }}
+        - path: /apidocs
+          pathType: Prefix
+          backend:
+            service:
+              name: {{ $fullName }}
+              port:
+                number: {{ $svcPort }}
     {{- range $domain := .Values.ingress.additionalDomains }}
     - host: {{ $domain }}
       http:
         paths:
-{{ if $.Values.ingress.disableActuatorEndpoint }}
-          - path: /actuator
-            pathType: Prefix
-            backend:
-              service:
-                name: nginx-not-found
-                port:
-                  number: 80
-{{ end }}
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: {{ $fullName }}
-                port:
-                  number: {{ $svcPort }}
+        - path: /health
+          pathType: Prefix
+          backend:
+            service:
+              name: {{ $fullName }}
+              port:
+                number: {{ $svcPort }}
+        - path: /metadata
+          pathType: Prefix
+          backend:
+            service:
+              name: {{ $fullName }}
+              port:
+                number: {{ $svcPort }}
+        - path: /api/v2
+          pathType: Prefix
+          backend:
+            service:
+              name: {{ $fullName }}
+              port:
+                number: {{ $svcPort }}
+        - path: /apidocs
+          pathType: Prefix
+          backend:
+            service:
+              name: {{ $fullName }}
+              port:
+                number: {{ $svcPort }}
     {{- end }}
   tls:
     - hosts:
