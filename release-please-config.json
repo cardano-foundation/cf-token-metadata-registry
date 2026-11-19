@@ -5,7 +5,8 @@
   "bump-patch-for-minor-pre-major": true,
   "packages": {
     ".": {
-      "release-type": "maven"
+      "release-type": "maven",
+      "skip-snapshot": true
     }
   }
 }
